@@ -7,22 +7,29 @@ and annotated real-world examples.
 
 from __future__ import annotations
 
-import importlib.resources
 from pathlib import Path
-from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
-# Docs / examples on disk
+# Docs / examples on disk — allowlisted filenames only
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]  # src/aces/mcp/tools -> repo root
 _DOCS_DIR = _REPO_ROOT / "docs" / "sdl"
 _EXAMPLES_DIR = _REPO_ROOT / "examples"
 
+_ALLOWED_DOCS = frozenset({"sections.md", "parser.md", "validation.md"})
+_ALLOWED_EXAMPLES = frozenset({
+    "hospital-ransomware-surgery-day.sdl.yaml",
+    "satcom-release-poisoning.sdl.yaml",
+    "port-authority-surge-response.sdl.yaml",
+})
+
 
 def _read_doc(name: str) -> str:
+    if name not in _ALLOWED_DOCS:
+        return f"Documentation file not available: {name}"
     path = _DOCS_DIR / name
     if not path.exists():
         return f"Documentation file not found: {name}"
@@ -30,6 +37,8 @@ def _read_doc(name: str) -> str:
 
 
 def _read_example(name: str) -> str:
+    if name not in _ALLOWED_EXAMPLES:
+        return f"Example file not available: {name}"
     path = _EXAMPLES_DIR / name
     if not path.exists():
         return f"Example file not found: {name}"

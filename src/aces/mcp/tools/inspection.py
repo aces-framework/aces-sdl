@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+_MAX_INPUT_BYTES = 64 * 1024
+
 
 def register(mcp: FastMCP) -> None:
     """Register SDL inspection/query tools on the MCP server."""
@@ -116,6 +118,9 @@ _SECTION_FIELDS = [
 
 def _parse_or_error(sdl_content: str):
     """Attempt to parse SDL, returning a Scenario or an error string."""
+    if len(sdl_content.encode("utf-8", errors="replace")) > _MAX_INPUT_BYTES:
+        return f"INPUT TOO LARGE — limit is {_MAX_INPUT_BYTES} bytes."
+
     from aces.core.sdl import SDLParseError, SDLValidationError, parse_sdl
 
     try:
@@ -196,15 +201,23 @@ def _build_summary(scenario) -> str:
     return "\n".join(lines)
 
 
-def _format_entities(entities: dict, lines: list[str], indent: int) -> None:
+_MAX_RECURSION_DEPTH = 20
+
+
+def _format_entities(
+    entities: dict, lines: list[str], indent: int, depth: int = 0
+) -> None:
     """Recursively format entity hierarchy."""
+    if depth > _MAX_RECURSION_DEPTH:
+        lines.append(" " * indent + "(truncated — max depth reached)")
+        return
     prefix = " " * indent
     for name, entity in entities.items():
         role_str = f" ({entity.role.value})" if entity.role and hasattr(entity.role, 'value') else ""
         display = entity.name or name
         lines.append(f"{prefix}{name}: {display}{role_str}")
         if entity.entities:
-            _format_entities(entity.entities, lines, indent + 2)
+            _format_entities(entity.entities, lines, indent + 2, depth + 1)
 
 
 def _list_elements(scenario, section_filter: str) -> str:
@@ -238,15 +251,20 @@ def _list_elements(scenario, section_filter: str) -> str:
     return "\n".join(lines)
 
 
+_SECTION_FIELDS_SET = frozenset(_SECTION_FIELDS)
+
+
 def _get_element_detail(scenario, name: str) -> str:
     """Get detailed info about a named element."""
     # Try qualified ref first (e.g. "nodes.web-server")
     if "." in name:
         parts = name.split(".", 1)
         section_name, element_name = parts[0], parts[1]
-        data = getattr(scenario, section_name, None)
-        if isinstance(data, dict) and element_name in data:
-            return _format_element(section_name, element_name, data[element_name])
+        # Only access known SDL section attributes — never arbitrary attrs.
+        if section_name in _SECTION_FIELDS_SET:
+            data = getattr(scenario, section_name, None)
+            if isinstance(data, dict) and element_name in data:
+                return _format_element(section_name, element_name, data[element_name])
 
     # Search all sections for bare name
     matches: list[tuple[str, str, object]] = []
@@ -301,15 +319,17 @@ def _format_element(section: str, name: str, obj: object) -> str:
     return "\n".join(lines)
 
 
-def _format_value(value: object, indent: int = 4) -> str:
+def _format_value(value: object, indent: int = 4, depth: int = 0) -> str:
     """Format a value for display, handling nested structures."""
+    if depth > _MAX_RECURSION_DEPTH:
+        return "(...)"
     if isinstance(value, dict):
         if not value:
             return "{}"
         parts = []
         prefix = " " * indent
         for k, v in value.items():
-            parts.append(f"{prefix}{k}: {_format_value(v, indent + 2)}")
+            parts.append(f"{prefix}{k}: {_format_value(v, indent + 2, depth + 1)}")
         return "\n" + "\n".join(parts)
     if isinstance(value, list):
         if not value:
@@ -319,7 +339,7 @@ def _format_value(value: object, indent: int = 4) -> str:
         parts = []
         prefix = " " * indent
         for v in value:
-            parts.append(f"{prefix}- {_format_value(v, indent + 2)}")
+            parts.append(f"{prefix}- {_format_value(v, indent + 2, depth + 1)}")
         return "\n" + "\n".join(parts)
     if hasattr(value, "value"):
         return str(value.value)
