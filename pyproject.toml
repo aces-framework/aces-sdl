@@ -27,6 +27,13 @@ dev = [
     "httpx>=0.27.0",
     "hypothesis>=6.0.0",
 ]
+docs = [
+    "sphinx>=7.0",
+    "furo>=2024.1.29",
+    "myst-parser>=3.0",
+    "sphinx-copybutton>=0.5",
+    "sphinx-autobuild>=2024.0",
+]
 
 [project.scripts]
 aces = "aces.cli.main:app"
