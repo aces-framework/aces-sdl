@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+import secrets
 from dataclasses import dataclass, field
 from enum import Enum
+
+_logger = logging.getLogger(__name__)
 
 
 class ControlPlaneRole(str, Enum):
@@ -50,12 +54,17 @@ class ControlPlaneSecurityConfig:
             roles=frozenset({ControlPlaneRole.OPERATOR, ControlPlaneRole.AUDITOR}),
             target_name=target_name,
         )
+        generated_token = secrets.token_urlsafe(32)
+        _logger.warning(
+            "Using auto-generated bearer token for operator access. "
+            "Configure explicit tokens for production deployments."
+        )
         return cls(
             require_verified_identity=True,
             trusted_identities={
                 backend_identity.identity: backend_identity,
             },
             bearer_tokens={
-                "operator-token": operator_identity,
+                generated_token: operator_identity,
             },
         )

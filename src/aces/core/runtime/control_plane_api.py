@@ -170,15 +170,20 @@ def create_control_plane_app(
     @app.middleware("http")
     async def _limit_request_size(request: Request, call_next):
         content_length = request.headers.get("content-length")
-        if content_length is not None and int(content_length) > security.max_request_bytes:
-            control_plane.record_audit(
-                action=request.method,
-                identity="anonymous",
-                allowed=False,
-                target=str(request.url.path),
-                reason="request too large",
-            )
-            return JSONResponse(status_code=413, content={"detail": "request too large"})
+        if content_length is not None:
+            try:
+                content_length_int = int(content_length)
+            except ValueError:
+                return JSONResponse(status_code=400, content={"detail": "invalid content-length"})
+            if content_length_int > security.max_request_bytes:
+                control_plane.record_audit(
+                    action=request.method,
+                    identity="anonymous",
+                    allowed=False,
+                    target=str(request.url.path),
+                    reason="request too large",
+                )
+                return JSONResponse(status_code=413, content={"detail": "request too large"})
         body = await request.body()
         if len(body) > security.max_request_bytes:
             control_plane.record_audit(
@@ -210,7 +215,14 @@ def create_control_plane_app(
             identity = security.bearer_tokens.get(token)
             if identity is not None:
                 return identity
+        # Header-based identity auth requires a trusted reverse proxy that sets
+        # and verifies these headers.  If no trusted_identities are configured,
+        # skip this path entirely to avoid accidentally accepting spoofed headers.
+        if not security.trusted_identities:
+            raise HTTPException(status_code=401, detail="authentication required")
         identity_name = request.headers.get(security.identity_header, "")
+        if not identity_name:
+            raise HTTPException(status_code=401, detail="authentication required")
         verified = request.headers.get(security.verified_header, "").lower()
         if security.require_verified_identity and verified != "true":
             raise HTTPException(status_code=401, detail="verified client identity required")
