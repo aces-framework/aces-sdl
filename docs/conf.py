@@ -11,7 +11,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
     "myst_parser",
     "sphinx_copybutton",

@@ -137,14 +137,3 @@ Variables
 .. automodule:: aces.core.sdl.variables
    :members:
 
-Errors
-------
-
-.. automodule:: aces.core.sdl._errors
-   :members:
-
-Source Tracking
----------------
-
-.. automodule:: aces.core.sdl._source
-   :members:
