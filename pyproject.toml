@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn[standard]>=0.34.0",
     "sse-starlette>=2.0.0",
     "asyncssh>=2.17.0",
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +31,7 @@ dev = [
 
 [project.scripts]
 aces = "aces.cli.main:app"
+aces-mcp = "aces.mcp.__main__:server.run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aces"]
