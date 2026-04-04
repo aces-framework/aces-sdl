@@ -7,9 +7,12 @@ scenarios with concrete values.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from mcp.server.fastmcp import FastMCP
+
+# Maximum input size to prevent resource exhaustion via YAML bombs or
+# extremely large payloads.  64 KiB accommodates the largest bundled
+# example (~750 lines / ~25 KiB) with generous headroom.
+_MAX_INPUT_BYTES = 64 * 1024
 
 
 def register(mcp: FastMCP) -> None:
@@ -33,6 +36,9 @@ def register(mcp: FastMCP) -> None:
         sdl_content: str,
         structural_only: bool = False,
     ) -> str:
+        if len(sdl_content.encode("utf-8", errors="replace")) > _MAX_INPUT_BYTES:
+            return f"INPUT TOO LARGE — limit is {_MAX_INPUT_BYTES} bytes."
+
         from aces.core.sdl import (
             SDLParseError,
             SDLValidationError,
@@ -101,6 +107,12 @@ def register(mcp: FastMCP) -> None:
         section_yaml: str,
         context_yaml: str = "",
     ) -> str:
+        combined_size = len(section_yaml.encode("utf-8", errors="replace")) + len(
+            context_yaml.encode("utf-8", errors="replace")
+        )
+        if combined_size > _MAX_INPUT_BYTES:
+            return f"INPUT TOO LARGE — limit is {_MAX_INPUT_BYTES} bytes."
+
         import yaml as _yaml
 
         from aces.core.sdl import SDLParseError, SDLValidationError, parse_sdl
@@ -125,7 +137,7 @@ def register(mcp: FastMCP) -> None:
         except _yaml.YAMLError as exc:
             return f"YAML ERROR in section content:\n{exc}"
 
-        wrapper: dict = {"name": "__mcp_validation_fragment"}
+        wrapper: dict = {}
         if context_yaml:
             try:
                 ctx = _yaml.safe_load(context_yaml)
@@ -134,6 +146,9 @@ def register(mcp: FastMCP) -> None:
             except _yaml.YAMLError as exc:
                 return f"YAML ERROR in context_yaml:\n{exc}"
 
+        # Force a safe synthetic name — always last so context_yaml cannot
+        # override it and cause confusing error messages.
+        wrapper["name"] = "__mcp_validation_fragment"
         wrapper[section] = section_data
         combined = _yaml.dump(wrapper, default_flow_style=False, sort_keys=False)
 
@@ -169,11 +184,19 @@ def register(mcp: FastMCP) -> None:
         if key not in ("minimal", "standard", "full"):
             return "Invalid complexity. Choose: 'minimal', 'standard', or 'full'."
 
-        if key == "minimal":
-            return _SCAFFOLD_MINIMAL.format(name=scenario_name, desc=description)
-        if key == "standard":
-            return _SCAFFOLD_STANDARD.format(name=scenario_name, desc=description)
-        return _SCAFFOLD_FULL.format(name=scenario_name, desc=description)
+        templates = {
+            "minimal": _SCAFFOLD_MINIMAL,
+            "standard": _SCAFFOLD_STANDARD,
+            "full": _SCAFFOLD_FULL,
+        }
+        # Use Template-style substitution instead of str.format() to
+        # avoid crashes or unexpected behaviour when user-provided
+        # scenario_name/description contain { or } characters.
+        return (
+            templates[key]
+            .replace("{name}", scenario_name)
+            .replace("{desc}", description)
+        )
 
     @mcp.tool(
         name="sdl_instantiate",
@@ -189,6 +212,12 @@ def register(mcp: FastMCP) -> None:
         sdl_content: str,
         parameters_json: str = "{}",
     ) -> str:
+        combined_size = len(sdl_content.encode("utf-8", errors="replace")) + len(
+            parameters_json.encode("utf-8", errors="replace")
+        )
+        if combined_size > _MAX_INPUT_BYTES:
+            return f"INPUT TOO LARGE — limit is {_MAX_INPUT_BYTES} bytes."
+
         import json
 
         from aces.core.sdl import (
@@ -270,21 +299,21 @@ nodes:
   server-01:
     type: VM
     os: linux
-    resources: {{ram: 2 GiB, cpu: 1}}
+    resources: {ram: 2 GiB, cpu: 1}
     features: [my-service]
     services:
-      - {{port: 443, name: https}}
+      - {port: 443, name: https}
 
 infrastructure:
   net-switch:
     count: 1
-    properties: {{cidr: 10.0.0.0/24, gateway: 10.0.0.1}}
+    properties: {cidr: 10.0.0.0/24, gateway: 10.0.0.1}
   server-01:
     count: 1
     links: [net-switch]
 
 features:
-  my-service: {{type: Service, source: my-package}}
+  my-service: {type: Service, source: my-package}
 """
 
 _SCAFFOLD_STANDARD = """\
@@ -299,28 +328,28 @@ nodes:
   web-server:
     type: VM
     os: linux
-    resources: {{ram: 4 GiB, cpu: 2}}
-    features: {{web-app: web-admin}}
-    conditions: {{web-healthy: web-admin}}
+    resources: {ram: 4 GiB, cpu: 2}
+    features: {web-app: web-admin}
+    conditions: {web-healthy: web-admin}
     services:
-      - {{port: 443, name: https}}
+      - {port: 443, name: https}
     roles:
       web-admin: www-data
 
   db-server:
     type: VM
     os: linux
-    resources: {{ram: 4 GiB, cpu: 2}}
-    features: {{database: dba}}
+    resources: {ram: 4 GiB, cpu: 2}
+    features: {database: dba}
     services:
-      - {{port: 5432, name: postgres}}
+      - {port: 5432, name: postgres}
     roles:
       dba: postgres
 
 infrastructure:
   corp-net:
     count: 1
-    properties: {{cidr: 10.0.0.0/24, gateway: 10.0.0.1}}
+    properties: {cidr: 10.0.0.0/24, gateway: 10.0.0.1}
   web-server:
     count: 1
     links: [corp-net]
@@ -329,8 +358,8 @@ infrastructure:
     links: [corp-net]
 
 features:
-  web-app: {{type: Service, source: my-webapp}}
-  database: {{type: Service, source: postgresql-16}}
+  web-app: {type: Service, source: my-webapp}
+  database: {type: Service, source: postgresql-16}
 
 conditions:
   web-healthy:
@@ -388,7 +417,7 @@ relationships:
     type: connects_to
     source: web-app
     target: database
-    properties: {{protocol: tcp, port: "5432"}}
+    properties: {protocol: tcp, port: "5432"}
 """
 
 _SCAFFOLD_FULL = """\
@@ -415,12 +444,12 @@ nodes:
   web-server:
     type: VM
     os: linux
-    resources: {{ram: 4 GiB, cpu: 2}}
-    features: {{web-app: web-admin}}
-    conditions: {{web-healthy: web-admin}}
+    resources: {ram: 4 GiB, cpu: 2}
+    features: {web-app: web-admin}
+    conditions: {web-healthy: web-admin}
     vulnerabilities: [sqli]
     services:
-      - {{port: 443, name: https}}
+      - {port: 443, name: https}
     roles:
       web-admin:
         username: www-data
@@ -429,10 +458,10 @@ nodes:
   db-server:
     type: VM
     os: linux
-    resources: {{ram: 4 GiB, cpu: 2}}
-    features: {{database: dba}}
+    resources: {ram: 4 GiB, cpu: 2}
+    features: {database: dba}
     services:
-      - {{port: 5432, name: postgres}}
+      - {port: 5432, name: postgres}
     roles:
       dba: postgres
     asset_value:
@@ -442,7 +471,7 @@ nodes:
 infrastructure:
   corp-net:
     count: 1
-    properties: {{cidr: 10.0.0.0/24, gateway: 10.0.0.1}}
+    properties: {cidr: 10.0.0.0/24, gateway: 10.0.0.1}
   web-server:
     count: 1
     links: [corp-net]
@@ -452,8 +481,8 @@ infrastructure:
 
 # --- Software ---
 features:
-  web-app: {{type: Service, source: my-webapp}}
-  database: {{type: Service, source: postgresql-16}}
+  web-app: {type: Service, source: my-webapp}
+  database: {type: Service, source: postgresql-16}
 
 conditions:
   web-healthy:
@@ -498,7 +527,7 @@ entities:
     role: Blue
     tlos: [defend-web]
     entities:
-      web-ops: {{name: Web Operations}}
+      web-ops: {name: Web Operations}
   red-team:
     name: Red Team
     role: Red
@@ -518,13 +547,13 @@ scripts:
   main-timeline:
     start-time: 0
     end-time: 4 hour
-    speed: ${{exercise_speed}}
+    speed: ${exercise_speed}
     events:
       attack-start: 30 min
 
 stories:
   exercise:
-    speed: ${{exercise_speed}}
+    speed: ${exercise_speed}
     scripts: [main-timeline]
 
 # --- Content ---
@@ -540,7 +569,7 @@ accounts:
   web-admin-account:
     username: webadmin
     node: web-server
-    password_strength: ${{admin_password_strength}}
+    password_strength: ${admin_password_strength}
   db-admin-account:
     username: dbadmin
     node: db-server
@@ -552,7 +581,7 @@ relationships:
     type: connects_to
     source: web-app
     target: database
-    properties: {{protocol: tcp, port: "5432"}}
+    properties: {protocol: tcp, port: "5432"}
 
 # --- Agents ---
 agents:

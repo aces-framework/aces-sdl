@@ -534,3 +534,73 @@ class TestServerConstruction:
         server = create_server()
         assert server.instructions
         assert "SDL" in server.instructions
+
+
+# ---------------------------------------------------------------------------
+# Security regression tests
+# ---------------------------------------------------------------------------
+
+
+class TestSecurity:
+    """Regression tests for security hardening."""
+
+    def test_scaffold_with_braces_in_name(self, server):
+        """Format string injection: braces in user input must not crash."""
+        text = _call(
+            server,
+            "sdl_scaffold",
+            {
+                "complexity": "minimal",
+                "scenario_name": "test{oops}",
+                "description": "desc with {curly} braces",
+            },
+        )
+        assert "test{oops}" in text
+        assert "{curly}" in text
+        # Should still be valid YAML (name: test{oops} is a valid YAML string)
+        assert "name: test{oops}" in text
+
+    def test_get_element_private_attr_access(self, server):
+        """Qualified ref must not access private/dunder attributes."""
+        text = _call(
+            server,
+            "sdl_get_element",
+            {"sdl_content": MINIMAL_SDL, "element_name": "_advisories.anything"},
+        )
+        assert "not found" in text.lower()
+
+    def test_get_element_dunder_access(self, server):
+        """Qualified ref must not access __class__ or similar."""
+        text = _call(
+            server,
+            "sdl_get_element",
+            {"sdl_content": MINIMAL_SDL, "element_name": "__class__.foo"},
+        )
+        assert "not found" in text.lower()
+
+    def test_validate_oversized_input_rejected(self, server):
+        """Extremely large input must be rejected."""
+        huge = "name: x\nnodes:\n" + "  n{i}: {{type: Switch}}\n" * 10_000
+        text = _call(server, "sdl_validate", {"sdl_content": huge})
+        assert "INPUT TOO LARGE" in text
+
+    def test_summarize_oversized_input_rejected(self, server):
+        """Inspection tools also enforce size limits."""
+        huge = "name: x\n" + "x" * (65 * 1024)
+        text = _call(server, "sdl_summarize", {"sdl_content": huge})
+        assert "INPUT TOO LARGE" in text
+
+    def test_validate_section_context_cannot_override_name(self, server):
+        """context_yaml must not be able to hijack the wrapper name."""
+        text = _call(
+            server,
+            "sdl_validate_section",
+            {
+                "section": "nodes",
+                "section_yaml": "sw:\n  type: Switch",
+                "context_yaml": "name: hijacked",
+            },
+        )
+        # Should succeed validation — name should still be the safe internal one
+        assert "VALID" in text or "VALIDATION" in text
+        assert "hijacked" not in text
