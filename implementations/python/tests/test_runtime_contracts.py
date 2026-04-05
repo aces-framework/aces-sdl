@@ -29,3 +29,4 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["operation-status-v1"]["additionalProperties"] is False
     assert generated["runtime-snapshot-v1"]["additionalProperties"] is False
     assert generated["processor-manifest-v1"]["additionalProperties"] is False
+    assert generated["concept-families-v1"]["additionalProperties"] is False

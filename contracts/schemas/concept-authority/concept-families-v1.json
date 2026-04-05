@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "ConceptFamilyModel": {
+      "additionalProperties": false,
+      "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority"
+        },
+        "authority_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Reference"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ConceptProvenanceCategory"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "provenance"
+      ],
+      "title": "ConceptFamilyModel",
+      "type": "object"
+    },
+    "ConceptProvenanceCategory": {
+      "description": "How a concept family relates to its authority source.",
+      "enum": [
+        "adopted",
+        "adapted",
+        "native"
+      ],
+      "title": "ConceptProvenanceCategory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "families": {
+      "items": {
+        "$ref": "#/$defs/ConceptFamilyModel"
+      },
+      "title": "Families",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "concept-families/v1",
+      "default": "concept-families/v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "families"
+  ],
+  "title": "ConceptFamilyCatalogModel",
+  "type": "object"
+}

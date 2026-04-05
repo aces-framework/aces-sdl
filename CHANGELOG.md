@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-05
+
+### Added
+
+- Canonical concept authority for cyber-domain meaning with three-layer model
+  (concept authority, ACES concept, artifact binding), provenance categories
+  (adopted/adapted/native), and 12 concept families mapped to UCO or
+  ACES-native origins (GOV-917).
+- JSON Schema `concept-families-v1` published to
+  `contracts/schemas/concept-authority/`.
+- Authoritative concept family catalog at
+  `contracts/concept-authority/concept-families-v1.json`.
+- Normative concept authority specification at
+  `specs/concept-authority/concept-authority.md`.
+
 ## [0.2.0] - 2026-04-04
 
 ### Added
