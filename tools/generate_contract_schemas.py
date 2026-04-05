@@ -34,7 +34,7 @@ def main() -> None:
     sys.path.insert(0, str(python_root / "src"))
     sys.path.insert(0, str(python_root / "packages"))
 
-    from aces_processor.contracts import schema_bundle
+    from aces_contracts.contracts import schema_bundle
 
     schemas_dir = repo_root / "contracts" / "schemas"
     bundle = schema_bundle()

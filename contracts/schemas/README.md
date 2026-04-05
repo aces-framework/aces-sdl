@@ -12,6 +12,7 @@ Current published schemas cover:
 - instantiated scenarios
 - backend manifests
 - processor manifests
+- concept-authority catalogs
 - live-execution snapshots
 - workflow result envelopes
 - workflow history streams

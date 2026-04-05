@@ -10,8 +10,7 @@ from textwrap import dedent
 from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
-from aces_processor.compiler import compile_runtime_model
-from aces_processor.contracts import (
+from aces_contracts.contracts import (
     BackendManifestModel,
     EvaluationHistoryEventModel,
     EvaluationPlanModel,
@@ -25,6 +24,7 @@ from aces_processor.contracts import (
     WorkflowHistoryEventModel,
     schema_bundle,
 )
+from aces_processor.compiler import compile_runtime_model
 from aces_processor.control_plane import RuntimeControlPlane
 from aces_processor.manager import (
     _evaluation_result_contract_diagnostics,

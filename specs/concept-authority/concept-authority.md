@@ -87,6 +87,17 @@ The authoritative concept family catalog is published at:
 
 `contracts/concept-authority/concept-families-v1.json`
 
+The catalog is a keyed map. `families` is an object whose property names are
+the canonical family identifiers, and each property value is the family
+definition. The family identifier is authoritative at the map key and is not
+duplicated inside each family object.
+
+The machine-readable catalog also makes the provenance rules normative:
+
+- `adopted` and `adapted` families must declare both `authority` and
+  `authority_reference`
+- `native` families must not declare either authority field
+
 The JSON Schema for the catalog format is published at:
 
 `contracts/schemas/concept-authority/concept-families-v1.json`
