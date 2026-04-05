@@ -198,6 +198,17 @@ class BackendManifestModel(ContractModel):
     evaluator: EvaluatorCapabilitiesModel | None = None
 
 
+class ProcessorManifestModel(ContractModel):
+    schema_version: Literal["processor-manifest/v1"] = "processor-manifest/v1"
+    name: str
+    version: str
+    supported_sdl_versions: list[str] = Field(default_factory=list)
+    supported_contract_versions: list[str] = Field(default_factory=list)
+    supported_features: list[str] = Field(default_factory=list)
+    compatible_backends: list[str] = Field(default_factory=list)
+    constraints: dict[str, str] = Field(default_factory=dict)
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -206,6 +217,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "instantiated-scenario-v1": InstantiatedScenario.model_json_schema(),
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
         "backend-manifest-v1": BackendManifestModel.model_json_schema(),
+        "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),

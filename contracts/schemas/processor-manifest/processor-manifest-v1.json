@@ -1,0 +1,60 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "compatible_backends": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Compatible Backends",
+      "type": "array"
+    },
+    "constraints": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "object"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "processor-manifest/v1",
+      "default": "processor-manifest/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supported_contract_versions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supported Contract Versions",
+      "type": "array"
+    },
+    "supported_features": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supported Features",
+      "type": "array"
+    },
+    "supported_sdl_versions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supported Sdl Versions",
+      "type": "array"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "version"
+  ],
+  "title": "ProcessorManifestModel",
+  "type": "object"
+}
