@@ -1,0 +1,630 @@
+{
+  "$defs": {
+    "ApparatusCompatibilityModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "processors": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "processors"
+              ]
+            },
+            {
+              "properties": {
+                "backends": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "backends"
+              ]
+            },
+            {
+              "properties": {
+                "participant_implementations": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "participant_implementations"
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "backends": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Backends",
+          "type": "array"
+        },
+        "participant_implementations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Participant Implementations",
+          "type": "array"
+        },
+        "processors": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Processors",
+          "type": "array"
+        }
+      },
+      "title": "ApparatusCompatibilityModel",
+      "type": "object"
+    },
+    "ApparatusIdentityModel": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ApparatusIdentityModel",
+      "type": "object"
+    },
+    "BackendCapabilitiesV2Model": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluatorCapabilitiesModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orchestrator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OrchestratorCapabilitiesModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "provisioner": {
+          "$ref": "#/$defs/ProvisionerCapabilitiesModel"
+        }
+      },
+      "required": [
+        "provisioner"
+      ],
+      "title": "BackendCapabilitiesV2Model",
+      "type": "object"
+    },
+    "EvaluatorCapabilitiesModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "not": {
+            "allOf": [
+              {
+                "properties": {
+                  "supports_scoring": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "supports_scoring"
+                ]
+              },
+              {
+                "properties": {
+                  "supports_objectives": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "supports_objectives"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "supported_sections": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Sections",
+          "type": "array"
+        },
+        "supports_objectives": {
+          "default": true,
+          "title": "Supports Objectives",
+          "type": "boolean"
+        },
+        "supports_scoring": {
+          "default": true,
+          "title": "Supports Scoring",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "supported_sections"
+      ],
+      "title": "EvaluatorCapabilitiesModel",
+      "type": "object"
+    },
+    "OrchestratorCapabilitiesModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supports_workflows": {
+                "const": true
+              }
+            },
+            "required": [
+              "supports_workflows"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_sections": {
+                "contains": {
+                  "const": "workflows"
+                }
+              },
+              "supported_workflow_features": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_workflow_features",
+              "supported_sections"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_workflows": {
+                "const": false
+              }
+            },
+            "required": [
+              "supports_workflows"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_sections": {
+                "not": {
+                  "contains": {
+                    "const": "workflows"
+                  }
+                }
+              },
+              "supported_workflow_features": {
+                "maxItems": 0
+              },
+              "supported_workflow_state_predicates": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "supported_sections": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Sections",
+          "type": "array"
+        },
+        "supported_workflow_features": {
+          "items": {
+            "$ref": "#/$defs/WorkflowFeature"
+          },
+          "title": "Supported Workflow Features",
+          "type": "array"
+        },
+        "supported_workflow_state_predicates": {
+          "items": {
+            "$ref": "#/$defs/WorkflowStatePredicateFeature"
+          },
+          "title": "Supported Workflow State Predicates",
+          "type": "array"
+        },
+        "supports_condition_refs": {
+          "default": true,
+          "title": "Supports Condition Refs",
+          "type": "boolean"
+        },
+        "supports_inject_bindings": {
+          "default": true,
+          "title": "Supports Inject Bindings",
+          "type": "boolean"
+        },
+        "supports_workflows": {
+          "default": false,
+          "title": "Supports Workflows",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "supported_sections"
+      ],
+      "title": "OrchestratorCapabilitiesModel",
+      "type": "object"
+    },
+    "ProvisionerCapabilitiesModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supports_accounts": {
+                "const": true
+              }
+            },
+            "required": [
+              "supports_accounts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_account_features": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_account_features"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_accounts": {
+                "const": false
+              }
+            },
+            "required": [
+              "supports_accounts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_account_features": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "max_total_nodes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Total Nodes"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "supported_account_features": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Account Features",
+          "type": "array"
+        },
+        "supported_content_types": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Content Types",
+          "type": "array"
+        },
+        "supported_node_types": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Node Types",
+          "type": "array"
+        },
+        "supported_os_families": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Os Families",
+          "type": "array"
+        },
+        "supports_accounts": {
+          "default": false,
+          "title": "Supports Accounts",
+          "type": "boolean"
+        },
+        "supports_acls": {
+          "default": false,
+          "title": "Supports Acls",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "supported_node_types",
+        "supported_os_families"
+      ],
+      "title": "ProvisionerCapabilitiesModel",
+      "type": "object"
+    },
+    "RealizationSupportDeclarationModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "supported_constraint_kinds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "supported_constraint_kinds"
+              ]
+            },
+            {
+              "properties": {
+                "supported_exact_requirement_kinds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "supported_exact_requirement_kinds"
+              ]
+            }
+          ]
+        },
+        {
+          "if": {
+            "properties": {
+              "support_mode": {
+                "const": "exact-only"
+              }
+            },
+            "required": [
+              "support_mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_constraint_kinds": {
+                "maxItems": 0
+              },
+              "supported_exact_requirement_kinds": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_exact_requirement_kinds"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "disclosure_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Disclosure Kinds",
+          "type": "array"
+        },
+        "domain": {
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "support_mode": {
+          "$ref": "#/$defs/RealizationSupportMode"
+        },
+        "supported_constraint_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Constraint Kinds",
+          "type": "array"
+        },
+        "supported_exact_requirement_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Exact Requirement Kinds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domain",
+        "support_mode",
+        "disclosure_kinds"
+      ],
+      "title": "RealizationSupportDeclarationModel",
+      "type": "object"
+    },
+    "RealizationSupportMode": {
+      "description": "How an apparatus can supply realizations for underspecified inputs.",
+      "enum": [
+        "exact-only",
+        "constrained",
+        "open-realization"
+      ],
+      "title": "RealizationSupportMode",
+      "type": "string"
+    },
+    "WorkflowFeature": {
+      "description": "Portable workflow control features that an orchestrator may support.",
+      "enum": [
+        "decision",
+        "switch",
+        "retry",
+        "call",
+        "parallel-barrier",
+        "failure-transitions",
+        "cancellation",
+        "timeouts",
+        "compensation"
+      ],
+      "title": "WorkflowFeature",
+      "type": "string"
+    },
+    "WorkflowStatePredicateFeature": {
+      "description": "Portable workflow state-predicate features that an orchestrator may support.",
+      "enum": [
+        "outcome-matching",
+        "attempt-counts"
+      ],
+      "title": "WorkflowStatePredicateFeature",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/BackendCapabilitiesV2Model"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/ApparatusCompatibilityModel"
+    },
+    "constraints": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "object"
+    },
+    "identity": {
+      "$ref": "#/$defs/ApparatusIdentityModel"
+    },
+    "realization_support": {
+      "items": {
+        "$ref": "#/$defs/RealizationSupportDeclarationModel"
+      },
+      "minItems": 1,
+      "title": "Realization Support",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "backend-manifest/v2",
+      "default": "backend-manifest/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supported_contract_versions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Contract Versions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "identity",
+    "supported_contract_versions",
+    "compatibility",
+    "realization_support",
+    "capabilities"
+  ],
+  "title": "BackendManifestV2Model",
+  "type": "object"
+}

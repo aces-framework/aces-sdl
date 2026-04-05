@@ -1,0 +1,25 @@
+{
+  "schema_version": "backend-manifest/v2",
+  "identity": {
+    "name": "stub",
+    "version": "0.2.0"
+  },
+  "supported_contract_versions": ["backend-manifest-v2"],
+  "compatibility": {
+    "processors": ["aces-reference-processor"],
+    "backends": [],
+    "participant_implementations": []
+  },
+  "realization_support": [
+    {
+      "domain": "runtime-realization",
+      "support_mode": "not-a-real-support-mode"
+    }
+  ],
+  "constraints": {},
+  "capabilities": {
+    "provisioner": {
+      "name": "stub-provisioner"
+    }
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "ConceptFamilyDefinitionModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "adopted"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "required": [
+              "authority",
+              "authority_reference"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "adapted"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "required": [
+              "authority",
+              "authority_reference"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "native"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "authority"
+                  ]
+                },
+                {
+                  "required": [
+                    "authority_reference"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority"
+        },
+        "authority_reference": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Reference"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ConceptProvenanceCategory"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "provenance"
+      ],
+      "title": "ConceptFamilyDefinitionModel",
+      "type": "object"
+    },
+    "ConceptProvenanceCategory": {
+      "description": "How a concept family relates to its authority source.",
+      "enum": [
+        "adopted",
+        "adapted",
+        "native"
+      ],
+      "title": "ConceptProvenanceCategory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "families": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ConceptFamilyDefinitionModel"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Families",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "concept-families/v1",
+      "default": "concept-families/v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "families"
+  ],
+  "title": "ConceptFamilyCatalogModel",
+  "type": "object"
+}

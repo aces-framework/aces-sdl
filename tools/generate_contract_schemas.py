@@ -15,10 +15,12 @@ def _schema_output_path(schemas_dir: Path, name: str) -> Path:
         "scenario-instantiation-request-v1",
     }:
         return schemas_dir / "sdl" / f"{name}.json"
-    if name == "backend-manifest-v1":
+    if name.startswith("backend-manifest-v"):
         return schemas_dir / "backend-manifest" / f"{name}.json"
-    if name == "processor-manifest-v1":
+    if name.startswith("processor-manifest-v"):
         return schemas_dir / "processor-manifest" / f"{name}.json"
+    if name == "concept-families-v1":
+        return schemas_dir / "concept-authority" / f"{name}.json"
     if name.endswith("-plan-v1"):
         return schemas_dir / "plans" / f"{name}.json"
     if name == "runtime-snapshot-v1":
@@ -32,7 +34,7 @@ def main() -> None:
     sys.path.insert(0, str(python_root / "src"))
     sys.path.insert(0, str(python_root / "packages"))
 
-    from aces_processor.contracts import schema_bundle
+    from aces_contracts.contracts import schema_bundle
 
     schemas_dir = repo_root / "contracts" / "schemas"
     bundle = schema_bundle()
