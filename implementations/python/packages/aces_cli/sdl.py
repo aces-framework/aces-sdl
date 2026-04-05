@@ -6,16 +6,13 @@ import json
 from pathlib import Path
 
 import typer
-
-from aces_sdl.composition import expand_sdl_modules
 from aces_sdl.module_registry import (
     LOCKFILE_NAME,
     load_lockfile,
     publish_module_to_oci_layout,
     resolve_lock_records,
-    write_lockfile,
 )
-from aces_sdl.parser import _load_normalized_data, parse_sdl_file
+from aces_sdl.parser import parse_sdl_file
 
 app = typer.Typer(help="SDL composition and packaging.")
 
@@ -47,14 +44,10 @@ def verify_imports(
     """Verify lockfile, trust policy, and import expansion."""
     existing = load_lockfile(path.parent)
     if existing is None:
-        raise typer.BadParameter(
-            f"No {LOCKFILE_NAME} found next to {path}; run `aces sdl resolve` first."
-        )
+        raise typer.BadParameter(f"No {LOCKFILE_NAME} found next to {path}; run `aces sdl resolve` first.")
     expected = resolve_lock_records(path)
     if expected.model_dump(mode="python") != existing.model_dump(mode="python"):
-        raise typer.BadParameter(
-            "Import lockfile is stale or does not match current resolution."
-        )
+        raise typer.BadParameter("Import lockfile is stale or does not match current resolution.")
     parse_sdl_file(path)
     typer.echo("imports verified")
 

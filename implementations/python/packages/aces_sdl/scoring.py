@@ -9,7 +9,6 @@ thresholds. TLOs link to evaluations. Goals compose TLOs.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -37,14 +36,15 @@ class Metric(SDLModel):
 
     name: str = ""
     type: MetricType = Field(alias="type")
-    artifact: Optional[bool | str] = None
+    artifact: bool | str | None = None
 
     @field_validator("type", mode="before")
     @classmethod
     def normalize_type(cls, v: str) -> str:
         return normalize_enum_value(v)
+
     max_score: int | str
-    condition: Optional[str] = None
+    condition: str | None = None
     description: str = ""
 
     @field_validator("artifact", mode="before")
@@ -77,8 +77,8 @@ class MinScore(SDLModel):
     Longhand: ``min-score: {absolute: 50}`` or ``{percentage: 75}``.
     """
 
-    absolute: Optional[int | str] = None
-    percentage: Optional[int | str] = None
+    absolute: int | str | None = None
+    percentage: int | str | None = None
 
     @field_validator("absolute", mode="before")
     @classmethod
@@ -98,13 +98,9 @@ class MinScore(SDLModel):
     @model_validator(mode="after")
     def validate_exclusive(self) -> "MinScore":
         if self.absolute is not None and self.percentage is not None:
-            raise ValueError(
-                "MinScore cannot have both 'absolute' and 'percentage'"
-            )
+            raise ValueError("MinScore cannot have both 'absolute' and 'percentage'")
         if self.absolute is None and self.percentage is None:
-            raise ValueError(
-                "MinScore must have either 'absolute' or 'percentage'"
-            )
+            raise ValueError("MinScore must have either 'absolute' or 'percentage'")
         return self
 
 

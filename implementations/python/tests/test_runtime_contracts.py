@@ -11,10 +11,7 @@ from aces.core.runtime.contracts import schema_bundle
 def test_published_contract_schemas_exist_and_match_bundle():
     repo_root = Path(__file__).resolve().parents[3]
     schemas_dir = repo_root / "contracts" / "schemas"
-    published = {
-        path.stem: json.loads(path.read_text(encoding="utf-8"))
-        for path in schemas_dir.rglob("*.json")
-    }
+    published = {path.stem: json.loads(path.read_text(encoding="utf-8")) for path in schemas_dir.rglob("*.json")}
 
     generated = schema_bundle()
 
@@ -31,3 +28,4 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["operation-receipt-v1"]["additionalProperties"] is False
     assert generated["operation-status-v1"]["additionalProperties"] is False
     assert generated["runtime-snapshot-v1"]["additionalProperties"] is False
+    assert generated["processor-manifest-v1"]["additionalProperties"] is False

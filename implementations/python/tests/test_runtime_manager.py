@@ -12,9 +12,9 @@ from aces.backends.stubs import create_stub_manifest, create_stub_target
 from aces.core.runtime.compiler import compile_runtime_model
 from aces.core.runtime.manager import RuntimeManager
 from aces.core.runtime.models import (
+    EVALUATION_STATE_SCHEMA_VERSION,
     ApplyResult,
     ChangeAction,
-    EVALUATION_STATE_SCHEMA_VERSION,
     RuntimeDomain,
     RuntimeSnapshot,
     SnapshotEntry,
@@ -162,9 +162,11 @@ class RecordingProvisioner:
         return []
 
     def apply(self, plan, snapshot: RuntimeSnapshot) -> ApplyResult:
-        label = "provision-delete" if plan.operations and all(
-            op.action == ChangeAction.DELETE for op in plan.operations
-        ) else "provision-apply"
+        label = (
+            "provision-delete"
+            if plan.operations and all(op.action == ChangeAction.DELETE for op in plan.operations)
+            else "provision-apply"
+        )
         self.calls.append(label)
         next_snapshot = _apply_ops(
             snapshot,
@@ -175,9 +177,7 @@ class RecordingProvisioner:
         return ApplyResult(
             success=True,
             snapshot=next_snapshot,
-            changed_addresses=[
-                op.address for op in plan.operations if op.action != ChangeAction.UNCHANGED
-            ],
+            changed_addresses=[op.address for op in plan.operations if op.action != ChangeAction.UNCHANGED],
         )
 
 
@@ -223,9 +223,7 @@ class RecordingOrchestrator:
                     "outcome": None,
                     "attempts": 0,
                 }
-                for step_name, step_payload in result_contract.get(
-                    "observable_steps", {}
-                ).items()
+                for step_name, step_payload in result_contract.get("observable_steps", {}).items()
                 if isinstance(step_payload, dict)
             }
             self._results[op.address] = {
@@ -271,10 +269,7 @@ class RecordingOrchestrator:
         return dict(self._results)
 
     def history(self) -> dict[str, list[dict[str, object]]]:
-        return {
-            workflow_address: list(events)
-            for workflow_address, events in self._history.items()
-        }
+        return {workflow_address: list(events) for workflow_address, events in self._history.items()}
 
     def stop(self, snapshot: RuntimeSnapshot) -> ApplyResult:
         self.calls.append(f"{self.name}-stop")
@@ -282,9 +277,7 @@ class RecordingOrchestrator:
         self._results = {}
         self._history = {}
         entries = {
-            address: entry
-            for address, entry in snapshot.entries.items()
-            if entry.domain != RuntimeDomain.ORCHESTRATION
+            address: entry for address, entry in snapshot.entries.items() if entry.domain != RuntimeDomain.ORCHESTRATION
         }
         return ApplyResult(
             success=True,
@@ -327,9 +320,7 @@ class InvalidWorkflowResultsOrchestrator(RecordingOrchestrator):
             status="running",
         )
         workflow_address = next(
-            op.address
-            for op in plan.operations
-            if op.action != ChangeAction.DELETE and op.resource_type == "workflow"
+            op.address for op in plan.operations if op.action != ChangeAction.DELETE and op.resource_type == "workflow"
         )
         self._results = {
             workflow_address: {
@@ -537,9 +528,7 @@ class InvalidWorkflowCompensationOrchestrator(RecordingOrchestrator):
         result = super().start(plan, snapshot)
         workflow_address = next(iter(self._results))
         self._results[workflow_address]["compensation_status"] = "running"
-        self._results[workflow_address]["compensation_started_at"] = self._history[
-            workflow_address
-        ][0]["timestamp"]
+        self._results[workflow_address]["compensation_started_at"] = self._history[workflow_address][0]["timestamp"]
         return ApplyResult(
             success=True,
             snapshot=result.snapshot.with_entries(
@@ -635,10 +624,7 @@ class RecordingEvaluator:
         return dict(self._results)
 
     def history(self) -> dict[str, list[dict[str, object]]]:
-        return {
-            address: list(events)
-            for address, events in self._history.items()
-        }
+        return {address: list(events) for address, events in self._history.items()}
 
     def stop(self, snapshot: RuntimeSnapshot) -> ApplyResult:
         self.calls.append(f"{self.name}-stop")
@@ -646,9 +632,7 @@ class RecordingEvaluator:
         self._results = {}
         self._history = {}
         entries = {
-            address: entry
-            for address, entry in snapshot.entries.items()
-            if entry.domain != RuntimeDomain.EVALUATION
+            address: entry for address, entry in snapshot.entries.items() if entry.domain != RuntimeDomain.EVALUATION
         }
         return ApplyResult(
             success=True,
@@ -728,9 +712,7 @@ class InvalidEvaluatorReadyPayloadEvaluator(RecordingEvaluator):
     def start(self, plan, snapshot: RuntimeSnapshot) -> ApplyResult:
         result = super().start(plan, snapshot)
         metric_address = next(
-            op.address
-            for op in plan.operations
-            if op.action != ChangeAction.DELETE and op.resource_type == "metric"
+            op.address for op in plan.operations if op.action != ChangeAction.DELETE and op.resource_type == "metric"
         )
         self._results[metric_address]["score"] = None
         self._results[metric_address]["max_score"] = None
@@ -955,9 +937,7 @@ class TestRuntimeManager:
 
         assert not result.success
         assert calls == []
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
         assert manager.snapshot.entries == {}
 
     def test_apply_fails_gracefully_on_invalid_apply_result(self):
@@ -975,9 +955,7 @@ class TestRuntimeManager:
 
         assert not result.success
         assert calls == ["provision-apply"]
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
         assert manager.snapshot.entries == {}
 
     @pytest.mark.parametrize(
@@ -1007,9 +985,7 @@ class TestRuntimeManager:
 
         assert not result.success
         assert calls == ["provision-apply"]
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
         assert manager.snapshot.entries == {}
 
     def test_apply_fails_gracefully_on_backend_exception(self):
@@ -1033,9 +1009,7 @@ class TestRuntimeManager:
             "orchestrator-stop",
             "evaluator-stop",
         ]
-        assert "runtime.backend-call-failed" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-call-failed" in {diag.code for diag in result.diagnostics}
         assert manager.snapshot.for_domain(RuntimeDomain.ORCHESTRATION) == {}
         assert manager.snapshot.for_domain(RuntimeDomain.EVALUATION) == {}
         assert manager.snapshot.for_domain(RuntimeDomain.PROVISIONING)
@@ -1061,9 +1035,7 @@ class TestRuntimeManager:
             "orchestrator-stop",
             "evaluator-stop",
         ]
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_workflow_result_schema_version(self):
         calls: list[str] = []
@@ -1079,9 +1051,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_missing_workflow_result_fields(self):
         calls: list[str] = []
@@ -1097,9 +1067,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_workflow_result_lifecycle(self):
         calls: list[str] = []
@@ -1115,9 +1083,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_workflow_result_outcome(self):
         calls: list[str] = []
@@ -1133,9 +1099,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_fixed_attempt_mismatch(self):
         calls: list[str] = []
@@ -1151,9 +1115,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_pending_step_with_outcome(self):
         calls: list[str] = []
@@ -1169,9 +1131,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_missing_observable_workflow_step(self):
         calls: list[str] = []
@@ -1187,9 +1147,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_validates_against_result_contract_not_control_steps(self):
         calls: list[str] = []
@@ -1221,9 +1179,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_call_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_workflow_compensation_state(self):
         calls: list[str] = []
@@ -1239,9 +1195,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_evaluation_result_schema_version(self):
         calls: list[str] = []
@@ -1257,9 +1211,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_full_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_missing_evaluation_result_fields(self):
         calls: list[str] = []
@@ -1275,9 +1227,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_full_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_invalid_ready_evaluation_payload(self):
         calls: list[str] = []
@@ -1293,9 +1243,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_full_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_apply_fails_on_missing_evaluation_history(self):
         calls: list[str] = []
@@ -1311,9 +1259,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_full_scenario()))
 
         assert not result.success
-        assert "runtime.backend-contract-invalid" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.backend-contract-invalid" in {diag.code for diag in result.diagnostics}
 
     def test_status_exposes_plain_data_workflow_results(self):
         target = RuntimeTarget(
@@ -1371,9 +1317,7 @@ class TestRuntimeManager:
         result = manager.apply(manager.plan(_workflow_scenario()))
 
         assert result.success
-        workflow_payload = manager.snapshot.orchestration_results[
-            "orchestration.workflow.response"
-        ]
+        workflow_payload = manager.snapshot.orchestration_results["orchestration.workflow.response"]
         assert isinstance(workflow_payload, dict)
         assert workflow_payload["state_schema_version"] == "workflow-step-state/v1"
         assert isinstance(workflow_payload["steps"]["run"], dict)
@@ -1407,9 +1351,7 @@ class TestRuntimeManager:
 
         assert not result.success
         assert calls == []
-        assert "runtime.apply-missing-evaluator" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.apply-missing-evaluator" in {diag.code for diag in result.diagnostics}
         assert manager.snapshot.entries == {}
 
     def test_apply_rejects_unbound_direct_plan(self):
@@ -1428,9 +1370,7 @@ class TestRuntimeManager:
         result = RuntimeManager(target).apply(execution_plan)
 
         assert not result.success
-        assert "runtime.plan-target-unbound" in {
-            diag.code for diag in result.diagnostics
-        }
+        assert "runtime.plan-target-unbound" in {diag.code for diag in result.diagnostics}
 
     def test_manager_plan_binds_target_name(self):
         target = RuntimeTarget(

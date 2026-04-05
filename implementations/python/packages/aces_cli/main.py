@@ -1,11 +1,10 @@
 """Main entry point for the ACES SDL CLI."""
 
 from importlib.metadata import PackageNotFoundError, version
-from typing import Optional
 
 import typer
 
-from aces_cli import sdl
+from aces_cli import processor, sdl
 
 app = typer.Typer(
     name="aces",
@@ -14,6 +13,7 @@ app = typer.Typer(
 )
 
 app.add_typer(sdl.app, name="sdl")
+app.add_typer(processor.app, name="processor")
 
 
 def _version_callback(value: bool) -> None:
@@ -28,7 +28,7 @@ def _version_callback(value: bool) -> None:
 
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None,
         "--version",
         "-V",

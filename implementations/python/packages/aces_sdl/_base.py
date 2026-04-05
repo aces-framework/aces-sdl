@@ -54,9 +54,7 @@ def parse_enum_or_var(
             return enum_cls(normalized)
         except ValueError as e:
             allowed = ", ".join(member.value for member in enum_cls)
-            raise ValueError(
-                f"{field_name} must be one of: {allowed}"
-            ) from e
+            raise ValueError(f"{field_name} must be one of: {allowed}") from e
     raise ValueError(f"{field_name} must be a string")
 
 

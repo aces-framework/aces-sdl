@@ -1,14 +1,10 @@
 """Planner for compiled SDL runtime models."""
 
-from .semantics.planner import (
-    DependencyKind,
-    dependency_graph_for_resources,
-    reconcile_resource_actions,
-    resource_delete_order,
-    resource_dependency_cycles,
-    resource_topological_order,
-)
 from aces_backend_protocols.capabilities import BackendManifest
+from aces_sdl._base import extract_variable_name, parse_enum_or_var, parse_int_or_var
+from aces_sdl.infrastructure import MINIMUM_NODE_COUNT
+from aces_sdl.nodes import OSFamily
+
 from .models import (
     ChangeAction,
     Diagnostic,
@@ -18,8 +14,8 @@ from .models import (
     OrchestrationOp,
     OrchestrationPlan,
     PlannedResource,
-    ProvisionOp,
     ProvisioningPlan,
+    ProvisionOp,
     RuntimeDomain,
     RuntimeModel,
     RuntimeSnapshot,
@@ -27,9 +23,14 @@ from .models import (
     SnapshotEntry,
     resource_payload,
 )
-from aces_sdl._base import extract_variable_name, parse_enum_or_var, parse_int_or_var
-from aces_sdl.infrastructure import MINIMUM_NODE_COUNT
-from aces_sdl.nodes import OSFamily
+from .semantics.planner import (
+    DependencyKind,
+    dependency_graph_for_resources,
+    reconcile_resource_actions,
+    resource_delete_order,
+    resource_dependency_cycles,
+    resource_topological_order,
+)
 
 
 def _planned_resource(address: str, domain: RuntimeDomain, resource_type: str, resource) -> PlannedResource:
@@ -183,11 +184,7 @@ def _ordering_cycle_diagnostics(
     diagnostics: list[Diagnostic] = []
 
     for domain in RuntimeDomain:
-        domain_resources = {
-            address: resource
-            for address, resource in resources.items()
-            if resource.domain == domain
-        }
+        domain_resources = {address: resource for address, resource in resources.items() if resource.domain == domain}
         for cycle in _ordering_cycles(domain_resources):
             rendered = ", ".join(cycle)
             diagnostics.append(
@@ -280,11 +277,7 @@ def _validate_os_allowed_values(
             return None, _error_diagnostic(
                 "provisioner.os-family-variable-domain-invalid",
                 address,
-                (
-                    "Variable "
-                    f"'{variable_name}' allowed_values contain value {raw_value!r} "
-                    f"invalid for nodes.os: {exc}."
-                ),
+                (f"Variable '{variable_name}' allowed_values contain value {raw_value!r} invalid for nodes.os: {exc}."),
             )
         if extract_variable_name(parsed) is not None:
             return None, None
@@ -344,13 +337,7 @@ def _validate_node_os_family(
     if domain_error is not None:
         return [domain_error]
     if finite_domain is not None:
-        unsupported_values = sorted(
-            {
-                value
-                for value in finite_domain
-                if value not in supported_os_families
-            }
-        )
+        unsupported_values = sorted({value for value in finite_domain if value not in supported_os_families})
         if unsupported_values:
             rendered = ", ".join(repr(value) for value in unsupported_values)
             return [
@@ -542,10 +529,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
             if count_upper_bound is not None:
                 total_nodes += count_upper_bound
 
-    if (
-        provisioner.max_total_nodes is not None
-        and total_nodes > provisioner.max_total_nodes
-    ):
+    if provisioner.max_total_nodes is not None and total_nodes > provisioner.max_total_nodes:
         diagnostics.append(
             Diagnostic(
                 code="provisioner.max-total-nodes-exceeded",
@@ -560,10 +544,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
 
     for content in model.content_placements.values():
         content_type = str(content.spec.get("type", ""))
-        if (
-            content_type
-            and content_type not in provisioner.supported_content_types
-        ):
+        if content_type and content_type not in provisioner.supported_content_types:
             diagnostics.append(
                 Diagnostic(
                     code="provisioner.unsupported-content-type",
@@ -633,11 +614,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
                     )
                 )
             workflow_features = sorted(
-                {
-                    feature
-                    for workflow in model.workflows.values()
-                    for feature in workflow.required_features
-                },
+                {feature for workflow in model.workflows.values() for feature in workflow.required_features},
                 key=lambda feature: feature.value,
             )
             for feature in workflow_features:
@@ -648,10 +625,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
                         code="orchestrator.workflow-feature-unsupported",
                         domain="orchestration",
                         address="orchestration.workflows",
-                        message=(
-                            "Orchestrator does not support workflow feature "
-                            f"'{feature.value}'."
-                        ),
+                        message=(f"Orchestrator does not support workflow feature '{feature.value}'."),
                     )
                 )
             orchestration_uses_condition_refs = any(
@@ -661,19 +635,13 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
                 for workflow in model.workflows.values()
                 for addresses in workflow.step_condition_addresses.values()
             )
-            if (
-                orchestration_uses_condition_refs
-                and not manifest.orchestrator.supports_condition_refs
-            ):
+            if orchestration_uses_condition_refs and not manifest.orchestrator.supports_condition_refs:
                 diagnostics.append(
                     Diagnostic(
                         code="orchestrator.condition-refs-unsupported",
                         domain="orchestration",
                         address="orchestration.condition-refs",
-                        message=(
-                            "Orchestrator does not support condition-gated events "
-                            "or workflow predicates."
-                        ),
+                        message=("Orchestrator does not support condition-gated events or workflow predicates."),
                     )
                 )
             required_state_predicate_features = sorted(
@@ -692,10 +660,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
                         code="orchestrator.step-state-predicate-feature-unsupported",
                         domain="orchestration",
                         address="orchestration.workflows",
-                        message=(
-                            "Orchestrator does not support workflow state "
-                            f"predicate feature '{feature.value}'."
-                        ),
+                        message=(f"Orchestrator does not support workflow state predicate feature '{feature.value}'."),
                     )
                 )
             if model.inject_bindings and not manifest.orchestrator.supports_inject_bindings:
@@ -739,11 +704,7 @@ def _validate_manifest(model: RuntimeModel, manifest: BackendManifest) -> list[D
                         )
                     )
             scoring_in_use = bool(
-                model.condition_bindings
-                or model.metrics
-                or model.evaluations
-                or model.tlos
-                or model.goals
+                model.condition_bindings or model.metrics or model.evaluations or model.tlos or model.goals
             )
             if scoring_in_use and not manifest.supports_scoring:
                 diagnostics.append(
@@ -777,10 +738,7 @@ def _build_operations(
         resource_dependencies=lambda resource: resource,
         matches=_entry_matches_resource,
     )
-    actions = {
-        address: ChangeAction(action.value)
-        for address, action in semantic_actions.items()
-    }
+    actions = {address: ChangeAction(action.value) for address, action in semantic_actions.items()}
     return actions, deleted_entries
 
 
@@ -805,9 +763,7 @@ def _build_provisioning_plan(
     deleted_entries: dict[str, SnapshotEntry],
 ) -> ProvisioningPlan:
     provisioning_resources = {
-        address: resource
-        for address, resource in resources.items()
-        if resource.domain == RuntimeDomain.PROVISIONING
+        address: resource for address, resource in resources.items() if resource.domain == RuntimeDomain.PROVISIONING
     }
     ops: list[ProvisionOp] = []
     for address in _topological_order(provisioning_resources):
@@ -823,11 +779,7 @@ def _build_provisioning_plan(
             )
         )
     for address in _delete_order(
-        {
-            address: entry
-            for address, entry in deleted_entries.items()
-            if entry.domain == RuntimeDomain.PROVISIONING
-        }
+        {address: entry for address, entry in deleted_entries.items() if entry.domain == RuntimeDomain.PROVISIONING}
     ):
         entry = deleted_entries[address]
         ops.append(
@@ -849,9 +801,7 @@ def _build_orchestration_plan(
     deleted_entries: dict[str, SnapshotEntry],
 ) -> OrchestrationPlan:
     orchestration_resources = {
-        address: resource
-        for address, resource in resources.items()
-        if resource.domain == RuntimeDomain.ORCHESTRATION
+        address: resource for address, resource in resources.items() if resource.domain == RuntimeDomain.ORCHESTRATION
     }
     startup_order = _topological_order(orchestration_resources)
     ops: list[OrchestrationOp] = []
@@ -868,11 +818,7 @@ def _build_orchestration_plan(
             )
         )
     for address in _delete_order(
-        {
-            address: entry
-            for address, entry in deleted_entries.items()
-            if entry.domain == RuntimeDomain.ORCHESTRATION
-        }
+        {address: entry for address, entry in deleted_entries.items() if entry.domain == RuntimeDomain.ORCHESTRATION}
     ):
         entry = deleted_entries[address]
         ops.append(
@@ -898,9 +844,7 @@ def _build_evaluation_plan(
     deleted_entries: dict[str, SnapshotEntry],
 ) -> EvaluationPlan:
     evaluation_resources = {
-        address: resource
-        for address, resource in resources.items()
-        if resource.domain == RuntimeDomain.EVALUATION
+        address: resource for address, resource in resources.items() if resource.domain == RuntimeDomain.EVALUATION
     }
     startup_order = _topological_order(evaluation_resources)
     ops: list[EvaluationOp] = []
@@ -917,11 +861,7 @@ def _build_evaluation_plan(
             )
         )
     for address in _delete_order(
-        {
-            address: entry
-            for address, entry in deleted_entries.items()
-            if entry.domain == RuntimeDomain.EVALUATION
-        }
+        {address: entry for address, entry in deleted_entries.items() if entry.domain == RuntimeDomain.EVALUATION}
     ):
         entry = deleted_entries[address]
         ops.append(

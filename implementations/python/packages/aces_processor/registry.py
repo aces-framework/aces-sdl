@@ -1,8 +1,9 @@
 """Registry for runtime targets."""
 
-from inspect import Signature, signature
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from inspect import Signature, signature
+from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
 from aces_backend_protocols.protocols import Evaluator, Orchestrator, Provisioner
@@ -19,16 +20,12 @@ def _require_invokable_method(
         return
     method = getattr(component, method_name, None)
     if not callable(method):
-        raise ValueError(
-            "registry.target-contract-mismatch: "
-            f"{label} is missing callable method '{method_name}'."
-        )
+        raise ValueError(f"registry.target-contract-mismatch: {label} is missing callable method '{method_name}'.")
     try:
         method_signature = signature(method)
     except (TypeError, ValueError) as exc:
         raise ValueError(
-            "registry.target-contract-mismatch: "
-            f"{label}.{method_name} has a non-inspectable signature."
+            f"registry.target-contract-mismatch: {label}.{method_name} has a non-inspectable signature."
         ) from exc
     try:
         method_signature.bind(*invocation_args)
@@ -57,15 +54,9 @@ def _validate_runtime_target_shape(
     if provisioner is None:
         raise ValueError("RuntimeTarget requires a provisioner.")
     if manifest.has_orchestrator != (orchestrator is not None):
-        raise ValueError(
-            "registry.target-shape-mismatch: orchestrator presence does not "
-            "match the manifest."
-        )
+        raise ValueError("registry.target-shape-mismatch: orchestrator presence does not match the manifest.")
     if manifest.has_evaluator != (evaluator is not None):
-        raise ValueError(
-            "registry.target-shape-mismatch: evaluator presence does not match "
-            "the manifest."
-        )
+        raise ValueError("registry.target-shape-mismatch: evaluator presence does not match the manifest.")
     sample_plan = object()
     sample_snapshot = object()
     _require_invokable_method(
@@ -192,9 +183,7 @@ class BackendRegistry:
         components_factory: Callable[..., RuntimeTargetComponents],
     ) -> None:
         if name in self._descriptors:
-            raise ValueError(
-                f"Backend '{name}' is already registered and cannot be replaced."
-            )
+            raise ValueError(f"Backend '{name}' is already registered and cannot be replaced.")
         self._descriptors[name] = RuntimeTargetDescriptor(
             name=name,
             manifest_factory=manifest_factory,
@@ -204,9 +193,7 @@ class BackendRegistry:
     def describe(self, name: str) -> RuntimeTargetDescriptor:
         if name not in self._descriptors:
             registered = sorted(self._descriptors)
-            raise KeyError(
-                f"Unknown backend '{name}'. Registered backends: {registered}"
-            )
+            raise KeyError(f"Unknown backend '{name}'. Registered backends: {registered}")
         return self._descriptors[name]
 
     def manifest(self, name: str, **config: Any) -> BackendManifest:
@@ -218,10 +205,7 @@ class BackendRegistry:
         components = descriptor.components_factory(manifest=manifest, **config)
 
         if hasattr(components, "evaluators"):
-            raise ValueError(
-                "registry.target-shape-mismatch: legacy evaluator collections are "
-                "not supported."
-            )
+            raise ValueError("registry.target-shape-mismatch: legacy evaluator collections are not supported.")
 
         _validate_runtime_target_shape(
             manifest=manifest,

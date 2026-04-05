@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+defaults:
+  run:
+    working-directory: implementations/python
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint — fast formatting and static analysis
+  # ---------------------------------------------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Lint
+        run: ruff check .
+
+  # ---------------------------------------------------------------------------
+  # Test — unit tests with coverage
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Run tests with coverage
+        run: |
+          uv run coverage run -m pytest -v
+          uv run coverage xml
+          uv run coverage report --fail-under=50
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-report
+          path: implementations/python/coverage.xml
+
+  # ---------------------------------------------------------------------------
+  # Fuzz — property-based tests (separate from main suite)
+  # ---------------------------------------------------------------------------
+  fuzz:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Run fuzz tests
+        run: uv run pytest -m fuzz -v
+
+  # ---------------------------------------------------------------------------
+  # Contracts — verify published JSON schemas match generated output
+  # ---------------------------------------------------------------------------
+  contracts:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Regenerate schemas and check for drift
+        run: |
+          uv run python ../../tools/generate_contract_schemas.py
+          git diff --exit-code ../../contracts/schemas/ || {
+            echo "Published JSON schemas are out of date. Run: python tools/generate_contract_schemas.py"
+            exit 1
+          }
+
+  # ---------------------------------------------------------------------------
+  # SonarCloud — runs after test for coverage data
+  # ---------------------------------------------------------------------------
+  sonar:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: coverage-report
+          path: implementations/python/
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

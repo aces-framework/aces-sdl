@@ -5,7 +5,6 @@ or Artifact) with dependency graphs. The validator detects cycles.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator
 
@@ -26,12 +25,13 @@ class Feature(SDLModel):
 
     name: str = ""
     type: FeatureType = Field(alias="type")
-    source: Optional[Source] = None
+    source: Source | None = None
 
     @field_validator("type", mode="before")
     @classmethod
     def normalize_type(cls, v: str) -> str:
         return normalize_enum_value(v)
+
     dependencies: list[str] = Field(default_factory=list)
     vulnerabilities: list[str] = Field(default_factory=list)
     destination: str = ""

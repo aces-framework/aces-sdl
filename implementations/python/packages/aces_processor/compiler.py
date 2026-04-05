@@ -3,15 +3,16 @@
 from collections.abc import Callable
 from typing import Any
 
-from .semantics.objectives import analyze_objective_window
-from .semantics.workflow import (
-    WORKFLOW_STATE_SCHEMA_VERSION,
-    workflow_step_semantic_contract,
-)
 from aces_backend_protocols.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
+from aces_sdl.entities import flatten_entities
+from aces_sdl.instantiate import instantiate_scenario
+from aces_sdl.nodes import NodeType
+from aces_sdl.orchestration import WorkflowStepType
+from aces_sdl.scenario import InstantiatedScenario, Scenario
+
 from .models import (
     AccountPlacement,
     ConditionBinding,
@@ -19,12 +20,12 @@ from .models import (
     Diagnostic,
     EvaluationExecutionContract,
     EvaluationResultContract,
-    EventRuntime,
     EvaluationRuntime,
+    EventRuntime,
     FeatureBinding,
     GoalRuntime,
-    InjectRuntime,
     InjectBinding,
+    InjectRuntime,
     MetricRuntime,
     NetworkRuntime,
     NodeRuntime,
@@ -38,17 +39,17 @@ from .models import (
     WorkflowExecutionContract,
     WorkflowPredicateRuntime,
     WorkflowResultContract,
-    WorkflowStepOutcome,
-    WorkflowStepStatePredicateRuntime,
-    WorkflowStepRuntime,
-    WorkflowSwitchCaseRuntime,
     WorkflowRuntime,
+    WorkflowStepOutcome,
+    WorkflowStepRuntime,
+    WorkflowStepStatePredicateRuntime,
+    WorkflowSwitchCaseRuntime,
 )
-from aces_sdl.instantiate import instantiate_scenario
-from aces_sdl.entities import flatten_entities
-from aces_sdl.nodes import NodeType
-from aces_sdl.orchestration import WorkflowStepType
-from aces_sdl.scenario import InstantiatedScenario, Scenario
+from .semantics.objectives import analyze_objective_window
+from .semantics.workflow import (
+    WORKFLOW_STATE_SCHEMA_VERSION,
+    workflow_step_semantic_contract,
+)
 
 
 def _dump(model: Any) -> dict[str, Any]:
@@ -162,9 +163,7 @@ def _evaluation_contracts(
     if resource_type == "metric":
         max_score_raw = payload.get("max-score", payload.get("max_score"))
         fixed_max_score = (
-            max_score_raw
-            if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool)
-            else None
+            max_score_raw if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool) else None
         )
         return (
             EvaluationResultContract(
@@ -205,11 +204,7 @@ def _resolve_binding_ref(
     binding_label: str,
 ) -> tuple[tuple[str, ...], list[Diagnostic]]:
     matches = tuple(
-        sorted(
-            address
-            for address, binding in bindings.items()
-            if getattr(binding, binding_attr) == ref_name
-        )
+        sorted(address for address, binding in bindings.items() if getattr(binding, binding_attr) == ref_name)
     )
     if len(matches) == 1:
         return matches, []
@@ -220,10 +215,7 @@ def _resolve_binding_ref(
                 code=f"{code_prefix}-unbound",
                 domain=domain,
                 address=owner_address,
-                message=(
-                    f"Reference '{ref_name}' does not resolve to a bound "
-                    f"{binding_label}."
-                ),
+                message=(f"Reference '{ref_name}' does not resolve to a bound {binding_label}."),
             )
         ]
 
@@ -233,10 +225,7 @@ def _resolve_binding_ref(
             code=f"{code_prefix}-ambiguous",
             domain=domain,
             address=owner_address,
-            message=(
-                f"Reference '{ref_name}' resolves to multiple bound "
-                f"{binding_label}s: {joined}."
-            ),
+            message=(f"Reference '{ref_name}' resolves to multiple bound {binding_label}s: {joined}."),
         )
     ]
 
@@ -281,11 +270,7 @@ def _resolve_resource_refs(
     diagnostics: list[Diagnostic] = []
     for ref_name in dict.fromkeys(ref_names):
         matched_address = next(
-            (
-                address
-                for address, resource in resources.items()
-                if resource.name == ref_name
-            ),
+            (address for address, resource in resources.items() if resource.name == ref_name),
             None,
         )
         if matched_address is None:
@@ -294,10 +279,7 @@ def _resolve_resource_refs(
                     code=f"{code_prefix}-unbound",
                     domain=domain,
                     address=owner_address,
-                    message=(
-                        f"Reference '{ref_name}' does not resolve to a defined "
-                        f"{resource_label}."
-                    ),
+                    message=(f"Reference '{ref_name}' does not resolve to a defined {resource_label}."),
                 )
             )
             continue
@@ -324,10 +306,7 @@ def _resolve_named_refs(
                     code=f"{code_prefix}-unbound",
                     domain=domain,
                     address=owner_address,
-                    message=(
-                        f"Reference '{ref_name}' does not resolve to a defined "
-                        f"{resource_label}."
-                    ),
+                    message=(f"Reference '{ref_name}' does not resolve to a defined {resource_label}."),
                 )
             )
             continue
@@ -353,10 +332,7 @@ def _resolve_node_ref(
                 code=f"{code_prefix}-unbound",
                 domain=domain,
                 address=owner_address,
-                message=(
-                    f"Reference '{ref_name}' does not resolve to a defined "
-                    f"{node_label}."
-                ),
+                message=(f"Reference '{ref_name}' does not resolve to a defined {node_label}."),
             )
         ]
 
@@ -366,10 +342,7 @@ def _resolve_node_ref(
                 code=f"{code_prefix}-invalid-type",
                 domain=domain,
                 address=owner_address,
-                message=(
-                    f"Reference '{ref_name}' must resolve to a VM node for "
-                    f"{node_label}."
-                ),
+                message=(f"Reference '{ref_name}' must resolve to a VM node for {node_label}."),
             )
         ]
 
@@ -379,10 +352,7 @@ def _resolve_node_ref(
                 code=f"{code_prefix}-invalid-type",
                 domain=domain,
                 address=owner_address,
-                message=(
-                    f"Reference '{ref_name}' must resolve to a switch/network "
-                    f"node for {node_label}."
-                ),
+                message=(f"Reference '{ref_name}' must resolve to a switch/network node for {node_label}."),
             )
         ]
 
@@ -428,19 +398,10 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         )
         for name, template in scenario.vulnerabilities.items()
     }
-    entity_specs = {
-        name: _dump(entity)
-        for name, entity in flatten_entities(scenario.entities).items()
-    }
+    entity_specs = {name: _dump(entity) for name, entity in flatten_entities(scenario.entities).items()}
     agent_specs = {name: _dump(agent) for name, agent in scenario.agents.items()}
-    relationship_specs = {
-        name: _dump(relationship)
-        for name, relationship in scenario.relationships.items()
-    }
-    variable_specs = {
-        name: _dump(variable)
-        for name, variable in scenario.variables.items()
-    }
+    relationship_specs = {name: _dump(relationship) for name, relationship in scenario.relationships.items()}
+    variable_specs = {name: _dump(variable) for name, variable in scenario.variables.items()}
 
     networks: dict[str, NetworkRuntime] = {}
     node_deployments: dict[str, NodeRuntime] = {}
@@ -585,9 +546,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                 )
                 continue
             address = _condition_binding_address(node_name, condition_name)
-            result_contract, execution_contract = _evaluation_contracts(
-                "condition-binding"
-            )
+            result_contract, execution_contract = _evaluation_contracts("condition-binding")
             condition_bindings[address] = ConditionBinding(
                 address=address,
                 name=condition_name,
@@ -735,13 +694,9 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         diagnostics.extend(condition_diagnostics)
         diagnostics.extend(inject_diagnostics)
         inject_binding_ordering_dependencies = [
-            address
-            for address, binding in inject_bindings.items()
-            if binding.inject_name in inject_names
+            address for address, binding in inject_bindings.items() if binding.inject_name in inject_names
         ]
-        ordering_dependencies = _dedupe(
-            [*inject_addresses, *inject_binding_ordering_dependencies]
-        )
+        ordering_dependencies = _dedupe([*inject_addresses, *inject_binding_ordering_dependencies])
         refresh_dependencies = _dedupe(
             [
                 *condition_addresses,
@@ -1003,24 +958,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                 events_by_name=scenario.events,
                 workflows_by_name=scenario.workflows,
             )
-            window_story_addresses = _dedupe(
-                [_story_address(name) for name in window_analysis.story_names]
-            )
-            window_script_addresses = _dedupe(
-                [_script_address(name) for name in window_analysis.script_names]
-            )
-            window_event_addresses = _dedupe(
-                [_event_address(name) for name in window_analysis.event_names]
-            )
-            window_workflow_addresses = _dedupe(
-                [_workflow_address(name) for name in window_analysis.workflow_names]
-            )
+            window_story_addresses = _dedupe([_story_address(name) for name in window_analysis.story_names])
+            window_script_addresses = _dedupe([_script_address(name) for name in window_analysis.script_names])
+            window_event_addresses = _dedupe([_event_address(name) for name in window_analysis.event_names])
+            window_workflow_addresses = _dedupe([_workflow_address(name) for name in window_analysis.workflow_names])
             window_step_refs = window_analysis.workflow_step_refs
             window_step_workflow_addresses = _dedupe(
-                [
-                    _workflow_address(workflow_name)
-                    for workflow_name in window_analysis.refresh_workflow_names
-                ]
+                [_workflow_address(workflow_name) for workflow_name in window_analysis.refresh_workflow_names]
             )
             window_references = tuple(
                 ObjectiveWindowReferenceRuntime(
@@ -1041,9 +985,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.story-ref-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined story."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined story."),
                         )
                     )
                 elif issue.code == "script-unbound":
@@ -1052,9 +994,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.script-ref-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined script."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined script."),
                         )
                     )
                 elif issue.code == "script-outside-window-stories":
@@ -1074,9 +1014,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.event-ref-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined event."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined event."),
                         )
                     )
                 elif issue.code == "event-outside-window-scripts":
@@ -1096,9 +1034,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.workflow-ref-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined workflow."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined workflow."),
                         )
                     )
                 elif issue.code == "step-requires-workflow-window":
@@ -1107,9 +1043,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.workflow-step-ref-window-missing-workflow",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                "Workflow step references require at least one referenced workflow."
-                            ),
+                            message=("Workflow step references require at least one referenced workflow."),
                         )
                     )
                 elif issue.code == "step-invalid-format":
@@ -1118,9 +1052,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.workflow-step-ref-invalid-format",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' must use '<workflow>.<step>' syntax."
-                            ),
+                            message=(f"Reference '{issue.ref}' must use '<workflow>.<step>' syntax."),
                         )
                     )
                 elif issue.code == "step-workflow-unbound":
@@ -1129,9 +1061,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.workflow-step-ref-workflow-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined workflow."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined workflow."),
                         )
                     )
                 elif issue.code == "step-workflow-outside-window":
@@ -1151,9 +1081,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                             code="evaluation.workflow-step-ref-step-unbound",
                             domain="evaluation",
                             address=objective_address,
-                            message=(
-                                f"Reference '{issue.ref}' does not resolve to a defined workflow step."
-                            ),
+                            message=(f"Reference '{issue.ref}' does not resolve to a defined workflow step."),
                         )
                     )
 
@@ -1207,9 +1135,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         step_condition_addresses: dict[str, tuple[str, ...]] = {}
         step_predicate_addresses: dict[str, tuple[str, ...]] = {}
         required_features: list[WorkflowFeature] = []
-        required_state_predicate_features: list[
-            WorkflowStatePredicateFeature
-        ] = []
+        required_state_predicate_features: list[WorkflowStatePredicateFeature] = []
         compensation_targets: dict[str, str] = {}
 
         def _compile_workflow_predicate(
@@ -1294,10 +1220,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             step_state_predicates = tuple(
                 WorkflowStepStatePredicateRuntime(
                     step_name=ref.step,
-                    outcomes=tuple(
-                        WorkflowStepOutcome(outcome.value)
-                        for outcome in ref.outcomes
-                    ),
+                    outcomes=tuple(WorkflowStepOutcome(outcome.value) for outcome in ref.outcomes),
                     min_attempts=ref.min_attempts,
                 )
                 for ref in predicate_source.steps
@@ -1381,9 +1304,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                     resource_label="workflow",
                 )
                 diagnostics.extend(workflow_diagnostics)
-                called_workflow_address = (
-                    workflow_addresses[0] if workflow_addresses else ""
-                )
+                called_workflow_address = workflow_addresses[0] if workflow_addresses else ""
             if step.compensate_with:
                 workflow_addresses, workflow_diagnostics = _resolve_named_refs(
                     ref_names=[step.compensate_with],
@@ -1395,9 +1316,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                     resource_label="workflow",
                 )
                 diagnostics.extend(workflow_diagnostics)
-                compensation_workflow_address = (
-                    workflow_addresses[0] if workflow_addresses else ""
-                )
+                compensation_workflow_address = workflow_addresses[0] if workflow_addresses else ""
                 if compensation_workflow_address:
                     compensation_targets[step_name] = compensation_workflow_address
                     required_features.append(WorkflowFeature.COMPENSATION)
@@ -1417,16 +1336,9 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                 step_condition_addresses[step_name] = condition_addresses
                 step_predicate_addresses[step_name] = predicate_addresses
                 if step_state_predicates:
-                    required_state_predicate_features.append(
-                        WorkflowStatePredicateFeature.OUTCOME_MATCHING
-                    )
-                if any(
-                    state_predicate.min_attempts is not None
-                    for state_predicate in step_state_predicates
-                ):
-                    required_state_predicate_features.append(
-                        WorkflowStatePredicateFeature.ATTEMPT_COUNTS
-                    )
+                    required_state_predicate_features.append(WorkflowStatePredicateFeature.OUTCOME_MATCHING)
+                if any(state_predicate.min_attempts is not None for state_predicate in step_state_predicates):
+                    required_state_predicate_features.append(WorkflowStatePredicateFeature.ATTEMPT_COUNTS)
             elif step.type == WorkflowStepType.SWITCH:
                 switch_condition_addresses: list[str] = []
                 switch_predicate_addresses: list[str] = []
@@ -1440,24 +1352,15 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                         step_state_predicates,
                     ) = _compile_workflow_predicate(
                         case.when,
-                        predicate_address=_address(
-                            workflow_address, "step", step_name, "case", str(case_index)
-                        ),
+                        predicate_address=_address(workflow_address, "step", step_name, "case", str(case_index)),
                     )
                     referenced_objectives.extend(predicate_objectives)
                     switch_condition_addresses.extend(condition_addresses)
                     switch_predicate_addresses.extend(predicate_addresses)
                     if step_state_predicates:
-                        required_state_predicate_features.append(
-                            WorkflowStatePredicateFeature.OUTCOME_MATCHING
-                        )
-                    if any(
-                        state_predicate.min_attempts is not None
-                        for state_predicate in step_state_predicates
-                    ):
-                        required_state_predicate_features.append(
-                            WorkflowStatePredicateFeature.ATTEMPT_COUNTS
-                        )
+                        required_state_predicate_features.append(WorkflowStatePredicateFeature.OUTCOME_MATCHING)
+                    if any(state_predicate.min_attempts is not None for state_predicate in step_state_predicates):
+                        required_state_predicate_features.append(WorkflowStatePredicateFeature.ATTEMPT_COUNTS)
                     compiled_cases.append(
                         WorkflowSwitchCaseRuntime(
                             case_index=case_index,
@@ -1467,18 +1370,11 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                     )
                 switch_cases = tuple(compiled_cases)
                 if switch_condition_addresses:
-                    step_condition_addresses[step_name] = _dedupe(
-                        switch_condition_addresses
-                    )
+                    step_condition_addresses[step_name] = _dedupe(switch_condition_addresses)
                 if switch_predicate_addresses:
-                    step_predicate_addresses[step_name] = _dedupe(
-                        switch_predicate_addresses
-                    )
+                    step_predicate_addresses[step_name] = _dedupe(switch_predicate_addresses)
 
-            if (
-                step.on_failure
-                or step.on_exhausted
-            ):
+            if step.on_failure or step.on_exhausted:
                 required_features.append(WorkflowFeature.FAILURE_TRANSITIONS)
             if workflow.timeout is not None:
                 required_features.append(WorkflowFeature.TIMEOUTS)
@@ -1514,11 +1410,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             if step_runtime.state_contract.state_observable
         }
         predicate_dependency_addresses = _dedupe(
-            [
-                address
-                for addresses in step_predicate_addresses.values()
-                for address in addresses
-            ]
+            [address for addresses in step_predicate_addresses.values() for address in addresses]
         )
         workflows[workflow_address] = WorkflowRuntime(
             address=workflow_address,
@@ -1531,9 +1423,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             step_condition_addresses=step_condition_addresses,
             step_predicate_addresses=step_predicate_addresses,
             required_features=_dedupe_by_value(required_features),
-            required_state_predicate_features=_dedupe_by_value(
-                required_state_predicate_features
-            ),
+            required_state_predicate_features=_dedupe_by_value(required_state_predicate_features),
             result_contract=WorkflowResultContract(
                 state_schema_version=WORKFLOW_STATE_SCHEMA_VERSION,
                 observable_steps=result_contract_steps,
@@ -1543,18 +1433,11 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                 start_step=workflow.start,
                 timeout_seconds=(
                     workflow.timeout.seconds
-                    if workflow.timeout is not None
-                    and isinstance(workflow.timeout.seconds, int)
+                    if workflow.timeout is not None and isinstance(workflow.timeout.seconds, int)
                     else None
                 ),
-                steps={
-                    step_name: step_runtime.state_contract
-                    for step_name, step_runtime in control_steps.items()
-                },
-                step_types={
-                    step_name: step_runtime.step_type
-                    for step_name, step_runtime in control_steps.items()
-                },
+                steps={step_name: step_runtime.state_contract for step_name, step_runtime in control_steps.items()},
+                step_types={step_name: step_runtime.step_type for step_name, step_runtime in control_steps.items()},
                 control_edges=control_edges,
                 join_owners=join_owners,
                 call_steps={
@@ -1563,32 +1446,21 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
                     if step_runtime.called_workflow_address
                 },
                 compensation_mode=(
-                    workflow.compensation.mode.value
-                    if workflow.compensation is not None
-                    else "disabled"
+                    workflow.compensation.mode.value if workflow.compensation is not None else "disabled"
                 ),
                 compensation_triggers=tuple(
-                    trigger.value
-                    for trigger in (
-                        workflow.compensation.on if workflow.compensation is not None else []
-                    )
+                    trigger.value for trigger in (workflow.compensation.on if workflow.compensation is not None else [])
                 ),
                 compensation_targets=compensation_targets,
                 compensation_ordering=(
-                    workflow.compensation.order
-                    if workflow.compensation is not None
-                    else "reverse_completion"
+                    workflow.compensation.order if workflow.compensation is not None else "reverse_completion"
                 ),
                 compensation_failure_policy=(
-                    workflow.compensation.failure_policy.value
-                    if workflow.compensation is not None
-                    else "fail_workflow"
+                    workflow.compensation.failure_policy.value if workflow.compensation is not None else "fail_workflow"
                 ),
                 observable_steps=tuple(sorted(result_contract_steps)),
             ),
-            refresh_dependencies=_dedupe(
-                [*objective_addresses, *predicate_dependency_addresses]
-            ),
+            refresh_dependencies=_dedupe([*objective_addresses, *predicate_dependency_addresses]),
             spec=_dump(workflow),
         )
 

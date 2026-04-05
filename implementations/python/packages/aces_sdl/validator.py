@@ -9,13 +9,13 @@ the first one.
 from collections import defaultdict, deque
 from ipaddress import ip_address, ip_network
 
-from pydantic import BaseModel
-
 from aces_processor.semantics.objectives import analyze_objective_window
 from aces_processor.semantics.workflow import (
     branch_closure,
     workflow_step_semantic_contract,
 )
+from pydantic import BaseModel
+
 from ._base import extract_variable_name, is_variable_ref
 from ._errors import SDLValidationError
 from .entities import flatten_entities
@@ -177,11 +177,7 @@ class SemanticValidator:
         )
         filtered: dict[str, set[str]] = {}
         for alias, candidates in index.items():
-            keep = {
-                candidate
-                for candidate in candidates
-                if not candidate.startswith(disallowed_prefixes)
-            }
+            keep = {candidate for candidate in candidates if not candidate.startswith(disallowed_prefixes)}
             if keep:
                 filtered[alias] = keep
         return filtered
@@ -199,18 +195,12 @@ class SemanticValidator:
         candidates = index.get(ref)
         if not candidates:
             qualifier = "targetable " if targetable else ""
-            self._err(
-                f"{owner_label} {ref_label} '{ref}' does not reference any "
-                f"defined {qualifier}element"
-            )
+            self._err(f"{owner_label} {ref_label} '{ref}' does not reference any defined {qualifier}element")
             return
 
         if len(candidates) > 1:
             choices = ", ".join(sorted(candidates))
-            self._err(
-                f"{owner_label} {ref_label} '{ref}' is ambiguous; use one of: "
-                f"{choices}"
-            )
+            self._err(f"{owner_label} {ref_label} '{ref}' is ambiguous; use one of: {choices}")
 
     def validate(self) -> None:
         """Run all validation passes and raise on errors."""
@@ -277,104 +267,58 @@ class SemanticValidator:
 
             for feat_name, role_name in node.features.items():
                 if feat_name not in self._s.features:
-                    self._err(
-                        f"Node '{name}' references undefined feature '{feat_name}'"
-                    )
-                if (
-                    role_name
-                    and not self._is_unresolved_var(role_name)
-                    and role_name not in node.roles
-                ):
-                    self._err(
-                        f"Node '{name}' feature '{feat_name}' references "
-                        f"undefined role '{role_name}'"
-                    )
+                    self._err(f"Node '{name}' references undefined feature '{feat_name}'")
+                if role_name and not self._is_unresolved_var(role_name) and role_name not in node.roles:
+                    self._err(f"Node '{name}' feature '{feat_name}' references undefined role '{role_name}'")
 
             for cond_name, role_name in node.conditions.items():
                 if cond_name not in self._s.conditions:
-                    self._err(
-                        f"Node '{name}' references undefined condition '{cond_name}'"
-                    )
-                if (
-                    role_name
-                    and not self._is_unresolved_var(role_name)
-                    and role_name not in node.roles
-                ):
-                    self._err(
-                        f"Node '{name}' condition '{cond_name}' references "
-                        f"undefined role '{role_name}'"
-                    )
+                    self._err(f"Node '{name}' references undefined condition '{cond_name}'")
+                if role_name and not self._is_unresolved_var(role_name) and role_name not in node.roles:
+                    self._err(f"Node '{name}' condition '{cond_name}' references undefined role '{role_name}'")
 
             for inj_name, role_name in node.injects.items():
                 if inj_name not in self._s.injects:
-                    self._err(
-                        f"Node '{name}' references undefined inject '{inj_name}'"
-                    )
-                if (
-                    role_name
-                    and not self._is_unresolved_var(role_name)
-                    and role_name not in node.roles
-                ):
-                    self._err(
-                        f"Node '{name}' inject '{inj_name}' references "
-                        f"undefined role '{role_name}'"
-                    )
+                    self._err(f"Node '{name}' references undefined inject '{inj_name}'")
+                if role_name and not self._is_unresolved_var(role_name) and role_name not in node.roles:
+                    self._err(f"Node '{name}' inject '{inj_name}' references undefined role '{role_name}'")
 
             for vuln_name in node.vulnerabilities:
                 if self._is_unresolved_var(vuln_name):
                     continue
                 if vuln_name not in self._s.vulnerabilities:
-                    self._err(
-                        f"Node '{name}' references undefined vulnerability '{vuln_name}'"
-                    )
+                    self._err(f"Node '{name}' references undefined vulnerability '{vuln_name}'")
 
     def _verify_infrastructure(self) -> None:
         for name, infra in self._s.infrastructure.items():
             if name not in self._s.nodes:
-                self._err(
-                    f"Infrastructure '{name}' does not match any defined node"
-                )
+                self._err(f"Infrastructure '{name}' does not match any defined node")
 
             for link in infra.links:
                 if self._is_unresolved_var(link):
                     continue
                 if link not in self._s.infrastructure:
-                    self._err(
-                        f"Infrastructure '{name}' links to undefined '{link}'"
-                    )
+                    self._err(f"Infrastructure '{name}' links to undefined '{link}'")
                 elif not self._is_switch_node(link):
-                    self._err(
-                        f"Infrastructure '{name}' link '{link}' must reference "
-                        "a switch/network entry"
-                    )
+                    self._err(f"Infrastructure '{name}' link '{link}' must reference a switch/network entry")
 
             for dep in infra.dependencies:
                 if self._is_unresolved_var(dep):
                     continue
                 if dep not in self._s.infrastructure:
-                    self._err(
-                        f"Infrastructure '{name}' depends on undefined '{dep}'"
-                    )
+                    self._err(f"Infrastructure '{name}' depends on undefined '{dep}'")
 
             # Switch nodes cannot have count > 1
             if name in self._s.nodes:
-                if (
-                    self._s.nodes[name].type == NodeType.SWITCH
-                    and isinstance(infra.count, int)
-                    and infra.count > 1
-                ):
-                    self._err(
-                        f"Switch node '{name}' cannot have count > 1"
-                    )
+                if self._s.nodes[name].type == NodeType.SWITCH and isinstance(infra.count, int) and infra.count > 1:
+                    self._err(f"Switch node '{name}' cannot have count > 1")
                 if (
                     self._s.nodes[name].type == NodeType.VM
                     and self._s.nodes[name].conditions
                     and isinstance(infra.count, int)
                     and infra.count > 1
                 ):
-                    self._err(
-                        f"Node '{name}' has conditions and cannot have count > 1"
-                    )
+                    self._err(f"Node '{name}' has conditions and cannot have count > 1")
 
             # Validate complex properties IP within linked CIDR
             if isinstance(infra.properties, list):
@@ -383,10 +327,7 @@ class SemanticValidator:
                         if self._is_unresolved_var(link_name):
                             continue
                         if link_name not in infra.links:
-                            self._err(
-                                f"Infrastructure '{name}' property references "
-                                f"unlinked node '{link_name}'"
-                            )
+                            self._err(f"Infrastructure '{name}' property references unlinked node '{link_name}'")
                         if not self._is_switch_node(link_name):
                             self._err(
                                 f"Infrastructure '{name}' property link "
@@ -409,21 +350,15 @@ class SemanticValidator:
                         if self._is_unresolved_var(linked_infra.properties.cidr):
                             continue
                         try:
-                            net = ip_network(
-                                linked_infra.properties.cidr, strict=False
-                            )
+                            net = ip_network(linked_infra.properties.cidr, strict=False)
                         except ValueError:
-                            self._err(
-                                f"Infrastructure '{link_name}' has invalid CIDR "
-                                f"{linked_infra.properties.cidr}"
-                            )
+                            self._err(f"Infrastructure '{link_name}' has invalid CIDR {linked_infra.properties.cidr}")
                             continue
                         try:
                             addr = ip_address(ip_str)
                         except ValueError:
                             self._err(
-                                f"Infrastructure '{name}' has invalid IP "
-                                f"assignment '{ip_str}' for link '{link_name}'"
+                                f"Infrastructure '{name}' has invalid IP assignment '{ip_str}' for link '{link_name}'"
                             )
                             continue
                         if addr not in net:
@@ -439,53 +374,23 @@ class SemanticValidator:
                     if self._is_unresolved_var(ref):
                         continue
                     if ref and ref not in self._s.infrastructure:
-                        self._err(
-                            f"Infrastructure '{name}' ACL references "
-                            f"undefined network '{ref}'"
-                        )
+                        self._err(f"Infrastructure '{name}' ACL references undefined network '{ref}'")
                     elif ref and not self._is_switch_node(ref):
-                        self._err(
-                            f"Infrastructure '{name}' ACL reference '{ref}' "
-                            "must point to a switch/network entry"
-                        )
+                        self._err(f"Infrastructure '{name}' ACL reference '{ref}' must point to a switch/network entry")
 
     def _verify_content(self) -> None:
         for name, item in self._s.content.items():
-            if (
-                item.target
-                and not self._is_unresolved_var(item.target)
-                and item.target not in self._s.nodes
-            ):
-                self._err(
-                    f"Content '{name}' targets undefined node '{item.target}'"
-                )
-            elif (
-                item.target
-                and not self._is_unresolved_var(item.target)
-                and not self._is_vm_node(item.target)
-            ):
-                self._err(
-                    f"Content '{name}' target '{item.target}' must be a VM node"
-                )
+            if item.target and not self._is_unresolved_var(item.target) and item.target not in self._s.nodes:
+                self._err(f"Content '{name}' targets undefined node '{item.target}'")
+            elif item.target and not self._is_unresolved_var(item.target) and not self._is_vm_node(item.target):
+                self._err(f"Content '{name}' target '{item.target}' must be a VM node")
 
     def _verify_accounts(self) -> None:
         for name, acct in self._s.accounts.items():
-            if (
-                acct.node
-                and not self._is_unresolved_var(acct.node)
-                and acct.node not in self._s.nodes
-            ):
-                self._err(
-                    f"Account '{name}' references undefined node '{acct.node}'"
-                )
-            elif (
-                acct.node
-                and not self._is_unresolved_var(acct.node)
-                and not self._is_vm_node(acct.node)
-            ):
-                self._err(
-                    f"Account '{name}' node '{acct.node}' must be a VM node"
-                )
+            if acct.node and not self._is_unresolved_var(acct.node) and acct.node not in self._s.nodes:
+                self._err(f"Account '{name}' references undefined node '{acct.node}'")
+            elif acct.node and not self._is_unresolved_var(acct.node) and not self._is_vm_node(acct.node):
+                self._err(f"Account '{name}' node '{acct.node}' must be a VM node")
 
     def _verify_relationships(self) -> None:
         for name, rel in self._s.relationships.items():
@@ -504,86 +409,52 @@ class SemanticValidator:
 
     def _verify_agents(self) -> None:
         flat_entity_names = self._all_entity_names()
-        service_names = {
-            service.name
-            for node in self._s.nodes.values()
-            for service in node.services
-            if service.name
-        }
+        service_names = {service.name for node in self._s.nodes.values() for service in node.services if service.name}
 
         for name, agent in self._s.agents.items():
-            if (
-                agent.entity
-                and not self._is_unresolved_var(agent.entity)
-                and agent.entity not in flat_entity_names
-            ):
-                self._err(
-                    f"Agent '{name}' references undefined entity '{agent.entity}'"
-                )
+            if agent.entity and not self._is_unresolved_var(agent.entity) and agent.entity not in flat_entity_names:
+                self._err(f"Agent '{name}' references undefined entity '{agent.entity}'")
             for acct_name in agent.starting_accounts:
                 if self._is_unresolved_var(acct_name):
                     continue
                 if acct_name not in self._s.accounts:
-                    self._err(
-                        f"Agent '{name}' starting_account '{acct_name}' "
-                        f"not in accounts section"
-                    )
+                    self._err(f"Agent '{name}' starting_account '{acct_name}' not in accounts section")
             for subnet in agent.allowed_subnets:
                 if self._is_unresolved_var(subnet):
                     continue
                 if subnet not in self._s.infrastructure:
-                    self._err(
-                        f"Agent '{name}' allowed_subnet '{subnet}' "
-                        f"not in infrastructure section"
-                    )
+                    self._err(f"Agent '{name}' allowed_subnet '{subnet}' not in infrastructure section")
                 elif not self._is_switch_node(subnet):
-                    self._err(
-                        f"Agent '{name}' allowed_subnet '{subnet}' must "
-                        "reference a switch/network entry"
-                    )
+                    self._err(f"Agent '{name}' allowed_subnet '{subnet}' must reference a switch/network entry")
             if agent.initial_knowledge:
                 for host in agent.initial_knowledge.hosts:
                     if self._is_unresolved_var(host):
                         continue
                     if host not in self._s.nodes:
-                        self._err(
-                            f"Agent '{name}' initial_knowledge host '{host}' "
-                            f"not in nodes section"
-                        )
+                        self._err(f"Agent '{name}' initial_knowledge host '{host}' not in nodes section")
                     elif not self._is_vm_node(host):
-                        self._err(
-                            f"Agent '{name}' initial_knowledge host '{host}' "
-                            "must reference a VM node"
-                        )
+                        self._err(f"Agent '{name}' initial_knowledge host '{host}' must reference a VM node")
                 for subnet in agent.initial_knowledge.subnets:
                     if self._is_unresolved_var(subnet):
                         continue
                     if subnet not in self._s.infrastructure:
-                        self._err(
-                            f"Agent '{name}' initial_knowledge subnet '{subnet}' "
-                            f"not in infrastructure section"
-                        )
+                        self._err(f"Agent '{name}' initial_knowledge subnet '{subnet}' not in infrastructure section")
                     elif not self._is_switch_node(subnet):
                         self._err(
-                            f"Agent '{name}' initial_knowledge subnet "
-                            f"'{subnet}' must reference a switch/network entry"
+                            f"Agent '{name}' initial_knowledge subnet '{subnet}' must reference a switch/network entry"
                         )
                 for service_name in agent.initial_knowledge.services:
                     if self._is_unresolved_var(service_name):
                         continue
                     if service_name not in service_names:
                         self._err(
-                            f"Agent '{name}' initial_knowledge service "
-                            f"'{service_name}' not in node service names"
+                            f"Agent '{name}' initial_knowledge service '{service_name}' not in node service names"
                         )
                 for acct_name in agent.initial_knowledge.accounts:
                     if self._is_unresolved_var(acct_name):
                         continue
                     if acct_name not in self._s.accounts:
-                        self._err(
-                            f"Agent '{name}' initial_knowledge account "
-                            f"'{acct_name}' not in accounts section"
-                        )
+                        self._err(f"Agent '{name}' initial_knowledge account '{acct_name}' not in accounts section")
 
     def _verify_objectives(self) -> None:
         actor_entities = self._all_entity_names()
@@ -594,35 +465,22 @@ class SemanticValidator:
                 and not self._is_unresolved_var(objective.agent)
                 and objective.agent not in self._s.agents
             ):
-                self._err(
-                    f"Objective '{name}' references undefined agent "
-                    f"'{objective.agent}'"
-                )
+                self._err(f"Objective '{name}' references undefined agent '{objective.agent}'")
 
             if (
                 objective.entity
                 and not self._is_unresolved_var(objective.entity)
                 and objective.entity not in actor_entities
             ):
-                self._err(
-                    f"Objective '{name}' references undefined entity "
-                    f"'{objective.entity}'"
-                )
+                self._err(f"Objective '{name}' references undefined entity '{objective.entity}'")
 
-            if (
-                objective.agent
-                and not self._is_unresolved_var(objective.agent)
-                and objective.agent in self._s.agents
-            ):
+            if objective.agent and not self._is_unresolved_var(objective.agent) and objective.agent in self._s.agents:
                 allowed_actions = set(self._s.agents[objective.agent].actions)
                 for action in objective.actions:
                     if self._is_unresolved_var(action):
                         continue
                     if action not in allowed_actions:
-                        self._err(
-                            f"Objective '{name}' action '{action}' is not "
-                            f"declared by agent '{objective.agent}'"
-                        )
+                        self._err(f"Objective '{name}' action '{action}' is not declared by agent '{objective.agent}'")
 
             for target in objective.targets:
                 if self._is_unresolved_var(target):
@@ -646,17 +504,12 @@ class SemanticValidator:
                     if self._is_unresolved_var(ref):
                         continue
                     if ref not in section:
-                        self._err(
-                            f"Objective '{name}' references undefined {label} "
-                            f"'{ref}' in success criteria"
-                        )
+                        self._err(f"Objective '{name}' references undefined {label} '{ref}' in success criteria")
 
             if objective.window:
                 window_analysis = analyze_objective_window(
                     story_refs=[
-                        story_name
-                        for story_name in objective.window.stories
-                        if not self._is_unresolved_var(story_name)
+                        story_name for story_name in objective.window.stories if not self._is_unresolved_var(story_name)
                     ],
                     script_refs=[
                         script_name
@@ -664,9 +517,7 @@ class SemanticValidator:
                         if not self._is_unresolved_var(script_name)
                     ],
                     event_refs=[
-                        event_name
-                        for event_name in objective.window.events
-                        if not self._is_unresolved_var(event_name)
+                        event_name for event_name in objective.window.events if not self._is_unresolved_var(event_name)
                     ],
                     workflow_refs=[
                         workflow_name
@@ -674,9 +525,7 @@ class SemanticValidator:
                         if not self._is_unresolved_var(workflow_name)
                     ],
                     step_refs=[
-                        step_ref
-                        for step_ref in objective.window.steps
-                        if not self._is_unresolved_var(step_ref)
+                        step_ref for step_ref in objective.window.steps if not self._is_unresolved_var(step_ref)
                     ],
                     stories_by_name=self._s.stories,
                     scripts_by_name=self._s.scripts,
@@ -686,45 +535,25 @@ class SemanticValidator:
 
                 for issue in window_analysis.issues:
                     if issue.code == "story-unbound":
-                        self._err(
-                            f"Objective '{name}' references undefined story "
-                            f"'{issue.ref}' in window"
-                        )
+                        self._err(f"Objective '{name}' references undefined story '{issue.ref}' in window")
                     elif issue.code == "script-unbound":
-                        self._err(
-                            f"Objective '{name}' references undefined script "
-                            f"'{issue.ref}' in window"
-                        )
+                        self._err(f"Objective '{name}' references undefined script '{issue.ref}' in window")
                     elif issue.code == "script-outside-window-stories":
                         self._err(
-                            f"Objective '{name}' window script '{issue.ref}' "
-                            "is not included by the referenced stories"
+                            f"Objective '{name}' window script '{issue.ref}' is not included by the referenced stories"
                         )
                     elif issue.code == "event-unbound":
-                        self._err(
-                            f"Objective '{name}' references undefined event "
-                            f"'{issue.ref}' in window"
-                        )
+                        self._err(f"Objective '{name}' references undefined event '{issue.ref}' in window")
                     elif issue.code == "event-outside-window-scripts":
                         self._err(
-                            f"Objective '{name}' window event '{issue.ref}' "
-                            "is not included by the referenced scripts"
+                            f"Objective '{name}' window event '{issue.ref}' is not included by the referenced scripts"
                         )
                     elif issue.code == "workflow-unbound":
-                        self._err(
-                            f"Objective '{name}' references undefined workflow "
-                            f"'{issue.ref}' in window"
-                        )
+                        self._err(f"Objective '{name}' references undefined workflow '{issue.ref}' in window")
                     elif issue.code == "step-requires-workflow-window":
-                        self._err(
-                            f"Objective '{name}' window steps require at least one "
-                            "referenced workflow"
-                        )
+                        self._err(f"Objective '{name}' window steps require at least one referenced workflow")
                     elif issue.code == "step-invalid-format":
-                        self._err(
-                            f"Objective '{name}' window step '{issue.ref}' must "
-                            "use '<workflow>.<step>' syntax"
-                        )
+                        self._err(f"Objective '{name}' window step '{issue.ref}' must use '<workflow>.<step>' syntax")
                     elif issue.code == "step-workflow-unbound":
                         self._err(
                             f"Objective '{name}' window step '{issue.ref}' "
@@ -732,8 +561,7 @@ class SemanticValidator:
                         )
                     elif issue.code == "step-workflow-outside-window":
                         self._err(
-                            f"Objective '{name}' window step '{issue.ref}' "
-                            "is not part of the referenced workflows"
+                            f"Objective '{name}' window step '{issue.ref}' is not part of the referenced workflows"
                         )
                     elif issue.code == "step-unbound":
                         self._err(
@@ -745,16 +573,12 @@ class SemanticValidator:
                 if self._is_unresolved_var(dep_name):
                     continue
                 if dep_name not in self._s.objectives:
-                    self._err(
-                        f"Objective '{name}' depends on undefined objective "
-                        f"'{dep_name}'"
-                    )
+                    self._err(f"Objective '{name}' depends on undefined objective '{dep_name}'")
 
         dep_graph: dict[str, list[str]] = {}
         for name, objective in self._s.objectives.items():
             dep_graph[name] = [
-                dep for dep in objective.depends_on
-                if not self._is_unresolved_var(dep) and dep in self._s.objectives
+                dep for dep in objective.depends_on if not self._is_unresolved_var(dep) and dep in self._s.objectives
             ]
         if dep_graph and _topological_sort(dep_graph) is None:
             self._err("Objective dependency graph contains a cycle")
@@ -798,8 +622,7 @@ class SemanticValidator:
                 continue
             if step_state.step == step_name:
                 self._err(
-                    f"Workflow '{workflow_name}' step '{step_name}' "
-                    "cannot reference its own state in a predicate"
+                    f"Workflow '{workflow_name}' step '{step_name}' cannot reference its own state in a predicate"
                 )
                 continue
             ref_step = workflow_steps[step_state.step]
@@ -812,9 +635,7 @@ class SemanticValidator:
                 )
                 continue
             invalid_outcomes = [
-                outcome.value
-                for outcome in step_state.outcomes
-                if outcome.value not in contract.observable_outcomes
+                outcome.value for outcome in step_state.outcomes if outcome.value not in contract.observable_outcomes
             ]
             if invalid_outcomes:
                 allowed = ", ".join(contract.observable_outcomes)
@@ -843,10 +664,7 @@ class SemanticValidator:
         if self._is_unresolved_var(target):
             return None
         if target not in workflow_steps:
-            self._err(
-                f"Workflow '{workflow_name}' step '{step_name}' "
-                f"{field_name} step '{target}' is not defined"
-            )
+            self._err(f"Workflow '{workflow_name}' step '{step_name}' {field_name} step '{target}' is not defined")
             return None
         return target
 
@@ -969,13 +787,7 @@ class SemanticValidator:
             WorkflowStepType.OBJECTIVE,
             WorkflowStepType.RETRY,
             WorkflowStepType.CALL,
-        }:
-            available.add(step_name)
-        elif (
-            step.type == WorkflowStepType.PARALLEL
-            and step.on_failure
-            and successor == step.on_failure
-        ):
+        } or (step.type == WorkflowStepType.PARALLEL and step.on_failure and successor == step.on_failure):
             available.add(step_name)
         return available
 
@@ -1056,27 +868,15 @@ class SemanticValidator:
         return result
 
     def _verify_workflows(self) -> None:
-        workflow_call_graph: dict[str, set[str]] = {
-            workflow_name: set() for workflow_name in self._s.workflows
-        }
-        workflow_compensation_graph: dict[str, set[str]] = {
-            workflow_name: set() for workflow_name in self._s.workflows
-        }
+        workflow_call_graph: dict[str, set[str]] = {workflow_name: set() for workflow_name in self._s.workflows}
+        workflow_compensation_graph: dict[str, set[str]] = {workflow_name: set() for workflow_name in self._s.workflows}
         compensation_target_workflows: set[str] = set()
         workflows_with_compensation_steps: set[str] = set()
         for workflow_name, workflow in self._s.workflows.items():
-            if (
-                not self._is_unresolved_var(workflow.start)
-                and workflow.start not in workflow.steps
-            ):
-                self._err(
-                    f"Workflow '{workflow_name}' start step "
-                    f"'{workflow.start}' is not defined"
-                )
+            if not self._is_unresolved_var(workflow.start) and workflow.start not in workflow.steps:
+                self._err(f"Workflow '{workflow_name}' start step '{workflow.start}' is not defined")
 
-            graph: dict[str, list[str]] = {
-                step_name: [] for step_name in workflow.steps
-            }
+            graph: dict[str, list[str]] = {step_name: [] for step_name in workflow.steps}
             predicate_step_refs: dict[str, list[str]] = {}
             join_targets: dict[str, list[str]] = defaultdict(list)
 
@@ -1089,10 +889,7 @@ class SemanticValidator:
                     )
 
                 if step.type == WorkflowStepType.OBJECTIVE:
-                    if (
-                        not self._is_unresolved_var(step.objective)
-                        and step.objective not in self._s.objectives
-                    ):
+                    if not self._is_unresolved_var(step.objective) and step.objective not in self._s.objectives:
                         self._err(
                             f"Workflow '{workflow_name}' step '{step_name}' "
                             f"references undefined objective '{step.objective}'"
@@ -1122,14 +919,15 @@ class SemanticValidator:
                                 f"'{step.compensate_with}'"
                             )
                         elif not self._is_unresolved_var(step.compensate_with):
-                            workflow_compensation_graph.setdefault(workflow_name, set()).add(
-                                step.compensate_with
-                            )
+                            workflow_compensation_graph.setdefault(workflow_name, set()).add(step.compensate_with)
                             compensation_target_workflows.add(step.compensate_with)
 
                 elif step.type == WorkflowStepType.DECISION:
                     predicate_step_refs[step_name] = self._validate_workflow_predicate(
-                        workflow_name, step_name, step.when, workflow.steps,
+                        workflow_name,
+                        step_name,
+                        step.when,
+                        workflow.steps,
                     )
 
                     for branch_label, branch_ref in (
@@ -1219,10 +1017,7 @@ class SemanticValidator:
                         graph[step_name].append(resolved)
 
                 elif step.type == WorkflowStepType.RETRY:
-                    if (
-                        not self._is_unresolved_var(step.objective)
-                        and step.objective not in self._s.objectives
-                    ):
+                    if not self._is_unresolved_var(step.objective) and step.objective not in self._s.objectives:
                         self._err(
                             f"Workflow '{workflow_name}' step '{step_name}' "
                             f"references undefined objective '{step.objective}'"
@@ -1242,18 +1037,13 @@ class SemanticValidator:
                             graph[step_name].append(resolved)
 
                 elif step.type == WorkflowStepType.CALL:
-                    if (
-                        not self._is_unresolved_var(step.workflow)
-                        and step.workflow not in self._s.workflows
-                    ):
+                    if not self._is_unresolved_var(step.workflow) and step.workflow not in self._s.workflows:
                         self._err(
                             f"Workflow '{workflow_name}' step '{step_name}' "
                             f"references undefined workflow '{step.workflow}'"
                         )
                     elif not self._is_unresolved_var(step.workflow):
-                        workflow_call_graph.setdefault(workflow_name, set()).add(
-                            step.workflow
-                        )
+                        workflow_call_graph.setdefault(workflow_name, set()).add(step.workflow)
                     for field_name, target in (
                         ("on-success", step.on_success),
                         ("on-failure", step.on_failure),
@@ -1279,9 +1069,7 @@ class SemanticValidator:
                                 f"'{step.compensate_with}'"
                             )
                         elif not self._is_unresolved_var(step.compensate_with):
-                            workflow_compensation_graph.setdefault(workflow_name, set()).add(
-                                step.compensate_with
-                            )
+                            workflow_compensation_graph.setdefault(workflow_name, set()).add(step.compensate_with)
                             compensation_target_workflows.add(step.compensate_with)
 
                 elif step.type == WorkflowStepType.END:
@@ -1301,8 +1089,7 @@ class SemanticValidator:
                     )
                 if len(sources) > 1:
                     self._err(
-                        f"Workflow '{workflow_name}' join step '{join_step}' "
-                        "may only be targeted by one parallel step"
+                        f"Workflow '{workflow_name}' join step '{join_step}' may only be targeted by one parallel step"
                     )
 
             for step_name, step in workflow.steps.items():
@@ -1311,19 +1098,13 @@ class SemanticValidator:
                 sources = join_targets.get(step_name, [])
                 if not sources:
                     self._err(
-                        f"Workflow '{workflow_name}' join step '{step_name}' "
-                        "is not referenced by any parallel step"
+                        f"Workflow '{workflow_name}' join step '{step_name}' is not referenced by any parallel step"
                     )
 
             if graph and _topological_sort(graph) is None:
-                self._err(
-                    f"Workflow '{workflow_name}' graph contains a cycle"
-                )
+                self._err(f"Workflow '{workflow_name}' graph contains a cycle")
 
-            if (
-                self._is_unresolved_var(workflow.start)
-                or workflow.start not in workflow.steps
-            ):
+            if self._is_unresolved_var(workflow.start) or workflow.start not in workflow.steps:
                 continue
 
             reachable: set[str] = set()
@@ -1337,14 +1118,9 @@ class SemanticValidator:
 
             unreachable = sorted(set(workflow.steps) - reachable)
             if unreachable:
-                self._err(
-                    f"Workflow '{workflow_name}' contains unreachable steps: "
-                    + ", ".join(unreachable)
-                )
+                self._err(f"Workflow '{workflow_name}' contains unreachable steps: " + ", ".join(unreachable))
 
-            predecessors: dict[str, set[str]] = {
-                step_name: set() for step_name in reachable
-            }
+            predecessors: dict[str, set[str]] = {step_name: set() for step_name in reachable}
             for source, edges in graph.items():
                 if source not in reachable:
                     continue
@@ -1352,22 +1128,14 @@ class SemanticValidator:
                     if target in reachable:
                         predecessors[target].add(source)
 
-            for step_name, step in workflow.steps.items():
+            for _step_name, step in workflow.steps.items():
                 if step.type != WorkflowStepType.PARALLEL:
                     continue
-                if (
-                    self._is_unresolved_var(step.join)
-                    or step.join not in workflow.steps
-                    or step.join not in reachable
-                ):
+                if self._is_unresolved_var(step.join) or step.join not in workflow.steps or step.join not in reachable:
                     continue
                 allowed_predecessors = branch_closure(
                     graph,
-                    branches=(
-                        branch
-                        for branch in step.branches
-                        if branch in reachable and branch in workflow.steps
-                    ),
+                    branches=(branch for branch in step.branches if branch in reachable and branch in workflow.steps),
                     join_step=step.join,
                 )
                 foreign_predecessors = sorted(
@@ -1379,8 +1147,7 @@ class SemanticValidator:
                     self._err(
                         f"Workflow '{workflow_name}' join step '{step.join}' "
                         "may only be entered from the owning parallel's branch "
-                        "closure; unexpected predecessors: "
-                        + ", ".join(foreign_predecessors)
+                        "closure; unexpected predecessors: " + ", ".join(foreign_predecessors)
                     )
 
             available_memo: dict[str, set[str]] = {}
@@ -1413,10 +1180,7 @@ class SemanticValidator:
             for step_name, step in workflow.steps.items():
                 if step.type != WorkflowStepType.PARALLEL:
                     continue
-                if (
-                    self._is_unresolved_var(step.join)
-                    or step.join not in workflow.steps
-                ):
+                if self._is_unresolved_var(step.join) or step.join not in workflow.steps:
                     continue
                 for branch_ref in step.branches:
                     if self._is_unresolved_var(branch_ref) or branch_ref not in workflow.steps:
@@ -1435,29 +1199,26 @@ class SemanticValidator:
                             f"'{step.join}'"
                         )
 
-        if workflow_call_graph and _topological_sort(
-            {
-                workflow_name: sorted(
-                    callee
-                    for callee in callees
-                    if callee in workflow_call_graph
-                )
-                for workflow_name, callees in workflow_call_graph.items()
-            }
-        ) is None:
+        if (
+            workflow_call_graph
+            and _topological_sort(
+                {
+                    workflow_name: sorted(callee for callee in callees if callee in workflow_call_graph)
+                    for workflow_name, callees in workflow_call_graph.items()
+                }
+            )
+            is None
+        ):
             self._err("Workflow call graph contains a cycle")
 
         combined_workflow_graph = {
             workflow_name: sorted(
-                workflow_call_graph.get(workflow_name, set())
-                | workflow_compensation_graph.get(workflow_name, set())
+                workflow_call_graph.get(workflow_name, set()) | workflow_compensation_graph.get(workflow_name, set())
             )
             for workflow_name in self._s.workflows
         }
         if combined_workflow_graph and _topological_sort(combined_workflow_graph) is None:
-            self._err(
-                "Combined workflow call/compensation graph contains a cycle"
-            )
+            self._err("Combined workflow call/compensation graph contains a cycle")
 
         for workflow_name in sorted(compensation_target_workflows):
             if workflow_name in workflows_with_compensation_steps:
@@ -1494,10 +1255,7 @@ class SemanticValidator:
             if self._is_unresolved_var(value):
                 variable_name = extract_variable_name(value)
                 if variable_name and variable_name not in defined:
-                    self._err(
-                        f"Undefined variable '{variable_name}' referenced at "
-                        f"'{path}'"
-                    )
+                    self._err(f"Undefined variable '{variable_name}' referenced at '{path}'")
 
         visit(self._s, "")
 
@@ -1516,10 +1274,7 @@ class SemanticValidator:
                 if self._is_unresolved_var(vuln_name):
                     continue
                 if vuln_name not in self._s.vulnerabilities:
-                    self._err(
-                        f"Feature '{name}' references undefined vulnerability "
-                        f"'{vuln_name}'"
-                    )
+                    self._err(f"Feature '{name}' references undefined vulnerability '{vuln_name}'")
 
         # Check dependency references and detect cycles
         dep_graph: dict[str, list[str]] = {}
@@ -1529,9 +1284,7 @@ class SemanticValidator:
                 if self._is_unresolved_var(dep):
                     continue
                 if dep not in self._s.features:
-                    self._err(
-                        f"Feature '{name}' depends on undefined feature '{dep}'"
-                    )
+                    self._err(f"Feature '{name}' depends on undefined feature '{dep}'")
                 else:
                     dep_graph[name].append(dep)
 
@@ -1556,13 +1309,9 @@ class SemanticValidator:
                 if self._is_unresolved_var(cond):
                     continue
                 if cond and cond not in self._s.conditions:
-                    self._err(
-                        f"Metric '{name}' references undefined condition '{cond}'"
-                    )
+                    self._err(f"Metric '{name}' references undefined condition '{cond}'")
                 if cond in used_conditions:
-                    self._err(
-                        f"Condition '{cond}' is referenced by multiple metrics"
-                    )
+                    self._err(f"Condition '{cond}' is referenced by multiple metrics")
                 if cond:
                     used_conditions.add(cond)
 
@@ -1575,10 +1324,7 @@ class SemanticValidator:
                     unknown_max_score = True
                     continue
                 if metric_name not in self._s.metrics:
-                    self._err(
-                        f"Evaluation '{name}' references undefined metric "
-                        f"'{metric_name}'"
-                    )
+                    self._err(f"Evaluation '{name}' references undefined metric '{metric_name}'")
                 else:
                     metric_max_score = self._s.metrics[metric_name].max_score
                     if isinstance(metric_max_score, int):
@@ -1586,10 +1332,7 @@ class SemanticValidator:
                     else:
                         unknown_max_score = True
 
-            if (
-                isinstance(evaluation.min_score.absolute, int)
-                and not unknown_max_score
-            ):
+            if isinstance(evaluation.min_score.absolute, int) and not unknown_max_score:
                 if evaluation.min_score.absolute > max_total:
                     self._err(
                         f"Evaluation '{name}' absolute min-score "
@@ -1602,10 +1345,7 @@ class SemanticValidator:
             if self._is_unresolved_var(tlo.evaluation):
                 continue
             if tlo.evaluation not in self._s.evaluations:
-                self._err(
-                    f"TLO '{name}' references undefined evaluation "
-                    f"'{tlo.evaluation}'"
-                )
+                self._err(f"TLO '{name}' references undefined evaluation '{tlo.evaluation}'")
 
     def _verify_goals(self) -> None:
         for name, goal in self._s.goals.items():
@@ -1613,9 +1353,7 @@ class SemanticValidator:
                 if self._is_unresolved_var(tlo_name):
                     continue
                 if tlo_name not in self._s.tlos:
-                    self._err(
-                        f"Goal '{name}' references undefined TLO '{tlo_name}'"
-                    )
+                    self._err(f"Goal '{name}' references undefined TLO '{tlo_name}'")
 
     def _verify_entities(self) -> None:
         flat = flatten_entities(self._s.entities)
@@ -1625,25 +1363,17 @@ class SemanticValidator:
                 if self._is_unresolved_var(tlo_name):
                     continue
                 if tlo_name not in self._s.tlos:
-                    self._err(
-                        f"Entity '{name}' references undefined TLO '{tlo_name}'"
-                    )
+                    self._err(f"Entity '{name}' references undefined TLO '{tlo_name}'")
             for vuln_name in entity.vulnerabilities:
                 if self._is_unresolved_var(vuln_name):
                     continue
                 if vuln_name not in self._s.vulnerabilities:
-                    self._err(
-                        f"Entity '{name}' references undefined vulnerability "
-                        f"'{vuln_name}'"
-                    )
+                    self._err(f"Entity '{name}' references undefined vulnerability '{vuln_name}'")
             for event_name in entity.events:
                 if self._is_unresolved_var(event_name):
                     continue
                 if event_name not in self._s.events:
-                    self._err(
-                        f"Entity '{name}' references undefined event "
-                        f"'{event_name}'"
-                    )
+                    self._err(f"Entity '{name}' references undefined event '{event_name}'")
 
         for name, entity in flat.items():
             check_entity(name, entity)
@@ -1657,25 +1387,17 @@ class SemanticValidator:
                 and not self._is_unresolved_var(inject.from_entity)
                 and inject.from_entity not in flat_names
             ):
-                self._err(
-                    f"Inject '{name}' from_entity '{inject.from_entity}' "
-                    f"is not a defined entity"
-                )
+                self._err(f"Inject '{name}' from_entity '{inject.from_entity}' is not a defined entity")
             for to_name in inject.to_entities:
                 if self._is_unresolved_var(to_name):
                     continue
                 if to_name not in flat_names:
-                    self._err(
-                        f"Inject '{name}' to_entity '{to_name}' "
-                        f"is not a defined entity"
-                    )
+                    self._err(f"Inject '{name}' to_entity '{to_name}' is not a defined entity")
             for tlo_name in inject.tlos:
                 if self._is_unresolved_var(tlo_name):
                     continue
                 if tlo_name not in self._s.tlos:
-                    self._err(
-                        f"Inject '{name}' references undefined TLO '{tlo_name}'"
-                    )
+                    self._err(f"Inject '{name}' references undefined TLO '{tlo_name}'")
 
     def _verify_events(self) -> None:
         for name, event in self._s.events.items():
@@ -1683,17 +1405,12 @@ class SemanticValidator:
                 if self._is_unresolved_var(cond_name):
                     continue
                 if cond_name not in self._s.conditions:
-                    self._err(
-                        f"Event '{name}' references undefined condition "
-                        f"'{cond_name}'"
-                    )
+                    self._err(f"Event '{name}' references undefined condition '{cond_name}'")
             for inj_name in event.injects:
                 if self._is_unresolved_var(inj_name):
                     continue
                 if inj_name not in self._s.injects:
-                    self._err(
-                        f"Event '{name}' references undefined inject '{inj_name}'"
-                    )
+                    self._err(f"Event '{name}' references undefined inject '{inj_name}'")
 
     def _verify_scripts(self) -> None:
         for name, script in self._s.scripts.items():
@@ -1701,10 +1418,7 @@ class SemanticValidator:
                 if self._is_unresolved_var(event_name):
                     continue
                 if event_name not in self._s.events:
-                    self._err(
-                        f"Script '{name}' references undefined event "
-                        f"'{event_name}'"
-                    )
+                    self._err(f"Script '{name}' references undefined event '{event_name}'")
 
     def _verify_stories(self) -> None:
         for name, story in self._s.stories.items():
@@ -1712,10 +1426,7 @@ class SemanticValidator:
                 if self._is_unresolved_var(script_name):
                     continue
                 if script_name not in self._s.scripts:
-                    self._err(
-                        f"Story '{name}' references undefined script "
-                        f"'{script_name}'"
-                    )
+                    self._err(f"Story '{name}' references undefined script '{script_name}'")
 
     def _verify_roles(self) -> None:
         flat_names = self._all_entity_names()
@@ -1726,7 +1437,4 @@ class SemanticValidator:
                     if self._is_unresolved_var(entity_ref):
                         continue
                     if entity_ref not in flat_names:
-                        self._err(
-                            f"Node '{node_name}' role '{role_name}' references "
-                            f"undefined entity '{entity_ref}'"
-                        )
+                        self._err(f"Node '{node_name}' role '{role_name}' references undefined entity '{entity_ref}'")

@@ -32,8 +32,8 @@ from .models import (
     OperationStatus,
     OrchestrationOp,
     OrchestrationPlan,
-    ProvisionOp,
     ProvisioningPlan,
+    ProvisionOp,
     RuntimeSnapshotEnvelope,
     Severity,
 )
@@ -158,9 +158,7 @@ def create_control_plane_app(
 ) -> FastAPI:
     """Create a reference HTTP/JSON control-plane app."""
 
-    security = security or ControlPlaneSecurityConfig.strict_defaults(
-        target_name=control_plane.target_name
-    )
+    security = security or ControlPlaneSecurityConfig.strict_defaults(target_name=control_plane.target_name)
     app = FastAPI(
         title="ACES Runtime Control Plane",
         version="0.1.0",

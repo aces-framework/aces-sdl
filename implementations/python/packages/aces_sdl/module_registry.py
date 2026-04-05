@@ -21,9 +21,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
-from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, ValidationError
 
 from ._base import SDLModel
 from ._errors import SDLParseError
@@ -44,9 +44,7 @@ def _sha256_digest(data: bytes) -> str:
 
 
 def _descriptor_digest(exports: dict[str, list[str]]) -> str:
-    return _sha256_digest(
-        json.dumps(exports, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    )
+    return _sha256_digest(json.dumps(exports, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
 
 def _normalize_exact_or_range(version: str) -> SpecifierSet | None:
@@ -284,9 +282,7 @@ def _select_tag(tags: list[str], requested_version: str) -> str:
             matching.append((version, tag))
     if matching:
         return max(matching)[1]
-    raise SDLParseError(
-        f"No OCI module tag satisfies requested version '{requested_version}'"
-    )
+    raise SDLParseError(f"No OCI module tag satisfies requested version '{requested_version}'")
 
 
 def _oci_cache_dir(base_dir: Path) -> Path:
@@ -311,9 +307,7 @@ def _extract_bundle_to_cache(
         except TypeError:  # pragma: no cover - Python < 3.12 fallback
             tar.extractall(cache_dir)
     if not root_path.exists():
-        raise SDLParseError(
-            f"Resolved OCI module bundle is missing declared root file '{root_file}'"
-        )
+        raise SDLParseError(f"Resolved OCI module bundle is missing declared root file '{root_file}'")
     return root_path
 
 
@@ -337,10 +331,7 @@ def _verify_allowed_parameters(
     allowed = set(descriptor.parameters)
     disallowed = sorted(name for name in import_decl.parameters if name not in allowed)
     if disallowed:
-        raise SDLParseError(
-            f"Import parameters not allowed by module '{descriptor.id}': "
-            + ", ".join(disallowed)
-        )
+        raise SDLParseError(f"Import parameters not allowed by module '{descriptor.id}': " + ", ".join(disallowed))
 
 
 def _validate_digest_pin(actual_digest: str, expected_digest: str, *, source: str) -> None:
@@ -349,9 +340,7 @@ def _validate_digest_pin(actual_digest: str, expected_digest: str, *, source: st
     normalized_actual = actual_digest.removeprefix("sha256:")
     normalized_expected = expected_digest.removeprefix("sha256:")
     if normalized_actual != normalized_expected:
-        raise SDLParseError(
-            f"Digest mismatch for import '{source}': {expected_digest!r} != {actual_digest!r}"
-        )
+        raise SDLParseError(f"Digest mismatch for import '{source}': {expected_digest!r} != {actual_digest!r}")
 
 
 def resolve_import(
@@ -366,9 +355,7 @@ def resolve_import(
     if source.startswith("locked:"):
         locked_ref = source.removeprefix("locked:")
         if lockfile is None:
-            raise SDLParseError(
-                f"Locked import '{source}' requires {LOCKFILE_NAME}"
-            )
+            raise SDLParseError(f"Locked import '{source}' requires {LOCKFILE_NAME}")
         record = next(
             (
                 candidate
@@ -378,9 +365,7 @@ def resolve_import(
             None,
         )
         if record is None:
-            raise SDLParseError(
-                f"Locked import '{source}' is not present in {LOCKFILE_NAME}"
-            )
+            raise SDLParseError(f"Locked import '{source}' is not present in {LOCKFILE_NAME}")
         delegated = ImportDecl(
             source=record.source,
             namespace=import_decl.namespace or record.namespace,
@@ -418,8 +403,7 @@ def resolve_import(
             )
         if not trust_policy.allow_unsigned_local_sources:
             raise SDLParseError(
-                "Local SDL imports are disabled by trust policy because unsigned local "
-                "sources are not allowed"
+                "Local SDL imports are disabled by trust policy because unsigned local sources are not allowed"
             )
         _validate_digest_pin(content_digest, import_decl.digest, source=source)
         locked = _lock_record_for(lockfile, import_decl)
@@ -449,9 +433,7 @@ def resolve_import(
     locked = _lock_record_for(lockfile, import_decl)
     manifest_ref = locked.manifest_digest if locked is not None else None
     if manifest_ref is None:
-        tags_payload = _json_request(
-            f"{base_url}/v2/{quote(repository, safe='/')}/tags/list"
-        )
+        tags_payload = _json_request(f"{base_url}/v2/{quote(repository, safe='/')}/tags/list")
         tags = list(tags_payload.get("tags") or [])
         manifest_ref = _select_tag(tags, import_decl.version)
     manifest_bytes = _bytes_request(
@@ -462,16 +444,11 @@ def resolve_import(
     manifest = json.loads(manifest_bytes.decode("utf-8"))
     if locked is not None and locked.manifest_digest != manifest_digest:
         raise SDLParseError(
-            f"Lockfile digest mismatch for import '{source}': "
-            f"{locked.manifest_digest!r} != {manifest_digest!r}"
+            f"Lockfile digest mismatch for import '{source}': {locked.manifest_digest!r} != {manifest_digest!r}"
         )
     config = manifest.get("config", {})
     layer = next(
-        (
-            candidate
-            for candidate in manifest.get("layers", [])
-            if candidate.get("mediaType") == OCI_BUNDLE_MEDIA_TYPE
-        ),
+        (candidate for candidate in manifest.get("layers", []) if candidate.get("mediaType") == OCI_BUNDLE_MEDIA_TYPE),
         None,
     )
     if not config or not layer:
@@ -479,9 +456,9 @@ def resolve_import(
     config_digest = str(config.get("digest", ""))
     layer_digest = str(layer.get("digest", ""))
     config_payload = json.loads(
-        _bytes_request(
-            f"{base_url}/v2/{quote(repository, safe='/')}/blobs/{quote(config_digest, safe=':@/')}"
-        ).decode("utf-8")
+        _bytes_request(f"{base_url}/v2/{quote(repository, safe='/')}/blobs/{quote(config_digest, safe=':@/')}").decode(
+            "utf-8"
+        )
     )
     bundle_bytes = _bytes_request(
         f"{base_url}/v2/{quote(repository, safe='/')}/blobs/{quote(layer_digest, safe=':@/')}"
@@ -494,8 +471,7 @@ def resolve_import(
         raise SDLParseError(f"OCI module '{source}' has invalid module descriptor: {exc}") from exc
     if locked is not None and locked.module_id != descriptor.id:
         raise SDLParseError(
-            f"Lockfile module id mismatch for import '{source}': "
-            f"{locked.module_id!r} != {descriptor.id!r}"
+            f"Lockfile module id mismatch for import '{source}': {locked.module_id!r} != {descriptor.id!r}"
         )
     if not _satisfies_version(descriptor.version, import_decl.version):
         raise SDLParseError(
@@ -522,9 +498,7 @@ def resolve_import(
     _verify_allowed_parameters(import_decl, descriptor)
     export_hash = _descriptor_digest(descriptor.exports)
     if locked is not None and locked.export_hash != export_hash:
-        raise SDLParseError(
-            f"Lockfile export hash mismatch for import '{source}'"
-        )
+        raise SDLParseError(f"Lockfile export hash mismatch for import '{source}'")
     return ResolvedModule(
         import_decl=import_decl,
         module_descriptor=descriptor,
@@ -613,10 +587,7 @@ def publish_module_to_oci_layout(
         source_id=str(root_path.name),
     )
     files = _collect_local_bundle_files(root_path)
-    relative_files = {
-        path.relative_to(root_path.parent).as_posix(): content
-        for path, content in files.items()
-    }
+    relative_files = {path.relative_to(root_path.parent).as_posix(): content for path, content in files.items()}
     bundle_buffer = io.BytesIO()
     with tarfile.open(fileobj=bundle_buffer, mode="w:gz") as tar:
         for relative_name, content in sorted(relative_files.items()):
@@ -633,9 +604,7 @@ def publish_module_to_oci_layout(
         )
         if not isinstance(private_key, Ed25519PrivateKey):
             raise SDLParseError("Publishing key must be an Ed25519 private key")
-        signature = private_key.sign(
-            _signable_payload(descriptor, content_digest=content_digest)
-        )
+        signature = private_key.sign(_signable_payload(descriptor, content_digest=content_digest))
         signatures.append(
             {
                 "signer_id": signer_id,
@@ -648,9 +617,7 @@ def publish_module_to_oci_layout(
         "module": descriptor.model_dump(mode="python", by_alias=True),
         "signatures": signatures,
     }
-    config_bytes = json.dumps(
-        config_payload, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    config_bytes = json.dumps(config_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     config_digest = f"sha256:{_sha256_digest(config_bytes)}"
     manifest_payload = {
         "schemaVersion": 2,
@@ -672,9 +639,7 @@ def publish_module_to_oci_layout(
             "io.aces.module.id": descriptor.id,
         },
     }
-    manifest_bytes = json.dumps(
-        manifest_payload, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    manifest_bytes = json.dumps(manifest_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     manifest_digest = f"sha256:{_sha256_digest(manifest_bytes)}"
     layout_dir = output_dir / f"{descriptor.id.replace('/', '_')}-{descriptor.version}.oci"
     blobs_dir = layout_dir / "blobs" / "sha256"
