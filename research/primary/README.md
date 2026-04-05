@@ -22,6 +22,9 @@ and draft documents.
   - Primary references collected under `Kepler/research/dsl/references/`
 - `literature/range-architectures/`
   - Primary references collected under `Kepler/research/range-architectures/references/`
+- `literature/military-simulation-interop/`
+  - Open literature on HLA, DIS, TENA, MSDL, DSEEP, and LVC interoperability
+    practice
 - `literature/time-and-simulation/`
   - Primary references on clocks, logical time, time management, episodic
     execution, and simulation/emulation timing models
@@ -31,6 +34,9 @@ and draft documents.
 - `reference-organizations/`
   - Primary organization-owned materials relevant to agent, benchmark, and
     evaluation ecosystem design
+  - Includes a military-simulation-interoperability source set for official
+    standards/program materials around HLA, DIS, TENA, DSEEP, RPR-FOM, and
+    related profiles
 
 ## Notes
 

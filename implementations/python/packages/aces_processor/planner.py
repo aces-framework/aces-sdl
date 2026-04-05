@@ -1,6 +1,6 @@
 """Planner for compiled SDL runtime models."""
 
-from aces.core.semantics.planner import (
+from .semantics.planner import (
     DependencyKind,
     dependency_graph_for_resources,
     reconcile_resource_actions,
@@ -8,8 +8,8 @@ from aces.core.semantics.planner import (
     resource_dependency_cycles,
     resource_topological_order,
 )
-from aces.core.runtime.capabilities import BackendManifest
-from aces.core.runtime.models import (
+from aces_backend_protocols.capabilities import BackendManifest
+from .models import (
     ChangeAction,
     Diagnostic,
     EvaluationOp,
@@ -27,9 +27,9 @@ from aces.core.runtime.models import (
     SnapshotEntry,
     resource_payload,
 )
-from aces.core.sdl._base import extract_variable_name, parse_enum_or_var, parse_int_or_var
-from aces.core.sdl.infrastructure import MINIMUM_NODE_COUNT
-from aces.core.sdl.nodes import OSFamily
+from aces_sdl._base import extract_variable_name, parse_enum_or_var, parse_int_or_var
+from aces_sdl.infrastructure import MINIMUM_NODE_COUNT
+from aces_sdl.nodes import OSFamily
 
 
 def _planned_resource(address: str, domain: RuntimeDomain, resource_type: str, resource) -> PlannedResource:

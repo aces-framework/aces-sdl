@@ -11,8 +11,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from aces.core.runtime.manager import _call_backend_apply, _call_backend_diagnostics
-from aces.core.runtime.models import (
+from .manager import _call_backend_apply, _call_backend_diagnostics
+from .models import (
     Diagnostic,
     OperationReceipt,
     OperationState,
@@ -30,8 +30,8 @@ from aces.core.runtime.models import (
     WorkflowHistoryEventType,
     WorkflowStatus,
 )
-from aces.core.runtime.registry import RuntimeTarget
-from aces.core.runtime.control_plane_store import (
+from .registry import RuntimeTarget
+from .control_plane_store import (
     AuditEvent,
     ControlPlaneOperationRecord,
     ControlPlaneStore,

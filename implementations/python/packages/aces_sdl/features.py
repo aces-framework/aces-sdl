@@ -9,8 +9,8 @@ from typing import Optional
 
 from pydantic import Field, field_validator
 
-from aces.core.sdl._base import SDLModel, normalize_enum_value
-from aces.core.sdl._source import Source
+from ._base import SDLModel, normalize_enum_value
+from ._source import Source
 
 
 class FeatureType(str, Enum):

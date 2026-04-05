@@ -1,0 +1,1051 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <!-- fields for Cloudsearch -->
+<meta name="title" content="IEEE SA - IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)--Framework and Rules"/>
+<meta name="type" content="Standard"/>
+<meta name="topic" content="Computer Technology"/>
+<meta name="category" content=""/>
+<meta name="description" content="The High Level Architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This standard, describing the framework and rules of the High Level Architecture (HLA), is the capstone document for a family of related HLA standards. It defines the HLA, its components, and the rules that outline the responsibilities of HLA federates and federations to ensure a consistent implementation. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that technology advances will allow for new and different modeling and simulation (M&S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set when changes are made. They each have value independently."/>
+<meta name="keywords" content="architecture, class attribute, federate, federation, federation execution, federation object model, framework, High Level Architecture, IEEE 1516, instance attribute, interaction class, joined federate, object class, object model template, rules, runtime infrastructure, simulation object model"/>
+<!-- Default OG Image -->
+<meta property="og:image" content="https://standards.ieee.org/wp-content/uploads/2024/03/iStock-1413210242-DM-r1.jpg"/>
+<!-- Projects/Standards -->
+<meta name="Society" content="IEEE Computer Society"/>
+<meta name="StdRecNo" content="6687"/>
+<meta name="Status" content="Active Standard"/>
+<meta name="designation" content="IEEE 1516-2025"/>
+
+    
+    
+    
+            <!-- v ieee cookie banner v -->
+        <script src="https://cmp.osano.com/AzyzptTmRlqVd2LRf/5b89ff83-255a-489b-b1d7-925a53475ed0/osano.js"></script>
+        <link rel="stylesheet" href="https://cookie-consent.ieee.org/ieee-cookie-banner.css" type="text/css"/>
+        <!-- ^ ieee cookie banner ^ -->
+
+        <!-- Google Tag Manager -->
+        <script>(function (w, d, s, l, i) {
+                w[l] = w[l] || [];
+                w[l].push({
+                    'gtm.start':
+                        new Date().getTime(), event: 'gtm.js'
+                });
+                var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
+                j.async = true;
+                j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+                f.parentNode.insertBefore(j, f);
+            })(window, document, 'script', 'dataLayer', 'GTM-MR8T843');</script>
+        <!-- End Google Tag Manager -->
+    
+    <title>IEEE SA - IEEE 1516-2025</title>
+    <script type="text/javascript"
+            src="https://cdns.gigya.com/js/gigya.js?apikey=3_ihC9k-currG51rxnDiN6bhiAzQy1-4zw1zOtNOrZ11jAxUhFRKPUrVKs553Kv7px"></script>
+    <!--<link rel="icon" href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee_favicon.ico">-->
+    <link rel="apple-touch-icon" href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee_apple_touch_icon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap"
+          rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <link href="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/style.css" rel="stylesheet">
+
+    <meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+
+	<!-- This site is optimized with the Yoast SEO Premium plugin v27.3 (Yoast SEO v27.3) - https://yoast.com/product/yoast-seo-premium-wordpress/ -->
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="IEEE Standards Association" />
+	<meta property="og:site_name" content="IEEE Standards Association" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="IEEE Standards Association" />
+	<meta name="twitter:site" content="@IEEESA" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https:\/\/schema.org","@graph":[{"@type":"WebSite","@id":"https:\/\/standards.ieee.org\/#website","url":"https:\/\/standards.ieee.org\/","name":"IEEE Standards Association","description":"","publisher":{"@id":"https:\/\/standards.ieee.org\/#organization"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https:\/\/standards.ieee.org\/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"},{"@type":"Organization","@id":"https:\/\/standards.ieee.org\/#organization","name":"IEEE SA","url":"https:\/\/standards.ieee.org\/","logo":{"@type":"ImageObject","inLanguage":"en-US","@id":"https:\/\/standards.ieee.org\/#\/schema\/logo\/image\/","url":"https:\/\/standards.ieee.org\/wp-content\/uploads\/import\/ieeesa-logo.png","contentUrl":"https:\/\/standards.ieee.org\/wp-content\/uploads\/import\/ieeesa-logo.png","width":720,"height":432,"caption":"IEEE SA"},"image":{"@id":"https:\/\/standards.ieee.org\/#\/schema\/logo\/image\/"},"sameAs":["https:\/\/x.com\/IEEESA"]}]}</script>
+	<!-- / Yoast SEO Premium plugin. -->
+
+
+<link rel='dns-prefetch' href='//kit.fontawesome.com' />
+		<style>
+			.lazyload,
+			.lazyloading {
+				max-width: 100%;
+			}
+		</style>
+		<style id='wp-img-auto-sizes-contain-inline-css' type='text/css'>
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id='wp-emoji-styles-inline-css' type='text/css'>
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<link rel='stylesheet' id='wp-block-library-css' href='https://standards.ieee.org/wp-includes/css/dist/block-library/style.min.css?ver=6.9.1' type='text/css' media='all' />
+
+<style id='classic-theme-styles-inline-css' type='text/css'>
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+/*# sourceURL=/wp-includes/css/classic-themes.min.css */
+</style>
+<style id='font-awesome-svg-styles-default-inline-css' type='text/css'>
+.svg-inline--fa {
+  display: inline-block;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -.125em;
+}
+/*# sourceURL=font-awesome-svg-styles-default-inline-css */
+</style>
+<link rel='stylesheet' id='font-awesome-svg-styles-css' href='https://standards.ieee.org/wp-content/uploads/font-awesome/v6.7.2/css/svg-with-js.css' type='text/css' media='all' />
+<style id='font-awesome-svg-styles-inline-css' type='text/css'>
+   .wp-block-font-awesome-icon svg::before,
+   .wp-rich-text-font-awesome-icon svg::before {content: unset;}
+/*# sourceURL=font-awesome-svg-styles-inline-css */
+</style>
+<style id='global-styles-inline-css' type='text/css'>
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='ieee-widget-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/widgets/css/widgets.css?time=20240329&#038;ver=6.9.1' type='text/css' media='all' />
+<link rel='stylesheet' id='ieee-color-book-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/color-books/color-books.css?time=20230920&#038;ver=6.9.1' type='text/css' media='all' />
+<link rel='stylesheet' id='ieee-print-css-css' href='https://standards.ieee.org/wp-content/themes/ieee-sa-theme/print.css?time=20260302&#038;ver=6.9.1' type='text/css' media='print' />
+<link rel='stylesheet' id='subscribe-forms-css-css' href='https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/modules/subscribe-forms.min.css?ver=10.9.1' type='text/css' media='all' />
+<link rel='stylesheet' id='easy-social-share-buttons-css' href='https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/css/easy-social-share-buttons.min.css?ver=10.9.1' type='text/css' media='all' />
+<style id='easy-social-share-buttons-inline-css' type='text/css'>
+.essb_links .essb_link_mastodon { --essb-network: #6364ff;}
+/*# sourceURL=easy-social-share-buttons-inline-css */
+</style>
+<script type="text/javascript" src="https://standards.ieee.org/wp-includes/js/jquery/jquery.min.js?ver=3.7.1" id="jquery-core-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1" id="jquery-migrate-js"></script>
+<script type="text/javascript" id="ieee-wpes-js-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https://standards.ieee.org/wp-admin/admin-ajax.php"};
+//# sourceURL=ieee-wpes-js-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/wp-engine-search/js/wp-engine-search.js?time=20250505&amp;ver=6.9.1" id="ieee-wpes-js-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/widgets/js/ieee-widgets.js?time=20240329&amp;ver=6.9.1" id="ieee-widget-js-js"></script>
+<script type="text/javascript" id="ieee-color-book-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https://standards.ieee.org/wp-admin/admin-ajax.php"};
+//# sourceURL=ieee-color-book-scripts-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/color-books/color-books.js?time=20230920&amp;ver=6.9.1" id="ieee-color-book-scripts-js"></script>
+<script type="text/javascript" id="ieee-recent-standards-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https://standards.ieee.org/wp-admin/admin-ajax.php"};
+//# sourceURL=ieee-recent-standards-scripts-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/recent-standards/recent-standards.js?time=20250319&amp;ver=6.9.1" id="ieee-recent-standards-scripts-js"></script>
+<script type="text/javascript" id="ieee-sa-scripts-js-extra">
+/* <![CDATA[ */
+var ieee_ajax_object = {"ajax_url":"https://standards.ieee.org/wp-admin/admin-ajax.php"};
+//# sourceURL=ieee-sa-scripts-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/js/ieee-sa.js?time=20260302&amp;ver=6.9.1" id="ieee-sa-scripts-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/ieee-sa/js/marketo.js?ver=6.9.1" id="ieee-marketo-js"></script>
+<script defer crossorigin="anonymous" type="text/javascript" src="https://kit.fontawesome.com/3182722a43.js" id="font-awesome-official-js"></script>
+<script></script><link rel="https://api.w.org/" href="https://standards.ieee.org/wp-json/" /><meta name="cdp-version" content="1.5.3" /><meta name="tec-api-version" content="v1"><meta name="tec-api-origin" content="https://standards.ieee.org"><link rel="alternate" href="https://standards.ieee.org/wp-json/tribe/events/v1/" />		<script>
+			document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+		</script>
+		<meta name="generator" content="Powered by WPBakery Page Builder - drag and drop page builder for WordPress."/>
+<link rel="icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-150x150.png" sizes="32x32" />
+<link rel="icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" />
+<meta name="msapplication-TileImage" content="https://standards.ieee.org/wp-content/uploads/2024/10/android-chrome-512x512-1-300x300.png" />
+<noscript><style> .wpb_animate_when_almost_visible { opacity: 1; }</style></noscript>
+</head>
+<body class="blog wp-theme-ieee-sa-theme tribe-no-js essb-10.9.1 wpb-js-composer js-comp-ver-8.7.2 vc_responsive" >
+<!-- Google Tag Manager (noscript) -->
+<noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MR8T843" height="0" width="0"
+            style="display:none;visibility:hidden" loading="lazy"></iframe>
+</noscript>
+<!-- End Google Tag Manager (noscript) -->
+<header>
+    <section id="top-bar">
+        <div class="container">
+            <div class="row">
+                <div class="col-10 col-lg-9 d-none d-md-block">
+                    <ul class="nav top-bar top-bar-left" role="navigation" aria-label="Global left">
+                        <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/" target="_blank"
+                                                title="IEEE.org"><i class="nav-icon fa fa-home"></i>IEEE.org</a></li>
+                        <li class="nav-item"><a class="nav-link" href="https://ieeexplore.ieee.org/Xplore/home.jsp"
+                                                target="_blank" title="IEEE Xplore&reg;">IEEE
+                                <em>Xplore</em><sup>&reg;</sup></a></li>
+                        <li class="nav-item"><a class="nav-link" href="https://standards.ieee.org/" target="_blank"
+                                                title="IEEE Standards">IEEE Standards</a></li>
+                        <li class="nav-item"><a class="nav-link" href="https://spectrum.ieee.org/" target="_blank"
+                                                title="IEEE Spectrum">IEEE Spectrum</a></li>
+                        <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/sitemap.html"
+                                                target="_blank" title="More Sites">More Sites</a></li>
+                    </ul> <!-- /.nav .top-bar-left -->
+                </div> <!-- /.col-10 .col-lg-9 .d-none .d-md-block -->
+                <div class="col-2 col-lg-3 d-none d-md-block">
+                    <ul class="nav top-bar top-bar-right" role="navigation" aria-label="Global right">
+                        <li class="nav-item"><a class="nav-link" href="/develop/etools/" title="eTools">eTools</a></li>
+                        <li class="nav-item"><a class="nav-link logo-link ieee" href="https://www.ieee.org/"
+                                                title="Visit IEEE.org">IEEE.org</a></li>
+                    </ul> <!-- /.nav .top-bar-right -->
+                </div> <!-- /.col-2 .col-lg-3 .d-none .d-md-block -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#top-bar -->
+
+    <section id="masthead">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-sm-6">
+                    <div id="primary-logo" class="logo">
+                        <a class="logo-link" href="/" title="IEEE Standards Association"><img
+                                    src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-sa-logo2x.png"
+                                    alt="IEEE Standards Association logo" loading="lazy"></a>
+                    </div> <!-- /#primary-logo .logo -->
+                </div> <!-- /.col-12 .col-sm-6 -->
+                <div class="col-6 d-none d-sm-block">
+                    <div class="btn-group float-end d-none d-lg-block search">
+                        <div id="search-input-wrapper" data-test="123"
+                             class="search-input-wrapper collapse collapse-horizontal">
+                            <form id="search" class="form-inline" action="https://standards.ieee.org/search/"
+                                  method="get">
+                                <button class="btn" type="submit"
+                                        aria-label="Click/Tap to Execute the Search Functionality"
+                                        id="search-form-magnifying-glass"><i class="fa fa-search"
+                                                                             style="color:#000000;-webkit-text-stroke: 1.5px;font-size:1.25rem;"></i>
+                                </button>
+                                <input class="form-control" type="text" placeholder="What are you looking for?"
+                                       autofocus="autofocus" autocomplete="off" name="q" id="q"
+                                       aria-label="What are you looking for?">
+                                <div class="container search-ux-menu">
+                                    <div class="row search-ux-menu-row">
+                                        <div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+                                            <h2 class="h6">Featured Links</h2>
+                                            <div class="menu-featured-links-search-container"><ul id="menu-featured-links-search" class="search-ux-menu-col"><li class="mb-2" id="menu-item-19417" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19417"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/products-programs/icap/">IEEE Conformity Assessment Program (ICAP)</a></li>
+<li class="mb-2" id="menu-item-19418" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19418"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/organizations/">IEEE SA Entity Membership</a></li>
+<li class="mb-2" id="menu-item-19419" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19419"><a class="arrow-link text-decoration-none" target="_blank" href="https://sagroups.ieee.org/planetpositive2030/our-work/">Strong Sustainability by Design: IEEE Planet Positive 2030</a></li>
+</ul></div>                                        </div>
+                                        <div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+                                            <h2 class="h6">Quick Links</h2>
+                                            <div class="menu-quick-links-search-container"><ul id="menu-quick-links-search" class="search-ux-menu-col"><li class="mb-2" id="menu-item-18834" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18834"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/standard/">Search Standards</a></li>
+<li class="mb-2" id="menu-item-18835" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18835"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/access-standards/">Access Standards</a></li>
+<li class="mb-2" id="menu-item-18836" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18836"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+</ul></div>                                        </div>
+                                        <div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+                                            <h2 class="h6">Most Viewed Pages</h2>
+                                            <ul class="list-unstyled search-ux-menu-col"><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/search/" style="text-decoration:none" class="arrow-link" title="Search">Search</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/" style="text-decoration:none" class="arrow-link" title="Home">Home</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/products-programs/regauth/" style="text-decoration:none" class="arrow-link" title="Registration Authority">Registration Authority</a></li></ul>                                        </div>
+                                    </div>
+                                </div>
+                            </form> <!-- /#search .form-inline -->
+                        </div> <!-- /#search-input-wrapper -->
+                        <button id="masthead-search-button" class="btn btn-md search-bar-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#search-input-wrapper" aria-expanded="false"
+                                aria-controls="search-input-wrapper" aria-label="Search the IEEE SA Website"><i
+                                    class="fa fa-search"></i><span class="mx-2" id="search-bar-text"
+                                                                   style="height:54px">Search the IEEE SA Website...</span>
+                        </button>
+                    </div> <!-- /.btn-group .float-end .d-none .d-md-block .search -->
+                    <div id="secondary-logo" class="d-lg-none logo">
+                        <a class="logo-link" href="https://www.ieee.org/" title="Visit IEEE.org"><img
+                                    src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-logo2x.png"
+                                    alt="IEEE logo" loading="lazy"></a>
+                    </div> <!-- /#secondary-logo .d-lg-none .logo -->
+                </div> <!-- /.col-6 .d-none .d-sm-block -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+
+        <nav id="main-nav" class="navbar navbar-expand-lg navbar-light" aria-label="Main">
+	<div class="container">
+		<button class="navbar-toggler" type="button" data-trigger="mobile-menu" aria-controls="mobile-menu" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"><i class="fas fa-bars"></i></span>
+		</button>
+		<div id="mobile-menu" class="collapse navbar-collapse">
+			<button type="button" class="btn-close mobile-menu" aria-label="close"></button>
+
+            <!-- array(1) {
+  ["main-menu"]=>
+  int(14992)
+}
+ -->
+
+			<!-- begin wordpress menu -->
+			<ul id="menu-main-navigation-2025" class="navbar-nav mr-auto main w-100 "><li  id="menu-item-22109" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22109"><a title="" data-item-id="22109" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">About Us</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22105" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22105"><a title="" href="https://standards.ieee.org/about/" data-item-id="22105" class="nav-link ">IEEE SA</a></li>
+	<li  id="menu-item-22110" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22110"><a title="" href="https://standards.ieee.org/about/governance/" data-item-id="22110" class="nav-link ">IEEE SA Governance</a></li>
+	<li  id="menu-item-22111" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22111"><a title="" href="https://standards.ieee.org/about/awards/" data-item-id="22111" class="nav-link ">IEEE Standards Association Awards</a></li>
+	<li  id="menu-item-22096" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22096"><a title="" href="https://standards.ieee.org/events/" data-item-id="22096" class="nav-link ">Events</a></li>
+	<li  id="menu-item-22100" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22100"><a title="" href="https://standards.ieee.org/news/" data-item-id="22100" class="nav-link ">News</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22070" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22070"><a title="" data-item-id="22070" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Standards</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22071" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22071"><a title="" href="https://standards.ieee.org/access-standards/" data-item-id="22071" class="nav-link ">Access Standards</a></li>
+	<li  id="menu-item-22073" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22073"><a title="" href="https://standards.ieee.org/develop/" data-item-id="22073" class="nav-link ">Developing Standards</a></li>
+	<li  id="menu-item-22112" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22112"><a title="" href="https://standards.ieee.org/about/standards-in-action/" data-item-id="22112" class="nav-link ">Standards in Action</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22076" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22076"><a title="" data-item-id="22076" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Products &#038; Programs</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22113" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22113"><a title="" href="https://standards.ieee.org/products-programs/ieee-get-program/" data-item-id="22113" class="nav-link ">IEEE GET Program™</a></li>
+	<li  id="menu-item-22115" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22115"><a title="" data-item-id="22115" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Conformity Assessment &#038; Certification</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22077" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22077"><a title="" href="https://standards.ieee.org/products-programs/icap/" data-item-id="22077" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22114" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22114"><a title="" href="https://standards.ieee.org/products-programs/icap/ieee-certifaied/" data-item-id="22114" class="nav-link ">IEEE CertifAIEd™</a></li>
+		<li  id="menu-item-22116" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22116"><a title="" href="https://standards.ieee.org/products-programs/icap/programs/medical-devices-cybersecurity/" data-item-id="22116" class="nav-link ">Medical Devices Cybersecurity</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22080" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22080"><a title="" href="https://standards.ieee.org/industry-connections/" data-item-id="22080" class="nav-link ">Industry Connections</a></li>
+	<li  id="menu-item-22082" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22082"><a title="" href="https://standards.ieee.org/products-programs/regauth/" data-item-id="22082" class="nav-link ">Registration Authority</a></li>
+	<li  id="menu-item-22118" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22118"><a title="" data-item-id="22118" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Standards Related Products</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22117" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22117"><a title="" href="https://standards.ieee.org/products-programs/standards-related/" data-item-id="22117" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22081" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22081"><a title="" href="https://standards.ieee.org/products-programs/nesc/" data-item-id="22081" class="nav-link ">The National Electrical Safety Code® (NESC®)</a></li>
+		<li  id="menu-item-22119" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22119"><a title="" href="https://standards.ieee.org/products-programs/time-sensitive-networking/" data-item-id="22119" class="nav-link ">Time Sensitive Networking (TSN) Licensing</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22122" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22122"><a title="" data-item-id="22122" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Training &#038; Development</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22099" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22099"><a title="" href="https://standards.ieee.org/about/training/" data-item-id="22099" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22120" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22120"><a title="" href="https://standards.ieee.org/about/training/ethics-for-ai-system-design/" data-item-id="22120" class="nav-link ">Ethics AI For System Design</a></li>
+		<li  id="menu-item-22121" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22121"><a title="" href="https://standards.ieee.org/products-programs/icap/programs/der/" data-item-id="22121" class="nav-link ">IEEE 1547-2018 (DER) In-Person Training</a></li>
+		<li  id="menu-item-22154" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22154"><a title="" href="https://standards.ieee.org/products-programs/icap/ieee-certifaied/professional-certification/" data-item-id="22154" class="nav-link ">IEEE CertifAIEd™ Professional Certification</a></li>
+		<li  id="menu-item-31309" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-31309"><a title="" href="https://standards.ieee.org/about/training/ieee-responsible-procurement-of-ai/" data-item-id="31309" class="nav-link ">Responsible Procurement of AI</a></li>
+	</ul>
+	</div>
+</li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22086" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22086"><a title="" data-item-id="22086" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Practices &#038; Focuses</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22125" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22125"><a title="" data-item-id="22125" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Global Practices</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22127" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22127"><a title="" href="https://standards.ieee.org/practices/" data-item-id="22127" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22088" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22088"><a title="" href="https://standards.ieee.org/practices/connectivity-telecom/" data-item-id="22088" class="nav-link ">Connectivity &amp; Telecom</a></li>
+		<li  id="menu-item-22089" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22089"><a title="" href="https://standards.ieee.org/practices/energy/" data-item-id="22089" class="nav-link ">Energy</a></li>
+		<li  id="menu-item-22090" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22090"><a title="" href="https://standards.ieee.org/practices/foundational/" data-item-id="22090" class="nav-link ">Foundational Technologies</a></li>
+		<li  id="menu-item-22092" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22092"><a title="" href="https://standards.ieee.org/practices/healthcare-life-sciences/" data-item-id="22092" class="nav-link ">Healthcare and Life Sciences</a></li>
+		<li  id="menu-item-22093" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22093"><a title="" href="https://standards.ieee.org/practices/mobility/" data-item-id="22093" class="nav-link ">Mobility</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22126" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22126"><a title="" data-item-id="22126" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Focus Areas</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22128" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22128"><a title="" href="https://standards.ieee.org/initiatives/" data-item-id="22128" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22087" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22087"><a title="" href="https://standards.ieee.org/initiatives/autonomous-intelligence-systems/" data-item-id="22087" class="nav-link ">Autonomous and Intelligent Systems (AIS)</a></li>
+		<li  id="menu-item-22129" class="menu-item menu-item-type-custom menu-item-object-custom nav-item nav-item-22129"><a title="(Opens in a New Tab)" target="_blank" href="https://engagestandards.ieee.org/Childrens-tech-design-governance.html" data-item-id="22129" class="nav-link ">Children’s Data Governance</a></li>
+	</ul>
+	</div>
+</li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22094" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22094"><a title="" data-item-id="22094" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Engage</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22095" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22095"><a title="" href="https://standards.ieee.org/participate/" data-item-id="22095" class="nav-link ">Opportunities to Participate</a></li>
+	<li  id="menu-item-22130" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22130"><a title="" data-item-id="22130" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Membership</a><div class="dropdown-menu">
+	<ul class="sub-menu sub-menu  depth_1">
+		<li  id="menu-item-22097" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22097"><a title="" href="https://standards.ieee.org/about/membership/" data-item-id="22097" class="nav-link ">Overview</a></li>
+		<li  id="menu-item-22131" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22131"><a title="" href="https://standards.ieee.org/about/membership/individuals/" data-item-id="22131" class="nav-link ">IEEE SA Membership for Individuals</a></li>
+		<li  id="menu-item-22132" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22132"><a title="" href="https://standards.ieee.org/about/membership/organizations/" data-item-id="22132" class="nav-link ">IEEE SA Entity Membership</a></li>
+		<li  id="menu-item-22079" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22079"><a title="" href="https://standards.ieee.org/products-programs/industry-affiliate-network/" data-item-id="22079" class="nav-link ">Industry Affiliate Network (IAN)</a></li>
+	</ul>
+	</div>
+</li>
+	<li  id="menu-item-22133" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22133"><a title="" href="https://standards.ieee.org/about/distrib/" data-item-id="22133" class="nav-link ">Distributor Partner Program</a></li>
+	<li  id="menu-item-22091" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22091"><a title="" href="https://standards.ieee.org/about/intl/" data-item-id="22091" class="nav-link ">Government Engagement</a></li>
+	<li  id="menu-item-22107" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22107"><a title="" href="https://standards.ieee.org/about/feedback/" data-item-id="22107" class="nav-link ">Provide Feedback</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22098" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown nav-item nav-item-22098"><a title="" data-item-id="22098" class="nav-link  dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">Resources</a><div class="dropdown-menu">
+<ul class="sub-menu  depth_0">
+	<li  id="menu-item-22103" class="menu-item menu-item-type-taxonomy menu-item-object-category nav-item nav-item-22103"><a title="" href="https://standards.ieee.org/beyond-standards/" data-item-id="22103" class="nav-link ">IEEE SA Beyond Standards Blog</a></li>
+	<li  id="menu-item-22101" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22101"><a title="" href="https://standards.ieee.org/news/swire/" data-item-id="22101" class="nav-link ">IEEE SA Newsletter</a></li>
+	<li  id="menu-item-22134" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22134"><a title="" href="https://standards.ieee.org/about/policies/" data-item-id="22134" class="nav-link ">Policies and Procedures</a></li>
+	<li  id="menu-item-22135" class="menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22135"><a title="" href="https://standards.ieee.org/faqs/" data-item-id="22135" class="nav-link ">Frequently Asked Questions (FAQs)</a></li>
+</ul>
+</div>
+</li>
+<li  id="menu-item-22108" class="nav-type-button menu-item menu-item-type-post_type menu-item-object-page nav-item nav-item-22108"><a title="" href="https://standards.ieee.org/products-programs/regauth/mac/" data-item-id="22108" class="nav-link ">MAC ADDRESS</a></li>
+</ul>			<!-- end wordpress menu -->
+
+		</div> <!-- /#mobile-menu aaaa -->
+		<div class="btn-group float-end d-lg-none search">
+			<div id="search-input-wrapper" class="search-input-wrapper collapse collapse-horizontal">
+				<form id="search" class="form-inline" action="https://standards.ieee.org/search/" method="get">
+					<button class="btn" type="submit" aria-label="Click/Tap to Execute the Search Functionality." id="search-form-magnifying-glass"><i class="fa fa-search" style="color:#000000;-webkit-text-stroke: 1.5px;font-size:1.25rem;"></i></button>
+					<input class="form-control" type="text" placeholder="What are you looking for?" autofocus="autofocus" autocomplete="off" name="q" id="q" aria-label="What are you looking for?">
+					<div class="container search-ux-menu">
+						<div class="row search-ux-menu-row">
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+
+								<!-- begin wordpress search menu -->
+								<h2 class="h6">Featured Links</h2>
+								<div class="menu-featured-links-search-container"><ul id="menu-featured-links-search-1" class="search-ux-menu-col"><li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19417"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/products-programs/icap/">IEEE Conformity Assessment Program (ICAP)</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19418"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/organizations/">IEEE SA Entity Membership</a></li>
+<li class="mb-2" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19419"><a class="arrow-link text-decoration-none" target="_blank" href="https://sagroups.ieee.org/planetpositive2030/our-work/">Strong Sustainability by Design: IEEE Planet Positive 2030</a></li>
+</ul></div>							</div>
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+								<h2 class="h6">Quick Links</h2>
+								<div class="menu-quick-links-search-container"><ul id="menu-quick-links-search-1" class="search-ux-menu-col"><li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18834"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/standard/">Search Standards</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18835"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/access-standards/">Access Standards</a></li>
+<li class="mb-2" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18836"><a class="arrow-link text-decoration-none" href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+</ul></div>							</div>
+							<div class="col-12 col-md-4 mt-2 p-3 test-arrow-link">
+								<h2 class="h6">Most Viewed Pages</h2>
+								<ul class="list-unstyled search-ux-menu-col"><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/search/" style="text-decoration:none" class="arrow-link" title="Search">Search</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/" style="text-decoration:none" class="arrow-link" title="Home">Home</a></li><li aria-level="1" class="mb-2"><a href="https://standards.ieee.org/products-programs/regauth/" style="text-decoration:none" class="arrow-link" title="Registration Authority">Registration Authority</a></li></ul>								<!-- end wordpress search menu -->
+
+							</div>
+						</div>
+					</div>
+				</form>
+				<!-- /#search -->
+			</div> <!-- /#search-input-wrapper -->
+			<button id="main-nav-search-button" class="btn btn-md search-bar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#search-input-wrapper" aria-expanded="false" aria-controls="search-input-wrapper" aria-label="Click/Tap to Toggle the Search."><i class="fa fa-search"></i><span class="ms-2 me-2" id="search-bar-text" style="height:54px">Search the IEEE SA Website...</span></button>
+		</div> <!-- /.btn-group .search -->
+		<div class="screen-darken"></div>
+	</div> <!-- /.container-fluid -->
+</nav> <!-- /#main-nav .navbar -->
+    </section> <!-- /#masthead -->
+</header>
+
+<main>
+    <section id="page-title" class="standard">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-lg-3 order-lg-last align-self-lg-end text-lg-end">
+                    <div class="stnd-status">Active Standard</div>
+                </div> <!-- /.col-12 col-lg-3 -->
+                <div class="col-12 col-lg-11">
+                    <h1 id="stnd-designation"
+                        class="h5">IEEE 1516-2025</h1>
+                    <h2 id="stnd-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)--Framework and Rules</h2>
+                </div> <!-- /.col-12 .col-lg-11 -->
+                <div class="col-12 col-lg-8">
+                    <div id="purchase-options" class="d-grid gap-4 d-md-block">
+                                                                            <a id="stnd-buy-url" class="btn btn-primary"
+                               href="https://store.accuristech.com/ieee/products/vendor_id/6687" target="_blank"
+                               role="button">Purchase</a>
+                                                                                                    <a id="stnd-subscription-url"
+                               class="btn btn-outline-primary"
+                               href="https://innovate.ieee.org/subscriptions-for-ieee-standards-and-related-content/"
+                               target="_blank"
+                               role="button">Access via Subscription</a>
+                                                
+                    </div> <!-- /#purchase-options -->
+                </div> <!-- /.col-12 .col-lg-8 -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#page-title -->
+
+    
+    <section id="content" class="standard">
+        <div class="container">
+            <div class="row">
+                <div id="main-content" class="col-12 col-lg-10 offset-lg-1 col-xl-8 offset-xl-2">
+                                        <div id="stnd-description">
+                        <p>The High Level Architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This standard, describing the framework and rules of the High Level Architecture (HLA), is the capstone document for a family of related HLA standards. It defines the HLA, its components, and the rules that outline the responsibilities of HLA federates and federations to ensure a consistent implementation. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that technology advances will allow for new and different modeling and simulation (M&S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set when changes are made. They each have value independently.</p>
+                    </div> <!-- /#stnd-description -->
+                    <div id="standard-details">
+                        <dl class="row">
+
+                                                            <dt class="col-sm-4 col-md-3">Standard Committee</dt>
+                                                                    <dd id="stnd-committee"
+                                        class="col-sm-8 col-md-9"><a id="stnd-committee-url" class="arrow-link"
+                                               href="https://www.computer.org/volunteering/boards-and-committees/standards-activities/committees/simulation-interoperability"
+                                               title="Learn More About C/SI - Simulation Interoperability Stds Organization/Stds Activity Committee"
+                                               target="_blank">C/SI - Simulation Interoperability Stds Organization/Stds Activity Committee</a>
+                                    </dd>
+                                                            
+                            
+                            <dt class="col-sm-4 col-md-3">Status</dt>
+                            <dd id="stnd-status"
+                                class="col-sm-8 col-md-9">Active Standard</dd>
+
+                                                            <dt class="col-sm-4 col-md-3">PAR Approval</dt>
+                                <dd id="stnd-par-approval-date" class="col-sm-8 col-md-9"><a id="stnd-par-link"
+                                                                                             class="arrow-link"
+                                                                                             target="_blank"
+                                                                                             href="https://development.standards.ieee.org/myproject-web/public/view.html#pardetail/5632">2016-02-05</a>
+                                </dd>
+                            
+                            
+                                                            <dt class="col-sm-4 col-md-3">Superseding</dt>
+                                <dd id="stnd-superseding" class="col-sm-8 col-md-9"><a id="stnd-superseding-url"
+                                                                                       class="arrow-link"
+                                                                                       href="https://standards.ieee.org/ieee/1516/3744">1516-2010</a>
+                                </dd>
+                            
+                            
+                            
+                                                                                                                                                                        
+                                                            <dt class="col-sm-4 col-md-3">Board Approval</dt>
+                                <dd id="stnd-approval-date"
+                                    class="col-sm-8 col-md-9">2025-02-14</dd>
+                            
+                                                            <dt class="col-sm-4 col-md-3">History</dt>
+                                <dd class="col-sm-8 col-md-9">
+                                    <dl class="row">
+
+
+                                        
+                                        
+                                        
+                                                                                    <dt class="col-7 col-md-4">Published:</dt>
+                                            <dd id="stnd-published-date"
+                                                class="col-5 col-md-8">2025-05-14</dd>
+                                        
+                                        
+                                        
+                                                                            </dl>
+                                </dd>
+                            
+                            
+                            
+                        </dl> <!-- /.row -->
+                    </div> <!-- /#standard-details -->
+
+                    
+                    <div id="working-group">
+                        <h3 class="h2 section-title">Working Group Details</h3>
+                        <div id="working-group-details">
+                            <dl class="row">
+                                                                    <dt class="col-sm-4 col-md-3">Society</dt>
+								<dd id="stnd-society"
+                                        class="col-sm-8 col-md-9">
+                                                                            <a id="stnd-society-url" class="arrow-link"
+                                               href="http://www.computer.org"
+                                               title="Learn More About IEEE Computer Society"
+                                               target="_blank">IEEE Computer Society</a></dd>
+                                                                    
+                                                                    <dt class="col-sm-4 col-md-3">Standard Committee</dt>
+                                                                            <dd id="stnd-working-group-committee"
+                                            class="col-sm-8 col-md-9"><a id="stnd-working-group-committee-url" class="arrow-link"
+                                                   target="_blank"
+                                                   href="https://www.computer.org/volunteering/boards-and-committees/standards-activities/committees/simulation-interoperability"
+                                                   title="Learn More About C/SI - Simulation Interoperability Stds Organization/Stds Activity Committee">C/SI - Simulation Interoperability Stds Organization/Stds Activity Committee</a>
+                                        </dd>
+                                                                    
+                                                                    <dt class="col-sm-4 col-md-3">Working Group</dt>
+                                    <dd id="stnd-working-group" class="col-sm-8 col-md-9">
+                                                                                    1516_WG - HLA Evolved Working Group                                            <br>
+                                                                            </dd>
+                                
+                                                                    <dt class="col-sm-4 col-md-3">IEEE Program Manager</dt>
+                                    <dd id="stnd-staff-liaison"
+                                        class="col-sm-8 col-md-9">Jonathan Goldberg                                        <br><a id="stnd-staff-liaison-email" class="arrow-link"
+                                               href="mailTO:goldberg.j@ieee.org"
+                                               title="Contact">Contact Jonathan Goldberg</a>
+                                    </dd>
+                                
+                                                                    <dt class="col-sm-4 col-md-3">Working Group Chair</dt>
+                                    <dd id="stnd-working-group-chair"
+                                        class="col-sm-8 col-md-9">Randy Saunders</dd>
+                                
+                            </dl> <!-- /.row -->
+                            <div id="working-group-projects-standards">
+                                <h4 class="section-title">Other Activities From This Working Group</h4>
+                                <ul class="nav nav-tabs nav-justified flex-column flex-sm-row" role="group">
+                                    <li class="nav-item" role="list">
+                                        <button class="nav-link active" id="wg-active-projects-tab" data-bs-toggle="tab"
+                                                data-bs-target="#wg-active-projects" type="button" role="listitem"
+                                                aria-controls="wg-active-projects">Active Projects
+                                        </button>
+                                    </li> <!-- /.nav-item -->
+                                    <li class="nav-item" role="list">
+                                        <button class="nav-link" id="wg-active-standards-tab" data-bs-toggle="tab"
+                                                data-bs-target="#wg-active-standards" type="button" role="listitem"
+                                                aria-controls="wg-active-standards">Active Standards
+                                        </button>
+                                    </li> <!-- /.nav-item -->
+                                    <li class="nav-item" role="list">
+                                        <button class="nav-link" id="wg-superseded-standards-tab" data-bs-toggle="tab"
+                                                data-bs-target="#wg-superseded-standards" type="button" role="listitem"
+                                                aria-controls="wg-superseded-standards">Superseded
+                                            Standards
+                                        </button>
+                                    </li> <!-- /.nav-item -->
+                                    <li class="nav-item" role="list">
+                                        <button class="nav-link" id="wg-inactive-withdrawn-standards-tab"
+                                                data-bs-toggle="tab" data-bs-target="#wg-inactive-withdrawn-standards"
+                                                type="button" role="listitem"
+                                                aria-controls="wg-inactive-withdrawn-standards">Inactive-Withdrawn
+                                            Standards
+                                        </button>
+                                    </li> <!-- /.nav-item -->
+                                    <li class="nav-item" role="list">
+                                        <button class="nav-link" id="wg-inactive-reserved-standards-tab"
+                                                data-bs-toggle="tab" data-bs-target="#wg-inactive-reserved-standards"
+                                                type="button" role="listitem"
+                                                aria-controls="wg-inactive-reserved-standards">Inactive-Reserved
+                                            Standards
+                                        </button>
+                                    </li> <!-- /.nav-item -->
+                                </ul> <!-- /.nav .nav-tabs -->
+                                <div id="wg-tab-content" class="tab-content">
+                                    <div id="wg-active-projects" class="tab-pane fade show active" role="tabpanel"
+                                         aria-labelledby="wg-active-projects-tab">
+                                        <div class="tab-pane-content">
+                                            <p><strong>Current projects that have been authorized by the IEEE SA
+                                                    Standards
+                                                    Board to develop a standard.</strong></p>
+                                            <hr class="mt-4 mb-4"/>
+                                            No Active Projects                                                                                    </div> <!-- /.tab-pane-content -->
+                                    </div> <!-- /#wg-active-projects .tab-pane -->
+                                    <div id="wg-active-standards" class="tab-pane fade" role="tabpanel"
+                                         aria-labelledby="wg-active-standards-tab">
+                                        <div class="tab-pane-content">
+                                            <p><strong>Standards approved by the IEEE SA Standards Board that are within
+                                                    the
+                                                    10-year lifecycle.</strong></p>
+                                            <hr class="mt-4 mb-4"/>
+                                                                                                                                        <div class="wg-standard wg-active-standard">
+                                                    <h5 class="wg-active-standard-designation">1516.1-2025</h5>
+                                                    <h6 class="wg-active-standard-title h4">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)--Federate Interface Specification</h6>
+                                                    <p class="wg-active-standard-description">The High Level Architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This document, the second in a family of three related HLA documents, defines the standard services of and interfaces to the HLA runtime infrastructure (RTI). These services are used by the interacting simulations to achieve a coordinated exchange of information when they participate in a distributed federation. The standards contained in this architecture are interrelated and need to be considered as a product set, when changes are made. They each have value independently.</p>
+                                                    <p><a class="arrow-link wg-active-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.1/6688"
+                                                          title="Learn More">Learn More
+                                                            About 1516.1-2025</a>
+                                                </div> <!-- /.wg-standard .wg-active-standard -->
+                                                                                            <div class="wg-standard wg-active-standard">
+                                                    <h5 class="wg-active-standard-designation">1516.2-2025</h5>
+                                                    <h6 class="wg-active-standard-title h4">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)--Object Model Template (OMT) Specification</h6>
+                                                    <p class="wg-active-standard-description">The High Level Architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This document, the third in a family of three related HLA documents, defines the format and syntax (but not content) of HLA object models. The standards contained in this architecture are interrelated and need to be considered as a product set, when changes are made. They each have value independently.</p>
+                                                    <p><a class="arrow-link wg-active-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.2/6689"
+                                                          title="Learn More">Learn More
+                                                            About 1516.2-2025</a>
+                                                </div> <!-- /.wg-standard .wg-active-standard -->
+                                                                                    </div> <!-- /.tab-pane-content -->
+                                    </div> <!-- /#wg-active-standards .tab-pane -->
+                                    <div id="wg-superseded-standards" class="tab-pane fade" role="tabpanel"
+                                         aria-labelledby="wg-superseded-standards-tab">
+                                        <div class="tab-pane-content">
+                                            <p><strong>These standards have been replaced with a revised version of the
+                                                    standard, or by a compilation of the original active standard and
+                                                    all
+                                                    its existing amendments, corrigenda, and errata.</strong></p>
+                                            <hr class="mt-4 mb-4"/>
+                                                                                                                                        <div class="wg-standard wg-superseded-standard">
+                                                    <h5 class="wg-superseded-standard-designation">1516-2000</h5>
+                                                    <h6 class="h4 wg-superseded-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA) - Framework and Rules</h6>
+                                                    <p class="wg-superseded-standard-description">The High Level Architecture (HLA) Framework and Rules is the capstone document fora family of related HLA standards. It defines the HLA, its components, and the rules that outline the responsibilities of HLA federates and federations to ensure a consistent implementation. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that technology advances will allow for new and different modeling and simulation (M&S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set, as a change in one is likely to have an impact on the others. As such, the HLA is an integrated approach that has been developed to provide a common architecture for simulation.</p>
+                                                    <p><a class="arrow-link wg-superseded-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516/2256"
+                                                          title="Learn More">Learn More
+                                                            About 1516-2000</a>
+                                                </div> <!-- /.wg-standard .wg-superseded-standard -->
+                                                                                            <div class="wg-standard wg-superseded-standard">
+                                                    <h5 class="wg-superseded-standard-designation">1516.1-2000</h5>
+                                                    <h6 class="h4 wg-superseded-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA) Federate Interface Specification</h6>
+                                                    <p class="wg-superseded-standard-description">The high level architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This document, the second in a family of three related HLA documents, defines the standard services of and interfaces to the HLA Runtime Infrastructure (RTI). These services are used by the interacting simulations to achieve a coordinated exchange of information when they participate in a distributed federation. The standards contained in this architecture are interrelated and need to be considered as a product set, when changes are made. They each have value independently.</p>
+                                                    <p><a class="arrow-link wg-superseded-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.1/2257"
+                                                          title="Learn More">Learn More
+                                                            About 1516.1-2000</a>
+                                                </div> <!-- /.wg-standard .wg-superseded-standard -->
+                                                                                            <div class="wg-standard wg-superseded-standard">
+                                                    <h5 class="wg-superseded-standard-designation">1516.2-2000</h5>
+                                                    <h6 class="h4 wg-superseded-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA) - HLA Object Model Template (OMT) Specification</h6>
+                                                    <p class="wg-superseded-standard-description">This IEEE Standards product is part of the 1516 family on Computer Simulation/Modeling &amp; Simulation High Level Architecture.      Abstract: The High Level Architecture (HLA) Object Model Template (OMT) specification defines the format and syntax (but not content) of HLA object models. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that advances in technology will allow for new and different modeling and simulation (M&amp;S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set, as a change in one is likely to have an impact on the others. As such, the HLA is an integrated approach that has been developed to provide a common architecture for simulation.</p>
+                                                    <p><a class="arrow-link wg-superseded-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.2/2258"
+                                                          title="Learn More">Learn More
+                                                            About 1516.2-2000</a>
+                                                </div> <!-- /.wg-standard .wg-superseded-standard -->
+                                                                                            <div class="wg-standard wg-superseded-standard">
+                                                    <h5 class="wg-superseded-standard-designation">1516.3-2003</h5>
+                                                    <h6 class="h4 wg-superseded-standard-title">IEEE Recommended Practice for High Level Architecture (HLA) Federation Development and Execution Process (FEDEP)</h6>
+                                                    <p class="wg-superseded-standard-description">The processes and procedures that should be followed by users of the High Level Architecture (HLA) to develop and execute federations are defined in this recommended practice. This recommended practice is not intended to replace low-level management and systems engineering practices native to HLA user organizations, but is rather intended as a higher-level framework into which such practices can be integrated and tailored for specific uses.</p>
+                                                    <p><a class="arrow-link wg-superseded-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.3/3297"
+                                                          title="Learn More">Learn More
+                                                            About 1516.3-2003</a>
+                                                </div> <!-- /.wg-standard .wg-superseded-standard -->
+                                            
+                                        </div> <!-- /.tab-pane-content -->
+                                    </div> <!-- /#wg-superseded-standards .tab-pane -->
+                                    <div id="wg-inactive-withdrawn-standards" class="tab-pane fade" role="tabpanel"
+                                         aria-labelledby="wg-inactive-withdrawn-standards-tab">
+                                        <div class="tab-pane-content">
+                                            <p><strong>These standards have been removed from active status through a
+                                                    ballot
+                                                    where the standard is made inactive as a consensus decision of a
+                                                    balloting group.</strong></p>
+                                            <hr class="mt-4 mb-4"/>
+                                            No Inactive-Withdrawn Standards                                            
+                                        </div> <!-- /.tab-pane-content -->
+                                    </div> <!-- /#wg-inactive-standards .tab-pane -->
+                                    <div id="wg-inactive-reserved-standards" class="tab-pane fade" role="tabpanel"
+                                         aria-labelledby="wg-inactive-reserved-standards-tab">
+                                        <div class="tab-pane-content">
+                                            <p><strong>These standards are removed from active status through an
+                                                    administrative process for standards that have not undergone a
+                                                    revision
+                                                    process within 10 years.</strong></p>
+                                            <hr class="mt-4 mb-4"/>
+                                                                                                                                        <div class="wg-standard wg-inactive-standard">
+                                                    <h5 class="wg-inactive-reserved-standard-designation">1516-2010</h5>
+                                                    <h6 class="h4 wg-inactive-reserved-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)-- Framework and Rules</h6>
+                                                    <p class="wg-inactive-reserved-standard-description">This standard, describing the framework and rules of the High Level Architecture (HLA), is the capstone document for a family of related HLA standards. It defines the HLA, its components, and the rules that outline the responsibilities of HLA federates and federations to ensure a consistent implementation. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that technology advances will allow for new and different modeling and simulation (M&S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set, as a change in one is likely to have an impact on the others. As such, the HLA is an integrated approach that has been developed to provide a common architecture for simulation.</p>
+                                                    <p><a class="arrow-link wg-inactive-reserved-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516/3744"
+                                                          title="Learn More">Learn More
+                                                            About 1516-2010</a>
+                                                </div> <!-- /.wg-standard .wg-inactive-reserved standard -->
+                                                                                            <div class="wg-standard wg-inactive-standard">
+                                                    <h5 class="wg-inactive-reserved-standard-designation">1516.1-2010</h5>
+                                                    <h6 class="h4 wg-inactive-reserved-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)-- Federate Interface Specification</h6>
+                                                    <p class="wg-inactive-reserved-standard-description">The High Level Architecture (HLA) has been developed to provide a common architecture for distributed modeling and simulation. The HLA defines an integrated approach that provides a common framework for the interconnection of interacting simulations. This document, the second in a family of three related HLA documents, defines the standard services of and interfaces to the HLA runtime infrastructure (RTI). These services are used by the interacting simulations to achieve a coordinated exchange of information when they participate in a distributed federation. The standards contained in this architecture are interrelated and need to be considered as a product set, when changes are made. They each have value independently.</p>
+                                                    <p><a class="arrow-link wg-inactive-reserved-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.1/3745"
+                                                          title="Learn More">Learn More
+                                                            About 1516.1-2010</a>
+                                                </div> <!-- /.wg-standard .wg-inactive-reserved standard -->
+                                                                                            <div class="wg-standard wg-inactive-standard">
+                                                    <h5 class="wg-inactive-reserved-standard-designation">1516.2-2010</h5>
+                                                    <h6 class="h4 wg-inactive-reserved-standard-title">IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)-- Object Model Template (OMT) Specification</h6>
+                                                    <p class="wg-inactive-reserved-standard-description">The High Level Architecture (HLA)&ndash;Object Model Template (OMT) specification defines the format and syntax (but not content) of HLA object models. Simulations are abstractions of the real world, and no one simulation can solve all of the functional needs for the modeling and simulation community. It is anticipated that advances in technology will allow for new and different modeling and simulation (M&S) implementations within the framework of the HLA. The standards contained in this architecture are interrelated and need to be considered as a product set, as a change in one is likely to have an impact on the others. As such, the HLA is an integrated approach that has been developed to provide a common architecture for simulation.</p>
+                                                    <p><a class="arrow-link wg-inactive-reserved-standard-url"
+                                                          href="https://standards.ieee.org/ieee/1516.2/3746"
+                                                          title="Learn More">Learn More
+                                                            About 1516.2-2010</a>
+                                                </div> <!-- /.wg-standard .wg-inactive-reserved standard -->
+                                            
+                                        </div> <!-- /.tab-pane-content -->
+                                    </div> <!-- /#wg-inactive-standards .tab-pane -->
+                                </div> <!-- /#wg-tab-content .tab-content -->
+                            </div> <!-- /#working-group-projects-standards -->
+                        </div> <!-- /#working-group-details -->
+                    </div> <!-- /#working-group -->
+                </div> <!-- /#main-content .col-12 .col-lg-10 -->
+            </div> <!-- /.row -->
+        </div> <!-- /.container -->
+    </section> <!-- /#content -->
+</main>
+
+    <footer>
+        <section id="footer-top">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-12 col-sm-4">
+                        <div id="footer-logo" class="logo">
+                            <a class="logo-link" href="https://www.ieee.org/" title="Visit IEEE.org" target="_blank" aria-label="Visit IEEE.org (opens in new tab)"><img src="https://standards.ieee.org/wp-content/themes/ieee-sa-theme/img/ieee-logo2x.png" alt="IEEE logo" height="30px" width="auto" loading="lazy"></a>
+                        </div> <!-- /#footer-logo .logo -->
+                    </div> <!-- /.col-12 .col-sm-4 -->
+                    <div class="col-12 col-sm-8">
+                        <div id="social-media">
+                            <ul class="nav social-media justify-content-sm-end">
+                                <li class="nav-item"><a class="nav-link social-icon social-linkedin" href="https://www.linkedin.com/company/ieee-sa-ieee-standards-association/" title="LinkedIn" target="_blank" aria-label="LinkedIn (opens in new tab)"><i class="fa-brands fa-linkedin-in"></i> <span class="sr-only">LinkedIn</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-facebook" href="https://www.facebook.com/ieeesa/" title="Facebook" target="_blank" aria-label="Facebook (opens in new tab)"><i class="fa-brands fa-facebook-f"></i> <span class="sr-only">Facebook</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-instagram" href="https://www.instagram.com/ieeesa/" title="Instagram" target="_blank" aria-label="Instagram (opens in new tab)"><i class="fa-brands fa-instagram"></i> <span class="sr-only">Instagram</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-youtube" href="https://www.youtube.com/ieeesa" title="YouTube" target="_blank" aria-label="YouTube (opens in new tab)"><i class="fa-brands fa-youtube"></i> <span class="sr-only">YouTube</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-twitter" href="https://twitter.com/ieeesa" title="X" target="_blank" aria-label="X (opens in new tab)"><i class="fa-brands fa-x-twitter"></i> <span class="sr-only">X</span></a></li>
+                                <li class="nav-item"><a class="nav-link social-icon social-rss" href="/category/beyond-standards/feed/" title="Beyond Standards RSS Feed" target="_blank" aria-label="Beyond Standards RSS Feed (opens in new tab)"><i class="fa-solid fa-rss"></i> <span class="sr-only">Beyond Standards RSS Feed</span></a></li>
+                            </ul> <!-- /.nav .social-media -->
+                        </div> <!-- /#social-media -->
+                    </div> <!-- /.col-12 .col-sm-8 -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-top -->
+
+        <section id="footer-widgets">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">IEEE SA</div>
+<div class="menu-footer-menu-ieee-sa-container"><ul id="menu-footer-menu-ieee-sa" class="menu"><li id="menu-item-8437" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8437"><a href="https://standards.ieee.org/about/">About Us</a></li>
+<li id="menu-item-8370" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8370"><a href="https://standards.ieee.org/about/membership/">IEEE SA Membership</a></li>
+<li id="menu-item-9418" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-9418"><a href="https://standards.ieee.org/about/distrib/">Distributor Partner Program</a></li>
+<li id="menu-item-8372" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8372"><a href="https://standards.ieee.org/about/training/">Training &#038; Development</a></li>
+<li id="menu-item-8438" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8438"><a href="https://standards.ieee.org/about/policies/">Policies &#038; Procedures</a></li>
+<li id="menu-item-8439" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8439"><a href="https://standards.ieee.org/about/contact/">Contact Us</a></li>
+<li id="menu-item-18383" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18383"><a href="https://standards.ieee.org/about/feedback/">Provide Feedback</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Board of Governors</div>
+<div class="menu-footer-menu-board-of-governors-container"><ul id="menu-footer-menu-board-of-governors" class="menu"><li id="menu-item-8363" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8363"><a href="https://standards.ieee.org/about/bog/">About Board of Governors</a></li>
+<li id="menu-item-8364" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8364"><a href="https://standards.ieee.org/about/bog/arcom/">Awards Committee</a></li>
+<li id="menu-item-8367" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8367"><a href="https://standards.ieee.org/about/bog/rac/">Registration Authority Committee (RAC)</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Entity Collaborative Activities Governance Board</div>
+<div class="menu-footer-menu-cag-container"><ul id="menu-footer-menu-cag" class="menu"><li id="menu-item-19712" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19712"><a href="https://standards.ieee.org/about/bog/cag/">About the Entity Collaborative Activities Governance Board</a></li>
+<li id="menu-item-19713" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-19713"><a target="_blank" href="https://blp.ieee.org/">Blended Learning Platform</a></li>
+<li id="menu-item-19714" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19714"><a href="https://standards.ieee.org/products-programs/industry-affiliate-network/">Industry Affiliate Network</a></li>
+<li id="menu-item-19715" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19715"><a href="https://standards.ieee.org/about/bog/iccom/">Industry Connections Committee</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">Standards Board</div>
+<div class="menu-footer-menu-standards-board-container"><ul id="menu-footer-menu-standards-board" class="menu"><li id="menu-item-8378" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8378"><a href="https://standards.ieee.org/about/sasb/">About Standards Board</a></li>
+<li id="menu-item-8379" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8379"><a href="https://standards.ieee.org/about/sasb/sba/">Board Approvals</a></li>
+<li id="menu-item-8380" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8380"><a href="https://standards.ieee.org/about/sasb/audcom/">Audit Committee</a></li>
+<li id="menu-item-8381" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8381"><a href="https://standards.ieee.org/about/sasb/nescom/">New Standards Committee</a></li>
+<li id="menu-item-8382" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8382"><a href="https://standards.ieee.org/about/sasb/patcom/">Patent Committee</a></li>
+<li id="menu-item-8383" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8383"><a href="https://standards.ieee.org/about/sasb/procom/">Procedures Committee</a></li>
+<li id="menu-item-8384" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8384"><a href="https://standards.ieee.org/about/sasb/revcom/">Standards Review Committee</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+<div class="col-12 col-sm-6 w-20"><!-- begin column -->
+<div class="widget"><!-- begin widget -->
+<div class="widget-title">News &#038; Events</div>
+<div class="menu-footer-menu-news-events-container"><ul id="menu-footer-menu-news-events" class="menu"><li id="menu-item-8440" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8440"><a href="https://standards.ieee.org/news/">News</a></li>
+<li id="menu-item-8376" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8376"><a href="https://standards.ieee.org/news/swire/">IEEE SA Newsletter</a></li>
+<li id="menu-item-8441" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8441"><a href="https://standards.ieee.org/events/">Events</a></li>
+<li id="menu-item-12798" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12798"><a href="https://standards.ieee.org/beyond-standards/">Beyond Standards Blog</a></li>
+</ul></div></div>
+<!-- end widget -->
+</div><!-- end column -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-widgets -->
+
+        <section id="footer-bar">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav footer-bar">
+                            <li class="nav-item"><a class="nav-link" href="/" title="Home">Home</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/sitemap/" title="Sitemap">Sitemap</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/contact" target="_blank" title="Contact &amp; Support" aria-label="Contact &amp; Support (opens in new tab)">Contact &amp; Support</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/accessibility-statement" target="_blank" title="Accessibility" aria-label="Accessibility (opens in new tab)">Accessibility</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/corporate/governance/p9-26" target="_blank" title="Nondiscrimination Policy" aria-label="Nondiscrimination Policy (opens in new tab)">Nondiscrimination Policy</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://secure.ethicspoint.com/domain/media/en/gui/20410/index.html" target="_blank" title="IEEE Ethics Reporting" aria-label="IEEE Ethics Reporting (opens in new tab)">IEEE Ethics Reporting</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://privacy.ieee.org/policies" target="_blank" title="IEEE Privacy Policy" aria-label="IEEE Privacy Policy (opens in new tab)">IEEE Privacy Policy</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://www.ieee.org/about/help/site-terms-conditions" target="_blank" title="Terms & Disclosures" aria-label="Terms & Disclosures (opens in new tab)">Terms & Disclosures</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/ipr/" title="IEEE SA Copyright Policy">IEEE SA Copyright Policy</a></li>
+                        </ul> <!-- /.nav .footer -->
+                        <div id="copyright">
+                            <p>&copy; Copyright <span id="copyright-year">2026</span> IEEE &ndash; All rights reserved. A public charity, IEEE is the world's largest technical professional organization dedicated to advancing technology for the benefit of humanity.</p>
+                        </div> <!-- /#copyright -->
+                    </div> <!-- /.col-12 -->
+                </div> <!-- /.row -->
+            </div> <!-- /.container -->
+        </section> <!-- /#footer-bar -->
+    </footer>
+
+	    <button class="btn btn-subscribe" type="button" data-bs-toggle="offcanvas" data-bs-target="#newsletter-subscribe" aria-controls="newsletter-subscribe" aria-label="Toggle newsletter subscribe form" role="region">Subscribe</button> <!-- /.btn .btn-subscribe -->
+
+    <div id="newsletter-subscribe" class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="true" tabindex="-1" aria-labelledby="newsletter-subscribe-title">
+        <div class="offcanvas-header">
+            <h5 class="h2 offcanvas-title" id="newsletter-subscribe-title">Subscribe to our Newsletter</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div> <!-- /.offcavas-header -->
+        <div class="offcanvas-body">
+            <p>Sign up for our monthly newsletter to learn about new developments, including resources, insights and more.</p>
+            <!-- Marketo Form -->
+            <script src="//app-ab28.marketo.com/js/forms2/js/forms2.min.js"></script>
+<form id="mktoForm_1022" class="marketoForm"></form>
+<script>MktoForms2.loadForm("//app-ab28.marketo.com", "211-FYL-955", 1022);</script>
+
+<!--Script to display a confirmation message after submission-->
+<script src="//app-ab28.marketo.com/js/forms2/js/forms2.js"></script>
+<script>
+MktoForms2.whenReady(function (form){
+  var subscribeForms = [1022];
+  if ( subscribeForms.indexOf(form.getId()) != -1 ) {
+	  form.onSuccess(function(values, followUpUrl){
+	   form.getFormElem().hide();
+	   document.getElementById('confirmform').style.visibility = 'visible';
+	   return false;
+		  
+     });
+  }
+});
+</script>
+<div id="confirmform" style="visibility:hidden;"><p><strong>Thank you for signing up for the IEEE SA Newsletter. Check your email for a confirmation message.</strong></p></div>
+        </div> <!-- /.offcavas-body -->
+    </div> <!-- /#newsletter-subscribe .offcanvas -->
+
+    <div class="screen-darken"></div> <!-- /.screen-darken -->
+
+   <!-- <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+    <script>
+        // offcanvas mobile menu
+        function darken_screen(yesno) {
+            if( yesno == true ) {
+                document.querySelector('.screen-darken').classList.add('active');
+            }
+            else if(yesno == false) {
+                document.querySelector('.screen-darken').classList.remove('active');
+            }
+        }
+
+        function close_offcanvas() {
+            darken_screen(false);
+            document.querySelector('#mobile-menu.show').classList.remove('show');
+            document.body.classList.remove('offcanvas-active');
+        }
+
+        function show_offcanvas(offcanvas_id) {
+            darken_screen(true);
+            document.getElementById(offcanvas_id).classList.add('show');
+            document.body.classList.add('offcanvas-active');
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // affix header to top on scroll
+            window.addEventListener('scroll', function() {
+
+                if (window.scrollY > 50) {
+
+                    document.getElementById('top-bar').classList.add('d-none');
+                    document.getElementById('masthead').classList.add('fixed-top');
+
+                    // add padding top to show content behind navbar
+                    mastheadHeight = document.querySelector('#masthead').offsetHeight;
+
+                    document.body.style.paddingTop = mastheadHeight + 'px';
+
+                } else {
+
+                    document.getElementById('top-bar').classList.remove('d-none');
+                    document.getElementById('masthead').classList.remove('fixed-top');
+
+                    // remove padding top from body
+                    document.body.style.paddingTop = '0';
+                }
+            });
+
+
+
+            // offcanvas mobile menu
+            document.querySelectorAll('[data-trigger]').forEach(function(everyelement) {
+                let offcanvas_id = everyelement.getAttribute('data-trigger');
+                everyelement.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    show_offcanvas(offcanvas_id);
+                });
+            });
+
+            document.querySelectorAll('.btn-close').forEach(function(everybutton) {
+                everybutton.addEventListener('click', function (e) {
+                    close_offcanvas();
+                });
+            });
+
+            document.querySelector('.screen-darken').addEventListener('click', function(event) {
+                close_offcanvas();
+            });
+        });
+        // DOMContentLoaded end
+
+
+
+        // display current year
+        document.querySelector('#copyright-year').innerText = new Date().getFullYear();
+		
+		//20250530: WP Bakery Post Grid Custom Javascript - CSS Class Adjustment*/
+		jQuery.noConflict();
+		jQuery( "#sa-custom-post-grid div.vc_gitem-zone" ).removeClass( "vc_gitem-zone-a" );
+		
+		document.querySelectorAll('#sa-custom-post-grid h3 > a.vc_gitem-link').forEach(link => {
+  		link.classList.add('arrow-link', 'stretched-link');
+		link.innerHTML = `<span class="arrow-icon">${link.textContent}</span>`;
+		});
+    </script>
+    
+    <script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/ieee-sa-theme/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+		<script>
+		( function ( body ) {
+			'use strict';
+			body.className = body.className.replace( /\btribe-no-js\b/, 'tribe-js' );
+		} )( document.body );
+		</script>
+		<script> /* <![CDATA[ */var tribe_l10n_datatables = {"aria":{"sort_ascending":": activate to sort column ascending","sort_descending":": activate to sort column descending"},"length_menu":"Show _MENU_ entries","empty_table":"No data available in table","info":"Showing _START_ to _END_ of _TOTAL_ entries","info_empty":"Showing 0 to 0 of 0 entries","info_filtered":"(filtered from _MAX_ total entries)","zero_records":"No matching records found","search":"Search:","all_selected_text":"All items on this page were selected. ","select_all_link":"Select all pages","clear_selection":"Clear Selection.","pagination":{"all":"All","next":"Next","previous":"Previous"},"select":{"rows":{"0":"","_":": Selected %d rows","1":": Selected 1 row"}},"datepicker":{"dayNames":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"dayNamesShort":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"dayNamesMin":["S","M","T","W","T","F","S"],"monthNames":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesShort":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesMin":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"nextText":"Next","prevText":"Prev","currentText":"Today","closeText":"Done","today":"Today","clear":"Clear"}};/* ]]> */ </script><script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/the-events-calendar/common/build/js/user-agent.js?ver=da75d0bdea6dde3898df" id="tec-user-agent-js"></script>
+<script type="text/javascript" id="user-session-store-js-extra">
+/* <![CDATA[ */
+var userSessionConfig = {"isAcknowledged":"false"};
+//# sourceURL=user-session-store-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/atlas-search/includes/../public/js/user-session-store.js?ver=0.3.17" id="user-session-store-js"></script>
+<script type="text/javascript" id="analytics-js-extra">
+/* <![CDATA[ */
+var wpeAitkAnalytics = {"currentPage":"0","documentID":"ieee:3328","nonce":"5bf6bfc6ca","postsPerPage":"0","restUrl":"https://standards.ieee.org/wp-json/","searchResults":[],"title":"IEEE Standard for Modeling and Simulation (M&S) High Level Architecture (HLA)\u2013Framework and Rules"};
+//# sourceURL=analytics-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/atlas-search/public/js/analytics.js?ver=0.3.17" id="analytics-js"></script>
+<script type="text/javascript" id="smush-detector-js-extra">
+/* <![CDATA[ */
+var smush_detector = {"ajax_url":"https://standards.ieee.org/wp-admin/admin-ajax.php","nonce":"5b424d2fb2","is_mobile":"","data_store":{"type":"option","data":{"location":"home"}},"previous_data_version":"-1","previous_data_hash":"no-data"};
+//# sourceURL=smush-detector-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/wp-smush-pro/app/assets/js/smush-detector.min.js?ver=3.23.4" id="smush-detector-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/modules/subscribe-forms.min.js?ver=10.9.1" id="subscribe-forms-js-js"></script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/easy-social-share-buttons3/assets/js/essb-core.min.js?ver=10.9.1" id="easy-social-share-buttons-core-js"></script>
+<script type="text/javascript" id="easy-social-share-buttons-core-js-after">
+/* <![CDATA[ */
+var essb_settings = {"ajax_url":"https:\/\/standards.ieee.org\/wp-admin\/admin-ajax.php","essb3_nonce":"c6894bc090","essb3_plugin_url":"https:\/\/standards.ieee.org\/wp-content\/plugins\/easy-social-share-buttons3","essb3_stats":true,"essb3_ga":false,"essb3_ga_ntg":false,"blog_url":"https:\/\/standards.ieee.org\/","post_id":"3328","internal_stats":true};
+//# sourceURL=easy-social-share-buttons-core-js-after
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/page-links-to/dist/new-tab.js?ver=3.4.1" id="page-links-to-js"></script>
+<script type="text/javascript" id="wdt-custom-avada-js-js-extra">
+/* <![CDATA[ */
+var wdt_ajax_object = {"ajaxurl":"https://standards.ieee.org/wp-admin/admin-ajax.php"};
+//# sourceURL=wdt-custom-avada-js-js-extra
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://standards.ieee.org/wp-content/plugins/wpdatatables/integrations/starter/page-builders/avada/assets/js/wdt-custom-avada-js.js?ver=7.3.4" id="wdt-custom-avada-js-js"></script>
+<script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://standards.ieee.org/wp-includes/js/wp-emoji-release.min.js?ver=6.9.1"}}
+</script>
+<script type="module">
+/* <![CDATA[ */
+/*! This file is auto-generated */
+const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(window._wpemojiSettings=a,"wpEmojiSettingsSupports"),s=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const a=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===a[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\u1fac8")}return!1}function f(e,t,n,a){let r;const o=(r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),s=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(e=>{s[e]=t(o,e,n,a)}),s}function r(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}a.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),c.toString(),p.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"});const r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=e=>{i(n=e.data),r.terminate(),t(n)})}catch(e){}i(n=f(s,u,c,p))}t(n)}).then(e=>{for(const n in e)a.supports[n]=e[n],a.supports.everything=a.supports.everything&&a.supports[n],"flag"!==n&&(a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&a.supports[n]);var t;a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&!a.supports.flag,a.supports.everything||((t=a.source||{}).concatemoji?r(t.concatemoji):t.wpemoji&&t.twemoji&&(r(t.twemoji),r(t.wpemoji)))});
+//# sourceURL=https://standards.ieee.org/wp-includes/js/wp-emoji-loader.min.js
+/* ]]> */
+</script>
+<script></script><style type="text/css" data-key="essb-copylink-popup">.essb-copylink-shadow{display:none;align-items:center;justify-content:center;position:fixed;top:0;left:0;z-index:1300;background-color:rgba(0,0,0,0.2);width:100%;height:100%}.essb-copylink-window{width:90%;max-width:600px;display:none;align-items:center;justify-content:center;flex-direction:column;overflow.:hidden;z-index:1310;background-color:#fff;border-radius:5px;overflow:hidden}.essb-copylink-window-header{width:100%;display:flex;align-items:center;justify-content:space-between;overflow:hidden;font-size:16px;padding:10px;background-color:#1b84ff;color:#fff}.essb-copylink-window-content{width:100%;padding:20px}.essb-copylink-window-close{fill:#fff}</style><div class="essb-copylink-shadow"><div class="essb-copylink-window"><div class="essb-copylink-window-header"> <span>&nbsp;</span> <a href="#" class="essb-copylink-window-close"><svg style="width: 24px; height: 24px; padding: 5px;" height="32" viewBox="0 0 32 32" width="32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M32,25.7c0,0.7-0.3,1.3-0.8,1.8l-3.7,3.7c-0.5,0.5-1.1,0.8-1.9,0.8c-0.7,0-1.3-0.3-1.8-0.8L16,23.3l-7.9,7.9C7.6,31.7,7,32,6.3,32c-0.8,0-1.4-0.3-1.9-0.8l-3.7-3.7C0.3,27.1,0,26.4,0,25.7c0-0.8,0.3-1.3,0.8-1.9L8.7,16L0.8,8C0.3,7.6,0,6.9,0,6.3c0-0.8,0.3-1.3,0.8-1.9l3.7-3.6C4.9,0.2,5.6,0,6.3,0C7,0,7.6,0.2,8.1,0.8L16,8.7l7.9-7.9C24.4,0.2,25,0,25.7,0c0.8,0,1.4,0.2,1.9,0.8l3.7,3.6C31.7,4.9,32,5.5,32,6.3c0,0.7-0.3,1.3-0.8,1.8L23.3,16l7.9,7.9C31.7,24.4,32,25,32,25.7z"/></svg></a> </div><div class="essb-copylink-window-content"><div class="essb_copy_internal" style="display: flex; align-items: center;"><div style="width: calc(100% - 50px); padding: 5px;"><input type="text" id="essb_copy_link_field" style="width: 100%;padding: 5px 10px;font-size: 15px;background: #f5f6f7;border: 1px solid #ccc;font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,\"Helvetica Neue\",sans-serif;" /></div><div style="width:50px;text-align: center;"><a href="#" class="essb-copy-link" title="Press to copy the link" style="color:#5867dd;background:#fff;padding:10px;text-decoration: none;"><svg style="width: 24px; height: 24px; fill: currentColor;" class="essb-svg-icon" aria-hidden="true" role="img" focusable="false" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M25.313 28v-18.688h-14.625v18.688h14.625zM25.313 6.688c1.438 0 2.688 1.188 2.688 2.625v18.688c0 1.438-1.25 2.688-2.688 2.688h-14.625c-1.438 0-2.688-1.25-2.688-2.688v-18.688c0-1.438 1.25-2.625 2.688-2.625h14.625zM21.313 1.313v2.688h-16v18.688h-2.625v-18.688c0-1.438 1.188-2.688 2.625-2.688h16z"></path></svg></a></div></div><div class="essb-copy-message" style="font-size: 13px; font-family: -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Oxygen-Sans,Ubuntu,Cantarell,\"Helvetica Neue\",sans-serif;"></div></div></div></div><script type="text/javascript">function essb_open_copy_link_window(e,o){let s=window.location.href;if(e&&document.querySelector(".essb_"+e)){let n=document.querySelector(".essb_"+e).getAttribute("data-essb-url")||"";""!=n&&(s=n)}if(o&&""!=o&&(s=o),essb_settings&&essb_settings.copybutton_direct){essb.copy_link_direct(s);return}document.querySelector(".essb-copylink-window")&&(document.querySelector("#essb_copy_link_field")&&(document.querySelector("#essb_copy_link_field").value=s),document.querySelector(".essb-copylink-window").style.display="flex",document.querySelector(".essb-copylink-shadow").style.display="flex",document.querySelector(".essb-copylink-window-close")&&(document.querySelector(".essb-copylink-window-close").onclick=function(e){e.preventDefault(),document.querySelector(".essb-copylink-window").style.display="none",document.querySelector(".essb-copylink-shadow").style.display="none"}),document.querySelector(".essb-copylink-window .essb-copy-link")&&(document.querySelector(".essb-copylink-window .essb-copy-link").onclick=function(e){e.preventDefault();let o=document.querySelector("#essb_copy_link_field");try{o.focus(),o.select(),o.setSelectionRange(0,99999),document.execCommand("copy"),navigator.clipboard.writeText(o.value),document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML=essb_settings.translate_copy_message2?essb_settings.translate_copy_message2:"Copied to clipboard.",setTimeout(function(){document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML="&nbsp;"},2e3)}catch(s){console.log(s.stack),document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML=essb_settings.translate_copy_message3?essb_settings.translate_copy_message3:"Please use Ctrl/Cmd+C to copy the URL.",setTimeout(function(){document.querySelector(".essb-copylink-window .essb-copylink-window-header span").innerHTML="&nbsp;"},2e3)}}))}</script>
+    </body>
+</html>

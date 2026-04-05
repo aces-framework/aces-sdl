@@ -12,3 +12,6 @@ Current contents:
 This directory is transitional. The code has been moved into the right buckets
 first; imports, packaging, and other implementation details will be reconciled
 in later passes.
+
+The intended order for that reconciliation work is captured in
+[../../docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md](../../docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md).

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>About TENA</title>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon" type="image/png" href="images/favicon-tena.png">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Color theme CSS -->
+  <link rel="stylesheet" href="css/colors.css">
+
+</head>
+
+<body>
+
+  <!-- Navigation bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <a class="navbar-brand" href="#">TRMC</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li id="wiki-link" class="nav-item">
+          <a class="nav-link" href="/wiki/">Website</a>
+        </li>
+        <li id="helpdesk-link" class="nav-item">
+          <a class="nav-link" href="/helpdesk/">Helpdesk</a>
+        </li>
+        <li id="repository-link" class="nav-item">
+          <a class="nav-link" href="/repository/">Repository</a>
+        </li>
+      </ul>
+      <a class="btn btn-primary btn-bg btn-color btn-border my-2 my-sm-0" href="/accounts/" role="button">Log In</a>
+    </div>
+  </nav>
+  <br>
+  <!-- Content -->
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <h1>Test and Training Enabling Architecture (TENA)</h1>
+        <hr class="my-4">
+      </div>
+    </div>
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h3>TENA Mission</h3>
+        <p>The Office of the Secretary of Defense Test Resource Management Center Central Test and Evaluation Investment
+          Program (CTEIP) is developing and validating a common architecture and requisite software to integrate
+          testing, training, simulation, and high performance computing technologies, distributed across many
+          facilities. Through the establishment of a common architecture, the Test and Training Enabling Architecture
+          (TENA), reuse and interoperability of range assets will be tremendously improved, thus reducing range
+          development, operation, and maintenance costs.</p>
+        <h3>Requirement for TENA</h3>
+        <p>While highly capable, the US Department of Defense (DoD) test and training ranges were created as “stovepipe”
+          systems, built with different suites of sensors, networks, hardware, and software. The test and training
+          events carried out at these facilities are varied in nature and range anywhere from individual systems under
+          test to large-scale Joint exercises spread across numerous ranges where live, virtual, and constructive (LVC)
+          systems are blended to enact representative scenarios. With the focus now on Joint Forces, the situation is
+          changing to allow the most efficient use of current and future range resources (instrumentation, simulations,
+          hardware-in-the-loop stimulators, C4I systems, display systems, etc.) from across Distributed ranges. To
+          support the warfighting community, interoperability and reuse of resources within the test and training
+          communities are needed to validate weapon system performance in a cost-effective manner. Cost-effective
+          integration of range resources from test and training ranges is critical to test and determine the war
+          worthiness of today’s advanced weapon systems and concepts.</p>
+      </div>
+      <div class="col-md-6">
+        <img class="img-fluid mb-3 mb-md-0" src="images/TENA-mission.jpg">
+      </div>
+    </div>
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <img class="img-fluid mb-3 mb-md-0" src="images/TENA-requirements.jpg">
+      </div>
+      <div class="col-md-6">
+        <h3>Value of TENA</h3>
+        <p>TENA promotes interoperability and reusability among DoD ranges, facilities, and simulations and advances a
+          simulation-based acquisition or a "distributed engineering plant" methodology to streamline weapon system
+          acquisition. Once the TENA capabilities are in use by the test and training communities, future inter-range
+          operations, as well as instrumentation development and sustainment, will cost less and incur less risk. Most
+          impressively, upgrading an existing range system to TENA takes only a few days, drastically shorter than
+          traditional software integration efforts. Additional benefits from the TENA products include cost-effective
+          replacement of unique range protocols, enhanced exchange of mission data, and organic TENA-compliant
+          capabilities at test sites, which can be leveraged for future events.</p>
+        <h3>TENA Products</h3>
+        <p>The core of TENA is the TENA Common Infrastructure, including the TENA Middleware, the TENA Repository, and
+          the TENA Object Models. The TENA Object Models define the common data and interfaces shared by all range
+          applications. In addition, TENA specifies a number of tools, utilities, and gateways, enabling many range
+          resources located at geographically dispersed ranges to be integrated together in a timely manner.</p>
+        <p>The <strong>TENA Middleware</strong> is the high-performance, real-time, low-latency communication
+          infrastructure used by range resource applications and tools during the execution of a range event. All data
+          exchange and control commands between range systems is accomplished by the TENA Middleware, which provides
+          system developers with a unified application programmers interface (API) to support the real-time exchange of
+          software objects, messages, and data streams (audio, video, telemetry, or tactical data links).</p>
+        <p>The <strong>TENA Object Model</strong> enables semantic interoperability among range resource applications by
+          encoding all the information that needs to be communicated among those range applications. Quite simply, it is
+          a range community-wide set of interface and protocol definitions encapsulated in an object-oriented design. As
+          object definitions are proven to work in real-world range tests, they are standardized to be reused in future
+          events. This prototype-based, iterative approach ensures that only object definitions with operational
+          implementations are standardized.</p>
+        <p>The <strong>TENA Repository</strong> contains all the relevant TENA information that is not specific to a
+          given test or training event, such as the software library containing the TENA Middleware, standardized range
+          resource interface definitions, and executable versions of the TENA utilities and tools, along with related
+          documentation. The repository is web-enabled and functions as a large database-of-databases, where event
+          planners can browse and select existing range capabilities that can be easily configured and assembled to
+          support an event.</p>
+        <p>The <strong>TENA Logical Range Data Archive</strong> stores and provides for the retrieval of all of the
+          persistent information associated with a test or training event. The archive provides for the collection of
+          data at multiple locations: in data storage devices local to each range resource application, on data
+          collection systems running on separate computers that capture distributed range event information, and in a
+          master database system that also contains scenario information as well as references to all the data collected
+          for the particular event.</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <p>The <strong>TENA tools, utilities, and gateways</strong> assist the user in creating and managing an
+          integration of range resources, as well as in optimizing the TENA Common Infrastructure. The core set of tools
+          is a suite of key software applications for planning, configuring, controlling, monitoring, and analyzing
+          synthetic and multiple range exercises. These TENA-compliant software tools enhance the range engineer’s
+          productivity so that planning and reconfiguring many distributed range resources for large-scale synthetic
+          exercises can be accomplished much faster and with higher reliability.</p>
+        <h3>Progress and Completion</h3>
+        <p>CTEIP has advanced the use of TENA by establishing a mutually supportive relationship with the Range
+          Commanders Council so that TENA standards are reviewed and ultimately adopted by all of the ranges. TENA
+          Middleware, currently at Release 6, is continuously tested at various ranges across the Services and has been
+          successfully used in capabilities demonstrations and major military exercises.</p>
+        <p>TENA’s continuing development and refinement is managed by the TENA Software Development Activity (SDA), a
+          DoD Test Resource Management Center (TRMC) office. The TENA Middleware is government owned, free and available
+          for download, along with supporting documentation, at the TENA SDA web site (for registered users). The web
+          site offers information, documentation and software downloads, a helpdesk, and on-line TENA event and training
+          class registration.</p>
+        <p>Beyond the web site, TENA users and prospective users are further supported by a TENA SDA User Support team,
+          which includes the functions of event design, event integration and coordination.</p>
+      </div>
+      <div class="col-md-6">
+        <img class="img-fluid mb-3 mb-md-0" src="images/TENA-architecture.jpg">
+      </div>
+    </div>
+  </div>
+  <br>
+
+  <script src="js/toggleNav.js"></script>
+
+</body>
+
+</html>

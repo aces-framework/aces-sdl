@@ -43,7 +43,15 @@ crosswalk lives in [Design Precedents](precedents.md).
 The imported research also informs newer ecosystem concerns that are only partly
 surfaced in the current SDL syntax, including participant decision surfaces,
 hidden benchmark assets, trajectory corpora, experiment evidence capture, and
-participant-implementation apparatus.
+participant-implementation apparatus. More recently, cross-domain simulation
+and co-simulation research has also made the time model impossible to treat as
+an incidental runtime detail. Clock authority, time domains, pacing,
+synchronization, and realized ordering guarantees are part of the broader
+apparatus story, even when the current SDL syntax only exposes a subset of that
+surface through timelines, timeouts, and budget-like controls. The primary
+references collected in
+[`research/primary/literature/time-and-simulation/`](../../../research/primary/literature/time-and-simulation/README.md)
+are the current foundation for that time/clock work.
 
 ## Stable IDs, Variable Values
 

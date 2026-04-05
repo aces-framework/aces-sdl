@@ -3,16 +3,16 @@
 from collections.abc import Callable
 from typing import Any
 
-from aces.core.semantics.objectives import analyze_objective_window
-from aces.core.semantics.workflow import (
+from .semantics.objectives import analyze_objective_window
+from .semantics.workflow import (
     WORKFLOW_STATE_SCHEMA_VERSION,
     workflow_step_semantic_contract,
 )
-from aces.core.runtime.capabilities import (
+from aces_backend_protocols.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
-from aces.core.runtime.models import (
+from .models import (
     AccountPlacement,
     ConditionBinding,
     ContentPlacement,
@@ -44,11 +44,11 @@ from aces.core.runtime.models import (
     WorkflowSwitchCaseRuntime,
     WorkflowRuntime,
 )
-from aces.core.sdl import instantiate_scenario
-from aces.core.sdl.orchestration import WorkflowStepType
-from aces.core.sdl.entities import flatten_entities
-from aces.core.sdl.nodes import NodeType
-from aces.core.sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.instantiate import instantiate_scenario
+from aces_sdl.entities import flatten_entities
+from aces_sdl.nodes import NodeType
+from aces_sdl.orchestration import WorkflowStepType
+from aces_sdl.scenario import InstantiatedScenario, Scenario
 
 
 def _dump(model: Any) -> dict[str, Any]:

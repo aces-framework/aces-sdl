@@ -13,11 +13,11 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from aces.core.sdl._base import extract_variable_name
-from aces.core.sdl._errors import SDLInstantiationError, SDLValidationError
-from aces.core.sdl.scenario import InstantiatedScenario, Scenario
-from aces.core.sdl.validator import SemanticValidator
-from aces.core.sdl.variables import Variable, VariableType
+from ._base import extract_variable_name
+from ._errors import SDLInstantiationError, SDLValidationError
+from .scenario import InstantiatedScenario, Scenario
+from .validator import SemanticValidator
+from .variables import Variable, VariableType
 
 _VARIABLE_TOKEN_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_-]*)\}")
 

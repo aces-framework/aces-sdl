@@ -1,0 +1,1 @@
+"""Backward-compatible semantics namespace."""

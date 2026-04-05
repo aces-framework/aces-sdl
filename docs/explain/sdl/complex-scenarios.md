@@ -5,7 +5,7 @@ large, high-state SDL example scenarios. The goal is to design the
 experiments first, then encode them in SDL, rather than letting the
 current parser surface dictate the scenario concept.
 
-The corresponding specifications live in `examples/*.sdl.yaml`.
+The corresponding specifications live in `examples/scenarios/*.sdl.yaml`.
 
 ## Design Principles
 
@@ -25,7 +25,7 @@ The corresponding specifications live in `examples/*.sdl.yaml`.
 
 ## Scenario 1: Hospital Ransomware on Surgery Day
 
-**Filename:** `examples/hospital-ransomware-surgery-day.sdl.yaml`
+**Filename:** `examples/scenarios/hospital-ransomware-surgery-day.sdl.yaml`
 
 ### Exercise Question
 
@@ -98,7 +98,7 @@ red team attempts data theft and radiology disruption?
 
 ## Scenario 2: SatCom Supply-Chain Release Poisoning
 
-**Filename:** `examples/satcom-release-poisoning.sdl.yaml`
+**Filename:** `examples/scenarios/satcom-release-poisoning.sdl.yaml`
 
 ### Exercise Question
 
@@ -169,7 +169,7 @@ while maintaining customer telemetry and tenant isolation?
 
 ## Scenario 3: Port Authority Surge and Yard Disruption
 
-**Filename:** `examples/port-authority-surge-response.sdl.yaml`
+**Filename:** `examples/scenarios/port-authority-surge-response.sdl.yaml`
 
 ### Exercise Question
 

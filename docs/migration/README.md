@@ -15,3 +15,6 @@ The reorganization moved existing material into the current long-term buckets:
 Most of this re-homing is now complete. Follow-on passes may still refine
 individual imports, tooling, or contract/spec details, but the authoritative
 locations listed above are the intended home for current work.
+
+The working order for reconciling the current implementation to that layout is
+captured in [ADR-010](../decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md).

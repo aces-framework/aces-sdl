@@ -35,3 +35,4 @@ Each ADR includes:
 | [007](adr-007-lightweight-formal-methods-policy.md) | Lightweight Formal Methods Policy for Semantic Systems | accepted | 2026-04-01 |
 | [008](adr-008-processor-layer-and-execution-artifact-boundaries.md) | Processor Layer and Execution Artifact Boundaries | accepted | 2026-04-04 |
 | [009](adr-009-normative-artifact-authority-and-repository-structure.md) | Normative Artifact Authority and Repository Structure | accepted | 2026-04-04 |
+| [010](adr-010-repository-realignment-order-and-compatibility-policy.md) | Repository Realignment Order and Compatibility Policy | accepted | 2026-04-04 |

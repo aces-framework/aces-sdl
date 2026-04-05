@@ -10,7 +10,7 @@ from typing import Optional
 
 from pydantic import Field, field_validator
 
-from aces.core.sdl._base import SDLModel, parse_enum_or_var
+from ._base import SDLModel, parse_enum_or_var
 
 
 class ExerciseRole(str, Enum):

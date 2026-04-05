@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from aces.core.runtime.models import (
+from aces_processor.models import (
     ApplyResult,
     Diagnostic,
     EvaluationPlan,

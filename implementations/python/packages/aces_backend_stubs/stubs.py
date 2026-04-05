@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from aces.core.runtime.capabilities import (
+from aces_backend_protocols.capabilities import (
     BackendManifest,
     EvaluatorCapabilities,
     OrchestratorCapabilities,
@@ -10,7 +10,7 @@ from aces.core.runtime.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
-from aces.core.runtime.models import (
+from aces_processor.models import (
     ApplyResult,
     ChangeAction,
     Diagnostic,
@@ -22,7 +22,7 @@ from aces.core.runtime.models import (
     RuntimeSnapshot,
     SnapshotEntry,
 )
-from aces.core.runtime.registry import RuntimeTarget, RuntimeTargetComponents
+from aces_processor.registry import RuntimeTarget, RuntimeTargetComponents
 
 
 def create_stub_manifest(**config) -> BackendManifest:

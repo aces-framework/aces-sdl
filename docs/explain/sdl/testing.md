@@ -25,8 +25,9 @@ blanket requirement for SDL work.
 ### Unit Tests (standard run)
 
 ```bash
-pytest tests/test_sdl_models.py tests/test_sdl_validator.py \
-       tests/test_sdl_parser.py -v
+cd implementations/python && \
+uv run --extra dev pytest tests/test_sdl_models.py tests/test_sdl_validator.py \
+  tests/test_sdl_parser.py -v
 ```
 
 Tests structural validation (Pydantic models), semantic validation (cross-reference checks), and parser behavior (normalization, shorthands, SDL-only format boundary).
@@ -35,7 +36,8 @@ The unit suites also cover OCR-derived duration grammar, workflow graphs, direct
 ### Stress Tests (standard run)
 
 ```bash
-pytest tests/test_sdl_stress.py tests/test_sdl_realworld.py -v
+cd implementations/python && \
+uv run --extra dev pytest tests/test_sdl_stress.py tests/test_sdl_realworld.py -v
 ```
 
 19 scenarios from 8 platforms testing expressiveness boundaries:
@@ -60,7 +62,8 @@ Each scenario is tested for:
 ### Fuzz Tests (manual trigger only)
 
 ```bash
-pytest tests/test_sdl_fuzz.py -m fuzz -v
+cd implementations/python && \
+uv run --extra dev pytest tests/test_sdl_fuzz.py -m fuzz -v
 ```
 
 Property-based testing using [Hypothesis](https://hypothesis.readthedocs.io/). Generates ~1,050 random inputs per run across 6 fuzz strategies:
@@ -82,17 +85,18 @@ Fuzz tests are excluded from the standard `pytest` run via the `fuzz` marker. Th
 
 ```bash
 # Standard tests (excludes fuzz)
-pytest tests/ -v
+cd implementations/python && uv run --extra dev pytest tests/ -v
 
 # Everything including fuzz
-pytest tests/ -m '' -v
+cd implementations/python && uv run --extra dev pytest tests/ -m '' -v
 ```
 
 ### Example Scenarios
 
-The `examples/` directory now contains curated large SDL files that are
+The `examples/scenarios/` directory now contains curated large SDL files that are
 meant to be reusable starting points rather than inline test-only
-fixtures. They are loaded directly from disk by `tests/test_scenarios.py`
+fixtures. They are loaded directly from disk by
+`implementations/python/tests/test_scenarios.py`
 so they stay valid as real SDL artifacts:
 
 - `hospital-ransomware-surgery-day.sdl.yaml`

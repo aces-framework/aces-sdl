@@ -11,19 +11,19 @@ from ipaddress import ip_address, ip_network
 
 from pydantic import BaseModel
 
-from aces.core.semantics.objectives import analyze_objective_window
-from aces.core.semantics.workflow import (
+from aces_processor.semantics.objectives import analyze_objective_window
+from aces_processor.semantics.workflow import (
     branch_closure,
     workflow_step_semantic_contract,
 )
-from aces.core.sdl._errors import SDLValidationError
-from aces.core.sdl._base import extract_variable_name, is_variable_ref
-from aces.core.sdl.entities import flatten_entities
-from aces.core.sdl.infrastructure import SimpleProperties
-from aces.core.sdl.nodes import MAX_NODE_NAME_LENGTH, NodeType
-from aces.core.sdl.orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
-from aces.core.sdl.scenario import Scenario
-from aces.core.sdl.scoring import MetricType
+from ._base import extract_variable_name, is_variable_ref
+from ._errors import SDLValidationError
+from .entities import flatten_entities
+from .infrastructure import SimpleProperties
+from .nodes import MAX_NODE_NAME_LENGTH, NodeType
+from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
+from .scenario import Scenario
+from .scoring import MetricType
 
 
 def _topological_sort(graph: dict[str, list[str]]) -> list[str] | None:

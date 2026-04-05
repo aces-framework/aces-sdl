@@ -1240,7 +1240,13 @@ workflows:
         assert evaluation_order.index("evaluation.goal.pass") < evaluation_order.index("evaluation.objective.initial")
 
     def test_satcom_release_poisoning_compiles_to_valid_execution_plan(self):
-        content = Path("examples/satcom-release-poisoning.sdl.yaml").read_text(encoding="utf-8")
+        scenario_path = (
+            Path(__file__).resolve().parents[3]
+            / "examples"
+            / "scenarios"
+            / "satcom-release-poisoning.sdl.yaml"
+        )
+        content = scenario_path.read_text(encoding="utf-8")
         model = compile_runtime_model(parse_sdl(content))
         execution_plan = plan(model, create_stub_manifest())
 

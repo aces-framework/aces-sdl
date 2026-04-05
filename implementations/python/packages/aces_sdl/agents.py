@@ -12,7 +12,7 @@ are a deployment-layer concern.
 
 from pydantic import Field, model_validator
 
-from aces.core.sdl._base import SDLModel
+from ._base import SDLModel
 
 
 class InitialKnowledge(SDLModel):

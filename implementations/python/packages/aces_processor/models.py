@@ -16,11 +16,11 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
-from aces.core.semantics.workflow import (
+from .semantics.workflow import (
     WORKFLOW_STATE_SCHEMA_VERSION,
     WorkflowStepSemanticContract,
 )
-from aces.core.runtime.capabilities import (
+from aces_backend_protocols.capabilities import (
     BackendManifest,
     WorkflowFeature,
     WorkflowStatePredicateFeature,

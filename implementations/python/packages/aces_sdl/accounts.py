@@ -11,7 +11,7 @@ from enum import Enum
 
 from pydantic import Field, field_validator, model_validator
 
-from aces.core.sdl._base import SDLModel, parse_bool_or_var, parse_enum_or_var
+from ._base import SDLModel, parse_bool_or_var, parse_enum_or_var
 
 
 class PasswordStrength(str, Enum):

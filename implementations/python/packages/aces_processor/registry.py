@@ -4,8 +4,8 @@ from inspect import Signature, signature
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from aces.core.runtime.capabilities import BackendManifest
-from aces.core.runtime.protocols import Evaluator, Orchestrator, Provisioner
+from aces_backend_protocols.capabilities import BackendManifest
+from aces_backend_protocols.protocols import Evaluator, Orchestrator, Provisioner
 
 
 def _require_invokable_method(

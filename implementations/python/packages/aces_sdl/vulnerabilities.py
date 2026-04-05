@@ -8,7 +8,7 @@ import re
 
 from pydantic import Field, field_validator
 
-from aces.core.sdl._base import SDLModel, parse_bool_or_var
+from ._base import SDLModel, parse_bool_or_var
 
 _CWE_PATTERN = re.compile(r"^CWE-\d+$")
 

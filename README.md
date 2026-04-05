@@ -34,6 +34,9 @@ that is being structured so normative artifacts and implementation artifacts
 are clearly separated while still standing on their own as a real, executable
 system.
 
+The working order for aligning the current implementation to that structure is
+captured in [docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md](docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md).
+
 The repository now treats several surfaces as distinct:
 
 - the SDL and its authored scenario/experiment meaning
