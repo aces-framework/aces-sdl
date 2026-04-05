@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from aces.core.sdl import SDLParseError, SDLValidationError, Scenario, parse_sdl
+from ._errors import SDLParseError, SDLValidationError
+from .parser import parse_sdl
+from .scenario import Scenario
 
 log = logging.getLogger("aces.scenarios")
 

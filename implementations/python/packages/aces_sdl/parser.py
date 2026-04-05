@@ -13,10 +13,10 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from aces.core.sdl._errors import SDLParseError, SDLValidationError
-from aces.core.sdl._base import is_variable_ref
-from aces.core.sdl.scenario import ExpandedScenario, Scenario
-from aces.core.sdl.validator import SemanticValidator
+from ._base import is_variable_ref
+from ._errors import SDLParseError, SDLValidationError
+from .scenario import ExpandedScenario, Scenario
+from .validator import SemanticValidator
 
 
 # Top-level sections that are HashMaps of user-defined identifiers.
@@ -274,7 +274,7 @@ def parse_sdl(
                 "SDL imports require file-backed parsing via parse_sdl_file()",
                 path=path,
             )
-        from aces.core.sdl.composition import expand_sdl_modules
+        from .composition import expand_sdl_modules
 
         data, namespaces = expand_sdl_modules(data, path=path)
         scenario_cls = ExpandedScenario if namespaces else Scenario
@@ -318,7 +318,7 @@ def parse_sdl_file(path: Path, **kwargs: Any) -> Scenario:
     data = _load_normalized_data(content, path=path)
     namespaces: dict[str, str] = {}
     if data.get("imports"):
-        from aces.core.sdl.composition import expand_sdl_modules
+        from .composition import expand_sdl_modules
 
         data, namespaces = expand_sdl_modules(data, path=path)
     scenario_cls = ExpandedScenario if namespaces else Scenario

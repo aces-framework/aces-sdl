@@ -10,14 +10,14 @@ from typing import Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from aces.core.sdl._base import (
+from ._base import (
     SDLModel,
     is_variable_ref,
     normalize_enum_value,
     parse_enum_or_var,
     parse_int_or_var,
 )
-from aces.core.sdl._source import Source
+from ._source import Source
 
 MAX_NODE_NAME_LENGTH = 35
 

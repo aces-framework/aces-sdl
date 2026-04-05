@@ -6,17 +6,17 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from aces.core.sdl._base import is_variable_ref
-from aces.core.sdl._errors import SDLParseError, SDLInstantiationError
-from aces.core.sdl.instantiate import instantiate_scenario
-from aces.core.sdl.module_registry import (
+from ._base import is_variable_ref
+from ._errors import SDLInstantiationError, SDLParseError
+from .instantiate import instantiate_scenario
+from .module_registry import (
     load_lockfile,
     load_trust_policy,
     resolve_import,
 )
-from aces.core.sdl.parser import _load_normalized_data
-from aces.core.sdl.entities import flatten_entities
-from aces.core.sdl.scenario import ImportDecl, ModuleDescriptor, Scenario
+from .entities import flatten_entities
+from .parser import _load_normalized_data
+from .scenario import ImportDecl, ModuleDescriptor, Scenario
 
 _HASHMAP_SECTIONS = (
     "nodes",

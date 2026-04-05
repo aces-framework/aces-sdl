@@ -3,27 +3,9 @@
 A backend-agnostic scenario specification language ported from the
 Open Cyber Range SDL and extended with sections for content, accounts,
 relationships, agents, objectives, workflows, and variables.
-
-Public API:
-    parse_sdl(content) -> Scenario
-    parse_sdl_file(path) -> Scenario
-    instantiate_scenario(scenario, parameters=None, profile=None) -> InstantiatedScenario
-    Scenario — top-level model (21 sections)
-    InstantiatedScenario — fully concrete scenario ready for compilation
-    SDLParseError — YAML/structural errors
-    SDLValidationError — semantic validation errors
-    SDLInstantiationError — parameter binding / concrete instantiation errors
 """
 
-from aces.core.sdl._errors import (
-    SDLError,
-    SDLInstantiationError,
-    SDLParseError,
-    SDLValidationError,
-)
-from aces.core.sdl.instantiate import instantiate_scenario
-from aces.core.sdl.parser import parse_sdl, parse_sdl_file
-from aces.core.sdl.scenario import InstantiatedScenario, Scenario
+from importlib import import_module
 
 __all__ = [
     "instantiate_scenario",
@@ -36,3 +18,26 @@ __all__ = [
     "SDLParseError",
     "SDLValidationError",
 ]
+
+
+def __getattr__(name: str):
+    if name in {
+        "SDLError",
+        "SDLInstantiationError",
+        "SDLParseError",
+        "SDLValidationError",
+    }:
+        module = import_module("aces_sdl._errors")
+    elif name == "instantiate_scenario":
+        module = import_module("aces_sdl.instantiate")
+    elif name in {"parse_sdl", "parse_sdl_file"}:
+        module = import_module("aces_sdl.parser")
+    elif name in {"InstantiatedScenario", "Scenario"}:
+        module = import_module("aces_sdl.scenario")
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    return getattr(module, name)
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

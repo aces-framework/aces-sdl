@@ -11,7 +11,7 @@ is delegated to the deployment backend.
 
 from pydantic import Field
 
-from aces.core.sdl._base import SDLModel
+from ._base import SDLModel
 
 
 class Source(SDLModel):

@@ -6,13 +6,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from aces.core.runtime.models import (
+from .models import (
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
-from aces.core.sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.scenario import InstantiatedScenario, Scenario
 
 
 class ContractModel(BaseModel):

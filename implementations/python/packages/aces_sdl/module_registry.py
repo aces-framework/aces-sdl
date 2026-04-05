@@ -25,9 +25,9 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 from pydantic import Field, ValidationError, model_validator
 
-from aces.core.sdl._base import SDLModel
-from aces.core.sdl._errors import SDLParseError
-from aces.core.sdl.scenario import ImportDecl, ModuleDescriptor, Scenario
+from ._base import SDLModel
+from ._errors import SDLParseError
+from .scenario import ImportDecl, ModuleDescriptor, Scenario
 
 LOCKFILE_NAME = "aces.lock.json"
 TRUST_POLICY_NAME = "aces-trust.yaml"
@@ -399,7 +399,7 @@ def resolve_import(
         import_path = (base_dir / relative).resolve()
         if not import_path.exists():
             raise SDLParseError(f"Imported SDL file not found: {relative}")
-        from aces.core.sdl.parser import _load_normalized_data
+        from .parser import _load_normalized_data
 
         imported_raw = _load_normalized_data(
             import_path.read_text(encoding="utf-8"),
@@ -542,7 +542,7 @@ def resolve_lock_records(
     *,
     trust_policy: TrustPolicy | None = None,
 ) -> Lockfile:
-    from aces.core.sdl.parser import _load_normalized_data
+    from .parser import _load_normalized_data
 
     trust_policy = trust_policy or load_trust_policy(root_path.parent)
     root_data = _load_normalized_data(root_path.read_text(encoding="utf-8"), path=root_path)
@@ -576,7 +576,7 @@ def _collect_local_bundle_files(
     *,
     seen: set[Path] | None = None,
 ) -> dict[Path, bytes]:
-    from aces.core.sdl.parser import _load_normalized_data
+    from .parser import _load_normalized_data
 
     seen = set() if seen is None else set(seen)
     resolved = root_path.resolve()
@@ -605,7 +605,7 @@ def publish_module_to_oci_layout(
     signer_id: str = "",
     private_key_path: Path | None = None,
 ) -> dict[str, Any]:
-    from aces.core.sdl.parser import parse_sdl_file
+    from .parser import parse_sdl_file
 
     scenario = parse_sdl_file(root_path, skip_semantic_validation=True)
     descriptor = _scenario_module_descriptor(

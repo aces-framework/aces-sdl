@@ -9,10 +9,10 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
-from aces.core.runtime.capabilities import BackendManifest
-from aces.core.runtime.compiler import compile_runtime_model
-from aces.core.runtime.control_plane import RuntimeControlPlane
-from aces.core.runtime.contracts import (
+from aces_backend_protocols.capabilities import BackendManifest
+from aces_processor.compiler import compile_runtime_model
+from aces_processor.control_plane import RuntimeControlPlane
+from aces_processor.contracts import (
     BackendManifestModel,
     EvaluationPlanModel,
     EvaluationHistoryEventModel,
@@ -26,11 +26,11 @@ from aces.core.runtime.contracts import (
     WorkflowHistoryEventModel,
     schema_bundle,
 )
-from aces.core.runtime.manager import (
+from aces_processor.manager import (
     _evaluation_result_contract_diagnostics,
     _workflow_result_contract_diagnostics,
 )
-from aces.core.runtime.models import (
+from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
     RuntimeDomain,
@@ -40,9 +40,9 @@ from aces.core.runtime.models import (
     SnapshotEntry,
     WorkflowExecutionState,
 )
-from aces.core.runtime.planner import plan
-from aces.core.runtime.registry import RuntimeTarget
-from aces.core.sdl import parse_sdl
+from aces_processor.planner import plan
+from aces_processor.registry import RuntimeTarget
+from aces_sdl.parser import parse_sdl
 
 
 class BackendCapabilityProfile(str, Enum):
@@ -144,11 +144,18 @@ def _repo_root() -> Path:
 
 
 def fixtures_root() -> Path:
-    return _repo_root() / "conformance" / "fixtures"
+    return _repo_root() / "contracts" / "fixtures"
 
 
 def profiles_root() -> Path:
-    return _repo_root() / "conformance" / "profiles"
+    return _repo_root() / "contracts" / "profiles"
+
+
+def _fixture_contract_root(root: Path, contract_name: str) -> Path:
+    matches = sorted(path for path in root.glob(f"**/{contract_name}") if path.is_dir())
+    if matches:
+        return matches[0]
+    return root / contract_name
 
 
 def required_contracts(
@@ -322,8 +329,9 @@ def run_fixture_suite(
     diagnostics: list[Diagnostic] = []
 
     for contract_name in sorted(required):
-        valid_dir = root / contract_name / "valid"
-        invalid_dir = root / contract_name / "invalid"
+        contract_root = _fixture_contract_root(root, contract_name)
+        valid_dir = contract_root / "valid"
+        invalid_dir = contract_root / "invalid"
         if not valid_dir.exists():
             diagnostics.append(
                 _diagnostic(

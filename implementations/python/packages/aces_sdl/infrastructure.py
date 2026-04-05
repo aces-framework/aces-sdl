@@ -13,7 +13,7 @@ from typing import Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 
-from aces.core.sdl._base import (
+from ._base import (
     SDLModel,
     is_variable_ref,
     parse_bool_or_var,

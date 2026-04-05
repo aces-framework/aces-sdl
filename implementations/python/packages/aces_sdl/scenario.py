@@ -12,21 +12,21 @@ outside the SDL.
 
 from pydantic import Field, PrivateAttr, model_validator
 
-from aces.core.sdl._base import SDLModel
-from aces.core.sdl.accounts import Account
-from aces.core.sdl.agents import Agent
-from aces.core.sdl.conditions import Condition
-from aces.core.sdl.content import Content
-from aces.core.sdl.entities import Entity
-from aces.core.sdl.features import Feature
-from aces.core.sdl.infrastructure import InfraNode
-from aces.core.sdl.nodes import Node
-from aces.core.sdl.objectives import Objective
-from aces.core.sdl.orchestration import Event, Inject, Script, Story, Workflow
-from aces.core.sdl.relationships import Relationship
-from aces.core.sdl.scoring import Evaluation, Goal, Metric, TLO
-from aces.core.sdl.variables import Variable
-from aces.core.sdl.vulnerabilities import Vulnerability
+from ._base import SDLModel
+from .accounts import Account
+from .agents import Agent
+from .conditions import Condition
+from .content import Content
+from .entities import Entity
+from .features import Feature
+from .infrastructure import InfraNode
+from .nodes import Node
+from .objectives import Objective
+from .orchestration import Event, Inject, Script, Story, Workflow
+from .relationships import Relationship
+from .scoring import Evaluation, Goal, Metric, TLO
+from .variables import Variable
+from .vulnerabilities import Vulnerability
 
 
 class ModuleDescriptor(SDLModel):

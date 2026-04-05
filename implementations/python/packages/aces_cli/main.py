@@ -1,11 +1,11 @@
 """Main entry point for the ACES SDL CLI."""
 
+from importlib.metadata import PackageNotFoundError, version
 from typing import Optional
 
 import typer
 
-import aces
-from aces.cli import sdl
+from aces_cli import sdl
 
 app = typer.Typer(
     name="aces",
@@ -18,7 +18,11 @@ app.add_typer(sdl.app, name="sdl")
 
 def _version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"aces {aces.__version__}")
+        try:
+            current_version = version("aces-sdl")
+        except PackageNotFoundError:
+            current_version = "0.1.0"
+        typer.echo(f"aces {current_version}")
         raise typer.Exit()
 
 

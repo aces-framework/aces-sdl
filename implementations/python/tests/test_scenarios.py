@@ -10,7 +10,7 @@ name: test-scenario
 description: Minimal SDL scenario
 """
 
-EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
+EXAMPLES_DIR = Path(__file__).resolve().parents[3] / "examples" / "scenarios"
 EXAMPLE_SCENARIOS = sorted(EXAMPLES_DIR.glob("*.sdl.yaml"))
 COMPLEX_EXAMPLES = [
     EXAMPLES_DIR / "hospital-ransomware-surgery-day.sdl.yaml",

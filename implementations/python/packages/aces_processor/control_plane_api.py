@@ -9,7 +9,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from aces.core.runtime.contracts import (
+from .contracts import (
     EvaluationPlanModel,
     OperationReceiptModel,
     OperationStatusModel,
@@ -18,13 +18,13 @@ from aces.core.runtime.contracts import (
     RuntimeSnapshotEnvelopeModel,
     WorkflowCancellationRequestModel,
 )
-from aces.core.runtime.control_plane import RuntimeControlPlane
-from aces.core.runtime.control_plane_security import (
+from .control_plane import RuntimeControlPlane
+from .control_plane_security import (
     ControlPlaneIdentity,
     ControlPlaneRole,
     ControlPlaneSecurityConfig,
 )
-from aces.core.runtime.models import (
+from .models import (
     ChangeAction,
     Diagnostic,
     EvaluationOp,

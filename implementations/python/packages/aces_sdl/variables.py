@@ -14,7 +14,7 @@ from typing import Union
 
 from pydantic import Field, field_validator, model_validator
 
-from aces.core.sdl._base import SDLModel, normalize_enum_value
+from ._base import SDLModel, normalize_enum_value
 
 
 class VariableType(str, Enum):

@@ -14,7 +14,7 @@ from enum import Enum
 
 from pydantic import Field, field_validator
 
-from aces.core.sdl._base import SDLModel, normalize_enum_value
+from ._base import SDLModel, normalize_enum_value
 
 
 class RelationshipType(str, Enum):

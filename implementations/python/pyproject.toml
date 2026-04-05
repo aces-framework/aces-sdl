@@ -32,18 +32,34 @@ dev = [
 aces = "aces.cli.main:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/aces"]
+packages = [
+    "src/aces",
+    "packages/aces_backend_protocols",
+    "packages/aces_backend_stubs",
+    "packages/aces_cli",
+    "packages/aces_conformance",
+    "packages/aces_processor",
+    "packages/aces_sdl",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "packages"]
 markers = [
     "fuzz: property-based fuzz tests (run with: pytest -m fuzz)",
 ]
 addopts = "-m 'not fuzz'"
 
 [tool.coverage.run]
-source = ["aces"]
+source = [
+    "aces",
+    "aces_backend_protocols",
+    "aces_backend_stubs",
+    "aces_cli",
+    "aces_conformance",
+    "aces_processor",
+    "aces_sdl",
+]
 
 [tool.coverage.report]
 show_missing = true

@@ -3,8 +3,8 @@
 from collections.abc import Iterable
 from datetime import UTC, datetime
 
-from aces.core.runtime.compiler import compile_runtime_model
-from aces.core.runtime.models import (
+from .compiler import compile_runtime_model
+from .models import (
     ApplyResult,
     ChangeAction,
     Diagnostic,
@@ -29,12 +29,12 @@ from aces.core.runtime.models import (
     WorkflowStatus,
     validate_evaluation_result,
 )
-from aces.core.sdl import instantiate_scenario
-from aces.core.semantics.planner import reverse_delete_order
-from aces.core.semantics.workflow import validate_workflow_step_result
-from aces.core.runtime.planner import plan
-from aces.core.runtime.registry import RuntimeTarget, _validate_runtime_target_shape
-from aces.core.sdl.scenario import InstantiatedScenario, Scenario
+from .planner import plan
+from .registry import RuntimeTarget, _validate_runtime_target_shape
+from .semantics.planner import reverse_delete_order
+from .semantics.workflow import validate_workflow_step_result
+from aces_sdl.instantiate import instantiate_scenario
+from aces_sdl.scenario import InstantiatedScenario, Scenario
 
 
 def _delete_order(entries: dict[str, SnapshotEntry]) -> list[str]:

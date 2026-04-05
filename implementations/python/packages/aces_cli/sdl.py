@@ -7,15 +7,15 @@ from pathlib import Path
 
 import typer
 
-from aces.core.sdl.composition import expand_sdl_modules
-from aces.core.sdl.module_registry import (
+from aces_sdl.composition import expand_sdl_modules
+from aces_sdl.module_registry import (
     LOCKFILE_NAME,
     load_lockfile,
     publish_module_to_oci_layout,
     resolve_lock_records,
     write_lockfile,
 )
-from aces.core.sdl.parser import _load_normalized_data, parse_sdl_file
+from aces_sdl.parser import _load_normalized_data, parse_sdl_file
 
 app = typer.Typer(help="SDL composition and packaging.")
 

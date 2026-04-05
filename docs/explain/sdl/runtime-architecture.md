@@ -20,6 +20,15 @@ ecosystem now distinguishes:
 The compile -> plan -> execute stack described here is therefore one important
 subset of the overall architecture rather than the whole experiment apparatus.
 
+Time is one of the clearest examples of why those broader apparatus boundaries
+matter. The authored SDL may express timelines, deadlines, timeouts, or
+episode-local budgets, but the realized execution still depends on apparatus
+choices such as clock authority, time domain, pacing policy, synchronization
+strategy, and the ordering guarantees that the runtime/backend can actually
+honor. Those choices are not just incidental implementation details: they
+shape experiment validity and must be declared and preserved as part of run
+provenance when different realizations are compared.
+
 Under the repository's [coding standards](../reference/coding-standards.md),
 this layer is where `FM2` and `FM3` work becomes most relevant. The
 formalization target here is not raw YAML, but the typed runtime model and the
@@ -167,6 +176,13 @@ entry records:
 This gives the planner and manager a typed state model instead of an untyped
 `resources/status` map.
 
+The broader time model is only partly materialized in current contracts. The
+implemented snapshot and control-plane schemas already carry timestamps and
+timeout-related state, but the ecosystem requirements now go further: clock
+model, synchronization policy, pacing mode, and realized temporal guarantees
+also belong to the declared apparatus surface and to archival provenance. That
+is a current architectural direction rather than a fully finished contract set.
+
 ## Capability Validation
 
 Backends declare a `BackendManifest` composed of:
@@ -260,7 +276,7 @@ This mirrors the contract style used by mature multi-runtime systems:
 
 - a portable wire/data contract at the boundary
 - a compiled semantic contract between definition and execution
-- published machine-readable JSON Schemas under `schemas/`
+- published machine-readable JSON Schemas under `contracts/schemas/`
 - an async-style control-plane surface (`RuntimeControlPlane`) that can be
   adapted to HTTPS/JSON without changing backend semantics
 - typed in-process adapters behind that boundary

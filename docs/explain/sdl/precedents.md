@@ -127,6 +127,26 @@ surface.
 | Distinct apparatus declaration surfaces | OpenRange episode/runtime split, OpenBench model/provider configuration, benchmark registries | Processor, backend, and participant-implementation declaration surfaces remain distinct so the same scenario can be run under different apparatus honestly |
 
 
+### From Time, Simulation, and Co-Simulation Systems
+
+These sources inform the emerging time-model requirements. They are not a
+claim that ACES adopts one simulator's worldview wholesale. They are precedents
+for the recurring architectural concerns that show up once scenarios must run
+honestly across simulation, emulation, and live infrastructure.
+
+The primary research set for this area is curated in
+[`research/primary/literature/time-and-simulation/`](../../../research/primary/literature/time-and-simulation/README.md).
+
+| Concern | Primary Sources | What We Adapted |
+| ------- | --------------- | --------------- |
+| Distinct time domains and clock authority | [ROS 2 Clock and Time](https://design.ros2.org/articles/clock_and_time.html), [FMI 3.0.2](https://fmi-standard.org/docs/3.0.2/) | Authored temporal intent and realized clocks cannot be treated as the same thing; multiple clocks and explicit clock authority are first-class concerns |
+| Event-driven, logical, and virtual time progression | [SimPy Time and Scheduling](https://simpy.readthedocs.io/en/4.0.2/topical_guides/time_and_scheduling.html), Misra virtual-time work, DEVS literature | Time advancement policy is part of system meaning, not just a backend optimization |
+| Real-time pacing and synchronization | [ns-3 realtime execution](https://www.nsnam.org/docs/manual/html/realtime.html), adaptive time-dilation work for integrated simulation/emulation | Synchronization policy, pacing, and dilation are apparatus properties that affect experiment validity and comparability |
+| Ordering and causality beyond raw timestamps | Time Warp, DEVS, distributed-simulation time-management literature | Event order, causality guarantees, and temporal windows/deadlines must be modeled separately from the existence of timestamps |
+| Reset, replay, and episode-local temporal semantics | OpenRange episode model, benchmark/task systems, simulation literature | Episode boundaries, reset semantics, and replayability are temporal concerns, not just lifecycle bookkeeping |
+| Realized-time disclosure and provenance | OpenRange run/training-data records, co-simulation timing literature | Runs need explicit disclosure of the realized time model when results are compared across backends or replayed later |
+
+
 ### From OCSF
 
 

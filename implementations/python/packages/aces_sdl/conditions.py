@@ -9,8 +9,8 @@ from typing import Optional
 
 from pydantic import Field, model_validator
 
-from aces.core.sdl._base import SDLModel, parse_int_or_var
-from aces.core.sdl._source import Source
+from ._base import SDLModel, parse_int_or_var
+from ._source import Source
 
 
 class Condition(SDLModel):
