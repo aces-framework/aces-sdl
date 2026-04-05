@@ -29,9 +29,9 @@ It does lock the semantic preconditions those features must respect.
 ## Current Implementation Hooks
 
 - objective/window references already carry a namespace-extensible path slot in
-  `src/aces/core/semantics/objectives.py`
+  `implementations/python/packages/aces_processor/semantics/objectives.py`
 - planner identity handling is already defined in terms of canonical compiled
-  addresses in `src/aces/core/semantics/planner.py`
+  addresses in `implementations/python/packages/aces_processor/semantics/planner.py`
 
 These hooks are intended to let module/import work land later without
 redefining FM2 semantics.

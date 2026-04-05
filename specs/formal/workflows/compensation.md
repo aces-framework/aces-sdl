@@ -97,9 +97,9 @@ workflow can be `cancelled` or `timed_out` while compensation is `running` or
 
 ## Implementation Mapping
 
-- SDL authoring models: `src/aces/core/sdl/orchestration.py`
-- semantic validation: `src/aces/core/sdl/validator.py`
-- compiled contracts: `src/aces/core/runtime/compiler.py`
-- runtime state/history models: `src/aces/core/runtime/models.py`
-- manager validation: `src/aces/core/runtime/manager.py`
-- control-plane lifecycle handling: `src/aces/core/runtime/control_plane.py`
+- SDL authoring models: `implementations/python/packages/aces_sdl/orchestration.py`
+- semantic validation: `implementations/python/packages/aces_sdl/validator.py`
+- compiled contracts: `implementations/python/packages/aces_processor/compiler.py`
+- runtime state/history models: `implementations/python/packages/aces_processor/models.py`
+- manager validation: `implementations/python/packages/aces_processor/manager.py`
+- control-plane lifecycle handling: `implementations/python/packages/aces_processor/control_plane.py`

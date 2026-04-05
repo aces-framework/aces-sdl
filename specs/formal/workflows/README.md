@@ -25,17 +25,17 @@ This directory holds the repo-native formal artifacts for SDL workflow control s
 
 ## Implementation Mapping
 
-- shared rules: `src/aces/core/semantics/workflow.py`
-- validator enforcement: `src/aces/core/sdl/validator.py`
-- compiled contracts: `src/aces/core/runtime/compiler.py`
+- shared rules: `implementations/python/packages/aces_processor/semantics/workflow.py`
+- validator enforcement: `implementations/python/packages/aces_sdl/validator.py`
+- compiled contracts: `implementations/python/packages/aces_processor/compiler.py`
 - typed runtime results and contract checks:
-  - `src/aces/core/runtime/models.py`
-  - `src/aces/core/runtime/manager.py`
+  - `implementations/python/packages/aces_processor/models.py`
+  - `implementations/python/packages/aces_processor/manager.py`
 - smoke/regression coverage:
-  - `tests/test_sdl_validator.py`
-  - `tests/test_runtime_models.py`
-  - `tests/test_runtime_manager.py`
-  - `tests/test_runtime_control_plane_api.py`
+  - `implementations/python/tests/test_sdl_validator.py`
+  - `implementations/python/tests/test_runtime_models.py`
+  - `implementations/python/tests/test_runtime_manager.py`
+  - `implementations/python/tests/test_runtime_control_plane_api.py`
 
 ## Notes
 

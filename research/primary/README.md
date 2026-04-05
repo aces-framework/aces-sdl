@@ -22,6 +22,9 @@ and draft documents.
   - Primary references collected under `Kepler/research/dsl/references/`
 - `literature/range-architectures/`
   - Primary references collected under `Kepler/research/range-architectures/references/`
+- `literature/time-and-simulation/`
+  - Primary references on clocks, logical time, time management, episodic
+    execution, and simulation/emulation timing models
 - `reference-ecosystems/`
   - Upstream/reference ecosystems and specifications most directly relevant to
     SDL, runtime, experiment, and control-plane work
