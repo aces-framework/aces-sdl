@@ -1,8 +1,11 @@
 """Stub runtime backends for compiler/planner testing."""
 
 from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as distribution_version
 
 from aces_backend_protocols.capabilities import (
+    BackendCapabilitySet,
     BackendManifest,
     EvaluatorCapabilities,
     OrchestratorCapabilities,
@@ -10,6 +13,8 @@ from aces_backend_protocols.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
+from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.vocabulary import RealizationSupportMode
 from aces_processor.models import (
     EVALUATION_STATE_SCHEMA_VERSION,
     ApplyResult,
@@ -24,53 +29,106 @@ from aces_processor.models import (
 )
 from aces_processor.registry import RuntimeTarget, RuntimeTargetComponents
 
+REFERENCE_BACKEND_SUPPORTED_CONTRACT_VERSIONS = (
+    "backend-manifest-v2",
+    "provisioning-plan-v1",
+    "orchestration-plan-v1",
+    "evaluation-plan-v1",
+    "operation-receipt-v1",
+    "operation-status-v1",
+    "runtime-snapshot-v1",
+    "workflow-result-envelope-v1",
+    "workflow-history-event-stream-v1",
+    "evaluation-result-envelope-v1",
+    "evaluation-history-event-stream-v1",
+)
+
+
+def _current_backend_version() -> str:
+    try:
+        return distribution_version("aces-sdl")
+    except PackageNotFoundError:
+        return "0.0.0+unknown"
+
 
 def create_stub_manifest(**config) -> BackendManifest:
     """Return the fully capable stub manifest."""
 
+    del config
     return BackendManifest(
         name="stub",
-        provisioner=ProvisionerCapabilities(
-            name="stub-provisioner",
-            supported_node_types=frozenset({"vm", "switch"}),
-            supported_os_families=frozenset({"linux", "windows", "macos", "freebsd", "other"}),
-            supported_content_types=frozenset({"file", "dataset", "directory"}),
-            supported_account_features=frozenset({"groups", "mail", "spn", "shell", "home", "disabled", "auth_method"}),
-            max_total_nodes=None,
-            supports_acls=True,
-            supports_accounts=True,
-        ),
-        orchestrator=OrchestratorCapabilities(
-            name="stub-orchestrator",
-            supported_sections=frozenset({"injects", "events", "scripts", "stories", "workflows"}),
-            supports_workflows=True,
-            supports_condition_refs=True,
-            supports_inject_bindings=True,
-            supported_workflow_features=frozenset(
-                {
-                    WorkflowFeature.DECISION,
-                    WorkflowFeature.SWITCH,
-                    WorkflowFeature.CALL,
-                    WorkflowFeature.PARALLEL_BARRIER,
-                    WorkflowFeature.RETRY,
-                    WorkflowFeature.FAILURE_TRANSITIONS,
-                    WorkflowFeature.CANCELLATION,
-                    WorkflowFeature.TIMEOUTS,
-                    WorkflowFeature.COMPENSATION,
-                }
-            ),
-            supported_workflow_state_predicates=frozenset(
-                {
-                    WorkflowStatePredicateFeature.OUTCOME_MATCHING,
-                    WorkflowStatePredicateFeature.ATTEMPT_COUNTS,
-                }
+        version=_current_backend_version(),
+        supported_contract_versions=frozenset(REFERENCE_BACKEND_SUPPORTED_CONTRACT_VERSIONS),
+        compatible_processors=frozenset({"aces-reference-processor"}),
+        realization_support=(
+            RealizationSupportDeclaration(
+                domain="runtime-realization",
+                support_mode=RealizationSupportMode.CONSTRAINED,
+                supported_constraint_kinds=frozenset(
+                    {
+                        "node-type",
+                        "os-family",
+                        "content-type",
+                        "account-feature",
+                        "workflow-feature",
+                        "workflow-state-predicate",
+                    }
+                ),
+                supported_exact_requirement_kinds=frozenset({"declared-capability-match"}),
+                disclosure_kinds=frozenset(
+                    {
+                        "backend-manifest-v2",
+                        "runtime-snapshot-v1",
+                        "operation-status-v1",
+                    }
+                ),
             ),
         ),
-        evaluator=EvaluatorCapabilities(
-            name="stub-evaluator",
-            supported_sections=frozenset({"conditions", "metrics", "evaluations", "tlos", "goals", "objectives"}),
-            supports_scoring=True,
-            supports_objectives=True,
+        capabilities=BackendCapabilitySet(
+            provisioner=ProvisionerCapabilities(
+                name="stub-provisioner",
+                supported_node_types=frozenset({"vm", "switch"}),
+                supported_os_families=frozenset({"linux", "windows", "macos", "freebsd", "other"}),
+                supported_content_types=frozenset({"file", "dataset", "directory"}),
+                supported_account_features=frozenset(
+                    {"groups", "mail", "spn", "shell", "home", "disabled", "auth_method"}
+                ),
+                max_total_nodes=None,
+                supports_acls=True,
+                supports_accounts=True,
+            ),
+            orchestrator=OrchestratorCapabilities(
+                name="stub-orchestrator",
+                supported_sections=frozenset({"injects", "events", "scripts", "stories", "workflows"}),
+                supports_workflows=True,
+                supports_condition_refs=True,
+                supports_inject_bindings=True,
+                supported_workflow_features=frozenset(
+                    {
+                        WorkflowFeature.DECISION,
+                        WorkflowFeature.SWITCH,
+                        WorkflowFeature.CALL,
+                        WorkflowFeature.PARALLEL_BARRIER,
+                        WorkflowFeature.RETRY,
+                        WorkflowFeature.FAILURE_TRANSITIONS,
+                        WorkflowFeature.CANCELLATION,
+                        WorkflowFeature.TIMEOUTS,
+                        WorkflowFeature.COMPENSATION,
+                    }
+                ),
+                supported_workflow_state_predicates=frozenset(
+                    {
+                        WorkflowStatePredicateFeature.OUTCOME_MATCHING,
+                        WorkflowStatePredicateFeature.ATTEMPT_COUNTS,
+                    }
+                ),
+            ),
+            evaluator=EvaluatorCapabilities(
+                name="stub-evaluator",
+                supported_sections=frozenset({"conditions", "metrics", "evaluations", "tlos", "goals", "objectives"}),
+                supports_scoring=True,
+                supports_objectives=True,
+            ),
         ),
     )
 

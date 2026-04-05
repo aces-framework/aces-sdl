@@ -1,0 +1,22 @@
+{
+  "schema_version": "processor-manifest/v2",
+  "identity": {
+    "name": "aces-reference-processor",
+    "version": "0.2.0"
+  },
+  "supported_contract_versions": ["processor-manifest-v2"],
+  "compatibility": {
+    "backends": ["stub"]
+  },
+  "realization_support": [
+    {
+      "domain": "instantiation",
+      "support_mode": "constrained",
+      "disclosure_kinds": []
+    }
+  ],
+  "capabilities": {
+    "supported_sdl_versions": ["sdl-authoring-input-v1"],
+    "supported_features": ["compilation"]
+  }
+}

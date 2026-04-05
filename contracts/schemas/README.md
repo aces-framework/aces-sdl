@@ -10,8 +10,9 @@ single implementation language or package layout.
 Current published schemas cover:
 - SDL authoring input
 - instantiated scenarios
-- backend manifests
-- processor manifests
+- backend manifests (`v1` legacy plus shared-apparatus `v2`)
+- processor manifests (`v1` legacy plus shared-apparatus `v2`)
+- concept-authority catalogs
 - live-execution snapshots
 - workflow result envelopes
 - workflow history streams
@@ -23,6 +24,30 @@ Current filenames still use `runtime` for some live-execution artifacts. That
 naming is preserved for compatibility while the repository migrates toward the
 processor/runtime boundary described in
 [ADR-008](../../docs/decisions/adrs/adr-008-processor-layer-and-execution-artifact-boundaries.md).
+
+For apparatus manifests, `v2` is now the authoritative shared envelope:
+
+- `identity`
+- `supported_contract_versions`
+- `compatibility`
+- `realization_support`
+- `constraints`
+- `capabilities`
+
+These sections are intended to be concrete declarations, not placeholders. In
+particular:
+
+- `supported_contract_versions` must declare at least one contract
+- `compatibility` must declare at least one compatible apparatus surface
+- `realization_support` entries must declare non-empty disclosure kinds and at
+  least one exact or constraint support kind
+- processor capability blocks must declare non-empty SDL and feature support
+- backend capability blocks must declare concrete provisioning and orchestration
+  surfaces rather than empty shells
+
+`v1` backend and processor manifests remain checked in as deprecated legacy
+schema artifacts. The reference stack, contract tests, and conformance profiles
+use `v2`.
 
 Generation or sync helpers may exist under `tools/`, but those helpers are
 supporting repo machinery, not the authority boundary.
