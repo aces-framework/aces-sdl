@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Literal
 
 from aces_sdl.scenario import InstantiatedScenario, Scenario
@@ -206,6 +207,28 @@ class ProcessorManifestModel(ContractModel):
     constraints: dict[str, str] = Field(default_factory=dict)
 
 
+class ConceptProvenanceCategory(str, Enum):
+    """How a concept family relates to its authority source."""
+
+    ADOPTED = "adopted"
+    ADAPTED = "adapted"
+    NATIVE = "native"
+
+
+class ConceptFamilyModel(ContractModel):
+    id: str
+    title: str
+    description: str
+    provenance: ConceptProvenanceCategory
+    authority: str | None = None
+    authority_reference: str | None = None
+
+
+class ConceptFamilyCatalogModel(ContractModel):
+    schema_version: Literal["concept-families/v1"] = "concept-families/v1"
+    families: list[ConceptFamilyModel]
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -215,6 +238,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
         "backend-manifest-v1": BackendManifestModel.model_json_schema(),
         "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
+        "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),

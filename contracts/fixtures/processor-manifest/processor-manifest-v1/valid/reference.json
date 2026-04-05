@@ -5,6 +5,7 @@
   "supported_sdl_versions": ["sdl-authoring-input-v1"],
   "supported_contract_versions": [
     "backend-manifest-v1",
+    "concept-families-v1",
     "evaluation-history-event-stream-v1",
     "evaluation-plan-v1",
     "evaluation-result-envelope-v1",

@@ -1,0 +1,10 @@
+{
+  "schema_version": "concept-families/v1",
+  "families": [
+    {
+      "id": "bad-family",
+      "title": "Bad Family",
+      "description": "Missing the required provenance field."
+    }
+  ]
+}
