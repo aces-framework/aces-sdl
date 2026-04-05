@@ -20,3 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `contracts/fixtures/processor-manifest/`.
 - Schema generation routing for processor manifest in
   `tools/generate_contract_schemas.py`.
+
+## [0.1.0] - 2026-04-03
+
+### Added
+
+- Initial ACES SDL ecosystem extraction from APTL with SDL authoring layer,
+  processor layer, backend protocols, conformance infrastructure, and CLI.
+
+[0.2.0]: https://github.com/aces-framework/aces-sdl/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/aces-framework/aces-sdl/releases/tag/v0.1.0
