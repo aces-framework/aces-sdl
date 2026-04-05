@@ -26,6 +26,11 @@ Research and precedent review pointed in the same direction:
 - **CACAO** keeps agent/target/workflow intent in the playbook specification while leaving execution adapters external.
 - **CybORG** places agent-facing configuration such as actions, initial knowledge, and reward-calculator choice in scenario definitions.
 
+At the same time, those precedents do not require the authored objective layer
+to absorb every participant-implementation concern. Prompt modes, policy
+selection, model/provider choice, human-control proxies, and similar concrete
+participant apparatus remain separate from the authored objective contract.
+
 The design question was therefore whether the SDL itself should carry declarative experiment semantics.
 
 ## Decision
@@ -50,6 +55,10 @@ This section is intentionally declarative. It expresses:
 
 It does **not** encode backend-specific validation probes such as Wazuh queries, command execution, file checks, polling loops, or session orchestration. Those remain runtime concerns and continue to live outside the SDL.
 
+It also does **not** identify the concrete participant implementation that will
+realize an authored `agent` or `entity` role in a given run. That remains a
+separate apparatus and provenance concern.
+
 ### Relationship to ADR-001
 
 This ADR refines ADR-001's SDL boundary by making declarative objectives part of the language itself while preserving ADR-001's backend-agnostic separation between specification and deployment/runtime mechanics.
@@ -61,6 +70,8 @@ This ADR refines ADR-001's SDL boundary by making declarative objectives part of
 - The SDL now captures experiment meaning more completely, not just topology and scoring fragments.
 - Agent definitions, orchestration, scoring, and objectives can be authored and reviewed together in one specification surface.
 - The runtime boundary is cleaner: the SDL defines semantics, while runtime adapters define how those semantics are checked.
+- Authored actor/target/success meaning remains distinct from concrete
+  participant implementations and apparatus choices.
 - Objective dependencies can be validated structurally as an acyclic ordering graph.
 
 ### Negative
@@ -74,3 +85,6 @@ This ADR refines ADR-001's SDL boundary by making declarative objectives part of
 - If future runtimes need loops, switch/case routing, or exception branches, the current workflow model may need further expansion.
 - Authors may infer stronger execution semantics than currently implemented unless `depends_on`, `window`, workflow, and success rules are documented precisely.
 - Divergence from OCR/CACAO details remains possible if future changes borrow terminology without preserving the underlying conceptual boundary.
+- Future agent-support work could accidentally collapse participant-exposure or
+  participant-implementation concerns into objectives unless those boundaries
+  remain explicit.

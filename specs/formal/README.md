@@ -22,6 +22,6 @@ Each domain directory should include a short README that explains:
 - relationship to implementation and tests
 
 This directory is intentionally optional. See
-`docs/reference/coding-standards.md` and
-`docs/adrs/adr-007-lightweight-formal-methods-policy.md` for the policy on
+`docs/explain/reference/coding-standards.md` and
+`docs/decisions/adrs/adr-007-lightweight-formal-methods-policy.md` for the policy on
 when formal artifacts are warranted.

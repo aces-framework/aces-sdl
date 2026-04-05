@@ -45,6 +45,13 @@ pytest tests/test_sdl_stress.py tests/test_sdl_realworld.py -v
 
 Objective coverage is exercised in the stress suites as well: the agent-heavy CybORG-derived scenarios and exercise-heavy scenarios now include declarative `objectives` so the section is tested against realistic combinations of agents, scoring, orchestration, and team structure rather than only unit tests.
 
+Those suites cover the SDL/runtime surfaces that are currently materialized in
+syntax and code. They do not yet imply full executable coverage for every
+participant-, benchmark-, evidence-, or participant-implementation requirement
+now captured in the requirements architecture. As those surfaces become
+published syntax or contracts, they should gain their own explicit fixture and
+conformance coverage rather than being assumed covered indirectly.
+
 Each scenario is tested for:
 1. Parse + validate success
 2. Infrastructure cross-reference integrity
@@ -102,6 +109,12 @@ that name the semantic rule being protected. Property-based tests are a strong
 fit when the graph/state space can be generated cheaply. Abstract models become
 appropriate only for `FM3` changes that materially alter branching, join,
 re-entry, or portable result-contract behavior.
+
+The same discipline should apply to newer ecosystem surfaces as they mature:
+participant exposure/visibility boundaries, evidence-capture disclosures,
+apparatus augmentation, and participant-implementation manifests should each
+acquire named invariant tests or conformance fixtures once they are formalized
+as syntax or contracts.
 
 ## Adding New Scenarios
 

@@ -22,7 +22,9 @@ decision records, context is lost and the same debates resurface.
 
 ## Decision
 
-Adopt Architecture Decision Records (ADRs) using a lightweight MADR (Markdown Any Decision Records) format. All ADRs live in `docs/adrs/` and are versioned with the codebase.
+Adopt Architecture Decision Records (ADRs) using a lightweight MADR (Markdown
+Any Decision Records) format. All ADRs live in
+`docs/decisions/adrs/` and are versioned with the codebase.
 
 Each ADR follows this template:
 
@@ -66,9 +68,11 @@ What becomes easier or more difficult to do because of this change?
 
 - ADRs are **immutable** once accepted. To reverse a decision, create a new ADR that supersedes it.
 - ADRs are **numbered sequentially** (000, 001, 002, ...) and numbers are never reused.
-- ADRs are **versioned with code** — they live in `docs/adrs/`, not a wiki or external tool.
+- ADRs are **versioned with code** — they live in
+  `docs/decisions/adrs/`, not a wiki or external tool.
 - Status transitions: `proposed` → `accepted` or `rejected`. Accepted ADRs can later be `deprecated` or `superseded by ADR-XXX`.
-- The `docs/adrs/README.md` index must be updated when an ADR is added or its status changes.
+- The `docs/decisions/adrs/README.md` index must be updated when an ADR is
+  added or its status changes.
 
 ## Consequences
 

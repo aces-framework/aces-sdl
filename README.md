@@ -1,7 +1,7 @@
 # aces-sdl
 
 A monorepo for ACES normative artifacts, portable contracts, conformance
-assets, and reference implementations.
+assets, research, and reference implementations for the SDL ecosystem.
 
 This repository is being reorganized so the language-agnostic,
 backend-agnostic, and processor-agnostic work sits at the top level, while
@@ -31,4 +31,20 @@ entrypoint, or helper script working during the transition.
 
 This repository is not a standards document. It is a working ecosystem repo
 that is being structured so normative artifacts and implementation artifacts
-are clearly separated.
+are clearly separated while still standing on their own as a real, executable
+system.
+
+The repository now treats several surfaces as distinct:
+
+- the SDL and its authored scenario/experiment meaning
+- processor behavior and manifests
+- backend behavior and manifests
+- participant implementations such as agents, policies, scripts, or
+  human-control proxies
+- live runtime/control-plane state
+- archival run, evidence, and provenance artifacts
+
+That separation is deliberate. It lets the same authored scenario be realized
+through different backends, processed by different processors, and driven by
+different participant implementations without silently changing what the SDL
+itself means.

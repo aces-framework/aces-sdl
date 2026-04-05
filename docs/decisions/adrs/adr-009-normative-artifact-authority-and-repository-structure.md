@@ -40,6 +40,9 @@ The updated requirements architecture now makes this explicit:
 - normative prose, schemas, fixtures, and conformance profiles must have an
   authority boundary independent of any reference implementation
 - processor and backend contracts must be implementation-language agnostic
+- participant-implementation declarations and provenance surfaces must also be
+  treated as portable ecosystem artifacts when they are first-class run
+  components
 - canonical run provenance and capability manifests are portable ecosystem
   artifacts, not Python-internal types
 
@@ -89,8 +92,11 @@ The repository will maintain distinct normative families for:
 - SDL language/specification artifacts
 - processor manifests and processor-facing contracts
 - backend manifests and backend-facing contracts
+- participant-implementation manifests and participant-facing declaration
+  surfaces
 - live execution/control-plane contracts
 - archival run provenance artifacts
+- experiment/evidence/provenance artifact boundaries
 - conformance fixtures and capability profiles
 
 These families are related, but they are not interchangeable and must not be

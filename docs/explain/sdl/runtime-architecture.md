@@ -5,6 +5,21 @@ It is an SDL-native runtime architecture built for the SDL itself and its
 backend contracts. See
 [ADR-004](../adrs/adr-004-sdl-runtime-layer.md) for the decision record.
 
+In the broader ecosystem architecture, this document focuses on the
+processor-plus-backend path that is currently implemented in code. It does not
+attempt to fully specify every other apparatus surface. In particular, the
+ecosystem now distinguishes:
+
+- authored scenario meaning in SDL
+- the processor that instantiates, compiles, plans, and coordinates execution
+- the backend that realizes deployable or simulated targets
+- optional participant implementations that consume participant contracts
+- live runtime state
+- archival run, evidence, and provenance records
+
+The compile -> plan -> execute stack described here is therefore one important
+subset of the overall architecture rather than the whole experiment apparatus.
+
 Under the repository's [coding standards](../reference/coding-standards.md),
 this layer is where `FM2` and `FM3` work becomes most relevant. The
 formalization target here is not raw YAML, but the typed runtime model and the
@@ -160,6 +175,11 @@ Backends declare a `BackendManifest` composed of:
 - `OrchestratorCapabilities`
 - zero or one `EvaluatorCapabilities`
 
+At the ecosystem level, backend manifests are only one declaration surface.
+Processor manifests and participant-implementation manifests are separate
+apparatus declarations. This document focuses on backend capability validation
+because that is the runtime boundary currently materialized in code.
+
 Validation is semantic, not section-only. Current checks include:
 
 - node types
@@ -205,6 +225,13 @@ inspection from instantiation, and `create()` uses the manifest returned by
 6. start orchestrator only when the orchestration plan has actionable operations
 7. on failed runtime-service startup, roll back started services while keeping provisioning state
 8. stop orchestrator -> stop evaluator -> delete provisioning resources
+
+When participant implementations become active runtime surfaces, they still do
+not collapse into the backend boundary. The backend remains responsible for
+world realization and execution services; participant implementations are a
+separate apparatus concern whose identity, configuration, and participant-visible
+decision surface must be preserved in run provenance rather than inferred from
+backend state.
 
 The orchestration runtime contract now includes:
 
