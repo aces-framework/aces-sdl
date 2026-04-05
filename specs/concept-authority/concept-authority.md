@@ -92,6 +92,9 @@ the canonical family identifiers, and each property value is the family
 definition. The family identifier is authoritative at the map key and is not
 duplicated inside each family object.
 
+The catalog must not be empty. Each family entry must declare a non-empty
+`title` and `description`.
+
 The machine-readable catalog also makes the provenance rules normative:
 
 - `adopted` and `adapted` families must declare both `authority` and

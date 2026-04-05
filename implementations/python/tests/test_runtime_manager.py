@@ -1438,6 +1438,11 @@ class TestRuntimeManager:
         altered_manifest = create_stub_manifest()
         altered_manifest = altered_manifest.__class__(
             name="stub-alt",
+            version=altered_manifest.version,
+            supported_contract_versions=altered_manifest.supported_contract_versions,
+            compatibility=altered_manifest.compatibility,
+            realization_support=altered_manifest.realization_support,
+            constraints=altered_manifest.constraints,
             provisioner=altered_manifest.provisioner,
             orchestrator=altered_manifest.orchestrator,
             evaluator=altered_manifest.evaluator,

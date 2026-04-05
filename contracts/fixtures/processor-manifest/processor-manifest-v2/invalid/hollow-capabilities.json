@@ -1,0 +1,20 @@
+{
+  "schema_version": "processor-manifest/v2",
+  "identity": {
+    "name": "aces-reference-processor",
+    "version": "0.2.0"
+  },
+  "supported_contract_versions": ["processor-manifest-v2"],
+  "compatibility": {
+    "backends": ["stub"]
+  },
+  "realization_support": [
+    {
+      "domain": "instantiation",
+      "support_mode": "constrained",
+      "supported_constraint_kinds": ["parameter-values"],
+      "disclosure_kinds": ["parameter-instantiation"]
+    }
+  ],
+  "capabilities": {}
+}

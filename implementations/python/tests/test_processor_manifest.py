@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 from aces_cli.main import app
+from aces_contracts.apparatus import RealizationSupportDeclaration
 from aces_contracts.contracts import ProcessorManifestModel, ProcessorManifestV2Model
-from aces_contracts.vocabulary import ProcessorFeature
+from aces_contracts.vocabulary import ProcessorFeature, RealizationSupportMode
 from aces_processor.capabilities import ProcessorManifest
 from aces_processor.manifest import (
     create_reference_processor_manifest,
@@ -44,6 +45,17 @@ EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V2 = [
 ]
 
 
+def _processor_realization_support() -> tuple[RealizationSupportDeclaration, ...]:
+    return (
+        RealizationSupportDeclaration(
+            domain="instantiation",
+            support_mode=RealizationSupportMode.CONSTRAINED,
+            supported_constraint_kinds=frozenset({"parameter-values"}),
+            disclosure_kinds=frozenset({"parameter-instantiation"}),
+        ),
+    )
+
+
 def test_processor_feature_enum_values():
     expected = {
         "compilation",
@@ -59,30 +71,53 @@ def test_processor_feature_enum_values():
 
 
 def test_processor_manifest_construction():
-    manifest = ProcessorManifest(name="test", version="1.0.0")
+    manifest = ProcessorManifest(
+        name="test",
+        version="1.0.0",
+        supported_contract_versions=frozenset({"processor-manifest-v2"}),
+        supported_sdl_versions=frozenset({"sdl-authoring-input-v1"}),
+        supported_features=frozenset({ProcessorFeature.COMPILATION}),
+        compatible_backends=frozenset({"stub"}),
+        realization_support=_processor_realization_support(),
+    )
     assert manifest.name == "test"
     assert manifest.version == "1.0.0"
-    assert manifest.supported_sdl_versions == frozenset()
-    assert manifest.supported_contract_versions == frozenset()
-    assert manifest.supported_features == frozenset()
-    assert manifest.compatible_backends == frozenset()
+    assert manifest.supported_sdl_versions == frozenset({"sdl-authoring-input-v1"})
+    assert manifest.supported_contract_versions == frozenset({"processor-manifest-v2"})
+    assert manifest.supported_features == frozenset({ProcessorFeature.COMPILATION})
+    assert manifest.compatible_backends == frozenset({"stub"})
     assert manifest.constraints == {}
-    assert manifest.realization_support == ()
+    assert manifest.realization_support == _processor_realization_support()
 
 
 def test_processor_manifest_frozen():
-    manifest = ProcessorManifest(name="test", version="1.0.0")
+    manifest = ProcessorManifest(
+        name="test",
+        version="1.0.0",
+        supported_contract_versions=frozenset({"processor-manifest-v2"}),
+        supported_sdl_versions=frozenset({"sdl-authoring-input-v1"}),
+        supported_features=frozenset({ProcessorFeature.COMPILATION}),
+        compatible_backends=frozenset({"stub"}),
+        realization_support=_processor_realization_support(),
+    )
     with pytest.raises(AttributeError):
         manifest.name = "changed"
+
+
+def test_processor_manifest_rejects_hollow_defaults():
+    with pytest.raises(ValueError):
+        ProcessorManifest(name="test", version="1.0.0")
 
 
 def test_processor_manifest_with_features():
     manifest = ProcessorManifest(
         name="aces-reference",
         version="0.1.0",
+        supported_contract_versions=frozenset({"processor-manifest-v2"}),
         supported_sdl_versions=frozenset({"sdl-authoring-input-v1"}),
         supported_features=frozenset({ProcessorFeature.COMPILATION, ProcessorFeature.PLANNING}),
         compatible_backends=frozenset({"stub"}),
+        realization_support=_processor_realization_support(),
     )
     assert ProcessorFeature.COMPILATION in manifest.supported_features
     assert ProcessorFeature.PLANNING in manifest.supported_features
@@ -112,13 +147,8 @@ def test_processor_manifest_v1_model_roundtrip():
 
 
 def test_processor_manifest_v1_model_defaults():
-    model = ProcessorManifestModel(name="minimal", version="0.0.1")
-    assert model.schema_version == "processor-manifest/v1"
-    assert model.supported_sdl_versions == []
-    assert model.supported_contract_versions == []
-    assert model.supported_features == []
-    assert model.compatible_backends == []
-    assert model.constraints == {}
+    with pytest.raises(ValidationError):
+        ProcessorManifestModel(name="minimal", version="0.0.1")
 
 
 def test_processor_manifest_v2_model_roundtrip():
@@ -160,18 +190,12 @@ def test_processor_manifest_v2_model_roundtrip():
     assert model.model_dump(mode="json") == payload
 
 
-def test_processor_manifest_v2_model_defaults():
-    model = ProcessorManifestV2Model(
-        identity={"name": "minimal", "version": "0.0.1"},
-        capabilities={},
-    )
-    assert model.schema_version == "processor-manifest/v2"
-    assert model.supported_contract_versions == []
-    assert model.compatibility.backends == []
-    assert model.realization_support == []
-    assert model.constraints == {}
-    assert model.capabilities.supported_sdl_versions == []
-    assert model.capabilities.supported_features == []
+def test_processor_manifest_v2_model_requires_manifest_sections():
+    with pytest.raises(ValidationError):
+        ProcessorManifestV2Model(
+            identity={"name": "minimal", "version": "0.0.1"},
+            capabilities={},
+        )
 
 
 def test_processor_manifest_v1_model_rejects_extra_fields():
@@ -203,6 +227,74 @@ def test_processor_manifest_models_reject_unknown_feature():
         ProcessorManifestV2Model(
             identity={"name": "bad", "version": "0.0.1"},
             capabilities={"supported_features": ["definitely-not-a-real-feature"]},
+        )
+
+
+def test_processor_manifest_v2_rejects_empty_compatibility():
+    with pytest.raises(ValidationError):
+        ProcessorManifestV2Model.model_validate(
+            {
+                "schema_version": "processor-manifest/v2",
+                "identity": {"name": "bad", "version": "0.0.1"},
+                "supported_contract_versions": ["processor-manifest-v2"],
+                "compatibility": {},
+                "realization_support": [
+                    {
+                        "domain": "instantiation",
+                        "support_mode": "constrained",
+                        "supported_constraint_kinds": ["parameter-values"],
+                        "disclosure_kinds": ["parameter-instantiation"],
+                    }
+                ],
+                "capabilities": {
+                    "supported_sdl_versions": ["sdl-authoring-input-v1"],
+                    "supported_features": ["compilation"],
+                },
+            }
+        )
+
+
+def test_processor_manifest_v2_rejects_hollow_realization_support():
+    with pytest.raises(ValidationError):
+        ProcessorManifestV2Model.model_validate(
+            {
+                "schema_version": "processor-manifest/v2",
+                "identity": {"name": "bad", "version": "0.0.1"},
+                "supported_contract_versions": ["processor-manifest-v2"],
+                "compatibility": {"backends": ["stub"]},
+                "realization_support": [
+                    {
+                        "domain": "instantiation",
+                        "support_mode": "constrained",
+                        "disclosure_kinds": [],
+                    }
+                ],
+                "capabilities": {
+                    "supported_sdl_versions": ["sdl-authoring-input-v1"],
+                    "supported_features": ["compilation"],
+                },
+            }
+        )
+
+
+def test_processor_manifest_v2_rejects_empty_capability_lists():
+    with pytest.raises(ValidationError):
+        ProcessorManifestV2Model.model_validate(
+            {
+                "schema_version": "processor-manifest/v2",
+                "identity": {"name": "bad", "version": "0.0.1"},
+                "supported_contract_versions": ["processor-manifest-v2"],
+                "compatibility": {"backends": ["stub"]},
+                "realization_support": [
+                    {
+                        "domain": "instantiation",
+                        "support_mode": "constrained",
+                        "supported_constraint_kinds": ["parameter-values"],
+                        "disclosure_kinds": ["parameter-instantiation"],
+                    }
+                ],
+                "capabilities": {},
+            }
         )
 
 

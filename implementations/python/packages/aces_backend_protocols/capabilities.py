@@ -26,6 +26,28 @@ class ProvisionerCapabilities:
     supports_accounts: bool = False
     constraints: dict[str, str] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("ProvisionerCapabilities.name must be non-empty")
+        if not self.supported_node_types:
+            raise ValueError("ProvisionerCapabilities.supported_node_types must not be empty")
+        if any(not node_type.strip() for node_type in self.supported_node_types):
+            raise ValueError("ProvisionerCapabilities.supported_node_types must not contain empty strings")
+        if not self.supported_os_families:
+            raise ValueError("ProvisionerCapabilities.supported_os_families must not be empty")
+        if any(not os_family.strip() for os_family in self.supported_os_families):
+            raise ValueError("ProvisionerCapabilities.supported_os_families must not contain empty strings")
+        if any(not content_type.strip() for content_type in self.supported_content_types):
+            raise ValueError("ProvisionerCapabilities.supported_content_types must not contain empty strings")
+        if any(not feature.strip() for feature in self.supported_account_features):
+            raise ValueError("ProvisionerCapabilities.supported_account_features must not contain empty strings")
+        if self.max_total_nodes is not None and self.max_total_nodes < 1:
+            raise ValueError("ProvisionerCapabilities.max_total_nodes must be positive when provided")
+        if self.supports_accounts and not self.supported_account_features:
+            raise ValueError("ProvisionerCapabilities that support accounts must declare supported_account_features")
+        if not self.supports_accounts and self.supported_account_features:
+            raise ValueError("supported_account_features require supports_accounts=True")
+
 
 @dataclass(frozen=True)
 class OrchestratorCapabilities:
@@ -40,6 +62,30 @@ class OrchestratorCapabilities:
     supported_workflow_state_predicates: frozenset[WorkflowStatePredicateFeature] = frozenset()
     constraints: dict[str, str] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("OrchestratorCapabilities.name must be non-empty")
+        if not self.supported_sections:
+            raise ValueError("OrchestratorCapabilities.supported_sections must not be empty")
+        if any(not section.strip() for section in self.supported_sections):
+            raise ValueError("OrchestratorCapabilities.supported_sections must not contain empty strings")
+        if self.supports_workflows:
+            if "workflows" not in self.supported_sections:
+                raise ValueError(
+                    "OrchestratorCapabilities that support workflows must include 'workflows' in supported_sections"
+                )
+            if not self.supported_workflow_features:
+                raise ValueError(
+                    "OrchestratorCapabilities that support workflows must declare supported_workflow_features"
+                )
+        else:
+            if "workflows" in self.supported_sections:
+                raise ValueError("'workflows' in supported_sections requires supports_workflows=True")
+            if self.supported_workflow_features:
+                raise ValueError("supported_workflow_features require supports_workflows=True")
+            if self.supported_workflow_state_predicates:
+                raise ValueError("supported_workflow_state_predicates require supports_workflows=True")
+
 
 @dataclass(frozen=True)
 class EvaluatorCapabilities:
@@ -50,6 +96,16 @@ class EvaluatorCapabilities:
     supports_scoring: bool = True
     supports_objectives: bool = True
     constraints: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("EvaluatorCapabilities.name must be non-empty")
+        if not self.supported_sections:
+            raise ValueError("EvaluatorCapabilities.supported_sections must not be empty")
+        if any(not section.strip() for section in self.supported_sections):
+            raise ValueError("EvaluatorCapabilities.supported_sections must not contain empty strings")
+        if not self.supports_scoring and not self.supports_objectives:
+            raise ValueError("EvaluatorCapabilities must support scoring, objectives, or both")
 
 
 @dataclass(frozen=True)
@@ -108,10 +164,18 @@ class BackendManifest:
                 orchestrator=orchestrator,
                 evaluator=evaluator,
             )
+        supported_contract_versions = frozenset(supported_contract_versions)
+        if not supported_contract_versions:
+            raise ValueError("BackendManifest.supported_contract_versions must not be empty")
+        if any(not version.strip() for version in supported_contract_versions):
+            raise ValueError("BackendManifest.supported_contract_versions must not contain empty strings")
+        realization_support = tuple(realization_support)
+        if not realization_support:
+            raise ValueError("BackendManifest.realization_support must not be empty")
         object.__setattr__(self, "identity", identity)
-        object.__setattr__(self, "supported_contract_versions", frozenset(supported_contract_versions))
+        object.__setattr__(self, "supported_contract_versions", supported_contract_versions)
         object.__setattr__(self, "compatibility", compatibility)
-        object.__setattr__(self, "realization_support", tuple(realization_support))
+        object.__setattr__(self, "realization_support", realization_support)
         object.__setattr__(self, "constraints", {} if constraints is None else dict(constraints))
         object.__setattr__(self, "capabilities", capabilities)
 

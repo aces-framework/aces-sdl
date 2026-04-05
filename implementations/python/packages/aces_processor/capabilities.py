@@ -19,6 +19,14 @@ class ProcessorCapabilitySet:
     supported_sdl_versions: frozenset[str] = frozenset()
     supported_features: frozenset[ProcessorFeature] = frozenset()
 
+    def __post_init__(self) -> None:
+        if not self.supported_sdl_versions:
+            raise ValueError("ProcessorCapabilitySet.supported_sdl_versions must not be empty")
+        if any(not version.strip() for version in self.supported_sdl_versions):
+            raise ValueError("ProcessorCapabilitySet.supported_sdl_versions must not contain empty strings")
+        if not self.supported_features:
+            raise ValueError("ProcessorCapabilitySet.supported_features must not be empty")
+
 
 @dataclass(frozen=True, init=False)
 class ProcessorManifest:
@@ -57,10 +65,18 @@ class ProcessorManifest:
                 supported_sdl_versions=frozenset(supported_sdl_versions),
                 supported_features=frozenset(supported_features),
             )
+        supported_contract_versions = frozenset(supported_contract_versions)
+        if not supported_contract_versions:
+            raise ValueError("ProcessorManifest.supported_contract_versions must not be empty")
+        if any(not version.strip() for version in supported_contract_versions):
+            raise ValueError("ProcessorManifest.supported_contract_versions must not contain empty strings")
+        realization_support = tuple(realization_support)
+        if not realization_support:
+            raise ValueError("ProcessorManifest.realization_support must not be empty")
         object.__setattr__(self, "identity", identity)
-        object.__setattr__(self, "supported_contract_versions", frozenset(supported_contract_versions))
+        object.__setattr__(self, "supported_contract_versions", supported_contract_versions)
         object.__setattr__(self, "compatibility", compatibility)
-        object.__setattr__(self, "realization_support", tuple(realization_support))
+        object.__setattr__(self, "realization_support", realization_support)
         object.__setattr__(self, "constraints", {} if constraints is None else dict(constraints))
         object.__setattr__(self, "capabilities", capabilities)
 

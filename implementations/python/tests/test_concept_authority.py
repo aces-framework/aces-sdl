@@ -123,6 +123,15 @@ def test_catalog_model_roundtrip():
     assert model.families["scenarios"].provenance == ConceptProvenanceCategory.NATIVE
 
 
+def test_concept_family_definition_rejects_empty_title():
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel(
+            title="",
+            description="SDL scenarios.",
+            provenance=ConceptProvenanceCategory.NATIVE,
+        )
+
+
 def test_catalog_model_rejects_extra_fields():
     with pytest.raises(ValidationError):
         ConceptFamilyCatalogModel(
@@ -160,6 +169,16 @@ def test_catalog_rejects_empty_family_identifier():
                         "provenance": "native",
                     }
                 },
+            }
+        )
+
+
+def test_catalog_rejects_empty_family_map():
+    with pytest.raises(ValidationError):
+        ConceptFamilyCatalogModel.model_validate(
+            {
+                "schema_version": "concept-families/v1",
+                "families": {},
             }
         )
 

@@ -96,6 +96,7 @@
           "title": "Authority Reference"
         },
         "description": {
+          "minLength": 1,
           "title": "Description",
           "type": "string"
         },
@@ -103,6 +104,7 @@
           "$ref": "#/$defs/ConceptProvenanceCategory"
         },
         "title": {
+          "minLength": 1,
           "title": "Title",
           "type": "string"
         }
@@ -132,6 +134,7 @@
       "additionalProperties": {
         "$ref": "#/$defs/ConceptFamilyDefinitionModel"
       },
+      "minProperties": 1,
       "propertyNames": {
         "minLength": 1
       },
@@ -145,6 +148,9 @@
       "type": "string"
     }
   },
+  "required": [
+    "families"
+  ],
   "title": "ConceptFamilyCatalogModel",
   "type": "object"
 }
