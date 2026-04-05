@@ -5,8 +5,6 @@ source-based (a library package). The two forms are mutually
 exclusive, enforced by a model validator.
 """
 
-from typing import Optional
-
 from pydantic import Field, model_validator
 
 from ._base import SDLModel, parse_int_or_var
@@ -20,12 +18,12 @@ class Condition(SDLModel):
     """
 
     name: str = ""
-    command: Optional[str] = None
-    interval: Optional[int | str] = None
-    timeout: Optional[int | str] = None
-    retries: Optional[int | str] = None
-    start_period: Optional[int | str] = None
-    source: Optional[Source] = None
+    command: str | None = None
+    interval: int | str | None = None
+    timeout: int | str | None = None
+    retries: int | str | None = None
+    start_period: int | str | None = None
+    source: Source | None = None
     description: str = ""
     environment: list[str] = Field(default_factory=list)
 
@@ -55,19 +53,11 @@ class Condition(SDLModel):
         has_source = self.source is not None
 
         if has_command and has_source:
-            raise ValueError(
-                "Condition cannot have both 'command' and 'source'"
-            )
+            raise ValueError("Condition cannot have both 'command' and 'source'")
         if has_command and not has_interval:
-            raise ValueError(
-                "Condition with 'command' requires 'interval'"
-            )
+            raise ValueError("Condition with 'command' requires 'interval'")
         if has_interval and not has_command:
-            raise ValueError(
-                "Condition with 'interval' requires 'command'"
-            )
+            raise ValueError("Condition with 'interval' requires 'command'")
         if not has_command and not has_source:
-            raise ValueError(
-                "Condition must have either 'command' + 'interval' or 'source'"
-            )
+            raise ValueError("Condition must have either 'command' + 'interval' or 'source'")
         return self

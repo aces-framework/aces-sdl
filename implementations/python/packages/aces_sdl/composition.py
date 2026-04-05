@@ -8,13 +8,13 @@ from typing import Any
 
 from ._base import is_variable_ref
 from ._errors import SDLInstantiationError, SDLParseError
+from .entities import flatten_entities
 from .instantiate import instantiate_scenario
 from .module_registry import (
     load_lockfile,
     load_trust_policy,
     resolve_import,
 )
-from .entities import flatten_entities
 from .parser import _load_normalized_data
 from .scenario import ImportDecl, ModuleDescriptor, Scenario
 
@@ -66,10 +66,9 @@ def _explicit_exports(
             for section in _HASHMAP_SECTIONS
             if getattr(scenario, section)
         } | {"entities": set(flatten_entities(scenario.entities))}
-    return {
-        section: set(names)
-        for section, names in descriptor.exports.items()
-    } | {"entities": set(descriptor.exports.get("entities", []))}
+    return {section: set(names) for section, names in descriptor.exports.items()} | {
+        "entities": set(descriptor.exports.get("entities", []))
+    }
 
 
 def _symbol_index(
@@ -91,15 +90,13 @@ def _symbol_index(
                     if name in exported.get(section_name, set())
                     else _private_prefix(namespace, name)
                 )
-                for name in section.keys()
+                for name in section
             }
             section_maps[section_name] = section_map
             named.update(section_map)
     entity_map = {
         name: (
-            _prefix(namespace, name)
-            if name in exported.get("entities", set())
-            else _private_prefix(namespace, name)
+            _prefix(namespace, name) if name in exported.get("entities", set()) else _private_prefix(namespace, name)
         )
         for name in entities
     }
@@ -138,93 +135,57 @@ def _validate_descriptor_exports(
             available_names = set(flatten_entities(scenario.entities))
         else:
             section_payload = getattr(scenario, section_name, None)
-            available_names = (
-                set(section_payload.keys())
-                if isinstance(section_payload, Mapping)
-                else set()
-            )
+            available_names = set(section_payload.keys()) if isinstance(section_payload, Mapping) else set()
         undefined = sorted(set(exported_names) - available_names)
         if undefined:
-            raise SDLParseError(
-                f"Module '{descriptor.id}' exports undefined {section_name}: "
-                + ", ".join(undefined)
-            )
+            raise SDLParseError(f"Module '{descriptor.id}' exports undefined {section_name}: " + ", ".join(undefined))
 
 
 def _rewrite_node(payload: dict[str, Any], symbols: dict[str, dict[str, str] | set[str]]) -> None:
     payload["features"] = {
-        _maybe_rename(name, symbols["features"]): role
-        for name, role in payload.get("features", {}).items()
+        _maybe_rename(name, symbols["features"]): role for name, role in payload.get("features", {}).items()
     }
     payload["conditions"] = {
-        _maybe_rename(name, symbols["conditions"]): role
-        for name, role in payload.get("conditions", {}).items()
+        _maybe_rename(name, symbols["conditions"]): role for name, role in payload.get("conditions", {}).items()
     }
     payload["injects"] = {
-        _maybe_rename(name, symbols["injects"]): role
-        for name, role in payload.get("injects", {}).items()
+        _maybe_rename(name, symbols["injects"]): role for name, role in payload.get("injects", {}).items()
     }
     payload["vulnerabilities"] = [
-        _maybe_rename(name, symbols["vulnerabilities"])
-        for name in payload.get("vulnerabilities", [])
+        _maybe_rename(name, symbols["vulnerabilities"]) for name in payload.get("vulnerabilities", [])
     ]
     for role in payload.get("roles", {}).values():
         if isinstance(role, dict):
-            role["entities"] = [
-                _maybe_rename(name, symbols["entities"])
-                for name in role.get("entities", [])
-            ]
+            role["entities"] = [_maybe_rename(name, symbols["entities"]) for name in role.get("entities", [])]
 
 
 def _rewrite_infrastructure(payload: dict[str, Any], symbols: dict[str, dict[str, str] | set[str]]) -> None:
-    payload["dependencies"] = [
-        _maybe_rename(name, symbols["named"])
-        for name in payload.get("dependencies", [])
-    ]
-    payload["links"] = [
-        _maybe_rename(name, symbols["named"])
-        for name in payload.get("links", [])
-    ]
+    payload["dependencies"] = [_maybe_rename(name, symbols["named"]) for name in payload.get("dependencies", [])]
+    payload["links"] = [_maybe_rename(name, symbols["named"]) for name in payload.get("links", [])]
     properties = payload.get("properties")
     if isinstance(properties, list):
         rewritten: list[dict[str, Any]] = []
         for item in properties:
             if isinstance(item, dict):
-                rewritten.append(
-                    {
-                        _maybe_rename(name, symbols["named"]): value
-                        for name, value in item.items()
-                    }
-                )
+                rewritten.append({_maybe_rename(name, symbols["named"]): value for name, value in item.items()})
             else:
                 rewritten.append(item)
         payload["properties"] = rewritten
 
 
 def _rewrite_feature(payload: dict[str, Any], symbols: dict[str, dict[str, str] | set[str]]) -> None:
-    payload["dependencies"] = [
-        _maybe_rename(name, symbols["features"])
-        for name in payload.get("dependencies", [])
-    ]
+    payload["dependencies"] = [_maybe_rename(name, symbols["features"]) for name in payload.get("dependencies", [])]
     payload["vulnerabilities"] = [
-        _maybe_rename(name, symbols["vulnerabilities"])
-        for name in payload.get("vulnerabilities", [])
+        _maybe_rename(name, symbols["vulnerabilities"]) for name in payload.get("vulnerabilities", [])
     ]
 
 
 def _rewrite_entity(payload: dict[str, Any], symbols: dict[str, dict[str, str] | set[str]]) -> None:
     payload["vulnerabilities"] = [
-        _maybe_rename(name, symbols["vulnerabilities"])
-        for name in payload.get("vulnerabilities", [])
+        _maybe_rename(name, symbols["vulnerabilities"]) for name in payload.get("vulnerabilities", [])
     ]
-    payload["tlos"] = [
-        _maybe_rename(name, symbols["tlos"])
-        for name in payload.get("tlos", [])
-    ]
-    payload["events"] = [
-        _maybe_rename(name, symbols["events"])
-        for name in payload.get("events", [])
-    ]
+    payload["tlos"] = [_maybe_rename(name, symbols["tlos"]) for name in payload.get("tlos", [])]
+    payload["events"] = [_maybe_rename(name, symbols["events"]) for name in payload.get("events", [])]
     for child in payload.get("entities", {}).values():
         if isinstance(child, dict):
             _rewrite_entity(child, symbols)
@@ -244,43 +205,19 @@ def _rewrite_workflow(payload: dict[str, Any], symbols: dict[str, dict[str, str]
         if not isinstance(step, dict):
             continue
         if step.get("objective"):
-            step["objective"] = _maybe_rename(
-                str(step["objective"]), symbols["objectives"]
-            )
+            step["objective"] = _maybe_rename(str(step["objective"]), symbols["objectives"])
         if step.get("workflow"):
-            step["workflow"] = _maybe_rename(
-                str(step["workflow"]), symbols["workflows"]
-            )
+            step["workflow"] = _maybe_rename(str(step["workflow"]), symbols["workflows"])
         if step.get("compensate_with"):
-            step["compensate_with"] = _maybe_rename(
-                str(step["compensate_with"]), symbols["workflows"]
-            )
+            step["compensate_with"] = _maybe_rename(str(step["compensate_with"]), symbols["workflows"])
         when = step.get("when")
         if isinstance(when, dict):
-            when["conditions"] = [
-                _maybe_rename(name, symbols["conditions"])
-                for name in when.get("conditions", [])
-            ]
-            when["metrics"] = [
-                _maybe_rename(name, symbols["metrics"])
-                for name in when.get("metrics", [])
-            ]
-            when["evaluations"] = [
-                _maybe_rename(name, symbols["evaluations"])
-                for name in when.get("evaluations", [])
-            ]
-            when["tlos"] = [
-                _maybe_rename(name, symbols["tlos"])
-                for name in when.get("tlos", [])
-            ]
-            when["goals"] = [
-                _maybe_rename(name, symbols["goals"])
-                for name in when.get("goals", [])
-            ]
-            when["objectives"] = [
-                _maybe_rename(name, symbols["objectives"])
-                for name in when.get("objectives", [])
-            ]
+            when["conditions"] = [_maybe_rename(name, symbols["conditions"]) for name in when.get("conditions", [])]
+            when["metrics"] = [_maybe_rename(name, symbols["metrics"]) for name in when.get("metrics", [])]
+            when["evaluations"] = [_maybe_rename(name, symbols["evaluations"]) for name in when.get("evaluations", [])]
+            when["tlos"] = [_maybe_rename(name, symbols["tlos"]) for name in when.get("tlos", [])]
+            when["goals"] = [_maybe_rename(name, symbols["goals"]) for name in when.get("goals", [])]
+            when["objectives"] = [_maybe_rename(name, symbols["objectives"]) for name in when.get("objectives", [])]
 
 
 def _namespace_payload(
@@ -313,131 +250,78 @@ def _namespace_payload(
             _rewrite_feature(feature, symbols)
     for metric in namespaced.get("metrics", {}).values():
         if isinstance(metric, dict) and metric.get("condition"):
-            metric["condition"] = _maybe_rename(
-                str(metric["condition"]), symbols["conditions"]
-            )
+            metric["condition"] = _maybe_rename(str(metric["condition"]), symbols["conditions"])
     for evaluation in namespaced.get("evaluations", {}).values():
         if isinstance(evaluation, dict):
-            evaluation["metrics"] = [
-                _maybe_rename(name, symbols["metrics"])
-                for name in evaluation.get("metrics", [])
-            ]
+            evaluation["metrics"] = [_maybe_rename(name, symbols["metrics"]) for name in evaluation.get("metrics", [])]
     for tlo in namespaced.get("tlos", {}).values():
         if isinstance(tlo, dict) and tlo.get("evaluation"):
-            tlo["evaluation"] = _maybe_rename(
-                str(tlo["evaluation"]), symbols["evaluations"]
-            )
+            tlo["evaluation"] = _maybe_rename(str(tlo["evaluation"]), symbols["evaluations"])
     for goal in namespaced.get("goals", {}).values():
         if isinstance(goal, dict):
-            goal["tlos"] = [
-                _maybe_rename(name, symbols["tlos"])
-                for name in goal.get("tlos", [])
-            ]
+            goal["tlos"] = [_maybe_rename(name, symbols["tlos"]) for name in goal.get("tlos", [])]
     for entity in namespaced.get("entities", {}).values():
         if isinstance(entity, dict):
             _rewrite_entity(entity, symbols)
     for inject in namespaced.get("injects", {}).values():
         if isinstance(inject, dict):
             if inject.get("from_entity"):
-                inject["from_entity"] = _maybe_rename(
-                    str(inject["from_entity"]), symbols["entities"]
-                )
-            inject["to_entities"] = [
-                _maybe_rename(name, symbols["entities"])
-                for name in inject.get("to_entities", [])
-            ]
-            inject["tlos"] = [
-                _maybe_rename(name, symbols["tlos"])
-                for name in inject.get("tlos", [])
-            ]
+                inject["from_entity"] = _maybe_rename(str(inject["from_entity"]), symbols["entities"])
+            inject["to_entities"] = [_maybe_rename(name, symbols["entities"]) for name in inject.get("to_entities", [])]
+            inject["tlos"] = [_maybe_rename(name, symbols["tlos"]) for name in inject.get("tlos", [])]
     for event in namespaced.get("events", {}).values():
         if isinstance(event, dict):
-            event["conditions"] = [
-                _maybe_rename(name, symbols["conditions"])
-                for name in event.get("conditions", [])
-            ]
-            event["injects"] = [
-                _maybe_rename(name, symbols["injects"])
-                for name in event.get("injects", [])
-            ]
+            event["conditions"] = [_maybe_rename(name, symbols["conditions"]) for name in event.get("conditions", [])]
+            event["injects"] = [_maybe_rename(name, symbols["injects"]) for name in event.get("injects", [])]
     for script in namespaced.get("scripts", {}).values():
         if isinstance(script, dict):
             script["events"] = {
-                _maybe_rename(name, symbols["events"]): value
-                for name, value in script.get("events", {}).items()
+                _maybe_rename(name, symbols["events"]): value for name, value in script.get("events", {}).items()
             }
     for story in namespaced.get("stories", {}).values():
         if isinstance(story, dict):
-            story["scripts"] = [
-                _maybe_rename(name, symbols["scripts"])
-                for name in story.get("scripts", [])
-            ]
+            story["scripts"] = [_maybe_rename(name, symbols["scripts"]) for name in story.get("scripts", [])]
     for content in namespaced.get("content", {}).values():
         if isinstance(content, dict) and content.get("target"):
-            content["target"] = _maybe_rename(
-                str(content["target"]), symbols["nodes"]
-            )
+            content["target"] = _maybe_rename(str(content["target"]), symbols["nodes"])
     for account in namespaced.get("accounts", {}).values():
         if isinstance(account, dict) and account.get("node"):
-            account["node"] = _maybe_rename(
-                str(account["node"]), symbols["nodes"]
-            )
+            account["node"] = _maybe_rename(str(account["node"]), symbols["nodes"])
     for relationship in namespaced.get("relationships", {}).values():
         if isinstance(relationship, dict):
             if relationship.get("source"):
-                relationship["source"] = _maybe_rename(
-                    str(relationship["source"]), symbols["named"]
-                )
+                relationship["source"] = _maybe_rename(str(relationship["source"]), symbols["named"])
             if relationship.get("target"):
-                relationship["target"] = _maybe_rename(
-                    str(relationship["target"]), symbols["named"]
-                )
+                relationship["target"] = _maybe_rename(str(relationship["target"]), symbols["named"])
     for agent in namespaced.get("agents", {}).values():
         if isinstance(agent, dict):
             if agent.get("entity"):
-                agent["entity"] = _maybe_rename(
-                    str(agent["entity"]), symbols["entities"]
-                )
+                agent["entity"] = _maybe_rename(str(agent["entity"]), symbols["entities"])
             agent["starting_accounts"] = [
-                _maybe_rename(name, symbols["accounts"])
-                for name in agent.get("starting_accounts", [])
+                _maybe_rename(name, symbols["accounts"]) for name in agent.get("starting_accounts", [])
             ]
             knowledge = agent.get("initial_knowledge")
             if isinstance(knowledge, dict):
-                knowledge["hosts"] = [
-                    _maybe_rename(name, symbols["nodes"])
-                    for name in knowledge.get("hosts", [])
-                ]
+                knowledge["hosts"] = [_maybe_rename(name, symbols["nodes"]) for name in knowledge.get("hosts", [])]
                 knowledge["subnets"] = [
-                    _maybe_rename(name, symbols["infrastructure"])
-                    for name in knowledge.get("subnets", [])
+                    _maybe_rename(name, symbols["infrastructure"]) for name in knowledge.get("subnets", [])
                 ]
                 knowledge["accounts"] = [
-                    _maybe_rename(name, symbols["accounts"])
-                    for name in knowledge.get("accounts", [])
+                    _maybe_rename(name, symbols["accounts"]) for name in knowledge.get("accounts", [])
                 ]
             agent["allowed_subnets"] = [
-                _maybe_rename(name, symbols["infrastructure"])
-                for name in agent.get("allowed_subnets", [])
+                _maybe_rename(name, symbols["infrastructure"]) for name in agent.get("allowed_subnets", [])
             ]
     for objective in namespaced.get("objectives", {}).values():
         if not isinstance(objective, dict):
             continue
         if objective.get("agent"):
-            objective["agent"] = _maybe_rename(
-                str(objective["agent"]), symbols["agents"]
-            )
+            objective["agent"] = _maybe_rename(str(objective["agent"]), symbols["agents"])
         if objective.get("entity"):
-            objective["entity"] = _maybe_rename(
-                str(objective["entity"]), symbols["entities"]
-            )
-        objective["targets"] = [
-            _maybe_rename(name, symbols["named"])
-            for name in objective.get("targets", [])
-        ]
+            objective["entity"] = _maybe_rename(str(objective["entity"]), symbols["entities"])
+        objective["targets"] = [_maybe_rename(name, symbols["named"]) for name in objective.get("targets", [])]
         objective["depends_on"] = [
-            _maybe_rename(name, symbols["objectives"])
-            for name in objective.get("depends_on", [])
+            _maybe_rename(name, symbols["objectives"]) for name in objective.get("depends_on", [])
         ]
         success = objective.get("success")
         if isinstance(success, dict):
@@ -448,10 +332,7 @@ def _namespace_payload(
                 ("tlos", "tlos"),
                 ("goals", "goals"),
             ):
-                success[field_name] = [
-                    _maybe_rename(name, symbols[symbol_key])
-                    for name in success.get(field_name, [])
-                ]
+                success[field_name] = [_maybe_rename(name, symbols[symbol_key]) for name in success.get(field_name, [])]
         window = objective.get("window")
         if isinstance(window, dict):
             for field_name, symbol_key in (
@@ -460,13 +341,9 @@ def _namespace_payload(
                 ("events", "events"),
                 ("workflows", "workflows"),
             ):
-                window[field_name] = [
-                    _maybe_rename(name, symbols[symbol_key])
-                    for name in window.get(field_name, [])
-                ]
+                window[field_name] = [_maybe_rename(name, symbols[symbol_key]) for name in window.get(field_name, [])]
             window["steps"] = [
-                _rewrite_objective_window_ref(name, symbols["workflows"])
-                for name in window.get("steps", [])
+                _rewrite_objective_window_ref(name, symbols["workflows"]) for name in window.get("steps", [])
             ]
     for workflow in namespaced.get("workflows", {}).values():
         if isinstance(workflow, dict):
@@ -477,8 +354,7 @@ def _namespace_payload(
         if not isinstance(section_payload, dict):
             continue
         namespaced[section_name] = {
-            symbols[section_name].get(name, _prefix(namespace, name)): value
-            for name, value in section_payload.items()
+            symbols[section_name].get(name, _prefix(namespace, name)): value for name, value in section_payload.items()
         }
     namespaced["variables"] = {}
     namespaced["module"] = None
@@ -498,9 +374,7 @@ def _merge_sections(
         additions = dict(incoming.get(section_name, {}))
         collisions = sorted(set(current).intersection(additions))
         if collisions:
-            raise SDLParseError(
-                f"Import from {path} collides on {section_name}: {', '.join(collisions)}"
-            )
+            raise SDLParseError(f"Import from {path} collides on {section_name}: {', '.join(collisions)}")
         current.update(additions)
         merged[section_name] = current
     merged["imports"] = []

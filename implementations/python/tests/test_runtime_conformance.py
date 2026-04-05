@@ -13,9 +13,7 @@ from aces.core.runtime.conformance import (
 
 
 def test_fixture_suite_passes_for_orchestration_evaluation_profile():
-    report = run_fixture_suite(
-        profile=BackendCapabilityProfile.ORCHESTRATION_EVALUATION
-    )
+    report = run_fixture_suite(profile=BackendCapabilityProfile.ORCHESTRATION_EVALUATION)
 
     assert report.passed is True
     assert report.cases
@@ -34,7 +32,4 @@ def test_target_conformance_passes_for_stub_target():
 def test_profile_is_inferred_from_manifest_shape():
     target = create_stub_target()
 
-    assert (
-        profile_for_manifest(target.manifest)
-        == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
-    )
+    assert profile_for_manifest(target.manifest) == BackendCapabilityProfile.ORCHESTRATION_EVALUATION

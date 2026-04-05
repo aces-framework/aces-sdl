@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aces-sdl"
-version = "0.1.0"
+version = "0.2.0"
 description = "Backend-agnostic cyber range scenario description language and runtime."
 requires-python = ">=3.11"
 dependencies = [
@@ -66,3 +66,35 @@ show_missing = true
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "S",    # flake8-bandit (security)
+]
+ignore = [
+    "S101",   # assert is fine in tests and dataclass contracts
+    "S603",   # subprocess without shell=True is fine
+    "S607",   # partial executable path is fine
+    "E501",   # line length handled by formatter, not linter
+    "UP042",  # (str, Enum) is the established pattern; StrEnum migration is separate
+    "SIM102", # nested if merging — harms readability in complex conditionals
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108", "E402", "SIM105", "F841"]
+"packages/aces_cli/**" = ["B008"]      # typer requires function calls in defaults
+"packages/aces_processor/control_plane_api.py" = ["B008"]  # fastapi Depends() pattern
+"packages/aces_processor/control_plane.py" = ["S112"]      # intentional exception suppression
+"packages/aces_sdl/module_registry.py" = ["S310", "S202"]  # explicit OCI URL fetch and tarball extract
+"packages/aces_sdl/validator.py" = ["F821"]                # string-quoted forward references in closures

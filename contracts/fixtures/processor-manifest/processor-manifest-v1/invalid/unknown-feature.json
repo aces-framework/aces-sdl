@@ -1,0 +1,6 @@
+{
+  "schema_version": "processor-manifest/v1",
+  "name": "bad-processor",
+  "version": "0.0.1",
+  "supported_features": ["definitely-not-a-real-feature"]
+}

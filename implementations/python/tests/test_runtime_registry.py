@@ -166,9 +166,7 @@ class TestBackendRegistry:
             RuntimeTarget(
                 name="broken",
                 manifest=create_stub_manifest(),
-                provisioner=create_stub_components(
-                    manifest=create_stub_manifest()
-                ).provisioner,
+                provisioner=create_stub_components(manifest=create_stub_manifest()).provisioner,
                 orchestrator=None,
                 evaluator=None,
             )

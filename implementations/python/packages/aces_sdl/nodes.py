@@ -6,7 +6,6 @@ backend-agnostic Source references.
 
 import re
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -61,10 +60,7 @@ def parse_ram(value: str | int) -> int | str:
         return parsed
     match = _RAM_PATTERN.match(value_str)
     if not match:
-        raise ValueError(
-            f"Invalid RAM value: {value_str!r}. "
-            f"Use a number with a unit (e.g., '4 GiB', '2048 MiB')."
-        )
+        raise ValueError(f"Invalid RAM value: {value_str!r}. Use a number with a unit (e.g., '4 GiB', '2048 MiB').")
     amount = float(match.group(1))
     unit = match.group(2).lower()
     parsed = int(amount * _BYTE_UNITS[unit])
@@ -176,14 +172,15 @@ class Node(SDLModel):
 
     type: NodeType = Field(alias="type")
     description: str = ""
-    source: Optional[Source] = None
+    source: Source | None = None
 
     @field_validator("type", mode="before")
     @classmethod
     def normalize_type(cls, v: str) -> str:
         return normalize_enum_value(v)
-    resources: Optional[Resources] = None
-    os: Optional[OSFamily | str] = None
+
+    resources: Resources | None = None
+    os: OSFamily | str | None = None
     os_version: str = ""
     features: dict[str, str] = Field(default_factory=dict)
     conditions: dict[str, str] = Field(default_factory=dict)
@@ -191,16 +188,12 @@ class Node(SDLModel):
     vulnerabilities: list[str] = Field(default_factory=list)
     roles: dict[str, Role] = Field(default_factory=dict)
     services: list[ServicePort] = Field(default_factory=list)
-    asset_value: Optional[AssetValue] = None
+    asset_value: AssetValue | None = None
 
     @field_validator("os", mode="before")
     @classmethod
     def normalize_os(cls, v):
-        return (
-            parse_enum_or_var(v, OSFamily, field_name="os")
-            if v is not None
-            else v
-        )
+        return parse_enum_or_var(v, OSFamily, field_name="os") if v is not None else v
 
     @model_validator(mode="after")
     def validate_type_constraints(self) -> "Node":
@@ -230,10 +223,7 @@ class Node(SDLModel):
             if self.asset_value is not None:
                 disallowed_fields.append("asset_value")
             if disallowed_fields:
-                raise ValueError(
-                    "Switch nodes cannot have VM-only fields: "
-                    + ", ".join(disallowed_fields)
-                )
+                raise ValueError("Switch nodes cannot have VM-only fields: " + ", ".join(disallowed_fields))
         return self
 
     @model_validator(mode="after")
@@ -250,15 +240,10 @@ class Node(SDLModel):
             elif not is_variable_ref(service.protocol):
                 key = (service.protocol.lower(), service.port)
                 if key in seen:
-                    raise ValueError(
-                        "Duplicate service binding "
-                        f"'{service.protocol}/{service.port}' on node"
-                    )
+                    raise ValueError(f"Duplicate service binding '{service.protocol}/{service.port}' on node")
                 seen.add(key)
             if service.name:
                 if service.name in seen_names:
-                    raise ValueError(
-                        f"Duplicate named service '{service.name}' on node"
-                    )
+                    raise ValueError(f"Duplicate named service '{service.name}' on node")
                 seen_names.add(service.name)
         return self

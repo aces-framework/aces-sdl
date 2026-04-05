@@ -192,9 +192,9 @@ Backends declare a `BackendManifest` composed of:
 - zero or one `EvaluatorCapabilities`
 
 At the ecosystem level, backend manifests are only one declaration surface.
-Processor manifests and participant-implementation manifests are separate
-apparatus declarations. This document focuses on backend capability validation
-because that is the runtime boundary currently materialized in code.
+The reference processor now also publishes a separate processor manifest.
+Participant-implementation manifests remain a distinct apparatus surface that
+is not yet materially implemented in code.
 
 Validation is semantic, not section-only. Current checks include:
 

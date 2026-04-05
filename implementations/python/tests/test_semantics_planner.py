@@ -64,11 +64,7 @@ def _dag_resources(draw):
 def _dag_resources_with_change_sets(draw):
     resources = draw(_dag_resources())
     nodes = list(resources)
-    subset_a = (
-        set(draw(st.lists(st.sampled_from(nodes), unique=True, max_size=len(nodes))))
-        if nodes
-        else set()
-    )
+    subset_a = set(draw(st.lists(st.sampled_from(nodes), unique=True, max_size=len(nodes)))) if nodes else set()
     remaining = [node for node in nodes if node not in subset_a]
     subset_b = subset_a | (
         set(

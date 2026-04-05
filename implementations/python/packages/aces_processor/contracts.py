@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from aces_sdl.scenario import InstantiatedScenario, Scenario
 from pydantic import BaseModel, ConfigDict, Field
 
+from .capabilities import ProcessorFeature
 from .models import (
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
-from aces_sdl.scenario import InstantiatedScenario, Scenario
 
 
 class ContractModel(BaseModel):
@@ -58,17 +59,13 @@ class WorkflowHistoryEventModel(ContractModel):
 
 
 class WorkflowCancellationRequestModel(ContractModel):
-    schema_version: Literal["workflow-cancellation-request/v1"] = (
-        "workflow-cancellation-request/v1"
-    )
+    schema_version: Literal["workflow-cancellation-request/v1"] = "workflow-cancellation-request/v1"
     run_id: str | None = None
     reason: str = "cancelled by operator"
 
 
 class EvaluationResultStateModel(ContractModel):
-    state_schema_version: Literal[EVALUATION_STATE_SCHEMA_VERSION] = (
-        EVALUATION_STATE_SCHEMA_VERSION
-    )
+    state_schema_version: Literal[EVALUATION_STATE_SCHEMA_VERSION] = EVALUATION_STATE_SCHEMA_VERSION
     resource_type: str
     run_id: str
     status: str
@@ -198,6 +195,17 @@ class BackendManifestModel(ContractModel):
     evaluator: EvaluatorCapabilitiesModel | None = None
 
 
+class ProcessorManifestModel(ContractModel):
+    schema_version: Literal["processor-manifest/v1"] = "processor-manifest/v1"
+    name: str
+    version: str
+    supported_sdl_versions: list[str] = Field(default_factory=list)
+    supported_contract_versions: list[str] = Field(default_factory=list)
+    supported_features: list[ProcessorFeature] = Field(default_factory=list)
+    compatible_backends: list[str] = Field(default_factory=list)
+    constraints: dict[str, str] = Field(default_factory=dict)
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -206,6 +214,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "instantiated-scenario-v1": InstantiatedScenario.model_json_schema(),
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
         "backend-manifest-v1": BackendManifestModel.model_json_schema(),
+        "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),
@@ -217,9 +226,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
             "type": "array",
             "items": WorkflowHistoryEventModel.model_json_schema(),
         },
-        "workflow-cancellation-request-v1": (
-            WorkflowCancellationRequestModel.model_json_schema()
-        ),
+        "workflow-cancellation-request-v1": (WorkflowCancellationRequestModel.model_json_schema()),
         "evaluation-result-envelope-v1": EvaluationResultStateModel.model_json_schema(),
         "evaluation-history-event-stream-v1": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",

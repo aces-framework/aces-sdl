@@ -19,7 +19,8 @@ def _scenario(yaml_str: str):
 
 class TestRuntimeModelCompilation:
     def test_feature_template_binds_to_multiple_nodes(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: bindings
 nodes:
   vm1:
@@ -36,7 +37,8 @@ nodes:
     roles: {web: appuser}
 features:
   nginx: {type: service, source: nginx}
-"""))
+""")
+        )
 
         assert set(model.feature_templates) == {"nginx"}
         assert set(model.feature_bindings) == {
@@ -47,7 +49,8 @@ features:
         assert model.feature_bindings["provision.feature.vm2.nginx"].node_name == "vm2"
 
     def test_feature_binding_tracks_same_node_dependencies(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: feature-deps
 nodes:
   vm:
@@ -59,7 +62,8 @@ nodes:
 features:
   nginx: {type: service, source: nginx}
   php-config: {type: configuration, source: php-config, dependencies: [nginx]}
-"""))
+""")
+        )
 
         binding = model.feature_bindings["provision.feature.vm.php-config"]
 
@@ -74,7 +78,8 @@ features:
         assert not model.diagnostics
 
     def test_missing_same_node_feature_dependency_emits_diagnostic(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: feature-deps
 nodes:
   vm:
@@ -86,7 +91,8 @@ nodes:
 features:
   nginx: {type: service, source: nginx}
   php-config: {type: configuration, source: php-config, dependencies: [nginx]}
-"""))
+""")
+        )
 
         binding = model.feature_bindings["provision.feature.vm.php-config"]
         diagnostics = {(diag.code, diag.address) for diag in model.diagnostics}
@@ -99,7 +105,8 @@ features:
         assert binding.refresh_dependencies == ("provision.node.vm",)
 
     def test_condition_and_inject_resources_preserve_context(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: bindings
 nodes:
   vm:
@@ -113,7 +120,8 @@ conditions:
   health: {command: /bin/true, interval: 10}
 injects:
   phish: {source: phishing-bundle}
-"""))
+""")
+        )
 
         condition = model.condition_bindings["evaluation.condition.vm.health"]
         inject = model.injects["orchestration.inject.phish"]
@@ -127,9 +135,7 @@ injects:
         assert inject_binding.node_name == "vm"
         assert inject_binding.role_name == "ops"
         assert inject_binding.template_address == "template.inject.phish"
-        assert inject_binding.ordering_dependencies == (
-            "orchestration.inject.phish",
-        )
+        assert inject_binding.ordering_dependencies == ("orchestration.inject.phish",)
         assert inject_binding.refresh_dependencies == (
             "provision.node.vm",
             "orchestration.inject.phish",
@@ -139,7 +145,8 @@ injects:
         assert condition.execution_contract.requires_start_event is True
 
     def test_objective_windows_and_workflows_resolve_refresh_dependencies(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: orchestration
 nodes:
   vm:
@@ -181,7 +188,8 @@ workflows:
         then: end
         else: end
       end: {type: end}
-"""))
+""")
+        )
 
         objective = model.objectives["evaluation.objective.initial"]
         workflow = model.workflows["orchestration.workflow.flow"]
@@ -365,9 +373,7 @@ workflows:
 
         assert model.scripts["orchestration.script.timeline"].event_addresses == ()
         assert model.stories["orchestration.story.main"].script_addresses == ()
-        assert model.evaluations["evaluation.evaluation.overall"].metric_addresses == (
-            "evaluation.metric.uptime",
-        )
+        assert model.evaluations["evaluation.evaluation.overall"].metric_addresses == ("evaluation.metric.uptime",)
         assert model.tlos["evaluation.tlo.defend"].evaluation_address == ""
         assert model.goals["evaluation.goal.pass"].tlo_addresses == ()
         assert model.objectives["evaluation.objective.initial"].success_addresses == ()
@@ -376,7 +382,8 @@ workflows:
         assert model.workflows["orchestration.workflow.flow"].referenced_objective_addresses == ()
 
     def test_workflow_with_retry_and_step_state_compiles(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: retry-test
 nodes:
   vm:
@@ -422,13 +429,12 @@ workflows:
         objective: recover
         on-success: done
       done: {type: end}
-"""))
+""")
+        )
 
         workflow = model.workflows["orchestration.workflow.retry"]
         assert workflow.control_steps["attempt-loop"].step_type == "retry"
-        assert workflow.control_steps["attempt-loop"].objective_address == (
-            "evaluation.objective.attempt"
-        )
+        assert workflow.control_steps["attempt-loop"].objective_address == ("evaluation.objective.attempt")
         assert workflow.control_steps["attempt-loop"].max_attempts == 3
         predicate = workflow.control_steps["branch"].predicate
         assert predicate is not None
@@ -448,7 +454,8 @@ workflows:
         assert "evaluation.condition.vm.health" in workflow.step_predicate_addresses["branch"]
 
     def test_parallel_join_compiles_as_barrier_with_typed_predicate(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: parallel-join
 nodes:
   vm:
@@ -505,7 +512,8 @@ workflows:
         objective: recover
         on-success: finish
       finish: {type: end}
-"""))
+""")
+        )
 
         workflow = model.workflows["orchestration.workflow.flow"]
         assert workflow.control_edges["fanout"] == ("left-branch", "right-branch", "recover-step")
@@ -525,9 +533,7 @@ workflows:
         assert not workflow.control_steps["joined"].state_contract.state_observable
         predicate = workflow.control_steps["branch"].predicate
         assert predicate is not None
-        assert predicate.step_state_predicates == (
-            predicate.step_state_predicates[0],
-        )
+        assert predicate.step_state_predicates == (predicate.step_state_predicates[0],)
         assert predicate.step_state_predicates[0].step_name == "left-branch"
         assert predicate.step_state_predicates[0].min_attempts == 2
         assert set(workflow.required_features) == {
@@ -745,21 +751,13 @@ imports:
         workflow = model.workflows["orchestration.workflow.response"]
 
         assert WorkflowFeature.COMPENSATION in workflow.required_features
-        assert (
-            workflow.control_steps["run"].compensation_workflow_address
-            == "orchestration.workflow.rollback"
-        )
+        assert workflow.control_steps["run"].compensation_workflow_address == "orchestration.workflow.rollback"
         assert workflow.execution_contract.compensation_mode == "automatic"
         assert set(workflow.execution_contract.compensation_triggers) == {
             "failed",
             "cancelled",
             "timed_out",
         }
-        assert workflow.execution_contract.compensation_targets == {
-            "run": "orchestration.workflow.rollback"
-        }
+        assert workflow.execution_contract.compensation_targets == {"run": "orchestration.workflow.rollback"}
         assert workflow.execution_contract.compensation_ordering == "reverse_completion"
-        assert (
-            workflow.execution_contract.compensation_failure_policy
-            == "record_and_continue"
-        )
+        assert workflow.execution_contract.compensation_failure_policy == "record_and_continue"

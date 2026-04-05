@@ -71,7 +71,12 @@ class TestVerifyNodes:
         ("field_name", "section_name", "section_value", "error_fragment"),
         [
             ("features", "features", {"svc": {"type": "service"}}, "feature 'svc' references undefined role"),
-            ("conditions", "conditions", {"check": {"command": "/bin/check", "interval": 10}}, "condition 'check' references undefined role"),
+            (
+                "conditions",
+                "conditions",
+                {"check": {"command": "/bin/check", "interval": 10}},
+                "condition 'check' references undefined role",
+            ),
             ("injects", "injects", {"email": {}}, "inject 'email' references undefined role"),
         ],
     )
@@ -436,6 +441,7 @@ class TestFeatureListShorthand:
     def test_features_as_list_with_empty_role(self):
         """Nodes with features as list (no role) should validate."""
         from aces.core.sdl import parse_sdl
+
         s = parse_sdl("""
 name: shorthand-test
 nodes:
@@ -603,10 +609,12 @@ class TestVerifyAgents:
         s = _make_scenario(
             nodes={"vm": {"type": "vm", "resources": {"ram": "1 gib", "cpu": 1}}},
             entities={"red": {"role": "red"}},
-            agents={"a1": {
-                "entity": "red",
-                "initial_knowledge": {"hosts": ["ghost-host"]},
-            }},
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "initial_knowledge": {"hosts": ["ghost-host"]},
+                }
+            },
         )
         errors = _validate(s)
         assert any("not in nodes" in e for e in errors)
@@ -621,10 +629,12 @@ class TestVerifyAgents:
                 }
             },
             entities={"red": {"role": "red"}},
-            agents={"a1": {
-                "entity": "red",
-                "initial_knowledge": {"services": ["ghost-service"]},
-            }},
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "initial_knowledge": {"services": ["ghost-service"]},
+                }
+            },
         )
         errors = _validate(s)
         assert any("not in node service names" in e for e in errors)
@@ -634,10 +644,12 @@ class TestVerifyAgents:
             nodes={"vm": {"type": "vm", "resources": {"ram": "1 gib", "cpu": 1}}},
             entities={"red": {"role": "red"}},
             accounts={"known-user": {"username": "user", "node": "vm"}},
-            agents={"a1": {
-                "entity": "red",
-                "initial_knowledge": {"accounts": ["ghost-account"]},
-            }},
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "initial_knowledge": {"accounts": ["ghost-account"]},
+                }
+            },
         )
         errors = _validate(s)
         assert any("initial_knowledge account" in e for e in errors)
@@ -708,18 +720,20 @@ class TestVerifyAgents:
             infrastructure={"net": {"count": 1, "properties": {"cidr": "10.0.0.0/24", "gateway": "10.0.0.1"}}},
             entities={"red": {"role": "red"}},
             accounts={"hacker": {"username": "h4x", "node": "vm"}},
-            agents={"a1": {
-                "entity": "red",
-                "actions": ["scan", "exploit"],
-                "starting_accounts": ["hacker"],
-                "allowed_subnets": ["net"],
-                "initial_knowledge": {
-                    "hosts": ["vm"],
-                    "subnets": ["net"],
-                    "services": ["ssh"],
-                    "accounts": ["hacker"],
-                },
-            }},
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "actions": ["scan", "exploit"],
+                    "starting_accounts": ["hacker"],
+                    "allowed_subnets": ["net"],
+                    "initial_knowledge": {
+                        "hosts": ["vm"],
+                        "subnets": ["net"],
+                        "services": ["ssh"],
+                        "accounts": ["hacker"],
+                    },
+                }
+            },
         )
         errors = _validate(s)
         assert not errors
@@ -1348,11 +1362,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "validate", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "validate", "outcomes": ["succeeded"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1378,11 +1388,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "missing-step", "outcomes": ["failed"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "missing-step", "outcomes": ["failed"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1408,11 +1414,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "confirm", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "confirm", "outcomes": ["succeeded"]}]},
                             "then": "confirm",
                             "else": "finish",
                         },
@@ -1438,11 +1440,7 @@ class TestVerifyWorkflows:
                     "steps": {
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "branch", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "branch", "outcomes": ["succeeded"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1468,11 +1466,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "finish", "outcomes": ["failed"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "finish", "outcomes": ["failed"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1498,11 +1492,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "gate", "outcomes": ["failed"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "gate", "outcomes": ["failed"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1534,11 +1524,7 @@ class TestVerifyWorkflows:
                         },
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "validate", "outcomes": ["exhausted"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "validate", "outcomes": ["exhausted"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1694,11 +1680,7 @@ class TestVerifyWorkflows:
                         "joined": {"type": "join", "next": "branch"},
                         "branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "rollback", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "rollback", "outcomes": ["succeeded"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1775,11 +1757,7 @@ class TestVerifyWorkflows:
                         },
                         "branch-in-branch": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "confirm", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "confirm", "outcomes": ["succeeded"]}]},
                             "then": "joined",
                             "else": "joined",
                         },
@@ -1873,11 +1851,7 @@ class TestVerifyWorkflows:
                         "joined": {"type": "join", "next": "finish"},
                         "recover": {
                             "type": "decision",
-                            "when": {
-                                "steps": [
-                                    {"step": "rollback", "outcomes": ["succeeded"]}
-                                ]
-                            },
+                            "when": {"steps": [{"step": "rollback", "outcomes": ["succeeded"]}]},
                             "then": "finish",
                             "else": "finish",
                         },
@@ -1970,10 +1944,7 @@ class TestVerifyWorkflows:
             },
         )
         errors = _validate(s)
-        assert any(
-            "Combined workflow call/compensation graph contains a cycle" in e
-            for e in errors
-        )
+        assert any("Combined workflow call/compensation graph contains a cycle" in e for e in errors)
 
     def test_compensation_workflow_cannot_declare_compensate_with_steps(self):
         s = _make_scenario(

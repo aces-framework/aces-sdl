@@ -11,6 +11,7 @@ Current published schemas cover:
 - SDL authoring input
 - instantiated scenarios
 - backend manifests
+- processor manifests
 - live-execution snapshots
 - workflow result envelopes
 - workflow history streams

@@ -9,7 +9,6 @@ ACL rules adapted from CybORG's ``Subnets.NACLs`` pattern.
 
 from enum import Enum
 from ipaddress import ip_address, ip_network
-from typing import Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 
@@ -57,10 +56,7 @@ class ACLRule(SDLModel):
     @classmethod
     def parse_ports(cls, v: list[int | str]) -> list[int | str]:
         if isinstance(v, list):
-            return [
-                parse_int_or_var(port, minimum=1, maximum=65535, field_name="ports")
-                for port in v
-            ]
+            return [parse_int_or_var(port, minimum=1, maximum=65535, field_name="ports") for port in v]
         return v
 
 
@@ -99,9 +95,7 @@ class SimpleProperties(SDLModel):
         net = ip_network(self.cidr, strict=False)
         gw = ip_address(self.gateway)
         if gw not in net:
-            raise ValueError(
-                f"Gateway {self.gateway} is not within CIDR {self.cidr}"
-            )
+            raise ValueError(f"Gateway {self.gateway} is not within CIDR {self.cidr}")
         return self
 
 
@@ -115,7 +109,7 @@ class InfraNode(SDLModel):
     count: int | str = DEFAULT_NODE_COUNT
     links: list[str] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)
-    properties: Optional[Union[SimpleProperties, list[dict[str, str]]]] = None
+    properties: SimpleProperties | list[dict[str, str]] | None = None
     acls: list[ACLRule] = Field(default_factory=list)
     description: str = ""
 

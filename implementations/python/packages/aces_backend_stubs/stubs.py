@@ -11,10 +11,10 @@ from aces_backend_protocols.capabilities import (
     WorkflowStatePredicateFeature,
 )
 from aces_processor.models import (
+    EVALUATION_STATE_SCHEMA_VERSION,
     ApplyResult,
     ChangeAction,
     Diagnostic,
-    EVALUATION_STATE_SCHEMA_VERSION,
     EvaluationPlan,
     OrchestrationPlan,
     ProvisioningPlan,
@@ -33,22 +33,16 @@ def create_stub_manifest(**config) -> BackendManifest:
         provisioner=ProvisionerCapabilities(
             name="stub-provisioner",
             supported_node_types=frozenset({"vm", "switch"}),
-            supported_os_families=frozenset(
-                {"linux", "windows", "macos", "freebsd", "other"}
-            ),
+            supported_os_families=frozenset({"linux", "windows", "macos", "freebsd", "other"}),
             supported_content_types=frozenset({"file", "dataset", "directory"}),
-            supported_account_features=frozenset(
-                {"groups", "mail", "spn", "shell", "home", "disabled", "auth_method"}
-            ),
+            supported_account_features=frozenset({"groups", "mail", "spn", "shell", "home", "disabled", "auth_method"}),
             max_total_nodes=None,
             supports_acls=True,
             supports_accounts=True,
         ),
         orchestrator=OrchestratorCapabilities(
             name="stub-orchestrator",
-            supported_sections=frozenset(
-                {"injects", "events", "scripts", "stories", "workflows"}
-            ),
+            supported_sections=frozenset({"injects", "events", "scripts", "stories", "workflows"}),
             supports_workflows=True,
             supports_condition_refs=True,
             supports_inject_bindings=True,
@@ -74,9 +68,7 @@ def create_stub_manifest(**config) -> BackendManifest:
         ),
         evaluator=EvaluatorCapabilities(
             name="stub-evaluator",
-            supported_sections=frozenset(
-                {"conditions", "metrics", "evaluations", "tlos", "goals", "objectives"}
-            ),
+            supported_sections=frozenset({"conditions", "metrics", "evaluations", "tlos", "goals", "objectives"}),
             supports_scoring=True,
             supports_objectives=True,
         ),
@@ -138,8 +130,7 @@ class StubOrchestrator:
         entries = dict(snapshot.entries)
         results = dict(snapshot.orchestration_results)
         history = {
-            workflow_address: list(events)
-            for workflow_address, events in snapshot.orchestration_history.items()
+            workflow_address: list(events) for workflow_address, events in snapshot.orchestration_history.items()
         }
         changed_addresses: list[str] = []
         now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -226,21 +217,14 @@ class StubOrchestrator:
         return dict(self._results)
 
     def history(self) -> dict[str, list[dict[str, object]]]:
-        return {
-            workflow_address: list(events)
-            for workflow_address, events in self._history.items()
-        }
+        return {workflow_address: list(events) for workflow_address, events in self._history.items()}
 
     def stop(self, snapshot: RuntimeSnapshot) -> ApplyResult:
         entries = {
-            address: entry
-            for address, entry in snapshot.entries.items()
-            if entry.domain != RuntimeDomain.ORCHESTRATION
+            address: entry for address, entry in snapshot.entries.items() if entry.domain != RuntimeDomain.ORCHESTRATION
         }
         removed = [
-            address
-            for address, entry in snapshot.entries.items()
-            if entry.domain == RuntimeDomain.ORCHESTRATION
+            address for address, entry in snapshot.entries.items() if entry.domain == RuntimeDomain.ORCHESTRATION
         ]
         self._running = False
         self._startup_order = []
@@ -274,10 +258,7 @@ class StubEvaluator:
         entries = dict(snapshot.entries)
         changed_addresses: list[str] = []
         results = dict(snapshot.evaluation_results)
-        history = {
-            address: list(events)
-            for address, events in snapshot.evaluation_history.items()
-        }
+        history = {address: list(events) for address, events in snapshot.evaluation_history.items()}
         now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         for op in plan.operations:
             if op.action == ChangeAction.DELETE:
@@ -368,22 +349,13 @@ class StubEvaluator:
         return dict(self._results)
 
     def history(self) -> dict[str, list[dict[str, object]]]:
-        return {
-            address: list(events)
-            for address, events in self._history.items()
-        }
+        return {address: list(events) for address, events in self._history.items()}
 
     def stop(self, snapshot: RuntimeSnapshot) -> ApplyResult:
         entries = {
-            address: entry
-            for address, entry in snapshot.entries.items()
-            if entry.domain != RuntimeDomain.EVALUATION
+            address: entry for address, entry in snapshot.entries.items() if entry.domain != RuntimeDomain.EVALUATION
         }
-        removed = [
-            address
-            for address, entry in snapshot.entries.items()
-            if entry.domain == RuntimeDomain.EVALUATION
-        ]
+        removed = [address for address, entry in snapshot.entries.items() if entry.domain == RuntimeDomain.EVALUATION]
         self._running = False
         self._startup_order = []
         self._results = {}

@@ -11,7 +11,6 @@ directories, CTF flag files.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -50,8 +49,8 @@ class Content(SDLModel):
     target: str = ""
     path: str = ""
     destination: str = ""
-    text: Optional[str] = None
-    source: Optional[Source] = None
+    text: str | None = None
+    source: Source | None = None
     format: str = ""
     items: list[ContentItem] = Field(default_factory=list)
     sensitive: bool | str = False
@@ -77,9 +76,7 @@ class Content(SDLModel):
             raise ValueError("File content requires 'path'")
 
         if self.type == ContentType.DATASET and not (self.source or self.items):
-            raise ValueError(
-                "Dataset content requires either 'source' or non-empty 'items'"
-            )
+            raise ValueError("Dataset content requires either 'source' or non-empty 'items'")
 
         if self.type == ContentType.DIRECTORY and not self.destination:
             raise ValueError("Directory content requires 'destination'")
