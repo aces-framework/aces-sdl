@@ -21,11 +21,14 @@ from aces_backend_protocols.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
-
-from .semantics.workflow import (
+from aces_contracts.versions import (
+    EVALUATION_STATE_SCHEMA_VERSION,
+    OPERATION_SCHEMA_VERSION,
+    RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
-    WorkflowStepSemanticContract,
 )
+
+from .semantics.workflow import WorkflowStepSemanticContract
 
 
 class RuntimeDomain(str, Enum):
@@ -34,11 +37,6 @@ class RuntimeDomain(str, Enum):
     PROVISIONING = "provisioning"
     ORCHESTRATION = "orchestration"
     EVALUATION = "evaluation"
-
-
-RUNTIME_SNAPSHOT_SCHEMA_VERSION = "runtime-snapshot/v1"
-OPERATION_SCHEMA_VERSION = "runtime-operation/v1"
-EVALUATION_STATE_SCHEMA_VERSION = "evaluation-result-state/v1"
 
 
 class ChangeAction(str, Enum):

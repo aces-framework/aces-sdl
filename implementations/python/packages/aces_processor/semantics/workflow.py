@@ -5,8 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-WORKFLOW_STATE_SCHEMA_VERSION = "workflow-step-state/v1"
-
 _OBSERVABLE_OUTCOMES_BY_STEP_TYPE: dict[str, tuple[str, ...]] = {
     "objective": ("succeeded", "failed"),
     "retry": ("succeeded", "exhausted"),
