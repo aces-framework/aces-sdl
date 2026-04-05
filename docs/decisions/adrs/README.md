@@ -1,8 +1,8 @@
 # Architecture Decision Records
 
 This directory contains Architecture Decision Records (ADRs) for the ACES SDL
-and runtime stack. ADRs capture significant architectural decisions along with
-their context, rationale, and consequences.
+ecosystem. ADRs capture significant architectural decisions along with their
+context, rationale, and consequences.
 
 ## Format
 
@@ -33,3 +33,5 @@ Each ADR includes:
 | [005](adr-005-control-flow-primitives.md) | Control Flow Primitives in the SDL | superseded by ADR-006 | 2026-04-01 |
 | [006](adr-006-workflow-control-language-redesign.md) | Workflow Control-Language Redesign | accepted | 2026-04-01 |
 | [007](adr-007-lightweight-formal-methods-policy.md) | Lightweight Formal Methods Policy for Semantic Systems | accepted | 2026-04-01 |
+| [008](adr-008-processor-layer-and-execution-artifact-boundaries.md) | Processor Layer and Execution Artifact Boundaries | accepted | 2026-04-04 |
+| [009](adr-009-normative-artifact-authority-and-repository-structure.md) | Normative Artifact Authority and Repository Structure | accepted | 2026-04-04 |
