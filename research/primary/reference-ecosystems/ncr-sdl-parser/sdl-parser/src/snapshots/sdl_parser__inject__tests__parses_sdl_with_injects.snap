@@ -1,0 +1,100 @@
+---
+source: sdl-parser/src/inject.rs
+expression: injects
+---
+name: test-scenario
+description: some description
+nodes: ~
+features: ~
+infrastructure: ~
+conditions:
+  condition-1:
+    name: ~
+    command: executable/path.sh
+    interval: 30
+    source: ~
+    description: ~
+    environment: ~
+vulnerabilities: ~
+metrics:
+  metric-1:
+    name: ~
+    type: Manual
+    artifact: true
+    max_score: 10
+    condition: ~
+    description: ~
+  metric-2:
+    name: ~
+    type: Conditional
+    artifact: ~
+    max_score: 10
+    condition: condition-1
+    description: ~
+evaluations:
+  evaluation-1:
+    name: ~
+    description: some description
+    metrics:
+      - metric-1
+      - metric-2
+    min_score:
+      absolute: ~
+      percentage: 50
+tlos:
+  tlo-1:
+    name: fungibly leverage client-focused e-tailers
+    description: we learn to make charts of web page stats
+    evaluation: evaluation-1
+entities:
+  blue-team:
+    name: The Blue Team
+    description: They defend from attacks and respond to incidents
+    role: Red
+    mission: Attack
+    categories: ~
+    vulnerabilities: ~
+    tlos: ~
+    events: ~
+    entities: ~
+  my-organization:
+    name: My Organization
+    description: This is my organization
+    role: White
+    mission: defend
+    categories:
+      - Foundation
+      - Organization
+    vulnerabilities: ~
+    tlos: ~
+    events: ~
+    entities: ~
+  red-team:
+    name: The Red Team
+    description: The Red Team attempts to penetrate the target organization
+    role: Red
+    mission: Attack
+    categories: ~
+    vulnerabilities: ~
+    tlos: ~
+    events: ~
+    entities: ~
+goals: ~
+injects:
+  my-cool-inject:
+    name: ~
+    source:
+      name: inject-package
+      version: "*"
+    from-entity: my-organization
+    to-entities:
+      - red-team
+      - blue-team
+    tlos:
+      - tlo-1
+    description: ~
+    environment: ~
+events: ~
+scripts: ~
+stories: ~
+

@@ -1,0 +1,49 @@
+mat-divider {
+    padding-bottom: 10px;
+    margin-top: 10px;
+}
+
+.bold-mat-divider {
+    border-top-width: 5px;
+    margin-bottom: 15px;
+}
+
+.question-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.relation-fields {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.question-in-relation {
+    display: flex;
+    flex-direction: row;
+    width: 500px;
+}
+
+.question-in-relation span {
+    width: auto;
+}
+
+.question-in-relation mat-icon {
+    margin-top: -3px;
+}
+
+.question-in-relation mat-icon {
+    margin-top: -3px;
+}
+
+::ng-deep div.mat-mdc-menu-panel {
+    min-width: 112px;
+    max-width: 700px;
+    overflow: auto;
+    max-height: calc(100vh - 48px);
+    border-radius: 4px;
+    outline: 0;
+}

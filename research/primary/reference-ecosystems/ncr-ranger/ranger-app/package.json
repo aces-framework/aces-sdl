@@ -1,0 +1,221 @@
+{
+  "name": "ranger-app",
+  "version": "2.2.2",
+  "private": true,
+  "dependencies": {
+    "@blueprintjs/core": "^5.6.0",
+    "@blueprintjs/datetime2": "^2.3.2",
+    "@blueprintjs/docs-theme": "^5.2.0",
+    "@blueprintjs/select": "^5.0.17",
+    "@monaco-editor/react": "^4.4.6",
+    "@open-cyber-range/wasm-sdl-parser": "^0.21.0",
+    "@popperjs/core": "^2.11.6",
+    "@react-keycloak/web": "^3.4.0",
+    "@reduxjs/toolkit": "^1.8.6",
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^13.0.0",
+    "@testing-library/user-event": "^13.2.1",
+    "@types/byte-size": "^8.0.0",
+    "@types/dompurify": "^3.0.5",
+    "@types/jest": "^27.0.1",
+    "@types/lodash.clonedeep": "^4.5.7",
+    "@types/luxon": "^3.3.0",
+    "@types/node": "^16.7.13",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "byte-size": "^8.1.1",
+    "chart.js": "^4.2.0",
+    "chartjs-adapter-luxon": "^1.3.1",
+    "chartjs-plugin-zoom": "^2.0.0",
+    "dompurify": "^3.0.6",
+    "human-interval": "^2.0.1",
+    "i18next": "^22.0.4",
+    "i18next-browser-languagedetector": "^7.0.0",
+    "keycloak-js": "^20.0.2",
+    "lodash.clonedeep": "^4.5.0",
+    "luxon": "^3.3.0",
+    "monaco-editor": "^0.44.0",
+    "nunjucks": "^3.2.3",
+    "re-resizable": "^6.9.11",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-datepicker": "^4.18.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.36.1",
+    "react-i18next": "^12.0.0",
+    "react-markdown": "^9.0.0",
+    "react-popper": "^2.3.0",
+    "react-redux": "^8.0.4",
+    "react-router-dom": "^6.4.1",
+    "remark-gfm": "^4.0.0",
+    "sort-by-property": "^1.2.4",
+    "tailwindcss": "^3.2.7",
+    "typescript": "^4.4.2",
+    "validator": "^13.11.0",
+    "web-vitals": "^2.1.0"
+  },
+  "resolutions": {
+    "string-width": "4.2.3"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
+    "lint": "xo"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8085",
+  "devDependencies": {
+    "@types/lodash": "^4.14.191",
+    "@types/nunjucks": "^3.2.2",
+    "@types/react-datepicker": "^4.15.0",
+    "@types/validator": "^13.11.2",
+    "@vitejs/plugin-react": "^3.1.0",
+    "autoprefixer": "^10.4.14",
+    "eslint-config-xo-react": "^0.27.0",
+    "eslint-plugin-import-newlines": "^1.2.3",
+    "eslint-plugin-no-relative-import-paths": "^1.4.0",
+    "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "postcss": "^8.4.21",
+    "vite": "^4.2.1",
+    "vite-plugin-env-compatible": "^1.1.1",
+    "vite-plugin-svgr": "^2.4.0",
+    "vite-plugin-wasm-pack": "0.1.11",
+    "vite-tsconfig-paths": "^4.0.5",
+    "xo": "^0.54"
+  },
+  "xo": {
+    "ignores": [
+      "tailwind.config.js",
+      "postcss.config.js"
+    ],
+    "space": true,
+    "plugins": [
+      "react",
+      "unused-imports",
+      "no-relative-import-paths",
+      "import-newlines"
+    ],
+    "extends": [
+      "plugin:react/recommended",
+      "plugin:react/jsx-runtime",
+      "xo-react"
+    ],
+    "rules": {
+      "camelcase": "error",
+      "import/extensions": [
+        "error",
+        "never",
+        {
+          "svg": "always",
+          "png": "always",
+          "jpg": "always"
+        }
+      ],
+      "n/prefer-global/process": [
+        "error",
+        "always"
+      ],
+      "n/file-extension-in-import": [
+        "error",
+        "never",
+        {
+          ".css": "always"
+        }
+      ],
+      "prefer-template": "error",
+      "unicorn/filename-case": [
+        "error",
+        {
+          "cases": {
+            "pascalCase": true
+          },
+          "ignore": [
+            ".test.",
+            ".ts"
+          ]
+        }
+      ],
+      "react/function-component-definition": [
+        2,
+        {
+          "namedComponents": "arrow-function"
+        }
+      ],
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "error",
+        {
+          "vars": "all",
+          "varsIgnorePattern": "^_",
+          "args": "after-used",
+          "argsIgnorePattern": "^_"
+        }
+      ],
+      "no-console": "error",
+      "no-relative-import-paths/no-relative-import-paths": [
+        "error",
+        {
+          "allowSameFolder": true
+        }
+      ],
+      "max-len": [
+        "error",
+        {
+          "code": 100
+        }
+      ],
+      "unicorn/no-array-reduce": "off",
+      "unicorn/no-array-callback-reference": "off",
+      "react/jsx-max-props-per-line": [
+        "error",
+        {
+          "maximum": {
+            "single": 4,
+            "multi": 1
+          }
+        }
+      ],
+      "import-newlines/enforce": [
+        "error",
+        4,
+        80
+      ],
+      "@typescript-eslint/naming-convention": [
+        "error",
+        {
+          "selector": "variable",
+          "modifiers": [
+            "const",
+            "exported",
+            "global"
+          ],
+          "types": [
+            "string",
+            "number"
+          ],
+          "format": [
+            "UPPER_CASE"
+          ]
+        }
+      ],
+      "no-plusplus": "error",
+      "prefer-const": "error",
+      "import/no-duplicates": "off",
+      "react/prefer-read-only-props": "off"
+    }
+  }
+}

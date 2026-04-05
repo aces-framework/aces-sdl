@@ -1,0 +1,211 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+env:
+  OCR_DEPLOYMENT_USER: ${{ secrets.OCR_DEPLOYMENT_USER }}
+  OCR_DEPLOYMENT_PASSWORD: ${{ secrets.OCR_DEPLOYMENT_PASSWORD }}
+  OCR_APT_REPOSITORY: ${{ vars.OCR_APT_REPOSITORY }}
+  OCR_PIP_REPOSITORY: ${{ vars.OCR_PIP_REPOSITORY }}
+  OCR_NPM_REPOSITORY: ${{ vars.OCR_NPM_REPOSITORY }}
+  DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+  OCR_GITHUB_TOKEN: ${{ secrets.OCR_GITHUB_TOKEN }}
+  PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+  OCR_CRATES_PUBLISH: ${{ secrets.OCR_CRATES_PUBLISH }}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint and test
+        run: |
+          cargo clippy -- -Dwarnings
+          cargo fmt -- --check
+          cargo tarpaulin --skip-clean
+
+  build-x86-64bit-windows-release:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build x86_64-pc-windows-gnu
+        run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3 # GHES is only supported in v3
+        with:
+          name: sdl-parser-x86_64-pc-windows-gnu
+          path: target/x86_64-pc-windows-gnu/release
+
+  build-and-upload-x86-64bit-linux-release:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo deb --no-build --target x86_64-unknown-linux-gnu -p sdl-parser-export
+          DEB_FILE=$(find ./target/x86_64-unknown-linux-gnu/debian/ -maxdepth 1 -type f -name "*.deb")
+          curl -u $OCR_DEPLOYMENT_USER:$OCR_DEPLOYMENT_PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary "@$DEB_FILE" $OCR_APT_REPOSITORY
+
+  build-and-upload-arm-64bit-linux-release:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload
+        run: |
+          cargo build --release --target aarch64-unknown-linux-gnu
+          LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):/usr/aarch64-linux-gnu/lib/ cargo deb --no-build --target aarch64-unknown-linux-gnu -p sdl-parser-export
+          DEB_FILE=$(find ./target/aarch64-unknown-linux-gnu/debian/ -maxdepth 1 -type f -name "*.deb")
+          curl -u $OCR_DEPLOYMENT_USER:$OCR_DEPLOYMENT_PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary "@$DEB_FILE" $OCR_APT_REPOSITORY
+
+  build-and-publish-npm-wrapper:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/node:lts
+    steps:
+      - name: Install Git and build tools
+        run: |
+          apt-get update
+          apt-get install -y git build-essential python3
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install node-gyp
+        run: |
+          yarn global add node-gyp
+
+      - name: Build and publish
+        run: |
+          cd node-package
+          yarn install --frozen-lockfile
+          { echo "$OCR_DEPLOYMENT_USER"; sleep 1; echo "$OCR_DEPLOYMENT_PASSWORD"; } | npm login --registry=$OCR_NPM_REPOSITORY
+          npm publish --registry=$OCR_NPM_REPOSITORY
+
+
+  build-and-publish-pip-wrapper:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/python:latest
+    steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install -y git
+
+      - name: Install Node.js
+        run: |
+          curl -sL https://deb.nodesource.com/setup_18.x | bash -
+          apt-get install -y nodejs
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and publish
+        run: |
+          cd python-package
+          python3 -m pip install --upgrade build
+          python3 -m build
+          pip install twine
+          twine upload -u $OCR_DEPLOYMENT_USER -p $OCR_DEPLOYMENT_PASSWORD  --repository-url $OCR_PIP_REPOSITORY  dist/*
+
+  build-and-publish-wasm-package:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare Environment
+        run: |
+          apt update && apt install -y jq
+          echo //registry.npmjs.org/:_authToken=$PUBLISH_TOKEN > ~/.npmrc
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Build and publish WASM package
+        run: |
+          cd wasm-sdl-parser/
+          wasm-pack build --target web --release
+          cd pkg/
+          jq '.name = "@open-cyber-range/wasm-sdl-parser"' package.json > tmp.file && mv tmp.file package.json
+          wasm-pack publish --access public
+
+  publish-crate-to-crateio:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and publish
+        run: |
+          cd sdl-parser/
+          cargo publish --token $OCR_CRATES_PUBLISH
+
+  sync-to-github:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/ocr-base-deployment-image:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: 'master'
+
+      - name: Setup GitHub Remote
+        run: |
+          git remote remove github || echo "No github remote found"
+          git remote add github https://$OCR_GITHUB_TOKEN@github.com/Open-Cyber-Range/SDL-parser.git
+
+      - name: Rebase and push to GitHub
+        run: |
+          git checkout -f master
+          git pull --rebase origin master
+          git push github master:main --force

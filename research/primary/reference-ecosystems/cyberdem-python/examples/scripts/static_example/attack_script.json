@@ -1,0 +1,11 @@
+{
+    "PhishingAttack": [
+        {"id": "86c75da8-8087-4216-9838-c60c36e61ac2", "message_type": "Email", "body": "Dear Administrator, Please install the attached critical update on your HMI.", "targets": ["74e5e909-765f-4542-b207-b4f0e6e09251"], "_type": "PhishingAttack"}
+    ],
+    "DataExfiltration": [
+        {"id": "e84ca7b3-e599-4346-9a12-f84dc1d2105f", "_type": "DataExfiltration", "targets": ["b0ee2f75-0b7e-44f6-a27d-2374700989e6"]}
+    ],
+    "ManipulationAttack": [
+        {"id": "e86d2d68-0ce7-46b4-b1fa-4baafe286bee", "targets": ["b0ee2f75-0b7e-44f6-a27d-2374700989e6"], "_type": "ManipulationAttack"}
+    ]
+}

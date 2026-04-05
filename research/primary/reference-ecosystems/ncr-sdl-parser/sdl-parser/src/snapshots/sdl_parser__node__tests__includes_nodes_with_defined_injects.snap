@@ -1,0 +1,63 @@
+---
+source: sdl-parser/src/node.rs
+expression: scenario
+---
+name: test-scenario
+description: some-description
+nodes:
+  win-10:
+    conditions: {}
+    description: ~
+    features: {}
+    injects:
+      inject-1: admin
+      inject-2: moderator
+    resources:
+      ram: 2147483648
+      cpu: 2
+    roles:
+      admin:
+        username: username
+        entities: ~
+      moderator:
+        username: name
+        entities: ~
+    source:
+      name: windows10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+features: ~
+infrastructure: ~
+conditions: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects:
+  inject-1:
+    name: ~
+    source:
+      name: dl-library
+      version: "*"
+    from-entity: ~
+    to-entities: ~
+    tlos: ~
+    description: ~
+    environment: ~
+  inject-2:
+    name: ~
+    source:
+      name: dl-library
+      version: "*"
+    from-entity: ~
+    to-entities: ~
+    tlos: ~
+    description: ~
+    environment: ~
+events: ~
+scripts: ~
+stories: ~
+

@@ -1,0 +1,27 @@
+---
+source: sdl-parser/src/entity.rs
+expression: entities
+---
+blue-team:
+  name: ~
+  description: ~
+  role: Blue
+  mission: ~
+  categories: ~
+  vulnerabilities: ~
+  tlos: ~
+  events:
+    - my-cool-event
+  entities:
+    blue-player:
+      name: ~
+      description: ~
+      role: Blue
+      mission: ~
+      categories: ~
+      vulnerabilities: ~
+      tlos: ~
+      events:
+        - my-other-cool-event
+      entities: ~
+

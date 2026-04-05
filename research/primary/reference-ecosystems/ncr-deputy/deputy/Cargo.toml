@@ -1,0 +1,66 @@
+[package]
+name = "deputy"
+description = "Deputy CLI tool to interact with deputy packages"
+version = "4.4.1"
+edition = "2021"
+
+[package.metadata.deb]
+name = "deputy"
+maintainer = "CR14 Developers <developers@cr14.ee>"
+copyright = "2022, CR14 <info@cr14.ee>"
+license-file = ["../LICENSE", "4"]
+extended-description = """\
+Deputy CLI tool to interact with deputy packages."""
+section = "utility"
+priority = "optional"
+assets = [
+  [
+    "target/release/deputy",
+    "/var/opt/deputy/bin/",
+    "755",
+  ],
+  [
+    "assets/deputy",
+    "/usr/bin/",
+    "755",
+  ],
+]
+
+[dependencies]
+actix = "0.13"
+actix-rt = "2"
+anyhow = "1"
+awc = { version = "3", features = ["rustls"] }
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+colored = "2"
+deputy-library = { path = "../deputy-library", default-features = false }
+dialoguer = "0.11"
+human_bytes = "0.4"
+futures = "0.3"
+indicatif = "0.17"
+lazy_static = "1"
+log = "0.4"
+qstring = "0.7"
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["fs"], default-features = false }
+toml = "0.8"
+url = "2"
+
+[dev-dependencies]
+actix-web = "4"
+actix-test = "0.1"
+assert_cmd = "2"
+deputy-library = { path = "../deputy-library", features = ["test"] }
+deputy-package-server = { path = "../deputy-package-server", features = [
+  "test",
+] }
+futures = "0.3"
+insta = "1"
+predicates = "3"
+rand = "0.8"
+tempfile = "3"
+tokio = { version = "1", features = ["fs", "time"], default-features = false }

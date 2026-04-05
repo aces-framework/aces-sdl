@@ -1,0 +1,64 @@
+<div class="content">
+    <div class="panel-wrapper">
+        <div class="left-panel">
+            <!--CONTENT field -->
+            <h3>Content</h3>
+            <sentinel-markdown-editor
+                class="mrkdwn-content"
+                [sentinel-markdown-file-upload]="false"
+                [content]="task.content"
+            />
+
+            <!--SOLUTION field -->
+            <h3>Solution</h3>
+            <sentinel-markdown-editor
+                class="mrkdwn-solution"
+                [sentinel-markdown-file-upload]="false"
+                [content]="task.solution"
+            />
+        </div>
+
+        <div class="right-panel">
+            <!-- TITLE filed -->
+            <mat-form-field
+                appearance="outline">
+                <mat-label>Title</mat-label>
+                <input
+                    matInput
+                    placeholder="Title"
+                    [disabled]="true"
+                    [value]="task.title"
+                />
+            </mat-form-field>
+
+            <!-- INCORRECT ANSWER LIMIT field -->
+            <mat-form-field
+                appearance="outline">
+                <mat-label>Incorrect Answer Limit</mat-label>
+                <input
+                    matInput
+                    placeholder="Incorrect Answer Limit"
+                    [disabled]="true"
+                    [value]="task.incorrectAnswerLimit"
+                />
+            </mat-form-field>
+
+            <!-- ANSWER field -->
+            <mat-form-field
+                appearance="outline">
+                <mat-label>Correct Answer</mat-label>
+                <input
+                    matInput
+                    placeholder="Correct Answer"
+                    [disabled]="true"
+                    [value]="task.incorrectAnswerLimit"
+                />
+            </mat-form-field>
+
+            <div class="modify-sandbox">
+                <span>Modify sandbox: </span>
+                <mat-slide-toggle [disabled]="true" [checked]="task.modifySandbox" />
+            </div>
+        </div>
+    </div>
+</div>

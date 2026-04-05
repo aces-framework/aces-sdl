@@ -1,0 +1,16 @@
+<div class="phase">
+    <div class="content">
+        <!-- TITLE filed -->
+        <mat-form-field appearance="outline">
+            <mat-label>Title</mat-label>
+            <input matInput placeholder="Title" [disabled]="true" [value]="phase.title">
+        </mat-form-field>
+
+        <!-- CONTENT filed -->
+        <h3>Content</h3>
+        <sentinel-markdown-editor
+            [sentinel-markdown-file-upload]="false"
+            [content]="phase.content"
+        />
+    </div>
+</div>

@@ -1,0 +1,156 @@
+{
+    "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+    "version": 1,
+    "newProjectRoot": "projects",
+    "projects": {
+        "adaptive-instance-simulator": {
+            "projectType": "library",
+            "root": "projects/adaptive-instance-simulator",
+            "sourceRoot": "projects/adaptive-instance-simulator",
+            "prefix": "crczp",
+            "architect": {
+                "build": {
+                    "builder": "@angular-devkit/build-angular:ng-packagr",
+                    "options": {
+                        "tsConfig": "projects/adaptive-instance-simulator/tsconfig.lib.json",
+                        "project": "projects/adaptive-instance-simulator/ng-package.json"
+                    },
+                    "configurations": {
+                        "production": {
+                            "tsConfig": "projects/adaptive-instance-simulator/tsconfig.lib.prod.json"
+                        },
+                        "development": {}
+                    },
+                    "defaultConfiguration": "production"
+                },
+                "lint": {
+                    "builder": "@angular-eslint/builder:lint",
+                    "options": {
+                        "lintFilePatterns": [
+                            "projects/adaptive-instance-simulator/**/*.ts",
+                            "projects/adaptive-instance-simulator/**/*.html"
+                        ]
+                    }
+                }
+            }
+        },
+        "adaptive-instance-simulator-example-app": {
+            "projectType": "application",
+            "schematics": {
+                "@schematics/angular:application": {
+                    "strict": true
+                }
+            },
+            "root": "projects/adaptive-instance-simulator-example-app",
+            "sourceRoot": "projects/adaptive-instance-simulator-example-app/src",
+            "prefix": "app",
+            "architect": {
+                "build": {
+                    "builder": "@angular-devkit/build-angular:browser",
+                    "options": {
+                        "outputPath": "dist/adaptive-instance-simulator-example-app",
+                        "index": "projects/adaptive-instance-simulator-example-app/src/index.html",
+                        "main": "projects/adaptive-instance-simulator-example-app/src/main.ts",
+                        "polyfills": "projects/adaptive-instance-simulator-example-app/src/polyfills.ts",
+                        "tsConfig": "projects/adaptive-instance-simulator-example-app/tsconfig.app.json",
+                        "assets": [
+                            {
+                                "glob": "**/*",
+                                "input": "node_modules/@crczp/theme/assets",
+                                "output": "assets/"
+                            }
+                        ],
+                        "styles": [
+                            "node_modules/@crczp/theme/theming/apply-all.scss"
+                        ],
+                        "scripts": [],
+                        "vendorChunk": true,
+                        "extractLicenses": false,
+                        "buildOptimizer": false,
+                        "sourceMap": true,
+                        "optimization": false,
+                        "namedChunks": true
+                    },
+                    "configurations": {
+                        "production": {
+                            "fileReplacements": [
+                                {
+                                    "replace": "projects/adaptive-instance-simulator-example-app/src/environments/environment.ts",
+                                    "with": "projects/adaptive-instance-simulator-example-app/src/environments/environment.prod.ts"
+                                }
+                            ],
+                            "optimization": true,
+                            "outputHashing": "all",
+                            "sourceMap": false,
+                            "namedChunks": false,
+                            "extractLicenses": true,
+                            "vendorChunk": false,
+                            "buildOptimizer": true,
+                            "budgets": [
+                                {
+                                    "type": "initial",
+                                    "maximumWarning": "2mb",
+                                    "maximumError": "5mb"
+                                },
+                                {
+                                    "type": "anyComponentStyle",
+                                    "maximumWarning": "6kb",
+                                    "maximumError": "10kb"
+                                }
+                            ]
+                        },
+                        "local": {
+                            "budgets": [
+                                {
+                                    "type": "anyComponentStyle",
+                                    "maximumWarning": "6kb"
+                                }
+                            ],
+                            "fileReplacements": [
+                                {
+                                    "replace": "projects/adaptive-instance-simulator-example-app/src/environments/environment.ts",
+                                    "with": "projects/adaptive-instance-simulator-example-app/src/environments/environment.local.ts"
+                                }
+                            ]
+                        }
+                    },
+                    "defaultConfiguration": ""
+                },
+                "serve": {
+                    "builder": "@angular-devkit/build-angular:dev-server",
+                    "options": {
+                        "buildTarget": "adaptive-instance-simulator-example-app:build"
+                    },
+                    "configurations": {
+                        "production": {
+                            "buildTarget": "adaptive-instance-simulator-example-app:build:production"
+                        },
+                        "local": {
+                            "buildTarget": "adaptive-instance-simulator-example-app:build:local"
+                        }
+                    }
+                },
+                "lint": {
+                    "builder": "@angular-eslint/builder:lint",
+                    "options": {
+                        "lintFilePatterns": [
+                            "projects/adaptive-instance-simulator-example-app/src/app/visualizations/**/*.ts",
+                            "projects/adaptive-instance-simulator-example-app/**/*.component.html"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "schematics": {
+        "@angular-eslint/schematics:application": {
+            "setParserOptionsProject": true
+        },
+        "@angular-eslint/schematics:library": {
+            "setParserOptionsProject": true
+        }
+    },
+    "cli": {
+        "analytics": false
+    }
+}

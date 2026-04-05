@@ -1,0 +1,36 @@
+{
+  "uid": 2,
+  "caption": "Kernel Extension Activity",
+  "description": "Kernel Extension events report when a driver/extension is loaded or unloaded into the kernel",
+  "extends": "system",
+  "name": "kernel_extension_activity",
+  "attributes": {
+    "activity_id": {
+      "enum": {
+        "1": {
+          "caption": "Load",
+          "description": "A driver/extension was loaded into the kernel"
+        },
+        "2": {
+          "caption": "Unload",
+          "description": "A driver/extension was unloaded (removed) from the kernel"
+        }
+      }
+    },
+    "actor": {
+      "description": "The actor process that loaded or unloaded the driver/extension.",
+      "requirement": "required",
+      "profile": null
+    },
+    "driver": {
+      "group": "primary",
+      "requirement": "required"
+    }
+  },
+  "references": [
+    {
+      "description": "D3FEND™ Ontology d3f:KernelModuleEvent",
+      "url": "https://d3fend.mitre.org/event/d3f:KernelModuleEvent/"
+    }
+  ]
+}

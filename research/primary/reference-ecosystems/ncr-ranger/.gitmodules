@@ -1,0 +1,3 @@
+[submodule "ranger-grpc"]
+	path = ranger-grpc/grpc-proto
+	url = ../ranger-grpc.git

@@ -1,0 +1,51 @@
+[package]
+name = "sdl-parser-export"
+version = "0.21.2"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sdl_parser"
+crate-type = ["cdylib"]
+
+[package.metadata.deb]
+name = "libsdl-parser"
+maintainer = "CR14 Developers <developers@c14.ee>"
+copyright = "2022, CR14 <info@cr14.ee>"
+license-file = ["../LICENSE", "4"]
+extended-description = """\
+Parser library for Scenario Defined Language (SDL)"""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+  [
+    "target/release/libsdl_parser.so",
+    "/usr/lib/sdl-parser/",
+    "755",
+  ],
+  [
+    "target/release/sdl_parser.h",
+    "/usr/include/sdl-parser/",
+    "644",
+  ],
+  [
+    "assets/sdl-parser.conf",
+    "/etc/ld.so.conf.d/",
+    "644",
+  ],
+]
+maintainer-scripts = "assets/maintainer-scripts"
+triggers-file = "assets/sdl-parser.triggers"
+
+[dependencies]
+anyhow = "1"
+sdl-parser = { path = "../sdl-parser" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libc = "0.2"
+
+[build-dependencies]
+cbindgen = "0.24"

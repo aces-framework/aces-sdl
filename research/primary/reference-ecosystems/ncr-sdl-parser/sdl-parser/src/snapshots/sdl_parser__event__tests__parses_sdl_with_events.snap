@@ -1,0 +1,48 @@
+---
+source: sdl-parser/src/event.rs
+expression: schema
+---
+name: test-scenario
+description: some description
+nodes: ~
+features: ~
+infrastructure: ~
+conditions:
+  condition-1:
+    name: ~
+    command: executable/path.sh
+    interval: 30
+    source: ~
+    description: ~
+    environment: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects:
+  my-cool-inject:
+    name: ~
+    source:
+      name: inject-package
+      version: "*"
+    from-entity: ~
+    to-entities: ~
+    tlos: ~
+    description: ~
+    environment: ~
+events:
+  my-cool-event:
+    name: ~
+    source:
+      name: event-package
+      version: "*"
+    conditions:
+      - condition-1
+    injects:
+      - my-cool-inject
+    description: ~
+scripts: ~
+stories: ~
+

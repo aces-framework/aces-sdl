@@ -1,0 +1,33 @@
+---
+source: sdl-parser/src/node.rs
+expression: node
+---
+Node {
+    type_field: VM(
+        VM {
+            source: None,
+            _source_helper: None,
+            resources: Resources {
+                ram: 2000000000,
+                cpu: 2,
+            },
+            features: {},
+            conditions: {},
+            injects: {
+                "inject-1": "admin",
+            },
+            vulnerabilities: [],
+            _roles_helper: Some(
+                MixedRoles(
+                    {
+                        "admin": Username(
+                            "username",
+                        ),
+                    },
+                ),
+            ),
+            roles: None,
+        },
+    ),
+    description: None,
+}

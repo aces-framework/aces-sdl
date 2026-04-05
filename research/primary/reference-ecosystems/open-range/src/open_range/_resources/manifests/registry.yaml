@@ -1,0 +1,31 @@
+families:
+  tier1_basic:
+    display_name: "Tier 1 Basic"
+    manifest: tier1_basic.yaml
+    description: "Small healthcare SaaS example with balanced red and blue objectives."
+    tags: [tier-1, healthcare, baseline]
+    target_red_path_depth: 4
+  tier1_hard:
+    display_name: "Tier 1 Hard"
+    manifest: tier1_hard.yaml
+    description: "Higher-noise healthcare variant with deeper red objectives."
+    tags: [tier-1, healthcare, hard]
+    target_red_path_depth: 6
+  tier2_corporate:
+    display_name: "Tier 2 Corporate"
+    manifest: tier2_corporate.yaml
+    description: "Finance back-office variant with denser identity and document surfaces."
+    tags: [tier-2, finance, corporate]
+    target_red_path_depth: 8
+  tier2_hard:
+    display_name: "Tier 2 Hard"
+    manifest: tier2_hard.yaml
+    description: "Harder finance variant with more users, assets, and reactive pressure."
+    tags: [tier-2, finance, hard]
+    target_red_path_depth: 10
+  tier3_enterprise:
+    display_name: "Tier 3 Enterprise"
+    manifest: tier3_enterprise.yaml
+    description: "Largest checked-in example with enterprise collaboration workflows."
+    tags: [tier-3, enterprise]
+    target_red_path_depth: 14

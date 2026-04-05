@@ -1,0 +1,13 @@
+<svg:g
+    *ngFor="let playerData of playersTransitions; index as i; trackBy: trackByTrainingRunId"
+    class="trainee-{{ playerData.trainee.id }}-transitions"
+>
+    <svg:g
+        training-run-transitions
+        [playerTransitions]="playerData"
+        [xScale]="xScale"
+        [yScale]="yScale"
+        [color]="colorScale(i)"
+        (taskPreviewEvent)="onTaskPreviewChange($event)"
+    ></svg:g>
+</svg:g>

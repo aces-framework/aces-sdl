@@ -1,0 +1,38 @@
+---
+source: sdl-parser/src/node.rs
+expression: scenario
+---
+name: test-scenario
+description: some-description
+nodes:
+  win-10:
+    conditions: {}
+    description: ~
+    features: {}
+    injects: {}
+    resources:
+      ram: 34359738368
+      cpu: 2
+    roles:
+      admin:
+        username: admin
+        entities: ~
+    source:
+      name: windows10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+features: ~
+infrastructure: ~
+conditions: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects: ~
+events: ~
+scripts: ~
+stories: ~
+

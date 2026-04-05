@@ -1,0 +1,26 @@
+---
+source: sdl-parser/src/infrastructure.rs
+expression: infrastructure
+snapshot_kind: text
+---
+ubuntu-10:
+  name: ~
+  count: 5
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: ~
+windows-10-vuln-1:
+  name: ~
+  count: 10
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: ~
+windows-10-vuln-2:
+  name: ~
+  count: 10
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: ~

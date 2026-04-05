@@ -1,0 +1,7 @@
+<crczp-performance-simulator [phase]="inspectedPhase"
+                            [relatedPhases]="relatedTrainingPhases"
+                            (matrixChange)="updateTransition($event)"
+                            (startGenerate)="generate()">
+</crczp-performance-simulator>
+<mat-divider/>
+<crczp-pathway-simulator [transitionData]="traineesSimulatedPath"/>

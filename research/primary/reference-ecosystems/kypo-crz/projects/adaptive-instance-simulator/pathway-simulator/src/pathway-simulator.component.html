@@ -1,0 +1,10 @@
+<div class="transition-container">
+    <h2>Trainee Pathway Simulation</h2>
+    <div *ngIf="(transitionData && transitionData.trainingRunsData.length > 0) else noGenerate">
+        <crczp-adaptive-transition-visualization
+            [transitionData]="transitionData"/>
+    </div>
+    <ng-template #noGenerate>
+        <p>*Click Generate to start generation of trainee path.</p>
+    </ng-template>
+</div>

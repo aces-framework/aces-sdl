@@ -1,0 +1,1 @@
+ALTER TABLE deployment_elements DROP COLUMN error_message;

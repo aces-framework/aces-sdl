@@ -1,0 +1,26 @@
+host: localhost
+port: 8085
+deployers:
+  my-machiner-deployer: http://ranger-vmware-machiner:9999
+  my-switch-deployer: http://ranger-vmware-switcher:9998
+  my-template-deployer: http://ranger-vmware-templater:9997
+  my-executor-deployer: http://ranger-vmware-executor:9996
+  my-general-deployer: http://ranger-vmware-general:9995
+
+default_deployment_group: my-cool-group
+deployment_groups:
+  my-cool-group:
+    - my-machiner-deployer
+    - my-switch-deployer
+    - my-template-deployer
+    - my-executor-deployer
+    - my-general-deployer
+database_url: mysql://mysql_user:mysql_pass@mariadb:3306/ranger
+file_storage_path: /etc/opt/ranger/files
+keycloak:
+  base_url: http://development-keycloak:8080
+  realm: OCR
+  client_id: exercise-client
+  client_secret: oSeKTkRNcabbj6cc4PlwpEcRoshWYC8y
+  authentication_pem_content: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuZ93I6qDRnVOENLIsunn4vfExdSEPOy0nEE9gWl/bx6pvug+izqsWfx9XDMRQN/A5AfiSemQ2TvJQch+IZxo46me3Ft3fcfutgiCZTVTT1P5UxP/EBHMl2ifHLmXxBvjq8cJs6E3cXiQgM1tJIwi1SBoL0p8XiJZbho+sNlm0grroqZxpvZ0T4puWs6toFZFU2J6gTtw8NdQhWgxGAx34CWxLJgL5nz0DFPJFF0IAwnYN1QBJhObJMQzBsS4lx05PEGbDN5b+TMAwuf4OMkkauo0OdylOzRId1TIVvrX+cY30U/NOMFxbNMrBz3H9qZJxHdTtNfwp4lEsVfDmodfLwIDAQAB
+logger: ranger.log

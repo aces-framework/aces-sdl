@@ -1,0 +1,13 @@
+#! /bin/sh
+set -e
+
+ACTION=$1
+case $ACTION in
+
+  install)
+    mkdir -p /var/opt/deputy/deputy-package-server/package
+    mkdir -p /var/opt/deputy/deputy-package-server/repository
+    ;;
+esac
+
+#DEBHELPER#

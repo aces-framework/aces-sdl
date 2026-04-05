@@ -1,0 +1,71 @@
+mat-panel-description {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.default-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.phases-header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    width: 100%;
+    margin-top: 35px;
+}
+
+.phases-info {
+    color: rgba(0, 0, 0, .54);
+}
+
+.form-container {
+    display: flex;
+    flex-direction: row;
+}
+
+.left-col {
+    display: flex;
+    width: 50%;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.right-col {
+    display: flex;
+    width: 50%;
+    padding: 20px;
+    flex-direction: column;
+}
+
+.form-line {
+    margin-bottom: 30px;
+}
+
+.form-line-content {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+}
+
+.form-line-content p {
+    color: grey;
+}
+
+.spacer {
+    flex: 1 1 0;
+}
+
+@media screen and (max-width: 900px) {
+    .form-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .left-col, .right-col {
+        width: 90%;
+    }
+}

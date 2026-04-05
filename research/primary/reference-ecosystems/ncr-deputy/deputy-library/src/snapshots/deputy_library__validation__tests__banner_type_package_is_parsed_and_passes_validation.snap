@@ -1,0 +1,16 @@
+---
+source: deputy-library/src/validation.rs
+expression: project
+---
+[package]
+name = 'my-cool-condition'
+description = 'description'
+version = '1.0.0'
+license = 'Apache-2.0'
+readme = 'readme.md'
+
+[content]
+type = 'Banner'
+
+[banner]
+file_path = 'banner.md'

@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: it.csec.xtext.vsdl.ide
+Bundle-Vendor: My Company
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: it.csec.xtext.vsdl.ide; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: it.csec.xtext.vsdl,
+ org.eclipse.xtext.ide,
+ org.eclipse.xtext.xbase.ide,
+ org.antlr.runtime
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Export-Package: it.csec.xtext.ide.contentassist.antlr.internal,
+ it.csec.xtext.ide.contentassist.antlr
+

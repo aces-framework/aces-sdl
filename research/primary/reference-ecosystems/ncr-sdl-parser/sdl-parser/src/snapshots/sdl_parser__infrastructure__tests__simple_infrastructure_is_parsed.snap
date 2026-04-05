@@ -1,0 +1,19 @@
+---
+source: sdl-parser/src/infrastructure.rs
+expression: infrastructure
+snapshot_kind: text
+---
+debian-2:
+  name: ~
+  count: 4
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: A Debian server
+windows-10-vuln-1:
+  name: ~
+  count: 10
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: A vulnerable Windows 10 machine

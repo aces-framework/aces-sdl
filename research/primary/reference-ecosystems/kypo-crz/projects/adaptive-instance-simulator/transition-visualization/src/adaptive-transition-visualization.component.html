@@ -1,0 +1,5 @@
+<div class="container" *ngIf="(data$ | async) !== null">
+    <crczp-adaptive-transition-visualization-wrapper
+        [data]="data$ | async"
+    />
+</div>

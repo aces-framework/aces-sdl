@@ -1,0 +1,62 @@
+{
+  "uid": 1,
+  "caption": "Network Activity",
+  "description": "Network Activity events report network connection and traffic activity.",
+  "extends": "network",
+  "name": "network_activity",
+  "attributes": {
+    "activity_id": {
+      "enum": {
+        "1": {
+          "caption": "Open",
+          "description": "A new network connection was opened."
+        },
+        "2": {
+          "caption": "Close",
+          "description": "The network connection was closed."
+        },
+        "3": {
+          "caption": "Reset",
+          "description": "The network connection was abnormally terminated or closed by a middle device like firewalls."
+        },
+        "4": {
+          "caption": "Fail",
+          "description": "The network connection failed. For example a connection timeout or no route to host."
+        },
+        "5": {
+          "caption": "Refuse",
+          "description": "The network connection was refused. For example an attempt to connect to a server port which is not open."
+        },
+        "6": {
+          "caption": "Traffic",
+          "description": "Network traffic report."
+        },
+        "7": {
+          "caption": "Listen",
+          "description": "A network endpoint began listening for new network connections."
+        }
+      }
+    },
+    "dst_endpoint": {
+      "description": "The responder of the network connection. In some contexts an event source cannot correctly identify the responder. Refer to <code>is_src_dst_assignment_known</code> for certainty."
+    },
+    "is_src_dst_assignment_known": {
+      "group": "primary",
+      "requirement": "recommended"
+    },
+    "src_endpoint": {
+      "description": " The initiator of the network connection. In some contexts an event source cannot correctly identify the initiator. Refer to <code>is_src_dst_assignment_known</code> for certainty."
+    },
+    "url": {
+      "description": "The URL details relevant to the network traffic.",
+      "group": "primary",
+      "requirement": "recommended"
+    }
+  },
+  "references": [
+    {
+      "description": "D3FEND™ Ontology d3f:NetworkConnectionEvent",
+      "url": "https://d3fend.mitre.org/event/d3f:NetworkConnectionEvent/"
+    }
+  ]
+}

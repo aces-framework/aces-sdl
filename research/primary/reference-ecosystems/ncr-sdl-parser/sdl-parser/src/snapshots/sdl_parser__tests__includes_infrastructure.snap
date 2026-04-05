@@ -1,0 +1,20 @@
+---
+source: sdl-parser/src/lib.rs
+expression: infrastructure
+snapshot_kind: text
+---
+deb10:
+  name: ~
+  count: 3
+  links: ~
+  dependencies: ~
+  properties: ~
+  description: ~
+win10:
+  name: ~
+  count: 10
+  links: ~
+  dependencies:
+    - deb10
+  properties: ~
+  description: ~

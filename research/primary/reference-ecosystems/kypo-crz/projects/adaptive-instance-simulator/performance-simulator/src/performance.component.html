@@ -1,0 +1,97 @@
+<div class="simulator-content">
+    <form [formGroup]="performanceFormGroup.formGroup">
+        <h2>Trainee Performance</h2>
+        <div class="matrix-container">
+            <div class="generate-container">
+                <button mat-raised-button
+                        color="primary"
+                        [disabled]="!performanceFormGroup.formGroup.dirty || performanceFormGroup.formGroup.invalid"
+                        (click)="generate()">Generate
+                </button>
+            </div>
+            <table formArrayName="performanceMatrix">
+                <tr class="row-header">
+                    <td matTooltip="Specify whether the Questionnaire was Answered correctly or not">
+                        <div class="matrix-content">
+                            <p>Questionnaire</p>
+                            <p>Answered</p>
+                        </div>
+                    </td>
+                    <td matTooltip="Specify how much time it took the trainee to complete this phase">
+                        <div class="matrix-content">
+                            <p>Completion</p>
+                            <p>Time</p>
+                        </div>
+                    </td>
+                    <td matTooltip="Specify how many commands trainee used">
+                        <div class="matrix-content">
+                            <p>Commands</p>
+                            <p>Used</p>
+                        </div>
+                    </td>
+                    <td matTooltip="State whether the solution was displayed or not">
+                        <div class="matrix-content">
+                            <p>Solution</p>
+                            <p>Displayed</p>
+                        </div>
+                    </td>
+                    <td matTooltip="Specify how many solutions have trainee tried to submit">
+                        <div class="matrix-content">
+                            <p>Submitted</p>
+                            <p>Answers</p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="matrix-content" matTooltip="Phase for which the metrics are being filled">
+                            <p>Related</p>
+                            <p>Phase</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr *ngFor="let rowGroup of decisionMatrixRows.controls; index as i;" [formGroupName]="i">
+                    <td>
+                        <div class="cell-content">
+                            <mat-checkbox color="primary" formControlName="questionnaireAnswered"/>
+                        </div>
+                    </td>
+                    <td>
+                        <mat-form-field class="matrix-field" appearance="outline"
+                                        matTooltip="Time is measured in minutes">
+                            <input type="number" matInput formControlName="completionTime" required>
+                            <mat-error *ngIf="rowGroup.get('completionTime').hasError('required')">Empty</mat-error>
+                            <mat-error *ngIf="rowGroup.get('completionTime').hasError('min')">Negative</mat-error>
+                        </mat-form-field>
+                    </td>
+                    <td>
+                        <mat-form-field class="matrix-field" appearance="outline">
+                            <input type="number" matInput formControlName="commandsEntered" required placeholder=0>
+                            <mat-error *ngIf="rowGroup.get('commandsEntered').hasError('required')">Empty</mat-error>
+                            <mat-error *ngIf="rowGroup.get('commandsEntered').hasError('min')">Negative</mat-error>
+                        </mat-form-field>
+                    </td>
+                    <td>
+                        <div class="solution-displayed">
+                            <mat-checkbox color="primary" formControlName="solutionDisplayed"/>
+                        </div>
+                    </td>
+                    <td>
+                        <mat-form-field class="matrix-field" appearance="outline">
+                            <input type="number" matInput formControlName="wrongAnswers" required placeholder=0>
+                            <mat-error *ngIf="rowGroup.get('wrongAnswers').hasError('required')">Empty</mat-error>
+                            <mat-error *ngIf="rowGroup.get('wrongAnswers').hasError('min')">Negative</mat-error>
+                        </mat-form-field>
+                    </td>
+                    <td>
+                        <div *ngIf="relatedPhases.length > 0" class="related-phase-text">
+                <span *ngIf="i < decisionMatrixRows.controls.length - 1">
+                  {{ relatedPhases[i].order + 1 }}. {{ relatedPhases[i].title }}
+                </span>
+                            <span *ngIf="i === decisionMatrixRows.controls.length - 1"> {{ phase.order + 1 }}
+                                . {{ phase.title }} </span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</div>

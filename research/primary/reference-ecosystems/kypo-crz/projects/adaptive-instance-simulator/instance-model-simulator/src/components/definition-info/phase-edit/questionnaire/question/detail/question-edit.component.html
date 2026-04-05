@@ -1,0 +1,23 @@
+<mat-card appearance="outlined">
+    <mat-card-header>
+        <mat-card-title>
+            <h3>Question {{ index + 1 }}: {{ question.text }}</h3>
+        </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <ng-container [ngSwitch]="true">
+            <crczp-adaptive-multiple-choice-question-edit *ngSwitchCase="question.questionType === questionTypes.MCQ"
+                                                          [questionnaireType]="questionnaireType"
+                                                          [question]="question">
+            </crczp-adaptive-multiple-choice-question-edit>
+            <crczp-adaptive-free-form-question-edit *ngSwitchCase="question.questionType === questionTypes.FFQ"
+                                                    [questionnaireType]="questionnaireType"
+                                                    [question]="question">
+            </crczp-adaptive-free-form-question-edit>
+            <crczp-rating-form-question-edit *ngSwitchCase="question.questionType === questionTypes.RFQ"
+                                             [questionnaireType]="questionnaireType"
+                                             [question]="question">
+            </crczp-rating-form-question-edit>
+        </ng-container>
+    </mat-card-content>
+</mat-card>

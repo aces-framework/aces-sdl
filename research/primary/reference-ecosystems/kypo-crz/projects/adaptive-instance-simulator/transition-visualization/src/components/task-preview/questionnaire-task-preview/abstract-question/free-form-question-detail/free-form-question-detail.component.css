@@ -1,0 +1,25 @@
+.data-field {
+    display: flex;
+    flex-direction: row;
+}
+
+h3 {
+    margin: 0;
+}
+
+.correct-choice {
+    text-align: center;
+}
+
+.question-type {
+    vertical-align: bottom;
+}
+
+mat-icon {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

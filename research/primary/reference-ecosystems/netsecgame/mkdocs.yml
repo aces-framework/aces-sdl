@@ -1,0 +1,40 @@
+site_name: Network Security Game
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Configuration: configuration.md
+  - Documentation: 
+    - game_components.md
+    - agent_server.md
+    - configuration_manager.md
+    - config_parser.md
+    - game_coordinator.md
+    - worlds:
+      - NetSecGame.md
+      - WhiteBoxNetSecGame.md
+      
+
+plugins:
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            heading_level: 2
+            show_root_heading: true
+            show_signature: false
+            show_source: true
+            members_order: alphabetical
+            merge_init_into_class: true
+            filters: []
+markdown_extensions:
+  - pymdownx.arithmatex
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - admonition
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

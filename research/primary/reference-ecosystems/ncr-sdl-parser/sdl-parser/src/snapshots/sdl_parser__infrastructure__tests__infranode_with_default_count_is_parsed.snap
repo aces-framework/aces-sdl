@@ -1,0 +1,22 @@
+---
+source: sdl-parser/src/infrastructure.rs
+expression: infra_node
+snapshot_kind: text
+---
+InfraNode {
+    name: None,
+    count: 1,
+    links: Some(
+        [
+            "switch-1",
+        ],
+    ),
+    dependencies: Some(
+        [
+            "windows-10",
+            "windows-10-vuln-1",
+        ],
+    ),
+    properties: None,
+    description: None,
+}

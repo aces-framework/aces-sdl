@@ -1,0 +1,29 @@
+[package]
+name = "sdl-parser"
+version = "0.21.2"
+edition = "2021"
+license = "MIT"
+description = "The SDL parser is a Rust tool designed for parsing Scenario Defined Language files."
+homepage = "https://documentation.opencyberrange.ee"
+documentation = "https://documentation.opencyberrange.ee/docs/category/sdl-parser"
+keywords = ["OpenCyberRange", "parser"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+bytesize = { version = "1", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+depper = "0.4"
+lazy_static = { version = "1.4" }
+insta = { version = "1", features = ["yaml"] }
+duration-str = "0.7"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde-aux = "4"
+serde_yaml = "0.9"
+ipnetwork = "0.20.0"
+
+[features]
+default = []
+test = []

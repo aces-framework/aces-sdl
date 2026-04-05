@@ -1,0 +1,9 @@
+---
+source: sdl-parser/src/training_learning_objective.rs
+expression: tlos
+---
+tlo-1:
+  name: ~
+  description: some description
+  evaluation: evaluation-1
+

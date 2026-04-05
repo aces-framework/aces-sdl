@@ -1,0 +1,22 @@
+---
+source: sdl-parser/src/library_item.rs
+expression: library_items
+---
+[
+    LibraryItem {
+        name: "basic-windows10",
+        version: "1.0",
+    },
+    LibraryItem {
+        name: "debian10",
+        version: "1.2.4",
+    },
+    LibraryItem {
+        name: "windows10",
+        version: "*",
+    },
+    LibraryItem {
+        name: "windows10-template",
+        version: "*",
+    },
+]

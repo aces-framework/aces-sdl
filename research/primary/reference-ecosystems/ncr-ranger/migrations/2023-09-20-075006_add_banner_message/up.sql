@@ -1,0 +1,9 @@
+CREATE TABLE banners(
+    exercise_id BINARY(16) NOT NULL,
+    name TINYTEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (exercise_id),
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+);

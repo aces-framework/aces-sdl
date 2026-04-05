@@ -1,0 +1,21 @@
+---
+source: sdl-parser/src/lib.rs
+expression: parsed_schema
+---
+name: test-scenario
+description: ~
+nodes: ~
+features: ~
+infrastructure: ~
+conditions: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects: ~
+events: ~
+scripts: ~
+stories: ~
+

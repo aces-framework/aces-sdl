@@ -1,0 +1,45 @@
+version: '3.7'
+
+services:
+  deputy-development:
+    image: deputy-development
+    build: ./deputy-development
+    command: mitmdump  --mode reverse:http://development-keycloak:8080
+    volumes:
+      - ..:/workspace:cached
+    user: vscode
+    environment:
+      - DATABASE_URL=mysql://mysql_user:mysql_pass@deputy-mariadb:3307/deputy
+
+  deputy-package-server:
+    image: nexus.ocr.cr14.net:8003/deputy-package-server:latest
+    volumes:
+      - ./deputy-packages:/var/opt/deputy/deputy-package-server/package
+      - ./configs/config.yml:/etc/opt/deputy/deputy-package-server/config.yml
+    environment:
+      - RUST_LOG=debug
+
+  development-keycloak:
+    image: quay.io/keycloak/keycloak:21.0.1
+    volumes:
+      - ./configs/keycloak-realm.json:/opt/keycloak/data/import/testrealm.json
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+    command: [ "start-dev", "--import-realm" ]
+
+  deputy-mariadb:
+    image: nexus.ocr.cr14.net:8003/mariadb:10.7
+    ports:
+      - "3307:3307"
+    volumes:
+      - ./deputy-database:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql_root
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: mysql_pass
+      MYSQL_DATABASE: deputy
+      MYSQL_TCP_PORT: 3307

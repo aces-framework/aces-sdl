@@ -1,0 +1,90 @@
+<mat-expansion-panel [expanded]="(definitionInfo !== null)" [disabled]="!definitionInfo">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            <span>Adaptive Training Definition</span>
+        </mat-panel-title>
+        <mat-panel-description>
+            <mat-icon>info</mat-icon>
+        </mat-panel-description>
+
+    </mat-expansion-panel-header>
+    <ng-template matExpansionPanelContent>
+
+        <mat-divider />
+        <div class="form-container">
+            <div class="left-col">
+                <!-- TITLE field-->
+                <mat-form-field appearance="outline">
+                    <mat-label>Title</mat-label>
+                    <input matInput placeholder="Title" [disabled]="true" [value]="definitionInfo.title">
+                </mat-form-field>
+
+                <!-- DESCRIPTION field-->
+                <mat-form-field appearance="outline">
+                    <mat-label>Description</mat-label>
+                    <textarea matInput placeholder="Description" [disabled]="true"
+                              [value]="definitionInfo.description"></textarea>
+                </mat-form-field>
+                <!-- DEFAULT CONTENT checkbox-->
+                <div class="form-line" *ngIf="!definitionInfo.id">
+                    <div class="form-line-content">
+                        <mat-checkbox
+                            matTooltip="When active, predefined phases will be created when definition is saved."
+                            labelPosition="after"
+                            [disabled]="true"
+                            [checked]="definitionInfo.defaultContent">
+                            Create predefined phases
+                        </mat-checkbox>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="right-col">
+                <!-- PREREQUISITES field-->
+                <div class="default-container">
+                    <mat-form-field *ngFor="let prerequisite of definitionInfo.prerequisites" appearance="outline">
+                        <mat-label>Note for instructor</mat-label>
+                        <input matInput placeholder="Note" [disabled]="true" [value]="prerequisite">
+                    </mat-form-field>
+                </div>
+                <!-- OUTCOMES field-->
+                <div class="default-container">
+                    <mat-form-field *ngFor="let outcome of definitionInfo.outcomes" appearance="outline">
+                        <mat-label>Learning outcome</mat-label>
+                        <input matInput placeholder="Outcome" [disabled]="true" [value]="outcome">
+                    </mat-form-field>
+                </div>
+            </div>
+        </div>
+
+        <mat-divider />
+
+        <div>
+            <div class="phases-header">
+                <h3>Phases</h3>
+                <span class="phases-info" *ngIf="definitionInfo.levels.length >= 0">
+          Training definition contains {{ definitionInfo.levels.length }} phase(s)
+        </span>
+                <mat-icon>games</mat-icon>
+            </div>
+            <div *ngIf="definitionInfo.levels.length >= 0 else noPhases">
+                <crczp-simulator-phase-stepper [activeStep]="activeStep"
+                                               [phases]="stepperPhases"
+                                               (activeStepChange)="onActivePhaseChange($event)">
+                </crczp-simulator-phase-stepper>
+                <mat-divider />
+                <crczp-simulator-phase-edit [phase]="activePhase"
+                                            [presentTrainingPhases]="trainingPhases"
+                                            (phaseChange)="onActivePhaseChanged($event)"
+                                            (isPhaseValid)="onPhaseValidChanged($event)">
+                </crczp-simulator-phase-edit>
+            </div>
+
+            <ng-template #noPhases>
+                <h3>Definition does not contain any Phases</h3>
+            </ng-template>
+        </div>
+    </ng-template>
+
+</mat-expansion-panel>

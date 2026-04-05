@@ -1,0 +1,74 @@
+version: 1
+world_family: enterprise_saas_v1
+seed: 2201
+
+business:
+  archetype: finance_backoffice
+  workflows:
+    - document_sharing
+    - internal_email
+    - payroll_approval
+    - vendor_invoice_review
+
+topology:
+  zones:
+    - external
+    - dmz
+    - corp
+    - data
+    - management
+  services:
+    - web_app
+    - email
+    - idp
+    - fileshare
+    - db
+    - siem
+
+users:
+  roles:
+    sales: 4
+    engineer: 3
+    finance: 2
+    it_admin: 2
+
+assets:
+  - id: customer_portfolio_docs
+    class: crown_jewel
+  - id: treasury_db
+    class: crown_jewel
+  - id: signing_cred
+    class: sensitive
+
+objectives:
+  red:
+    - predicate: credential_obtained(signing_cred)
+    - predicate: asset_read(customer_portfolio_docs)
+  blue:
+    - predicate: intrusion_detected(initial_access)
+    - predicate: intrusion_contained(before_asset_read)
+    - predicate: service_health_above(0.9)
+
+security:
+  allowed_weakness_families:
+    - config_identity
+    - workflow_abuse
+    - secret_exposure
+    - code_web
+    - telemetry_blindspot
+  observability:
+    require_web_logs: true
+    require_idp_logs: true
+    require_email_logs: true
+    require_siem_ingest: true
+
+difficulty:
+  target_red_path_depth: 8
+  target_blue_signal_points: 6
+  target_noise_density: high
+
+mutation_bounds:
+  max_new_hosts: 3
+  max_new_services: 1
+  max_new_users: 8
+  max_new_weaknesses: 3

@@ -1,0 +1,154 @@
+# Changelog
+
+ranger-server (2.2.2) stretch; urgency=medium
+
+* Update all pipelines to work in Gitea
+
+ -- Kristi Reispass <developers@cr14.ee>  Wed, 24 Jul 2024 12:18:38 +0300
+
+ranger-server (2.2.1) stretch; urgency=medium
+
+* Remove dead code that produces a build error
+
+ -- Rait Rotšan <developers@cr14.ee>  Thu, 07 Mar 2024 14:56:13 +0200
+
+ranger-server (2.2.0) stretch; urgency=medium
+
+* Add client Exercise Order forms
+* Add manager Events view
+* Add deployment status overview to deployment details page
+* Improved event and inject handling
+
+ -- Rait Rotšan <developers@cr14.ee>  Thu, 07 Mar 2024 14:29:48 +0200
+
+ranger-server (2.1.1) stretch; urgency=medium
+
+* Fix metric name and key field discrepancy for scoring
+
+ -- Rait Rotšan <developers@cr14.ee>  Fri, 13 Dec 2023 12:41:00 +0200
+
+ranger-server (2.1.0) stretch; urgency=medium
+
+* Improved event handling
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 12 Dec 2023 18:12:52 +0200
+
+ranger-server (2.0.2) stretch; urgency=medium
+
+* Fix front-end linting
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 01 Dec 2023 18:12:52 +0200
+
+ranger-server (2.0.1) stretch; urgency=medium
+
+* Fix diesel compilations error
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 01 Dec 2023 17:51:50 +0200
+
+ranger-server (2.0.0) stretch; urgency=medium
+
+* Email improvements
+* Handle unexpected logouts
+* Improved Event handling
+* Exercise banner functionality
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 01 Dec 2023 17:19:16 +0200
+
+ranger-server (1.3.0) stretch; urgency=medium
+
+* Event timing improvements
+* Checks for erroring SDL
+* Better deployment handling for participant
+* Pages have been provided with headers
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Thu, 26 Oct 2023 14:51:32 +0300
+
+ranger-server (1.2.0) stretch; urgency=medium
+
+* Fix front-end building
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 13 Oct 2023 14:26:01 +0300
+
+ranger-server (1.2.0) stretch; urgency=medium
+
+* Adopt new depper algorith
+* Add AD group per deployment
+* Bug fixes
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 13 Oct 2023 13:43:13 +0300
+
+ranger-server (1.1.0) stretch; urgency=medium
+
+* Improved handling of the entities
+* Smaller bug fixes
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Mon, 28 Aug 2023 16:34:52 +0200
+
+ranger-server (1.0.3) stretch; urgency=medium
+
+* Fix dependency import issues
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Mon, 28 Aug 2023 16:34:52 +0200
+
+ranger-server (1.0.2) stretch; urgency=medium
+
+* Remove openssl dependency
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 25 Aug 2023 15:34:52 +0200
+
+ranger-server (1.0.1) stretch; urgency=medium
+
+* Fix front-end build issues
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 25 Aug 2023 16:34:52 +0200
+
+ranger-server (1.0.0) stretch; urgency=medium
+
+* Add Manual scoring support
+* Add AD group field to Deployments
+* Make user entity selectable for an exercise
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Fri, 25 Aug 2023 15:34:52 +0200
+
+ranger-server (0.7.0) stretch; urgency=medium
+
+* Improve error handling for SDL parsing on Frontend
+* Add Role selector to Frontend
+* Add Participant and Manager roles to Keycloak
+* Add client verification for all API endpoints
+* Add AD group field to Exercise Deployment
+* Replace Deployment Cards with Sidebar
+
+ -- Rait Rotšan <rait.rotsan@cr14.ee>  Mon, 12 Jun 2023 13:12:52 +0200
+
+ranger-server (0.6.0) stretch; urgency=medium
+
+* Add scoring support for deployments
+* Add email sending
+
+ -- Rait Rotšan <rait.rotsan@cr14.ee>  Tue, 04 Apr 2023 08:42:20 +0200
+
+ranger-server (0.5.0) stretch; urgency=medium
+
+* Add support for multiple deployments
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Tue, 05 Mar 2023 14:23:17 +0200
+
+ranger-server (0.4.0) stretch; urgency=medium
+
+* Add frontend
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Tue, 08 Nov 2022 16:36:23 +0200
+
+ranger-server (0.3.0) stretch; urgency=medium
+
+* Fix websocket connection issues
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Tue, 08 Nov 2022 16:36:23 +0200
+
+ranger-server (0.2.0) stretch; urgency=medium
+
+* Initial Release
+* Adds web application support
+
+ -- Kaarel Allemann <kaarel.allemann@cr14.ee>  Sat, 05 Nov 2022 19:23:51 +0200

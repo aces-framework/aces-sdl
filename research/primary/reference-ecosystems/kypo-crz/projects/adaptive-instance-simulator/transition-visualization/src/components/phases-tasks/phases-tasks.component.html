@@ -1,0 +1,8 @@
+<svg:g
+    *ngFor="let phase of phases; trackBy: trackByPhaseId"
+    phase-tasks
+    [phase]="phase"
+    [xScale]="xScale"
+    [yScale]="yScale"
+    (taskPreviewEvent)="onTaskPreviewChange($event)"
+></svg:g>

@@ -1,0 +1,17 @@
+[package]
+name = "wasm-sdl-parser"
+version = "0.21.2"
+authors = ["CR14 Developers <developers@cr14.ee>"]
+description = "Parser library for Scenario Defined Language (SDL)"
+license = "MIT"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde_json = "1"
+sdl-parser = { path = "../sdl-parser" }

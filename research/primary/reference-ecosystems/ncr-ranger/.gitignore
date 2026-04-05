@@ -1,0 +1,15 @@
+/target
+config.yml
+!deployment/config.yml
+
+# ingore local env files
+*.local
+
+# ignores for devcontainer configuration
+/.devcontainer/configs/ranger-vmware-node-deployer.yml
+
+# ignores for devcontainer database
+/.devcontainer/mariadb/*
+
+# ignores all log files
+*.log

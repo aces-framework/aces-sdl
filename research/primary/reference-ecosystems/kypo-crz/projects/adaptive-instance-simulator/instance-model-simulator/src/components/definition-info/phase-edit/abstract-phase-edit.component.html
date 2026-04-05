@@ -1,0 +1,15 @@
+<ng-container [ngSwitch]="phase.type">
+    <crczp-info-phase-configuration *ngSwitchCase="phaseTypes.Info"
+                                    [phase]="asInfoPhase(phase)">
+    </crczp-info-phase-configuration>
+    <crczp-training-phase-configuration *ngSwitchCase="phaseTypes.Training"
+                                        [phase]="asTrainingPhase(phase)"
+                                        [presentTrainingPhases]="presentTrainingPhases"
+                                        (phaseChange)="onPhaseChange($event)"
+                                        (isMatrixValid)="onValidityChange($event)">
+    </crczp-training-phase-configuration>
+    <crczp-questionnaire-phase-configuration *ngSwitchCase="phaseTypes.Questionnaire"
+                                             [phase]="asQuestionnairePhase(phase)"
+                                             [presentTrainingPhases]="presentTrainingPhases">
+    </crczp-questionnaire-phase-configuration>
+</ng-container>

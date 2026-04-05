@@ -1,0 +1,19 @@
+<h3>
+    <span>{{ question.order + 1 }}. </span>
+    <span> {{ question.text }}</span>
+</h3>
+<div class="data-field">
+    <div class="choices">
+        <div *ngFor="let choice of question.choices; last as isLast;" class="choice">
+            <div>
+                <div>{{ choice.text }}</div>
+                <div class="correct-choice"
+                     *ngIf="questionnaireType === QuestionnaireTypeEnum.Adaptive && choice.correct !== null">
+                    <mat-icon [inline]="true" style="color: green" *ngIf="choice.correct">done</mat-icon>
+                    <mat-icon [inline]="true" style="color: red" *ngIf="!choice.correct">close</mat-icon>
+                </div>
+            </div>
+            <mat-divider *ngIf="!isLast" class="choice-divider" inset="true" vertical="true" />
+        </div>
+    </div>
+</div>

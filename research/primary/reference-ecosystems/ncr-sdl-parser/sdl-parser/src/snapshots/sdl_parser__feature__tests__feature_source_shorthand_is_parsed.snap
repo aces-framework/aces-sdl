@@ -1,0 +1,19 @@
+---
+source: sdl-parser/src/feature.rs
+expression: feature
+---
+Feature {
+    name: None,
+    feature_type: Artifact,
+    _source_helper: Some(
+        ShortSource(
+            "artifact-name",
+        ),
+    ),
+    source: None,
+    dependencies: None,
+    vulnerabilities: None,
+    destination: None,
+    description: None,
+    environment: None,
+}

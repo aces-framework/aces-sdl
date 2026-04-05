@@ -1,0 +1,41 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../../out-tsc/lib",
+        "declaration": true,
+        "inlineSources": true,
+        "lib": [
+            "dom",
+            "es2018"
+        ],
+        "paths": {
+            "@crczp/adaptive-instance-simulator/pathway-simulator": [
+                "./pathway-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/performance-simulator": [
+                "./performance-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/instance-model-simulator": [
+                "./instance-model-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/model-simulator": [
+                "./model-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/internal": [
+                "./internal/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/transition-visualization": [
+                "./transition-visualization/src/public_api.ts"
+            ]
+        }
+    },
+    "angularCompilerOptions": {
+        "skipTemplateCodegen": true,
+        "strictMetadataEmit": true,
+        "enableResourceInlining": true
+    },
+    "exclude": [
+        "test.ts",
+        "**/*.spec.ts"
+    ]
+}

@@ -1,0 +1,12 @@
+<ng-container [ngSwitch]="taskTypeResolver(task)">
+    <crczp-info-task-preview *ngSwitchCase="AbstractTaskTypeEnum.Info" [task]="task" />
+    <crczp-training-task-preview *ngSwitchCase="AbstractTaskTypeEnum.Training"
+                                 [task]="task" />
+    <crczp-questionnaire-task-preview *ngSwitchCase="AbstractTaskTypeEnum.Questionnaire"
+                                      [task]="task" />
+    <crczp-access-task-preview *ngSwitchCase="AbstractTaskTypeEnum.Access"
+                               [task]="task"
+                               [localEnvironment]="localEnvironment"
+    >
+    </crczp-access-task-preview>
+</ng-container>

@@ -1,0 +1,185 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+env:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+jobs:
+  lint-and-test-backend:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Add Gitea SSH host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.REPO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          ssh-strict: false
+
+      # - name: Run tests
+      #   run: |
+      #     cargo clippy -- -Dwarnings
+      #     cargo tarpaulin --skip-clean --out Xml
+
+      - name: Build
+        run: |
+          cargo build
+
+  lint-and-test-frontend:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/frontend-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint
+        run: |
+          cd ranger-app
+          yarn
+          yarn lint
+
+  build-frontend:
+    if: github.ref == 'refs/heads/master'
+    needs: [lint-and-test-backend, lint-and-test-frontend]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/frontend-builder:latest
+    steps:
+      - name: Add Gitea SSH host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.REPO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          ssh-strict: false
+
+      - name: Build
+        run: |
+          cd ranger-app
+          touch .env.production.local
+          printf "%b\n" "${{ vars.OCR_RANGER_UI_ENV }}" >> .env.production.local
+          yarn
+          yarn build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ranger-app
+          path: ranger-app/build
+
+  build-and-upload-x86-64bit-linux-release-for-ranger:
+    if: github.ref == 'refs/heads/master'
+    needs: [build-frontend]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Add Gitea SSH host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.REPO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          ssh-strict: false
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ranger-app
+          path: ranger-app/build
+
+      - name: Build and upload
+        run: |
+          cargo deb --target x86_64-unknown-linux-gnu -p ranger
+          DEB_FILE=$(find ./target/x86_64-unknown-linux-gnu/debian/ -maxdepth 1 -type f -name "*.deb")
+          curl -u ${{ secrets.OCR_DEPLOYMENT_USER }}:${{ secrets.OCR_DEPLOYMENT_PASSWORD }} -X POST -H "Content-Type: multipart/form-data" --data-binary "@$DEB_FILE" ${{ vars.OCR_APT_REPOSITORY }}
+
+  staging:
+    if: github.ref == 'refs/heads/master'
+    needs: [build-and-upload-x86-64bit-linux-release-for-ranger]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/docker:20.10.17-dind
+    steps:
+      - name: Install Node.js and Git
+        run: |
+          apk update
+          apk add nodejs
+          apk add git
+
+      - name: Add Gitea SSH host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.REPO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          ssh-strict: false
+
+      - name: Build and push Docker image
+        run: |
+          docker info
+          echo "${{ secrets.OCR_DEPLOYMENT_PASSWORD }}" | docker login ${{ vars.DOCKER_REGISTRY }} -u ${{ secrets.OCR_DEPLOYMENT_USER }} --password-stdin
+          docker pull ${{ vars.DOCKER_REGISTRY }}/ranger-server:latest
+          docker build -t ranger-server ./docker
+          docker tag ranger-server:latest ${{ vars.DOCKER_REGISTRY }}/ranger-server:latest
+          docker push ${{ vars.DOCKER_REGISTRY }}/ranger-server:latest
+
+  sync-to-github:
+    if: github.ref == 'refs/heads/master'
+    needs: [build-frontend]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/ocr-base-deployment-image:latest
+    steps:
+      - name: Add Gitea SSH host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.REPO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          submodules: recursive
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          ssh-strict: false
+
+      - name: Fetch all branches and tags
+        run: |
+          git fetch --all
+
+      - name: Sync to GitHub
+        run: |
+          git remote add github https://${{ secrets.OCR_GITHUB_TOKEN }}@github.com/Open-Cyber-Range/Ranger.git
+          git push github master:main --force

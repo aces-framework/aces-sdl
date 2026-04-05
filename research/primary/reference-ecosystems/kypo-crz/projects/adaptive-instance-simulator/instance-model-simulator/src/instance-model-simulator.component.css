@@ -1,0 +1,19 @@
+.content-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.upload-container {
+    height: 100px;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+}
+
+.card-content > * {
+    margin-bottom: 20px;
+}

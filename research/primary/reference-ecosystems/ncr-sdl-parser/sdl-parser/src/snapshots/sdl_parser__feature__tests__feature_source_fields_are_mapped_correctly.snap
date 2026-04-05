@@ -1,0 +1,27 @@
+---
+source: sdl-parser/src/feature.rs
+expression: features
+---
+my-cool-feature:
+  name: ~
+  type: Service
+  source:
+    name: some-service
+    version: "*"
+  dependencies: ~
+  vulnerabilities: ~
+  destination: ~
+  description: ~
+  environment: ~
+my-cool-feature-config:
+  name: ~
+  type: Configuration
+  source:
+    name: cool-config
+    version: 1.0.0
+  dependencies: ~
+  vulnerabilities: ~
+  destination: ~
+  description: ~
+  environment: ~
+

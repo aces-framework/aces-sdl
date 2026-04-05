@@ -1,0 +1,125 @@
+table {
+    width: 80%;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+}
+
+.matrix-container, .simulator-content {
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: column;
+}
+
+.generate-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.simulator-content {
+    justify-content: center;
+}
+
+.matrix-content {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    padding-left: 45px;
+}
+
+.matrix-content p {
+    margin: 0 0 0 -45px;
+}
+
+div .spacer {
+    flex: 1 1 auto;
+}
+
+div .panel-wrapper {
+    display: flex;
+    flex-direction: row;
+}
+
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 3;
+    margin-right: 30px;
+    padding-left: 20px;
+}
+
+.left-panel h2 {
+    margin-right: 20%;
+}
+
+div .right-panel {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    margin-left: 30px;
+}
+
+.matrix-field {
+    width: 150px;
+}
+
+div .right-panel mat-form-field {
+    margin-bottom: 20px;
+}
+
+.related-phase-text {
+    padding-bottom: 15px;
+    padding-left: 15px;
+}
+
+.cell-content mat-form-field {
+    margin-left: 10px;
+}
+
+.row-header td:first-child {
+    padding-left: 30px;
+}
+
+.cell-content, .solution-displayed {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+    margin-right: 10px;
+}
+
+.solution-displayed {
+    margin-right: 40px;
+}
+
+/* TODO(mdc-migration): The following rule targets internal classes of checkbox that may no longer apply for the MDC version. */
+mat-checkbox ::ng-deep .mat-checkbox-inner-container {
+    width: 30px;
+    height: 30px;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+@media screen and (max-width: 800px) {
+    div .panel-wrapper {
+        flex-direction: column;
+    }
+
+    div .left-panel {
+        margin-right: 0;
+    }
+
+    div .right-panel {
+        margin-left: 0;
+    }
+}

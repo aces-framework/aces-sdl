@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 200
+exclude = [
+    "typings",
+    "venv"
+]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/{notebooks}/*" = ["E402", "E401"]

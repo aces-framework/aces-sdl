@@ -1,0 +1,62 @@
+---
+source: sdl-parser/src/node.rs
+expression: parsed_sdl
+---
+name: test-scenario
+description: some-description
+nodes:
+  win-10:
+    conditions: {}
+    description: ~
+    features: {}
+    injects: {}
+    resources:
+      ram: 2147483648
+      cpu: 2
+    roles:
+      admin:
+        username: admin
+        entities: ~
+      user:
+        username: user
+        entities:
+          - blue-team.bob
+    source:
+      name: windows10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+features: ~
+infrastructure: ~
+conditions: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities:
+  blue-team:
+    name: The Blue Team
+    description: ~
+    role: ~
+    mission: ~
+    categories: ~
+    vulnerabilities: ~
+    tlos: ~
+    events: ~
+    entities:
+      bob:
+        name: Blue Bob
+        description: ~
+        role: ~
+        mission: ~
+        categories: ~
+        vulnerabilities: ~
+        tlos: ~
+        events: ~
+        entities: ~
+goals: ~
+injects: ~
+events: ~
+scripts: ~
+stories: ~
+

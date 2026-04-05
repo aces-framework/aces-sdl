@@ -1,0 +1,3 @@
+hostname: 0.0.0.0:8080
+package_folder: /tmp/packages
+database_url: mysql://mysql_user:mysql_pass@deputy-mariadb:3307/deputy

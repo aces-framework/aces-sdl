@@ -1,0 +1,26 @@
+name: Adaptive instance imulator CI
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+    inputs:
+      confirm_action:
+        description: "Type 'yes' if you want to publish and create a new tag"
+        required: true
+        default: "no"
+
+jobs:
+  frontend_template:
+    uses: cyberrangecz/actions-templates/.github/workflows/frontend_template.yml@master
+    secrets:
+      NPMJS_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+      SENTINEL_PULL: ${{ secrets.SENTINEL_PULL }}
+    with:
+      VERSION_PATH: "projects/adaptive-instance-simulator/package.json"

@@ -1,0 +1,17 @@
+---
+source: sdl-parser/src/condition.rs
+expression: condition
+---
+Condition {
+    name: None,
+    command: Some(
+        "executable/path.sh",
+    ),
+    interval: Some(
+        30,
+    ),
+    source_helper: None,
+    source: None,
+    description: None,
+    environment: None,
+}

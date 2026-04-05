@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS email_statuses;
+DROP TABLE IF EXISTS emails;

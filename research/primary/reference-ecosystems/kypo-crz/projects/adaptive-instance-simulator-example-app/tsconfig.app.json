@@ -1,0 +1,22 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../../out-tsc/app",
+        "types": [],
+        "paths": {
+            "@crczp/adaptive-instance-simulator": [
+                "../adaptive-instance-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/*": [
+                "../adaptive-instance-simulator/*/src/public_api.ts"
+            ]
+        }
+    },
+    "files": [
+        "src/main.ts",
+        "src/polyfills.ts"
+    ],
+    "include": [
+        "src/**/*.d.ts"
+    ]
+}

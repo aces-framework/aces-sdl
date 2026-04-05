@@ -1,0 +1,1 @@
+ALTER TABLE packages DROP COLUMN readme_path;

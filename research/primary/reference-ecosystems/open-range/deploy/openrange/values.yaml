@@ -1,0 +1,585 @@
+global:
+  namePrefix: openrange
+  domain: acmecorp.local
+  orgName: AcmeCorp
+  snapshotId: generated
+zones:
+  external:
+    hosts:
+    - attacker
+    cidr: 10.0.0.0/24
+  dmz:
+    hosts:
+    - web
+    - mail
+    cidr: 10.0.1.0/24
+  internal:
+    hosts:
+    - db
+    - files
+    cidr: 10.0.2.0/24
+  management:
+    hosts:
+    - ldap
+    - siem
+    cidr: 10.0.3.0/24
+services:
+  attacker:
+    enabled: true
+    image: kalilinux/kali-rolling
+    zone: external
+    ports: []
+    env:
+      TERM: xterm-256color
+    command:
+    - sleep
+    - infinity
+  web:
+    enabled: true
+    image: php:8.1-apache
+    zone: dmz
+    ports:
+    - name: http
+      port: 80
+    - name: https
+      port: 443
+    env:
+      DB_HOST: db.openrange-internal.svc.cluster.local
+      DB_USER: dthompson
+      DB_PASS: Welcome2025!
+      DB_NAME: referral_db
+      LDAP_HOST: ldap.openrange-management.svc.cluster.local
+      LDAP_BASE_DN: dc=acmecorp,dc=local
+    command:
+    - bash
+    - -c
+    - docker-php-ext-install mysqli pdo_mysql > /dev/null 2>&1; apache2-foreground
+    payloads:
+    - key: var-www-html-index.php
+      mountPath: /var/www/html/index.php
+      content: "<?php\nsession_start();\nif (isset($_SESSION['user_id'])) { header('Location:\
+        \ /dashboard.php'); exit(); }\n?>\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Meridian\
+        \ Health Partners - Referral Portal</title>\n  <style>\n    body { font-family:\
+        \ Arial, sans-serif; background:#f5f7fb; }\n    .card { width:420px; margin:80px\
+        \ auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px\
+        \ 6px rgba(0,0,0,0.1); }\n    h1 { font-size:20px; margin-bottom:6px; }\n\
+        \    label { display:block; margin-top:12px; font-weight:bold; }\n    input[type=text],\
+        \ input[type=password] { width:100%; padding:10px; border:1px solid #ccc;\
+        \ border-radius:4px; }\n    button { margin-top:16px; width:100%; padding:10px;\
+        \ background:#2b6cb0; color:#fff; border:none; border-radius:4px; }\n    .note\
+        \ { font-size:12px; color:#666; margin-top:10px; }\n  </style>\n</head>\n\
+        <body>\n  <div class=\"card\">\n    <h1>Referral Portal</h1>\n    <div class=\"\
+        note\">Meridian Health Partners</div>\n    <form method=\"POST\" action=\"\
+        /login.php\">\n      <label>Username</label>\n      <input type=\"text\" name=\"\
+        username\" required />\n      <label>Password</label>\n      <input type=\"\
+        password\" name=\"password\" required />\n      <button type=\"submit\">Sign\
+        \ In</button>\n    </form>\n  </div>\n</body>\n</html>\n"
+    - key: var-www-html-login.php
+      mountPath: /var/www/html/login.php
+      content: "<?php\nsession_start();\nif ($_SERVER['REQUEST_METHOD'] !== 'POST')\
+        \ { header('Location: /'); exit(); }\n$conn = new mysqli('db.openrange-internal.svc.cluster.local',\
+        \ 'app_user', 'AppUs3r!2024', 'referral_db');\nif ($conn->connect_error) {\
+        \ die('DB error'); }\n$username = $_POST['username'] ?? '';\n$password = $_POST['password']\
+        \ ?? '';\n$stmt = $conn->prepare('SELECT id, username, full_name, role, department\
+        \ FROM users WHERE username = ? AND password = ? LIMIT 1');\n$stmt->bind_param('ss',\
+        \ $username, $password);\n$stmt->execute();\n$res = $stmt->get_result();\n\
+        if ($row = $res->fetch_assoc()) {\n  $_SESSION['user_id'] = $row['id'];\n\
+        \  $_SESSION['username'] = $row['username'];\n  $_SESSION['full_name'] = $row['full_name'];\n\
+        \  $_SESSION['role'] = $row['role'];\n  $_SESSION['department'] = $row['department'];\n\
+        \  $log = $conn->prepare('INSERT INTO access_log (user_id, action, resource,\
+        \ ip_address, created_at) VALUES (?, ?, ?, ?, NOW())');\n  $action = 'login';\
+        \ $resource = 'portal'; $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';\n  $log->bind_param('isss',\
+        \ $row['id'], $action, $resource, $ip);\n  $log->execute();\n  header('Location:\
+        \ /dashboard.php');\n  exit();\n}\n$error = 'Invalid credentials';\n?>\n<!DOCTYPE\
+        \ html><html><head><title>Login Failed</title></head><body>\n<p><?php echo\
+        \ htmlspecialchars($error); ?></p>\n<p><a href=\"/\">Back to login</a></p>\n\
+        </body></html>\n"
+    - key: var-www-html-dashboard.php
+      mountPath: /var/www/html/dashboard.php
+      content: "<?php\nsession_start();\nif (!isset($_SESSION['user_id'])) { header('Location:\
+        \ /'); exit(); }\n$conn = new mysqli('db.openrange-internal.svc.cluster.local',\
+        \ 'app_user', 'AppUs3r!2024', 'referral_db');\n$patients = $conn->query('SELECT\
+        \ COUNT(*) AS c FROM patients')->fetch_assoc()['c'];\n$referrals = $conn->query('SELECT\
+        \ COUNT(*) AS c FROM patient_referrals')->fetch_assoc()['c'];\n$billing =\
+        \ $conn->query('SELECT COUNT(*) AS c FROM billing')->fetch_assoc()['c'];\n\
+        ?>\n<!DOCTYPE html>\n<html><head><title>Dashboard</title>\n<style>\nbody{font-family:Arial;background:#f5f7fb;margin:0;padding:0;}\n\
+        .nav{background:#2b6cb0;color:#fff;padding:12px;}\n.container{padding:20px;}\n\
+        .card{background:#fff;border-radius:6px;padding:16px;margin:10px 0;}\n</style>\n\
+        </head>\n<body>\n<div class=\"nav\">Welcome <?php echo htmlspecialchars($_SESSION['full_name']);\
+        \ ?> | <a style=\"color:#fff\" href=\"/logout.php\">Logout</a></div>\n<div\
+        \ class=\"container\">\n  <div class=\"card\"><strong>Patients:</strong> <?php\
+        \ echo $patients; ?></div>\n  <div class=\"card\"><strong>Referrals:</strong>\
+        \ <?php echo $referrals; ?></div>\n  <div class=\"card\"><strong>Billing Records:</strong>\
+        \ <?php echo $billing; ?></div>\n  <div class=\"card\">\n    <a href=\"/search.php\"\
+        >Patient Search</a> | \n    <a href=\"/referral_new.php\">New Referral</a>\
+        \ | \n    <a href=\"/admin/export.php\">Export</a>\n  </div>\n</div>\n</body></html>\n"
+    - key: var-www-html-logout.php
+      mountPath: /var/www/html/logout.php
+      content: '<?php
+
+        session_start();
+
+        session_destroy();
+
+        header(''Location: /'');
+
+        ?>
+
+        '
+    - key: var-www-html-search.php
+      mountPath: /var/www/html/search.php
+      content: "<?php\nsession_start();\nif (!isset($_SESSION['user_id'])) { header('Location:\
+        \ /'); exit(); }\n$conn = new mysqli('db.openrange-internal.svc.cluster.local',\
+        \ 'app_user', 'AppUs3r!2024', 'referral_db');\n$q = isset($_GET['q']) ? $_GET['q']\
+        \ : '';\n$sql = \"SELECT id, first_name, last_name, dob, phone, email, insurance_id\
+        \ FROM patients WHERE last_name LIKE '%$q%' OR first_name LIKE '%$q%'\";\n\
+        $result = $conn->query($sql);\n?>\n<!DOCTYPE html>\n<html><head><title>Patient\
+        \ Search</title>\n<style>body{font-family:Arial;background:#f5f7fb;} .card{background:#fff;padding:16px;border-radius:6px;margin:20px;}</style>\n\
+        </head><body>\n<div class=\"card\">\n  <h2>Patient Search</h2>\n  <form method=\"\
+        GET\"><input type=\"text\" name=\"q\" value=\"<?php echo htmlspecialchars($q);\
+        \ ?>\" /> <button>Search</button></form>\n</div>\n<div class=\"card\">\n \
+        \ <h3>Results</h3>\n  <table border=\"1\" cellpadding=\"6\" cellspacing=\"\
+        0\">\n    <tr><th>ID</th><th>Name</th><th>DOB</th><th>Phone</th><th>Email</th><th>Insurance\
+        \ ID</th></tr>\n    <?php if ($result) { while ($row = $result->fetch_assoc())\
+        \ { ?>\n      <tr>\n        <td><?php echo $row['id']; ?></td>\n        <td><?php\
+        \ echo htmlspecialchars($row['first_name'].' '.$row['last_name']); ?></td>\n\
+        \        <td><?php echo $row['dob']; ?></td>\n        <td><?php echo $row['phone'];\
+        \ ?></td>\n        <td><?php echo htmlspecialchars($row['email']); ?></td>\n\
+        \        <td><?php echo htmlspecialchars($row['insurance_id']); ?></td>\n\
+        \      </tr>\n    <?php } } ?>\n  </table>\n</div>\n</body></html>\n"
+    - key: var-www-html-referral_new.php
+      mountPath: /var/www/html/referral_new.php
+      content: "<?php\nsession_start();\nif (!isset($_SESSION['user_id'])) { header('Location:\
+        \ /'); exit(); }\n$conn = new mysqli('db.openrange-internal.svc.cluster.local',\
+        \ 'app_user', 'AppUs3r!2024', 'referral_db');\n$patients = $conn->query('SELECT\
+        \ id, first_name, last_name FROM patients ORDER BY last_name LIMIT 50');\n\
+        ?>\n<!DOCTYPE html>\n<html><head><title>New Referral</title></head><body>\n\
+        <h2>New Referral</h2>\n<form method=\"POST\" action=\"/referral_submit.php\"\
+        >\n  <label>Patient</label>\n  <select name=\"patient_id\">\n    <?php while\
+        \ ($p = $patients->fetch_assoc()) { ?>\n      <option value=\"<?php echo $p['id'];\
+        \ ?>\"><?php echo htmlspecialchars($p['last_name'].', '.$p['first_name']);\
+        \ ?></option>\n    <?php } ?>\n  </select><br/>\n  <label>Referring Physician</label><br/>\n\
+        \  <input type=\"text\" name=\"referring_physician\" required /><br/>\n  <label>Specialist</label><br/>\n\
+        \  <input type=\"text\" name=\"specialist\" required /><br/>\n  <label>Reason</label><br/>\n\
+        \  <textarea name=\"reason\" required></textarea><br/>\n  <button type=\"\
+        submit\">Submit</button>\n</form>\n</body></html>\n"
+    - key: var-www-html-referral_submit.php
+      mountPath: /var/www/html/referral_submit.php
+      content: '<?php
+
+        session_start();
+
+        if (!isset($_SESSION[''user_id''])) { header(''Location: /''); exit(); }
+
+        $conn = new mysqli(''db.openrange-internal.svc.cluster.local'', ''app_user'',
+        ''AppUs3r!2024'', ''referral_db'');
+
+        $stmt = $conn->prepare(''INSERT INTO patient_referrals (patient_id, referring_physician,
+        specialist, reason, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())'');
+
+        $patient_id = intval($_POST[''patient_id''] ?? 0);
+
+        $ref = $_POST[''referring_physician''] ?? '''';
+
+        $spec = $_POST[''specialist''] ?? '''';
+
+        $reason = $_POST[''reason''] ?? '''';
+
+        $status = ''submitted'';
+
+        $stmt->bind_param(''issss'', $patient_id, $ref, $spec, $reason, $status);
+
+        $stmt->execute();
+
+        header(''Location: /dashboard.php'');
+
+        ?>
+
+        '
+    - key: var-www-html-referral_view.php
+      mountPath: /var/www/html/referral_view.php
+      content: '<?php
+
+        session_start();
+
+        if (!isset($_SESSION[''user_id''])) { header(''Location: /''); exit(); }
+
+        $conn = new mysqli(''db.openrange-internal.svc.cluster.local'', ''app_user'',
+        ''AppUs3r!2024'', ''referral_db'');
+
+        $id = intval($_GET[''id''] ?? 0);
+
+        $stmt = $conn->prepare(''SELECT pr.id, p.first_name, p.last_name, pr.referring_physician,
+        pr.specialist, pr.reason, pr.status FROM patient_referrals pr JOIN patients
+        p ON pr.patient_id = p.id WHERE pr.id = ?'');
+
+        $stmt->bind_param(''i'', $id);
+
+        $stmt->execute();
+
+        $res = $stmt->get_result();
+
+        $row = $res->fetch_assoc();
+
+        ?>
+
+        <!DOCTYPE html><html><head><title>Referral Detail</title></head><body>
+
+        <?php if ($row) { ?>
+
+        <h2>Referral #<?php echo $row[''id'']; ?></h2>
+
+        <p><strong>Patient:</strong> <?php echo htmlspecialchars($row[''first_name''].''
+        ''.$row[''last_name'']); ?></p>
+
+        <p><strong>Referring Physician:</strong> <?php echo htmlspecialchars($row[''referring_physician'']);
+        ?></p>
+
+        <p><strong>Specialist:</strong> <?php echo htmlspecialchars($row[''specialist'']);
+        ?></p>
+
+        <p><strong>Reason:</strong> <?php echo htmlspecialchars($row[''reason'']);
+        ?></p>
+
+        <p><strong>Status:</strong> <?php echo htmlspecialchars($row[''status'']);
+        ?></p>
+
+        <?php } else { echo ''<p>Referral not found</p>''; } ?>
+
+        </body></html>
+
+        '
+    - key: var-www-html-admin-export.php
+      mountPath: /var/www/html/admin/export.php
+      content: '<?php
+
+        session_start();
+
+        if (!isset($_SESSION[''user_id''])) { header(''Location: /''); exit(); }
+
+        $conn = new mysqli(''db.openrange-internal.svc.cluster.local'', ''app_user'',
+        ''AppUs3r!2024'', ''referral_db'');
+
+        header(''Content-Type: text/csv'');
+
+        header(''Content-Disposition: attachment; filename="referrals_export.csv"'');
+
+        $out = fopen(''php://output'', ''w'');
+
+        fputcsv($out, [''ReferralID'',''Patient'',''Specialist'',''Status'']);
+
+        $res = $conn->query(''SELECT pr.id, CONCAT(p.first_name," ",p.last_name) AS
+        patient, pr.specialist, pr.status FROM patient_referrals pr JOIN patients
+        p ON pr.patient_id=p.id'');
+
+        while ($row = $res->fetch_assoc()) { fputcsv($out, $row); }
+
+        fclose($out);
+
+        ?>
+
+        '
+    - key: var-www-html-api-status.php
+      mountPath: /var/www/html/api/status.php
+      content: '<?php
+
+        header(''Content-Type: application/json'');
+
+        $conn = new mysqli(''db.openrange-internal.svc.cluster.local'', ''app_user'',
+        ''AppUs3r!2024'', ''referral_db'');
+
+        $patients = $conn->query(''SELECT COUNT(*) AS c FROM patients'')->fetch_assoc()[''c''];
+
+        $referrals = $conn->query(''SELECT COUNT(*) AS c FROM patient_referrals'')->fetch_assoc()[''c''];
+
+        $resp = [''status''=>''ok'',''patients''=>$patients,''referrals''=>$referrals,''version''=>''1.2.7''];
+
+        echo json_encode($resp);
+
+        ?>
+
+        '
+  mail:
+    enabled: true
+    image: mailhog/mailhog:latest
+    zone: dmz
+    ports:
+    - name: smtp
+      port: 25
+    - name: imap
+      port: 143
+    env: {}
+  db:
+    enabled: true
+    image: mysql:8.0
+    zone: internal
+    ports:
+    - name: mysql
+      port: 3306
+    env:
+      MYSQL_ROOT_PASSWORD: r00tP@ss!
+      MYSQL_DATABASE: referral_db
+      MYSQL_USER: dthompson
+      MYSQL_PASSWORD: Welcome2025!
+    payloads:
+    - key: 00-base-schema.sql
+      mountPath: /docker-entrypoint-initdb.d/00-base-schema.sql
+      content: "CREATE DATABASE IF NOT EXISTS referral_db;\nCREATE DATABASE IF NOT\
+        \ EXISTS flags;\nUSE referral_db;\n\nCREATE TABLE IF NOT EXISTS users (\n\
+        \    id INT AUTO_INCREMENT PRIMARY KEY,\n    username VARCHAR(64) NOT NULL\
+        \ UNIQUE,\n    password VARCHAR(255) NOT NULL,\n    email VARCHAR(128),\n\
+        \    full_name VARCHAR(128),\n    role VARCHAR(64),\n    department VARCHAR(64),\n\
+        \    created_at DATETIME DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE TABLE IF\
+        \ NOT EXISTS patients (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    first_name\
+        \ VARCHAR(64),\n    last_name VARCHAR(64),\n    dob DATE,\n    phone VARCHAR(20),\n\
+        \    email VARCHAR(128),\n    insurance_id VARCHAR(64),\n    created_at DATETIME\
+        \ DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE TABLE IF NOT EXISTS patient_referrals\
+        \ (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    patient_id INT,\n    referring_physician\
+        \ VARCHAR(128),\n    specialist VARCHAR(128),\n    reason TEXT,\n    status\
+        \ VARCHAR(32) DEFAULT 'pending',\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n\
+        \    FOREIGN KEY (patient_id) REFERENCES patients(id)\n);\n\nCREATE TABLE\
+        \ IF NOT EXISTS billing (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    patient_id\
+        \ INT,\n    amount DECIMAL(10,2),\n    insurance_claim VARCHAR(64),\n    status\
+        \ VARCHAR(32) DEFAULT 'pending',\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n\
+        \    FOREIGN KEY (patient_id) REFERENCES patients(id)\n);\n\nCREATE TABLE\
+        \ IF NOT EXISTS sessions (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    user_id\
+        \ INT,\n    session_token VARCHAR(128),\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n\
+        \    expires_at DATETIME\n);\n\nCREATE TABLE IF NOT EXISTS access_log (\n\
+        \    id INT AUTO_INCREMENT PRIMARY KEY,\n    user_id INT,\n    action VARCHAR(64),\n\
+        \    resource VARCHAR(128),\n    ip_address VARCHAR(45),\n    created_at DATETIME\
+        \ DEFAULT CURRENT_TIMESTAMP\n);\n\nUSE flags;\nCREATE TABLE IF NOT EXISTS\
+        \ secrets (\n    id INT AUTO_INCREMENT PRIMARY KEY,\n    flag_name VARCHAR(64),\n\
+        \    flag VARCHAR(128),\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP\n\
+        );\n\nUSE referral_db;\n"
+    - key: sql
+      mountPath: /docker-entrypoint-initdb.d/99-openrange-init.sql
+      content: 'USE referral_db;
+
+        INSERT INTO users (username, password, email, full_name, role, department,
+        created_at) VALUES
+
+        (''dthompson'',''Welcome2025!'',''dthompson@meridianhealth.local'',''Derek
+        Thompson'',''Systems Administrator'',''IT'',NOW()),
+
+        (''rchen'',''Summer2024!'',''rchen@meridianhealth.local'',''Rachel Chen'',''Security
+        Contractor'',''IT'',NOW()),
+
+        (''mgarcia'',''Welcome2025!'',''mgarcia@meridianhealth.local'',''Maria Garcia'',''Referral
+        Coordinator'',''Clinical Operations'',NOW()),
+
+        (''jnelson'',''Welcome2025!'',''jnelson@meridianhealth.local'',''James Nelson'',''Clinical
+        Analyst'',''Clinical Operations'',NOW()),
+
+        (''apatel'',''Welcome2025!'',''apatel@meridianhealth.local'',''Anita Patel'',''Office
+        Manager'',''Administration'',NOW()),
+
+        (''kwilliams'',''Welcome2025!'',''kwilliams@meridianhealth.local'',''Karen
+        Williams'',''Billing Specialist'',''Administration'',NOW()),
+
+        (''bmorris'',''Spring2024!'',''bmorris@meridianhealth.local'',''Brian Morris'',''CEO'',''Executive'',NOW()),
+
+        (''ldunn'',''Compliance2024!'',''ldunn@meridianhealth.local'',''Linda Dunn'',''Compliance
+        Officer'',''Executive'',NOW());
+
+
+        INSERT INTO patients (first_name, last_name, dob, phone, email, insurance_id,
+        created_at) VALUES
+
+        (''Olivia'',''Reed'',''1984-03-12'',''555-2101'',''olivia.reed@example.com'',''BC-88210'',NOW()),
+
+        (''Ethan'',''Brooks'',''1972-11-02'',''555-2102'',''ethan.brooks@example.com'',''AET-44120'',NOW()),
+
+        (''Sophia'',''Nguyen'',''1991-07-18'',''555-2103'',''sophia.nguyen@example.com'',''BC-77122'',NOW()),
+
+        (''Liam'',''Carter'',''1968-09-21'',''555-2104'',''liam.carter@example.com'',''UHC-33219'',NOW()),
+
+        (''Emma'',''Flores'',''1979-02-05'',''555-2105'',''emma.flores@example.com'',''AET-99344'',NOW()),
+
+        (''Noah'',''Patel'',''1988-12-30'',''555-2106'',''noah.patel@example.com'',''BC-11028'',NOW()),
+
+        (''Ava'',''Simmons'',''1994-06-14'',''555-2107'',''ava.simmons@example.com'',''UHC-88771'',NOW()),
+
+        (''Mason'',''Rivera'',''1975-01-26'',''555-2108'',''mason.rivera@example.com'',''BC-22039'',NOW()),
+
+        (''Isabella'',''Hughes'',''1999-05-09'',''555-2109'',''isabella.hughes@example.com'',''AET-55710'',NOW()),
+
+        (''Lucas'',''Price'',''1981-08-19'',''555-2110'',''lucas.price@example.com'',''UHC-66321'',NOW()),
+
+        (''Mia'',''Foster'',''1996-10-03'',''555-2111'',''mia.foster@example.com'',''BC-77111'',NOW()),
+
+        (''Logan'',''Wright'',''1970-04-22'',''555-2112'',''logan.wright@example.com'',''UHC-99802'',NOW());
+
+
+        INSERT INTO patient_referrals (patient_id, referring_physician, specialist,
+        reason, status, created_at) VALUES
+
+        (1,''Dr. Alan Pierce'',''Cardiology'',''Chest pain evaluation'',''submitted'',NOW()),
+
+        (2,''Dr. Renee Walsh'',''Orthopedics'',''Knee pain - MRI review'',''in_review'',NOW()),
+
+        (3,''Dr. James Liu'',''Endocrinology'',''Diabetes management'',''scheduled'',NOW()),
+
+        (4,''Dr. Cynthia Vaughn'',''Neurology'',''Chronic migraines'',''submitted'',NOW()),
+
+        (5,''Dr. Patrick Olsen'',''Gastroenterology'',''Abdominal pain'',''completed'',NOW()),
+
+        (6,''Dr. Allison Park'',''Dermatology'',''Skin lesion consult'',''submitted'',NOW());
+
+
+        INSERT INTO billing (patient_id, amount, insurance_claim, status, created_at)
+        VALUES
+
+        (1,245.00,''CLM-88210'',''pending'',NOW()),
+
+        (2,520.00,''CLM-44120'',''submitted'',NOW()),
+
+        (3,180.50,''CLM-77122'',''paid'',NOW()),
+
+        (4,310.25,''CLM-33219'',''pending'',NOW()),
+
+        (5,675.00,''CLM-99344'',''denied'',NOW()),
+
+        (6,220.00,''CLM-11028'',''submitted'',NOW());
+
+
+        USE flags;
+
+        INSERT INTO secrets (flag_name, flag, created_at) VALUES
+
+        (''db_flag'',''FLAG{a1b2c3d4e5f6a7b8}'',NOW()),
+
+        (''compliance_file_flag'',''FLAG{9c8b7a6d5e4f3210}'',NOW());
+
+        '
+  files:
+    enabled: true
+    image: dperson/samba:latest
+    zone: internal
+    ports:
+    - name: smb
+      port: 445
+    env: {}
+    payloads:
+    - key: srv-shares-general-portal_usage_guide.txt
+      mountPath: /srv/shares/general/portal_usage_guide.txt
+      content: 'Meridian Health Partners Referral Portal - Quick Guide
+
+
+        1) Log in with your network username/password.
+
+        2) Use Patient Search for quick lookups.
+
+        3) Submit New Referral for new clinic requests.
+
+        4) Export referrals only when asked by Compliance.
+
+
+        For issues contact IT.
+
+        '
+    - key: srv-shares-hr-onboarding_checklist.txt
+      mountPath: /srv/shares/hr/onboarding_checklist.txt
+      content: 'New Hire Onboarding Checklist
+
+
+        - Create LDAP account
+
+        - Set temp password pattern: Welcome<YEAR>!
+
+        - Add to groups: staff, portal_users
+
+        - Provision mailbox and file share access
+
+        '
+    - key: srv-shares-compliance-hipaa_audit_2024.txt
+      mountPath: /srv/shares/compliance/hipaa_audit_2024.txt
+      content: 'HIPAA Audit Notes 2024
+
+
+        Finding: Shared admin account in use for web maintenance.
+
+        Remediation target: Q4.
+
+
+        Flag for audit tracking: FLAG{9c8b7a6d5e4f3210}
+
+        '
+    - key: srv-shares-contracts-bluecross_rates_2024.txt
+      mountPath: /srv/shares/contracts/bluecross_rates_2024.txt
+      content: 'BlueCross Rate Agreement 2024
+
+
+        Confidential: rates and negotiated caps for outpatient services.
+
+        Contact Compliance for distribution.
+
+        '
+    - key: srv-shares-general-it_contact.txt
+      mountPath: /srv/shares/general/it_contact.txt
+      content: 'IT Contact
+
+        Primary: Derek Thompson
+
+        Secondary: Rachel Chen
+
+        '
+  ldap:
+    enabled: true
+    image: osixia/openldap:1.5.0
+    zone: management
+    ports:
+    - name: ldap
+      port: 389
+    - name: ldaps
+      port: 636
+    env:
+      LDAP_ORGANISATION: AcmeCorp
+      LDAP_DOMAIN: acmecorp.local
+      LDAP_ADMIN_PASSWORD: LdapAdm1n!
+      HOSTNAME: ldap
+      LDAP_PORT: '389'
+  siem:
+    enabled: true
+    image: balabit/syslog-ng:latest
+    zone: management
+    ports:
+    - name: syslog
+      port: 514
+    env: {}
+users:
+- username: dthompson
+  password: Welcome2025!
+  groups:
+  - IT
+  hosts:
+  - web
+  - db
+  - ldap
+  - siem
+  - files
+- username: mgarcia
+  password: Welcome2025!
+  groups:
+  - Clinical Operations
+  hosts:
+  - web
+  - db
+  - mail
+- username: kwilliams
+  password: Welcome2025!
+  groups:
+  - Administration
+  hosts:
+  - web
+  - mail
+  - files
+flags:
+- id: flag_db
+  value: FLAG{a1b2c3d4e5f6a7b8}
+  path: mysql:flags.secrets.value
+  host: db
+- id: flag_file
+  value: FLAG{9c8b7a6d5e4f3210}
+  path: /srv/shares/compliance/hipaa_audit_2024.txt
+  host: files
+firewallRules: []

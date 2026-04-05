@@ -1,0 +1,3 @@
+ALTER TABLE deployments
+DROP COLUMN start,
+DROP COLUMN end;

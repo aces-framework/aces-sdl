@@ -1,0 +1,11 @@
+
+# Generic development files
+*.pyc
+*~
+
+# Specific development files
+instantiation/ruleset_modification/iptables
+
+# Other files
+._*
+.DS_Store

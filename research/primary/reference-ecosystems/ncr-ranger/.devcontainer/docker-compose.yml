@@ -1,0 +1,74 @@
+version: '3.7'
+
+services:
+  ranger:
+    image: nexus.ocr.cr14.net:8003/ranger-development:latest
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    volumes:
+      - ..:/workspace:cached
+      - ./.deputy/configuration.toml:/home/vscode/.deputy/configuration.toml
+    user: vscode
+    environment:
+      - DATABASE_URL=mysql://mysql_user:mysql_pass@mariadb:3306/ranger
+
+  development-keycloak:
+    image: nexus.ocr.cr14.net:8003/keycloak/keycloak
+    volumes:
+      - ./configs/keycloak-realm.json:/opt/keycloak/data/import/testrealm.json
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+    command: [ "start-dev", "--import-realm" ]
+
+  ranger-vmware-machiner:
+    image: nexus.ocr.cr14.net:8003/ranger-vmware-machiner:latest
+    volumes:
+      - ./configs/ranger-vmware-machiner.yml:/etc/opt/ranger/ranger-vmware-machiner/config.yml
+    restart: unless-stopped
+
+  ranger-vmware-switcher:
+    image: nexus.ocr.cr14.net:8003/ranger-vmware-switcher:latest
+    volumes:
+      - ./configs/ranger-vmware-switcher.yml:/etc/opt/ranger/ranger-vmware-switcher/config.yml
+    restart: unless-stopped
+
+  ranger-vmware-templater:
+    image: nexus.ocr.cr14.net:8003/ranger-vmware-templater:latest
+    volumes:
+      - ./configs/ranger-vmware-templater.yml:/etc/opt/ranger/ranger-vmware-templater/config.yml
+      - ./.deputy/configuration.toml:/root/.deputy/configuration.toml
+    restart: unless-stopped
+
+  ranger-vmware-executor:
+    image: nexus.ocr.cr14.net:8003/ranger-vmware-executor:latest
+    volumes:
+      - ./configs/ranger-vmware-executor.yml:/etc/opt/ranger/ranger-vmware-executor/config.yml
+      - ./.deputy/configuration.toml:/root/.deputy/configuration.toml
+    restart: unless-stopped
+
+  ranger-vmware-general:
+    image: nexus.ocr.cr14.net:8003/ranger-vmware-general:latest
+    volumes:
+      - ./configs/ranger-vmware-general.yml:/etc/opt/ranger/ranger-vmware-general/config.yml
+      - ./.deputy/configuration.toml:/root/.deputy/configuration.toml
+    restart: unless-stopped
+
+  featurer-redis-server:
+    image: nexus.ocr.cr14.net:8003/featurer-redis-server
+    restart: always
+    command: [ "redis-server", "/etc/redis/redis.conf" ]
+    volumes:
+      - ./configs/ranger-redis-config.conf:/etc/redis/redis.conf
+
+  mariadb:
+    image: nexus.ocr.cr14.net:8003/mariadb:10.7
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mariadb:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysql_root
+      - MYSQL_PASSWORD=mysql_pass
+      - MYSQL_USER=mysql_user
+      - MYSQL_DATABASE=ranger

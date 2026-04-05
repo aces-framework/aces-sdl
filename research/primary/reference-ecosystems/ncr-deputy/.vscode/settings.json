@@ -1,0 +1,40 @@
+{
+  "rust-analyzer.checkOnSave": true,
+  "rust-analyzer.check.overrideCommand": [
+    "cargo",
+    "clippy",
+    "--message-format=json",
+    "--",
+    "--allow=dead-code"
+  ],
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "editor.formatOnSaveMode": "file",
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  "css.lint.unknownAtRules": "ignore",
+  "eslint.packageManager": "yarn",
+  "eslint.workingDirectories": [
+    "./web-client",
+  ],
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default"
+      },
+      "previewLimit": 50,
+      "server": "deputy-mariadb",
+      "port": 3307,
+      "driver": "MariaDB",
+      "name": "Deputy",
+      "database": "deputy",
+      "username": "mysql_user",
+      "password": "mysql_pass"
+    }
+  ],
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+}

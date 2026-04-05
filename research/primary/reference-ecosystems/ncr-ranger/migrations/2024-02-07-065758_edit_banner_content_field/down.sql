@@ -1,0 +1,1 @@
+ALTER TABLE banners MODIFY content TEXT NOT NULL;

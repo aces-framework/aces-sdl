@@ -1,0 +1,57 @@
+
+CyRIS v1.2
+----------
+* Improved execution messages and logged information
+* Improved robustness of certain task handling by checking whether
+  specified files exist before attempting execution
+* Added support for the Amazon Web Services (AWS) virtualization
+  platform in addition to KVM
+* Added example range file to illustrate the use of AWS virtualization
+* Included noise PCAP files in the release, so that the
+  'emulate_traffic_capture_file' task can now be used without any
+  additional setup on the user side
+* Improved robustness of range description checking
+* Other minor improvements and bug fixes
+
+CyRIS v1.1
+----------
+* Added support for Windows as guest VM operating system
+* Introduced the keyword 'basevm_os_type' to specify the guest VM OS
+* Fixed a bug related to providing multiple arguments in the
+  'execute_program' task
+* Other minor improvements and bug fixes
+
+CyRIS v1.0
+----------
+* Modified the settings of the sample base VM to make it easier
+  to use by external parties
+* Improved the verification mechanism for the shutdown state of VMs
+* Updated the description file examples to latest syntax
+* Improved the connectivity checking for VMs (now using actual ssh
+  connections for validation)
+* Improved the syntax checking for description files, including
+  detection of unknown tags, invalid values, undefined guests, etc.
+* Other minor improvements and bug fixes
+
+CyRIS v0.2
+----------
+* Simplified README.md as most information is in User Guide
+* Added a generic multi-host description sample
+* Modified some directory and file names for consistency
+* Eliminated use of literal 'host_1' id in code related to pscp
+* Changed format of configuration file CONFIG, and the section name
+  [config] is now required; parameter names use lower case, and
+  ABS_PATH has been renamed to cyris_path for clarity
+* Fixed error in DMZ example by which the "forwarding_rules" field in
+  the "guests" section of "clone_setttings" was incorrectly written as
+  "firewall_rules"
+* Set "yum" as default package manager, hence the "package_manager"
+  field can now be omitted in "install_package" if the target OS is
+  CentOS or equivalent
+* Added the tag "full_name" to the "add_account" operation, so that
+  the user's full name can also be specified for new accounts.
+* Other minor improvements and bug fixes
+
+CyRIS v0.1
+----------
+* First public release

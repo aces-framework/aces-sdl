@@ -1,0 +1,192 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+env:
+  OCR_DEPLOYMENT_USER: ${{ secrets.OCR_DEPLOYMENT_USER }}
+  OCR_DEPLOYMENT_PASSWORD: ${{ secrets.OCR_DEPLOYMENT_PASSWORD }}
+  OCR_APT_REPOSITORY: ${{ vars.OCR_APT_REPOSITORY }}
+  DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+
+jobs:
+  lint-and-test-rust:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Debug nodejs
+        run: |
+          node --version
+          npm --version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint and test Rust
+        run: |
+          cargo clippy -- -Dwarnings
+          cargo fmt -- --check
+          cargo tarpaulin --skip-clean
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/frontend-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint frontend
+        run: |
+          yarn --cwd ./web-client/
+          yarn --cwd ./web-client/ lint
+          yarn --cwd ./web-client/ build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-client-build
+          path: web-client/build
+
+  build-and-upload-x86-64bit-linux-release-for-deputy-package-server:
+    if: startsWith(github.ref, 'refs/tags/deputy-package-server-')
+    needs: ["lint-and-test-rust"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload
+        run: |
+          cargo deb --target x86_64-unknown-linux-gnu -p deputy-package-server
+          DEB_FILE=$(find ./target/x86_64-unknown-linux-gnu/debian/ -maxdepth 1 -type f -name "*.deb")
+          curl -u $OCR_DEPLOYMENT_USER:$OCR_DEPLOYMENT_PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary "@$DEB_FILE" $OCR_APT_REPOSITORY
+
+  build-and-upload-x86-64bit-linux-release-for-deputy-cli:
+    if: startsWith(github.ref, 'refs/tags/deputy-cli-')
+    needs: ["lint-and-test-rust"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/rust-builder:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload
+        run: |
+          cargo deb --target x86_64-unknown-linux-gnu -p deputy
+          DEB_FILE=$(find ./target/x86_64-unknown-linux-gnu/debian/ -maxdepth 1 -type f -name "*.deb")
+          curl -u $OCR_DEPLOYMENT_USER:$OCR_DEPLOYMENT_PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary "@$DEB_FILE" $OCR_APT_REPOSITORY
+
+  publish-deputy-frontend-to-docker-images:
+    if: startsWith(github.ref, 'refs/tags/deputy-frontend-')
+    needs: ["lint-frontend"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/docker:20.10.17
+    steps:
+      - name: Install Git
+        run: |
+          apk update
+          apk add git
+
+      - name: Install Node.js
+        run: |
+          apk add nodejs npm
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.OCR_DEPLOYMENT_USER }}
+          password: ${{ env.OCR_DEPLOYMENT_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/deputy-frontend/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY }}/deputy-frontend:latest
+
+  publish-deputy-package-server-to-docker-images:
+    if: startsWith(github.ref, 'refs/tags/deputy-package-server-')
+    needs:
+      ["build-and-upload-x86-64bit-linux-release-for-deputy-package-server"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/docker:20.10.17
+    steps:
+      - name: Install Git
+        run: |
+          apk update
+          apk add git
+
+      - name: Install Node.js
+        run: |
+          apk add nodejs npm
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.OCR_DEPLOYMENT_USER }}
+          password: ${{ env.OCR_DEPLOYMENT_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/deputy-package-server/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY }}/deputy-package-server:latest
+
+  sync-to-github:
+    if: github.ref == 'refs/heads/master'
+    needs: ["lint-and-test-rust", "lint-frontend"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKER_REGISTRY_PULL }}/ocr-base-deployment-image:latest
+    steps:
+      - name: Install Git
+        run: |
+          if ! command -v git &> /dev/null
+          then
+            apt-get update
+            apt-get install -y git
+          fi
+
+      - name: Install Node.js
+        run: |
+          curl -sL https://deb.nodesource.com/setup_18.x | bash -
+          apt-get install -y nodejs
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Sync to GitHub
+        run: |
+          git remote remove github || echo "No remote named 'github'"
+          git remote add github https://${{ secrets.OCR_GITHUB_TOKEN }}@github.com/Open-Cyber-Range/Deputy.git
+          git fetch --unshallow || echo "Already have full history"
+          git checkout master
+          git pull --rebase origin master
+          git push github master:main --force

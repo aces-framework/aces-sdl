@@ -1,0 +1,3 @@
+#!/bin/sh
+
+DEPUTY_CONFIG_FOLDER="${HOME}/.deputy" /workspace/target/release/deputy "${@}"

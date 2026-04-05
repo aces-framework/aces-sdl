@@ -1,0 +1,32 @@
+{
+  "name": "Deputy devcontainer",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "deputy-development",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "serayuzgur.crates",
+        "vadimcn.vscode-lldb",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "eamodio.gitlens",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mysql",
+        "github.copilot",
+        "github.copilot-labs",
+        "github.copilot-chat",
+        "rvest.vs-code-prettier-eslint",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "forwardPorts": [
+    "development-keycloak:8080"
+  ],
+  "containerEnv": {
+    "RUST_LOG": "info"
+  },
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode"
+}

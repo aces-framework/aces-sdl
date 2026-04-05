@@ -1,0 +1,12 @@
+.question-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 2%;
+}
+
+.question-text {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}

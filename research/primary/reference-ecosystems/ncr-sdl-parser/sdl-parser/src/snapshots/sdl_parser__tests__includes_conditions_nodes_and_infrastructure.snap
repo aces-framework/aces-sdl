@@ -1,0 +1,99 @@
+---
+source: sdl-parser/src/lib.rs
+expression: conditions
+snapshot_kind: text
+---
+name: test-scenario
+description: some-description
+nodes:
+  deb10:
+    conditions:
+      condition-2: moderator
+      condition-3: admin
+    description: deb-10-description
+    features: {}
+    injects: {}
+    resources:
+      ram: 2147483648
+      cpu: 1
+    roles:
+      admin:
+        username: username
+        entities: ~
+      moderator:
+        username: name
+        entities: ~
+    source:
+      name: debian10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+  win10:
+    conditions:
+      condition-1: admin
+    description: win-10-description
+    features: {}
+    injects: {}
+    resources:
+      ram: 4294967296
+      cpu: 2
+    roles:
+      admin:
+        username: username
+        entities: ~
+    source:
+      name: windows10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+features: ~
+infrastructure:
+  deb10:
+    name: ~
+    count: 1
+    links: ~
+    dependencies: ~
+    properties: ~
+    description: ~
+  win10:
+    name: ~
+    count: 1
+    links: ~
+    dependencies:
+      - deb10
+    properties: ~
+    description: ~
+conditions:
+  condition-1:
+    name: ~
+    command: executable/path.sh
+    interval: 30
+    source: ~
+    description: ~
+    environment: ~
+  condition-2:
+    name: ~
+    command: ~
+    interval: ~
+    source:
+      name: digital-library-package
+      version: "*"
+    description: ~
+    environment: ~
+  condition-3:
+    name: ~
+    command: executable/path.sh
+    interval: 30
+    source: ~
+    description: ~
+    environment: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects: ~
+events: ~
+scripts: ~
+stories: ~

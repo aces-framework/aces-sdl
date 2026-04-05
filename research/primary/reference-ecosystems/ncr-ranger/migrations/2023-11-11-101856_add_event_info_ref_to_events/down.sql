@@ -1,0 +1,1 @@
+ALTER TABLE events DROP COLUMN event_info_data_checksum;

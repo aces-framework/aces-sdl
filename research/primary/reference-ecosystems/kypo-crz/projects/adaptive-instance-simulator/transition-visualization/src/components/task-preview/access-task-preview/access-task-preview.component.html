@@ -1,0 +1,2 @@
+<sentinel-markdown-view *ngIf='!localEnvironment' [markdown]="task?.cloudContent" />
+<sentinel-markdown-view *ngIf='localEnvironment' [markdown]="task?.localContent" />

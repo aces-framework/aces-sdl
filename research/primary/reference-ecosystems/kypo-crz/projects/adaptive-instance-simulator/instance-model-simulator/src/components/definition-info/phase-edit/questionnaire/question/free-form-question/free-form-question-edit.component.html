@@ -1,0 +1,24 @@
+<div>
+    <div class="question-container">
+        <!-- TITLE field-->
+        <div class='question-text'>
+            <sentinel-markdown-editor
+                [sentinel-markdown-file-upload]="false"
+                [content]="question.text"
+            />
+        </div>
+    </div>
+
+    <div *ngIf="questionnaireType === questionnaireTypes.Adaptive">
+        <!-- CHOICES field -->
+        <h2>Answers:</h2>
+        <div>
+            <div *ngFor="let choice of question.choices; index as i;">
+                <mat-form-field appearance="outline">
+                    <mat-label>Answer {{ i + 1 }}</mat-label>
+                    <input matInput placeholder="Answer text" [disabled]="true" [value]="choice.text" />
+                </mat-form-field>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,32 @@
+{
+  "name": "Ranger devcontainer",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "ranger",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "serayuzgur.crates",
+        "vadimcn.vscode-lldb",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "zxh404.vscode-proto3",
+        "github.copilot",
+        "eamodio.gitlens",
+        "samverschueren.linter-xo",
+        "bradlc.vscode-tailwindcss",
+        "mtxr.sqltools-driver-mysql",
+        "ms-vsliveshare.vsliveshare",
+        "gitlab.gitlab-workflow"
+      ]
+    }
+  },
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "postCreateCommand": "sudo chown vscode:vscode /home/vscode/.deputy && mkdir /home/vscode/.deputy/download && mkdir /home/vscode/.deputy/index",
+  "containerEnv": {
+    "RUST_LOG": "info"
+  },
+  "forwardPorts": [
+    "development-keycloak:8080"
+  ]
+}

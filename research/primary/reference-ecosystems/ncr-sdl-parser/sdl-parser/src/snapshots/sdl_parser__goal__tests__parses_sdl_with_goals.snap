@@ -1,0 +1,10 @@
+---
+source: sdl-parser/src/goal.rs
+expression: goals
+---
+goal-1:
+  name: ~
+  description: new goal
+  tlos:
+    - tlo-1
+

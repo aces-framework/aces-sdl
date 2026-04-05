@@ -1,0 +1,23 @@
+<div class="content-container">
+    <div class="upload-container">
+        <h3>Upload Exported Training Instance</h3>
+        <sentinel-controls
+            [controls]="definitionControls"
+            (itemClicked)="onControlsAction($event)">
+        </sentinel-controls>
+    </div>
+    <div class="card-content">
+        <crczp-adaptive-instance-simulator-definition-info
+            [definitionInfo]="(instanceSimulatorData$ | async)?.trainingDefinition"
+            (phaseChange)="phaseChanged($event)"
+            (isPhaseValid)="phaseValid($event)">
+        </crczp-adaptive-instance-simulator-definition-info>
+        <sentinel-controls
+            [controls]="generateControls"
+            (itemClicked)="onControlsAction($event)">
+        </sentinel-controls>
+        <crczp-adaptive-instance-simulator-instance-simulator
+            [simulatorData]="(instanceSimulatorData$ | async)?.sankeyData">
+        </crczp-adaptive-instance-simulator-instance-simulator>
+    </div>
+</div>

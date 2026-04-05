@@ -1,0 +1,25 @@
+{
+    "exclude": [
+        "**/.ipynb_checkpoints",
+        "**/__pycache__",
+        "**/outputs/**",
+        "typings",
+        "venv"
+    ],
+    "ignore": [],
+    "typeshedPaths": [
+        "typings"
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": true,
+    "enableTypeIgnoreComments": true,
+    "reportUnusedFunction": "warning",
+    "reportUnusedImport": "warning",
+    "reportDuplicateImport": "warning",
+    "reportUnnecessaryCast": "warning",
+    "reportUndefinedVariable": "error",
+    "reportIncompatibleMethodOverride": "warning",
+    "reportIncompatibleVariableOverride": "information",
+    "strictParameterNoneValue": true,
+    "strict": []
+}

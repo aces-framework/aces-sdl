@@ -1,0 +1,44 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "baseUrl": "./projects/adaptive-instance-simulator",
+        "outDir": "./dist/out-tsc",
+        "sourceMap": true,
+        "declaration": false,
+        "downlevelIteration": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "importHelpers": true,
+        "target": "ES2022",
+        "module": "es2020",
+        "lib": [
+            "es2018",
+            "dom"
+        ],
+        "paths": {
+            "@crczp/adaptive-instance-simulator/performance-simulator": [
+                "./performance-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/instance-model-simulator": [
+                "./instance-model-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/internal": [
+                "./internal/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/model-simulator": [
+                "./model-simulator/src/public_api.ts"
+            ],
+            "@crczp/adaptive-instance-simulator/transition-visualization": [
+                "./transition-visualization/src/public_api.ts"
+            ]
+        },
+        "useDefineForClassFields": false
+    },
+    "angularCompilerOptions": {
+        "fullTemplateTypeCheck": true,
+        "strictInjectionParameters": true
+    }
+}

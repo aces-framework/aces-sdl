@@ -1,0 +1,5 @@
+[registries]
+main-registry = { api = "https://deputy.ocr.cr14.net/" }
+
+[package]
+download_path = "/home/vscode/.deputy/download"

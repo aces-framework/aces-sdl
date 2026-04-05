@@ -1,0 +1,1 @@
+ALTER TABLE email_templates DROP INDEX unique_name;

@@ -1,0 +1,13 @@
+---
+source: sdl-parser/src/infrastructure.rs
+expression: infra_node
+snapshot_kind: text
+---
+InfraNode {
+    name: None,
+    count: 23,
+    links: None,
+    dependencies: None,
+    properties: None,
+    description: None,
+}

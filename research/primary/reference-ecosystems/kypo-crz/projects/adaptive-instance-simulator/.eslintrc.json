@@ -1,0 +1,45 @@
+{
+    "extends": [
+        "../../.eslintrc.json"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "*.ts"
+            ],
+            "parserOptions": {
+                "project": [
+                    "projects/{{PROJECT_DIR}}/tsconfig.*?.json"
+                ],
+                "createDefaultProgram": true
+            },
+            "rules": {
+                "@angular-eslint/directive-selector": [
+                    "error",
+                    {
+                        "type": "attribute",
+                        "prefix": "crczp",
+                        "style": "camelCase"
+                    }
+                ],
+                "@angular-eslint/component-selector": [
+                    "error",
+                    {
+                        "type": "element",
+                        "prefix": "crczp",
+                        "style": "kebab-case"
+                    }
+                ],
+                // TODO: Remove the warn overrides once fixed
+                "@typescript-eslint/no-explicit-any": "warn",
+                "@typescript-eslint/no-unused-vars": "warn"
+            }
+        },
+        {
+            "files": [
+                "*.component.html"
+            ],
+            "rules": {}
+        }
+    ]
+}

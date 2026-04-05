@@ -1,0 +1,22 @@
+---
+source: sdl-parser/src/lib.rs
+expression: dependencies.generate_tranches().unwrap()
+---
+[
+    [
+        "grandchild-config",
+        "child-config",
+    ],
+    [
+        "grandgrandchild-artifact",
+    ],
+    [
+        "grandchild-artifact",
+    ],
+    [
+        "child-service",
+    ],
+    [
+        "parent-service",
+    ],
+]

@@ -1,0 +1,54 @@
+[package]
+name = "deputy-library"
+version = "0.3.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-http = { version = "3", features = ["http2", "ws"] }
+actix-web = "4"
+anyhow = "1"
+base64 = "0.22"
+bytes = "1"
+byte-unit = { version = "5", optional = true }
+chrono = { version = "0.4", features = ["serde"] }
+fancy-regex = "0.13"
+filetime = { version = "0.2", optional = true }
+flate2 = "1"
+futures = "0.3"
+ignore = "0.4"
+infer = "0.16"
+lazy_static = "1"
+lockfile = "0.4"
+log = "0.4"
+num_cpus = "1"
+scraper = "0.20"
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+spdx = "0.10"
+rand = { version = "0.8", optional = true }
+rayon = { version = "1", optional = true }
+regex = "1"
+tar = "0.4"
+tempfile = "3"
+thiserror = "1"
+tokio = { version = "1", features = ["fs"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+toml = "0.8"
+uuid = { version = "1", features = ["serde"] }
+gzp = { version = "0.11", default-features = false, features = [
+  "deflate_rust",
+] }
+pulldown-cmark = { version = "0.11", default-features = false, features = ["html"]}
+duration-str = "0.11"
+
+[dev-dependencies]
+insta = { version = "1", features = ["toml", "redactions"] }
+tokio = { version = "1", features = ["fs", "rt-multi-thread"] }
+
+[features]
+default = ["test"]
+test = ["byte-unit", "rand", "rayon", "filetime"]

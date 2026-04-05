@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+	<oss>
+		<os id="1">
+			<name>Cirros-0.3.4 uec</name>
+			<image>cirros-0.3.4-x86_64-uec</image>
+			<version>0.3.4</version>
+			<description></description>
+			<family>Linux</family>
+		</os>
+		<os id="2">
+			<name>Android KitKat</name>
+			<image>androidx86-4.4</image>
+			<version>4.4</version>
+			<family>Android</family>
+		</os>
+		<os id="4">
+			<name>Ubuntu Server 16.04 LTS</name>
+			<image>Ubuntu Server 16.04 LTS</image>
+			<version>16.04</version>
+			<family>Linux</family>
+		</os>
+		
+	</oss>
+</resources>

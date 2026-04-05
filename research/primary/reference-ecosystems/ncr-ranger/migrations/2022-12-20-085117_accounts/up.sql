@@ -1,0 +1,14 @@
+CREATE TABLE accounts (
+    id BINARY(16) NOT NULL,
+    template_id BINARY(16) NOT NULL,
+    username TINYTEXT NOT NULL,
+    password TINYTEXT NULL DEFAULT NULL,
+    private_key TEXT NULL DEFAULT NULL,
+    exercise_id BINARY(16) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id),
+    UNIQUE (id)
+);

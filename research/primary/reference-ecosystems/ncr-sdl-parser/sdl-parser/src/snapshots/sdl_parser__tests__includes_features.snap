@@ -1,0 +1,40 @@
+---
+source: sdl-parser/src/lib.rs
+expression: features
+---
+my-cool-artifact:
+  name: ~
+  type: Artifact
+  source:
+    name: dl_library
+    version: 1.2.3
+  dependencies:
+    - my-cool-service
+  vulnerabilities: ~
+  destination: ~
+  description: ~
+  environment: ~
+my-cool-config:
+  name: ~
+  type: Configuration
+  source:
+    name: some-configuration
+    version: "*"
+  dependencies:
+    - my-cool-service
+  vulnerabilities: ~
+  destination: ~
+  description: ~
+  environment: ~
+my-cool-service:
+  name: ~
+  type: Service
+  source:
+    name: some-service
+    version: "*"
+  dependencies: ~
+  vulnerabilities: ~
+  destination: ~
+  description: ~
+  environment: ~
+

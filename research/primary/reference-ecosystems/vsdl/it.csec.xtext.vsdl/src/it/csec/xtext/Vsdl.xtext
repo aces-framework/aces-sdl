@@ -1,0 +1,182 @@
+grammar it.csec.xtext.Vsdl with org.eclipse.xtext.common.Terminals
+	hidden(WS, ML_COMMENT, SL_COMMENT)
+
+generate vsdl "http://www.csec.it/xtext/Vsdl"
+
+Model:
+	'scenario' name=ID ('duration' TimeToUse=TimeInterval)? '{' Elements += ScenElem* '}';
+
+ScenElem:
+	Node | 
+	Network;
+	
+Node:
+	'node' name=ID '{' constraints += NodeConstraint* '}';
+
+NodeConstraint:
+	GuardedNodeConstraint ';'|
+	SimpleNodeConstraint ';';
+
+GuardedNodeConstraint returns NodeConstraint:
+	'[' triggerconstraint=UpdateTriggerConstraint ']' '->' nodeconstraint=SimpleNodeConstraint;
+	
+SimpleNodeConstraint returns NodeConstraint:
+	SimpleNodeConstraintAndOr;	
+	
+SimpleNodeConstraintAndOr returns NodeConstraint:
+	SimpleNodeConstraintNot
+	(({AndOr.left=current} op=("and"|"or")) right=SimpleNodeConstraintNot)*;
+	
+SimpleNodeConstraintNot returns NodeConstraint:
+	{Not} =>"not" constraint=SimpleNodeConstraintA |
+	SimpleNodeConstraintA;
+
+SimpleNodeConstraintA returns NodeConstraint:
+	"(" SimpleNodeConstraint ")" |
+	NodeHardwareConstraintA |
+	NodeSoftwareConstraintA;
+
+NodeHardwareConstraintA returns NodeConstraint:	
+/* 	{CPU} =>'cpu' 'speed' op='equal' 'to' value=CPUFrequency |
+	{CPU} =>'cpu' op='faster' 'than' value=CPUFrequency |
+	{CPU} =>'cpu' op='slower' 'than' value=CPUFrequency |
+	{CPU} =>'cpu' 'speed' sameas ?='of' id=[Node] | */
+ 	{VCPU} =>'cpu' 'number' op='equal' 'to' value=INT |
+	{VCPU} =>'cpu' op='greater' 'than' value=INT |
+	{VCPU} =>'cpu' op='less' 'than' value=INT |
+	{VCPU} =>'cpu' 'number' sameas ?='of' id=[Node] |	
+	{Disk} =>'disk' 'size' op='equal' 'to' value=DiskSize |
+	{Disk} =>'disk' op='larger' 'than' value=DiskSize |
+	{Disk} =>'disk' op='smaller' 'than' value=DiskSize |
+	{Disk} =>'disk' 'size' sameas ?='of' id=[Node] |
+	{Ram} =>'ram' 'size' op='equal' 'to' value=RamSize |
+	{Ram} =>'ram' op='larger' 'than' value=RamSize |
+	{Ram} =>'ram' op='smaller' 'than' value=RamSize |
+	{Ram} =>'ram' 'size' sameas ?='of' id=[Node] |
+	{Flavour} =>'flavour' profile=STRING;  //HardwareProfile;
+	
+	NodeSoftwareConstraintA returns NodeConstraint:
+		'node' {OS} =>'OS' 'is' version=OSVersionE |
+		'node' 'OS' {OSFamily} =>'family' 'is' family=OSFamilyE;
+
+Network:
+	'network' name=ID '{' constraints += NetworkConstraint* '}';
+
+NetworkConstraint:
+	GuardedNetworkConstraint ';'|
+	SimpleNetworkConstraint ';';
+
+GuardedNetworkConstraint returns NetworkConstraint:
+	'[' networktriggerconstraint=UpdateTriggerConstraint ']' '->' networkconstraint=SimpleNetworkConstraint;
+
+SimpleNetworkConstraint returns NetworkConstraint:
+	SimpleNetworkConstraintAndOr;	
+
+SimpleNetworkConstraintAndOr returns NetworkConstraint:
+	SimpleNetworkConstraintNot
+	(({AndOr.left=current} op=("and"|"or")) right=SimpleNetworkConstraintNot)*;
+	
+SimpleNetworkConstraintNot returns NetworkConstraint:
+	{Not} =>"not" constraint=SimpleNetworkConstraintA |
+	SimpleNetworkConstraintA;
+
+SimpleNetworkConstraintA returns NetworkConstraint:
+	"(" SimpleNetworkConstraint ")" |
+	NetworkGatewayConstraint |
+	NetworkParticipantsConstraint |
+	NetworkFirewallConstraint;
+
+NetworkGatewayConstraint returns NetworkConstraint:
+	{IPRange} =>"addresses" "range" "is" range=IPRangeA |
+	{Gateway} =>"gateway" "has" "direct" "access" "to" "the" internet ?="Internet";
+
+NetworkParticipantsConstraint returns NetworkConstraint:
+	{IP} =>"node" id=[ScenElem] "is" op="connected" |
+    {IP} =>"node" id=[ScenElem] "has" op="IP" address=IPAddress;
+
+NetworkFirewallConstraint returns NetworkConstraint:
+	"firewall" "blocks" "port" port=INT |	
+	"firewall" "forwards" "port" sPort=INT "to"	dPort=INT |
+	"firewall" "blocks" "IP" address=IPAddress |
+	"firewall" "translates" "IP" srcAddress=IPAddress "in" dstAddress=IPAddress;
+
+UpdateTriggerConstraint:
+	UpdateTriggerConstraintAndOr;
+
+UpdateTriggerConstraintAndOr returns UpdateTriggerConstraint:
+	 UpdateTriggerConstraintNot
+	 (({AndOr.left=current} op=("and"|"or")) right=UpdateTriggerConstraintNot)*;
+	
+UpdateTriggerConstraintNot returns UpdateTriggerConstraint:
+	{Not} =>"not" constraint=UpdateTriggerConstraintA |
+	UpdateTriggerConstraintA;
+
+UpdateTriggerConstraintA returns UpdateTriggerConstraint:
+	"(" UpdateTriggerConstraint ")" |
+	{At} =>"at" op="least" "after" variable=ID "=" texp=TimeExpr |
+	{At} =>"at" op="most" "before" variable=ID "=" texp=TimeExpr |
+	{Switch} =>"switch" "after" variable=ID "=" texp=TimeExpr;
+
+TimeExpr:
+	TimeExprAddition;
+
+TimeExprAddition returns TimeExpr:
+	 TimeExprMultiplication 
+	 (({PlusMinus.left=current} op=("+"|"-")) right=TimeExprMultiplication)*;
+        
+TimeExprMultiplication returns TimeExpr:
+	TimeExprA 
+	(({Multiplication.left=current} op='*')
+ 	   right=TimeExprA)*;
+
+TimeExprA returns TimeExpr:
+	'(' TimeExpr ')' |
+	variable=ID |
+	interval=TimeInterval;
+	
+TimeInterval:
+	value=INT; // unit=('h' | 'm');	
+
+CPUFrequency:
+	value=INT unit=('MHz' | 'GHz' | 'THz');
+
+DiskSize:
+	value=INT unit=('MB' | 'GB' | 'TB');
+
+RamSize:
+	value=INT unit=('MB' | 'GB' );
+
+IPAddress:
+	octet1=INT'.'octet2=INT'.'octet3=INT'.'octet4=INT;
+	
+IPRangeA:
+	address=IPAddress'/'bitmask=INT;
+
+OSVersionE:
+	STRING;
+/* 	WindowsXP |
+	Windows7 |
+	Windows8 |
+	//Windows2012 |
+	Windows10 |
+	//Windows2012 |
+	Ubuntu14 |
+	Ubuntu16; */
+	
+OSFamilyE:
+	STRING;
+/*  	Microsoft |
+	Linux |
+	OSx |
+	iOS |
+	Android; */
+	
+//HardwareProfile:
+//	STRING;
+	/* 	tiny |
+		medium |
+		large |
+		mobile |
+		wearable |
+		sensor |
+		server; */

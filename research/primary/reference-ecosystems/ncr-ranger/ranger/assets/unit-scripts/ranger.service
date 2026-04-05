@@ -1,0 +1,14 @@
+[Unit]
+Description=ranger
+After=network.target
+
+[Service]
+ExecStart=/var/opt/ranger/bin/ranger /etc/opt/ranger/ranger/config.yml
+Type=simple
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=10m
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target

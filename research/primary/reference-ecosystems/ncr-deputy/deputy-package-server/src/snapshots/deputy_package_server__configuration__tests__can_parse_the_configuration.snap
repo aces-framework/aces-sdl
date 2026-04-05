@@ -1,0 +1,13 @@
+---
+source: deputy-package-server/src/configuration.rs
+expression: configuration
+---
+Configuration {
+    hostname: "localhost:8080",
+    package_folder: "/tmp/packages",
+    database_url: "mysql://mysql_user:mysql_pass@deputy-mariadb:3307/deputy",
+    keycloak: Keycloak {
+        pem_content: "MIICoTCCAYkCBgGFFQ5SLzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAl0ZXN0cmVhbG0wHhcNMjIxMjE1MDkxMDM4WhcNMzIxMjE1MDkxMjE4WjAUMRIwEAYDVQQDDAl0ZXN0cmVhbG0wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC9MCqRfbTMuZzTu6bqaUCNOok6DLV9q6WmCDSpqzByC9u7W7j/MTNwx1tnD1oBrK8zMaS0AXlYT9JGnoAaVVeNjRaPhuOV4hs+Badtfx91E/ZF5nKjeKM3LRcx+Bthmbxlf2sNCBsFOuQafRM/srpYOlbcQ88HKuqDQpWKULUxlMxH2i7rqy9+vGAFAqJJlwtfAMiq3pof08leC8mlBz7QwnlAi6aasFLMJ0KoCBxlYJMAJNWD/CBCAQUu1tBalXVLpw93lZZqurXhw7cLAjKt//4HlkcTrkDDxpMac37GbrNRIbMpIDt//n+mausUfO0ogmQlaJ8a8A/RtBcXGmIXAgMBAAEwDQYJKoZIhvcNAQELBQADggEBADY/bz+lShMF1qB9Vt7oG0BxRiEdMXrf9GzHNL5R1vm7snLKUkfZJgM13/ovQLgWMDyuVFD/AIubWtQPBrFoXQnae/U/YmK7QFoMohBxpf+mHKo21HvxFBTsdaQwSfvFZ0ykFZR+O7huZhbMc/SuhY/cpwRBYtL8CBKORq5At7dz4cPMdf03qyh1wVSkArRz4UyH0T1EKMZU1QW6KgsY8LzGL9lW70UI7EilLKyFzPfpylP/SZP8RLSgy+P/XJYnALXMaWmq+Zom1tuZxjwBxeWr6qv6H1yH7xxLjPJVoF+Mb2zZZQruvzqo9zS0qKOUkVj3WM1resNYpHbmvKAWf8M=",
+    },
+    max_archive_size: 1048576,
+}

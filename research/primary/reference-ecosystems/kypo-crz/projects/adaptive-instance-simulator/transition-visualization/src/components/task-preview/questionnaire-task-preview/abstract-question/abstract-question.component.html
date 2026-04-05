@@ -1,0 +1,18 @@
+<crczp-free-form-question-detail
+    *ngIf="question.questionType === QuestionTypeEnum.FFQ"
+    [question]="question"
+    [questionnaireType]="questionnaireType"
+>
+</crczp-free-form-question-detail>
+<crczp-multiple-choice-question-detail
+    *ngIf="question.questionType === QuestionTypeEnum.MCQ"
+    [question]="question"
+    [questionnaireType]="questionnaireType"
+>
+</crczp-multiple-choice-question-detail>
+<crczp-rating-form-question-detail
+    *ngIf="question.questionType === QuestionTypeEnum.RFQ"
+    [question]="question"
+    [questionnaireType]="questionnaireType"
+>
+</crczp-rating-form-question-detail>

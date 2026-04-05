@@ -1,0 +1,65 @@
+---
+source: sdl-parser/src/node.rs
+expression: scenario
+---
+name: test-scenario
+description: some-description
+nodes:
+  win-10:
+    conditions: {}
+    description: ~
+    features:
+      feature-1: admin
+      feature-2: moderator
+    injects: {}
+    resources:
+      ram: 2147483648
+      cpu: 2
+    roles:
+      admin:
+        username: username
+        entities: ~
+      moderator:
+        username: name
+        entities: ~
+    source:
+      name: windows10
+      version: "*"
+    type: VM
+    vulnerabilities: []
+features:
+  feature-1:
+    name: ~
+    type: Service
+    source:
+      name: dl-library
+      version: "*"
+    dependencies: ~
+    vulnerabilities: ~
+    destination: ~
+    description: ~
+    environment: ~
+  feature-2:
+    name: ~
+    type: Artifact
+    source:
+      name: my-cool-artifact
+      version: 1.0.0
+    dependencies: ~
+    vulnerabilities: ~
+    destination: ~
+    description: ~
+    environment: ~
+infrastructure: ~
+conditions: ~
+vulnerabilities: ~
+metrics: ~
+evaluations: ~
+tlos: ~
+entities: ~
+goals: ~
+injects: ~
+events: ~
+scripts: ~
+stories: ~
+

@@ -1,0 +1,13 @@
+<h3>
+    <span>{{ question.order + 1 }}. </span>
+    <span> {{ question.text }}</span>
+</h3>
+<div *ngIf="questionnaireType === QuestionnaireTypeEnum.Adaptive">
+    <div class="data-field">
+        <div class="choices">
+            <div *ngFor="let choice of question.choices">
+                <div>{{ choice.text }}</div>
+            </div>
+        </div>
+    </div>
+</div>

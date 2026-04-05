@@ -1,0 +1,39 @@
+:host {
+    width: 100%;
+    position: relative;
+}
+
+.svg {
+    width: 100%;
+}
+
+// hide axis lines
+.axis path, .axis line {
+    fill: none;
+    stroke: none;
+}
+
+.task-preview-container {
+    margin-top: 1%;
+    margin-left: 1%;
+    display: flex;
+}
+
+.preview-close {
+    float: right;
+}
+
+.preview-divider {
+    margin-top: 1% !important;
+    position: absolute;
+}
+
+#tooltip {
+    position: absolute;
+    visibility: hidden;
+    background: #707070;
+    padding: 5px 10px;
+    border: 0px;
+    border-radius: 3px;
+    color: white;
+}

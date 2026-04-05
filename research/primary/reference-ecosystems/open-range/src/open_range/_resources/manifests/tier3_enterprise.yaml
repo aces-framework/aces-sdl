@@ -1,0 +1,79 @@
+version: 1
+world_family: enterprise_saas_v1
+seed: 3301
+
+business:
+  archetype: enterprise_collaboration
+  workflows:
+    - helpdesk_ticketing
+    - payroll_approval
+    - document_sharing
+    - internal_email
+    - partner_sync
+    - quarterly_reporting
+
+topology:
+  zones:
+    - external
+    - dmz
+    - corp
+    - data
+    - management
+  services:
+    - web_app
+    - email
+    - idp
+    - fileshare
+    - db
+    - siem
+
+users:
+  roles:
+    sales: 6
+    engineer: 6
+    finance: 4
+    it_admin: 3
+
+assets:
+  - id: merger_room_docs
+    class: crown_jewel
+  - id: payroll_db
+    class: crown_jewel
+  - id: customer_exports
+    class: sensitive
+  - id: breakglass_cred
+    class: sensitive
+
+objectives:
+  red:
+    - predicate: credential_obtained(breakglass_cred)
+    - predicate: asset_read(merger_room_docs)
+    - predicate: asset_read(payroll_db)
+  blue:
+    - predicate: intrusion_detected(initial_access)
+    - predicate: intrusion_contained(before_asset_read)
+    - predicate: service_health_above(0.9)
+
+security:
+  allowed_weakness_families:
+    - config_identity
+    - workflow_abuse
+    - secret_exposure
+    - code_web
+    - telemetry_blindspot
+  observability:
+    require_web_logs: true
+    require_idp_logs: true
+    require_email_logs: true
+    require_siem_ingest: true
+
+difficulty:
+  target_red_path_depth: 14
+  target_blue_signal_points: 8
+  target_noise_density: high
+
+mutation_bounds:
+  max_new_hosts: 4
+  max_new_services: 1
+  max_new_users: 12
+  max_new_weaknesses: 4

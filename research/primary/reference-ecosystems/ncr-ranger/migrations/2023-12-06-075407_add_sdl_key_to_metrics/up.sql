@@ -1,0 +1,5 @@
+ALTER TABLE metrics
+ADD COLUMN sdl_key TEXT NOT NULL
+AFTER name;
+ALTER TABLE metrics
+MODIFY name TEXT;

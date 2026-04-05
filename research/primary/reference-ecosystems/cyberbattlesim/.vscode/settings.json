@@ -1,0 +1,25 @@
+{
+    "python.testing.pytestArgs": [
+        "cyberbattle"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "extensions.ignoreRecommendations": true,
+    "files.autoSave": "off",
+    "debug.allowBreakpointsEverywhere": true,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "search.useGlobalIgnoreFiles": true,
+    "files.watcherExclude": {
+        "typings/**": true,
+        "venv/**": true
+    },
+    "files.exclude": {
+        "venv/": true
+    },
+    "jupyter.notebookFileRoot": "${workspaceFolder}",
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+}

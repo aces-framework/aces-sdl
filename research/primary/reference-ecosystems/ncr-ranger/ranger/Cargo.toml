@@ -1,0 +1,104 @@
+[package]
+name = "ranger"
+version = "2.2.2"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.deb]
+name = "ranger-server"
+maintainer = "C14 developers <developers@cr14.ee>"
+copyright = "MIT"
+depends = "$auto, systemd"
+section = "utility"
+priority = "optional"
+changelog = "changelog"
+assets = [
+  [
+    "target/release/ranger",
+    "/var/opt/ranger/bin/",
+    "755",
+  ],
+  [
+    "assets/default-production-config.yml",
+    "/etc/opt/ranger/ranger/config.yml",
+    "644",
+  ],
+  [
+    "../ranger-app/build/assets/*",
+    "/etc/opt/ranger/ranger-app/assets",
+    "644",
+  ],
+  [
+    "../ranger-app/build/*",
+    "/etc/opt/ranger/ranger-app/",
+    "644",
+  ],
+]
+systemd-units = { unit-name = "ranger", unit-scripts = "assets/unit-scripts" }
+
+[dependencies]
+actix = "0.13"
+actix-multipart = "0.6"
+actix-web = "4"
+actix-web-actors = "4"
+actix-web-grants = "3"
+actix-http = { version = "3", features = ["http2", "ws"] }
+actix-web-httpauth = "0.8"
+anyhow = "1"
+async-trait = "0.1"
+bigdecimal = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+diesel = { version = "2.1", features = ["mysql", "r2d2", "chrono", "numeric"] }
+diesel_migrations = "2.1"
+env_logger = "0.9"
+futures = "0.3"
+futures-util = "0.3"
+jsonwebtoken = "8"
+keycloak = { git = "https://github.com/ebakoba/keycloak", branch = "master" }
+log = "0.4"
+lazy_static = "1.4"
+lettre = { version = "0.10", default-features = false, features = [
+  "smtp-transport",
+  "pool",
+  "hostname",
+  "builder",
+  "rustls",
+  "rustls-tls",
+] }
+sha3 = "0.10"
+digest = "0.10"
+rand = "0.8"
+ranger-grpc = { path = "../ranger-grpc" }
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls",
+  "rustls-tls",
+  "tokio-rustls",
+  "hyper-rustls",
+  "rustls-native-certs",
+] }
+sdl-parser = "0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+semver = "1"
+tempfile = "3"
+thiserror = "1"
+toml-query = "0.10"
+toml = "0.5.6"
+tokio = { version = "1", features = [
+  "rt-multi-thread",
+  "time",
+  "fs",
+  "macros",
+  "net",
+  "rt",
+] }
+tonic = "0.8"
+uuid = { version = "1.1", features = ["v4", "serde", "fast-rng"] }
+
+[dev-dependencies]
+actix-rt = "2"
+insta = { version = "1", features = ["redactions", "yaml"] }
+sdl-parser = { version = "0", features = ["test"] }

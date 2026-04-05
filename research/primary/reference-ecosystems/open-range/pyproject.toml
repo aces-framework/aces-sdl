@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-range"
+version = "0.1.0"
+description = "Manifest-first red/blue/green cyber range package"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "click>=8.1",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+training = [
+    "torch>=2.10",
+    "transformers>=5.2",
+    "datasets>=4.3",
+    "accelerate>=1.13",
+    "peft>=0.18",
+    "trl>=0.24",
+]
+
+[dependency-groups]
+dev = [
+    { include-group = "hooks" },
+    { include-group = "lint" },
+    { include-group = "test" },
+]
+hooks = ["pre-commit>=4.5"]
+lint = ["ruff>=0.15.6"]
+test = ["pytest>=8.0"]
+
+[project.scripts]
+openrange = "open_range.cli:cli"
+openrange-demo = "open_range.examples.demo:main"
+openrange-bootstrap-demo = "open_range.examples.bootstrap:main"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = { "" = "src" }
+package-data = { "open_range" = ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.md"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["open_range*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "live_model: runs live LiteLLM model smoke tests",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

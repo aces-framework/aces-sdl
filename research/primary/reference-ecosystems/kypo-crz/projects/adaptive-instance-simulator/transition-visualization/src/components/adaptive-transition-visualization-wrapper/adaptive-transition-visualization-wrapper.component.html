@@ -1,0 +1,37 @@
+<svg #chart class="svg">
+    <g class="content" [attr.transform]="getMarginTransform()">
+        <g
+            chart-base
+            [phases]="this.data.phases"
+            [xScale]="xScale"
+            [yScale]="yScale"
+            [svgWidth]="innerWidth()"
+            [svgHeight]="innerHeight()"
+            [margin]="margin"
+        />
+        <g
+            phases-tasks
+            [phases]="this.data.phases"
+            [xScale]="xScale"
+            [yScale]="yScale"
+            (taskPreviewEvent)="onTaskPreviewChange($event)"
+        />
+        <g
+            training-runs-transitions
+            [playersTransitions]="this.data.trainingRunsData"
+            [xScale]="xScale"
+            [yScale]="yScale"
+            [colorScale]="colorScale"
+            (taskPreviewEvent)="onTaskPreviewChange($event)"
+        />
+    </g>
+</svg>
+<mat-divider class="preview-divider" *ngIf="taskPreview$ | async" inset="true" />
+<button *ngIf="taskPreview$ | async" class="preview-close" mat-icon-button (click)="onTaskPreviewChange(null)">
+    <mat-icon>close</mat-icon>
+</button>
+<div *ngIf="taskPreview$ | async" class="task-preview-container">
+    <crczp-task-preview [task]="taskPreview$ | async"
+                        [localEnvironment]='data.trainingRunsData[0].localEnvironment' />
+</div>
+<div id="tooltip"></div>

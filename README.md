@@ -1,26 +1,34 @@
 # aces-sdl
 
-A standalone cyber range scenario description language and runtime ecosystem.
+A monorepo for ACES normative artifacts, portable contracts, conformance
+assets, and reference implementations.
 
-`aces-sdl` is a fully working SDL stack for describing cyber range scenarios
-and experiments, validating their meaning, compiling runtime models, and
-defining portable backend contracts.
+This repository is being reorganized so the language-agnostic,
+backend-agnostic, and processor-agnostic work sits at the top level, while
+reference implementations live under `implementations/`.
 
-It is designed to stand on its own as a coherent system. It also serves as a
-working, contrastive ecosystem for RFC and standards work by the Red Queen
-Working Group, so language, semantics, runtime, and assurance questions can be
-tested in a live codebase rather than only in abstract design discussions.
+Breakage during the reorganization is expected. The goal of this pass is to put
+the repo in the right shape, not to keep every existing import path, build
+entrypoint, or helper script working during the transition.
 
-This repository includes:
+## Top-Level Layout
 
-- author-facing SDL models and parsing
-- semantic validation and formal semantic artifacts
-- runtime compilation, planning, and control-plane contracts
-- schemas and backend conformance fixtures
-- SDL/runtime-focused CLI commands, docs, examples, and tests
+- `specs/`: normative prose and formal specification material
+- `contracts/`: machine-readable schemas, fixtures, and capability profiles
+- `implementations/`: reference implementations and their local tests/tooling
+- `examples/`: worked scenarios and other example artifacts
+- `docs/`: explanatory material, architecture decisions, and migration notes
+- `research/`: supporting literature and reference ecosystem material
+- `tools/`: repository maintenance and migration helpers
 
-This repository is not a standards document. It is an independent,
-backend-agnostic implementation that can inform, challenge, and sharpen future
-standards work in this area.
+## Current State
 
-The Python package namespace is `aces.*`, and the CLI entrypoint is `aces`.
+- The current Python reference implementation now lives under
+  `implementations/python/`.
+- Published contract assets now live under `contracts/`.
+- Architecture decisions now live under `docs/decisions/adrs/`.
+- Explanatory SDL/process documentation now lives under `docs/explain/`.
+
+This repository is not a standards document. It is a working ecosystem repo
+that is being structured so normative artifacts and implementation artifacts
+are clearly separated.

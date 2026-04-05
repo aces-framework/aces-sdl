@@ -1,0 +1,64 @@
+<div>
+    <!-- TITLE filed -->
+    <mat-form-field
+        appearance="outline">
+        <mat-label>Title</mat-label>
+        <input
+            matInput
+            placeholder="Title"
+            [disabled]="true"
+            [value]="phase.title"
+        />
+    </mat-form-field>
+
+    <!-- QUESTIONS component -->
+    <crczp-adaptive-questions-overview [questions]="phase.questions"
+                                       [questionnaireOrder]="phase.order"
+                                       [questionnaireType]="phase.questionnaireType">
+    </crczp-adaptive-questions-overview>
+
+    <div *ngIf="phase.questionnaireType === questionnaireTypes.Adaptive">
+        <mat-divider />
+        <mat-expansion-panel>
+            <mat-expansion-panel-header>
+                <mat-panel-title>Question-Phase Relations</mat-panel-title>
+            </mat-expansion-panel-header>
+            <ng-template matExpansionPanelContent>
+                <div>
+                    <div *ngFor="let relation of phase.phaseRelations">
+                        <mat-divider class='bold-mat-divider' />
+                        <div class="question-container">
+                            <h1>{{ relation.phaseId }}</h1>
+                        </div>
+                        <mat-divider />
+                        <div class="relation-fields">
+                            <div>
+                                <p>Questions: </p>
+                                <div *ngFor="let qId of relation.questionIds">
+                                    <div class="question-in-relation">
+                                        <mat-icon style="vertical-align: sub"> {{ getQuestionIconById(qId) }}</mat-icon>
+                                        <span> {{ qId }}: {{ getQuestionTitleById(qId) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relation-options">
+                                <mat-form-field
+                                    appearance="outline"
+                                >
+                                    <mat-label>Success Rate Percentage</mat-label>
+                                    <input
+                                        matInput
+                                        placeholder="Success Rate"
+                                        type="number"
+                                        [disabled]="true"
+                                        [value]="relation.successRate"
+                                    />
+                                </mat-form-field>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ng-template>
+        </mat-expansion-panel>
+    </div>
+</div>

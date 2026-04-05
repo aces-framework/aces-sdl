@@ -1,0 +1,57 @@
+.question-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 2%;
+}
+
+.question-text {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.rating-level {
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    margin-right: 10px;
+}
+
+.rating-level mat-form-field {
+    width: 100px;
+}
+
+.rating-level mat-checkbox {
+    margin-left: 45px;
+    margin-bottom: 5px;
+}
+
+.rating-level-field {
+    display: flex;
+    flex-direction: row;
+}
+
+.rating-level-field span {
+    padding-top: 15px;
+    margin-right: 10px;
+}
+
+.rating-level-node {
+    margin-bottom: 10px;
+}
+
+.question-fields {
+    display: flex;
+    flex-direction: column;
+}
+
+.rating-form-choices {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.option-checkbox {
+    margin-right: 10px;
+}

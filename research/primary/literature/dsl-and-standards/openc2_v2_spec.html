@@ -1,0 +1,4234 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+
+<base href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.html">
+<meta name="description" content="This document defines Open Command and Control (OpenC2), a concise and extensible language to enable the command and control of cyber defense components and systems.">
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Open Command and Control (OpenC2) Language Specification Version 2.0</title>
+  <link rel="stylesheet" href="https://docs.oasis-open.org/templates/css/markdown-styles-v1.7.3a.css" />
+</head>
+<body>
+<p><img src="https://docs.oasis-open.org/templates/OASISLogo-v3.0.png"
+alt="OASIS Logo" /></p>
+<hr style="page-break-before: avoid" />
+
+<h1
+id="open-command-and-control-openc2-language-specification-version-20">Open
+Command and Control (OpenC2) Language Specification Version 2.0</h1>
+<h2 id="committee-specification-draft-02">Committee Specification Draft
+02</h2>
+<h2 id="15-may-2024">15 May 2024</h2>
+
+&nbsp;
+
+
+<h4 id="this-stage">This stage:</h4>
+<p><a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.md"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.md</span></a>
+(Authoritative)<br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.html"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.html</span></a><br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.pdf"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.pdf</span></a></p>
+<h4 id="previous-stage">Previous stage:</h4>
+<p><a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.md"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.md</span></a>
+(Authoritative)<br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.html"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.html</span></a><br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.pdf"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd01/oc2ls-v2.0-csd01.pdf</span></a></p>
+<h4 id="latest-stage">Latest stage:</h4>
+<p><a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.md"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.md</span></a>
+(Authoritative)<br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.html"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.html</span></a><br />
+<a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.pdf"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.pdf</span></a></p>
+<h4 id="technical-committee">Technical Committee:</h4>
+<p><a
+href="https://groups.oasis-open.org/communities/tc-community-home2?CommunityKey=a34c9baf-48b2-44c5-a567-018dc7d32296">OASIS
+Open Command and Control (OpenC2) TC</a></p>
+<h4 id="chairs">Chairs:</h4>
+<p>Duncan Sparrell (<a
+href="mailto:duncan@sfractal.com">duncan@sfractal.com</a>), <a
+href="http://www.sfractal.com/">sFractal Consulting LLC</a><br />
+Michael Rosa (<a href="mailto:mjrosa@nsa.gov">mjrosa@nsa.gov</a>), <a
+href="https://www.nsa.gov">National Security Agency</a></p>
+<h4 id="editors">Editors:</h4>
+<p>Duncan Sparrell (<a
+href="mailto:duncan@sfractal.com">duncan@sfractal.com</a>), <a
+href="http://www.sfractal.com/">sFractal Consulting LLC</a><br />
+Toby Considine (<a
+href="mailto:toby.considine@unc.edu">toby.considine@unc.edu</a>), <a
+href="https://www.unc.edu/">University of North Carolina at Chapel
+Hill</a><br />
+David Lemire (<a
+href="mailto:david.lemire@hii-tsd.com">david.lemire@hii-tsd.com</a>), <a
+href="https://www.nsa.gov/">National Security Agency</a></p>
+<h4 id="abstract">Abstract:</h4>
+<p>Cyber attacks are increasingly sophisticated, less expensive to
+execute, dynamic and automated. The provision of cyber defense via
+statically configured products operating in isolation is untenable.
+Standardized interfaces, protocols and data models will facilitate the
+integration of the functional blocks within a system and between
+systems. Open Command and Control (OpenC2) is a concise and extensible
+language to enable machine-to-machine communications for purposes of
+command and control of cyber defense components, subsystems and/or
+systems in a manner that is agnostic of the underlying products,
+technologies, transport mechanisms or other aspects of the
+implementation. It should be understood that a language such as OpenC2
+is necessary but insufficient to enable coordinated cyber responses that
+occur within cyber relevant time. Other aspects of coordinated cyber
+response such as sensing, analytics, and selecting appropriate courses
+of action are beyond the scope of OpenC2.</p>
+<h4 id="status">Status:</h4>
+<p>This document was last revised or approved by the OASIS Open Command
+and Control (OpenC2) TC on the above date. The level of approval is also
+listed above. Check the "Latest stage" location noted above for possible
+later revisions of this document. Any other numbered Versions and other
+technical work produced by the Technical Committee (TC) are listed at <a
+href="https://groups.oasis-open.org/communities/tc-community-home2?CommunityKey=a34c9baf-48b2-44c5-a567-018dc7d32296">https://groups.oasis-open.org/communities/tc-community-home2?CommunityKey=a34c9baf-48b2-44c5-a567-018dc7d32296</a></p>
+<p>TC members should send comments on this specification to the TC's
+email list. Others should send comments to the TC's public comment list,
+<a
+href="mailto:technical-committee-comments@oasis-open.org">technical-committee-comments@oasis-open.org</a></p>
+<p>This specification is provided under the <a
+href="https://www.oasis-open.org/policies-guidelines/ipr/#Non-Assertion-Mode">Non-Assertion</a>
+Mode of the OASIS IPR Policy, the mode chosen when the Technical
+Committee was established. For information on whether any patents have
+been disclosed that may be essential to implementing this specification,
+and any offers of patent licensing terms, please refer to the
+Intellectual Property Rights section of the TC's web page (<a
+href="https://www.oasis-open.org/committees/openc2/ipr.php">https://www.oasis-open.org/committees/openc2/ipr.php</a>).</p>
+<p>Note that any machine-readable content (<a
+href="https://www.oasis-open.org/policies-guidelines/tc-process-2017-05-26/#wpComponentsCompLang">Computer
+Language Definitions</a>) declared Normative for this Work Product is
+provided in separate plain text files. In the event of a discrepancy
+between any such plain text file and display content in the Work
+Product's prose narrative document(s), the content in the separate plain
+text file prevails.</p>
+<h4 id="key-words">Key words:</h4>
+<p>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in BCP 14
+[<a href="#rfc2119">RFC2119</a>] and [<a href="#rfc8174">RFC8174</a>]
+when, and only when, they appear in all capitals, as shown here.</p>
+<h4 id="citation-format">Citation format:</h4>
+<p>When referencing this specification the following citation format
+should be used:</p>
+<p><strong>[OpenC2-Lang-v2.0]</strong></p>
+<p><em>Open Command and Control (OpenC2) Language Specification Version
+2.0</em>. Edited by Duncan Sparrell, Toby Considine, and David Lemire.
+15 May 2024. OASIS Committee Specification Draft 02. <a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.html"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/csd02/oc2ls-v2.0-csd02.html</span></a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.html"><span>https://docs.oasis-open.org/openc2/oc2ls/v2.0/oc2ls-v2.0.html</span></a>.</p>
+<h4 id="notices">Notices</h4>
+<p>Copyright © OASIS Open 2024. All Rights Reserved.</p>
+<p>Distributed under the terms of the OASIS <a
+href="https://www.oasis-open.org/policies-guidelines/ipr">IPR
+Policy</a>.</p>
+<p>The name "OASIS" is a trademark of <a
+href="https://www.oasis-open.org/">OASIS</a>, the owner and developer of
+this specification, and should be used only to refer to the organization
+and its official outputs.</p>
+<p>For complete copyright information please see the full Notices
+section in an Appendix below.</p>
+<hr />
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul type="none">
+<li><a href="#1-introduction">1 Introduction</a>
+<ul type="none">
+<li><a href="#11-changes-from-earlier-versions">1.1 Changes From Earlier
+Versions</a></li>
+<li><a href="#12-glossary">1.2 Glossary</a>
+<ul type="none">
+<li><a href="#121-definitions-of-terms">1.2.1 Definitions of
+Terms</a></li>
+<li><a href="#122-acronyms-and-abbreviations">1.2.2 Acronyms and
+abbreviations</a></li>
+<li><a href="#123-document-conventions">1.2.3 Document Conventions</a>
+<ul type="none">
+<li><a href="#1231-naming-conventions">1.2.3.1 Naming
+Conventions</a></li>
+<li><a href="#1232-font-colors-and-style">1.2.3.2 Font Colors and
+Style</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#14-purpose-and-scope">1.4 Purpose and Scope</a></li>
+</ul></li>
+<li><a href="#2-openc2-language-description">2 OpenC2 Language
+Description</a>
+<ul type="none">
+<li><a href="#21-openc2-command">2.1 OpenC2 Command</a></li>
+<li><a href="#22-openc2-response">2.2 OpenC2 Response</a></li>
+</ul></li>
+<li><a href="#3-openc2-language-definition">3 OpenC2 Language
+Definition</a>
+<ul type="none">
+<li><a href="#31-base-components-and-structures">3.1 Base Components and
+Structures</a>
+<ul type="none">
+<li><a href="#311-data-types">3.1.1 Data Types</a></li>
+<li><a href="#312-semantic-value-constraints">3.1.2 Semantic Value
+Constraints</a></li>
+<li><a href="#313-multiplicity">3.1.3 Multiplicity</a></li>
+<li><a href="#314-extensions">3.1.4 Extensions</a></li>
+<li><a href="#315-serialization">3.1.5 Serialization</a></li>
+</ul></li>
+<li><a href="#32-message">3.2 Message</a></li>
+<li><a href="#33-content">3.3 Content</a>
+<ul type="none">
+<li><a href="#331-openc2-command">3.3.1 OpenC2 Command</a>
+<ul type="none">
+<li><a href="#3311-action">3.3.1.1 Action</a></li>
+<li><a href="#3312-target">3.3.1.2 Target</a></li>
+<li><a href="#3313-profile">3.3.1.3 Profile</a></li>
+<li><a href="#3314-command-arguments">3.3.1.4 Command Arguments</a></li>
+</ul></li>
+<li><a href="#332-openc2-response">3.3.2 OpenC2 Response</a>
+<ul type="none">
+<li><a href="#3321-response-status-code">3.3.2.1 Response Status
+Code</a></li>
+<li><a href="#3322-response-results">3.3.2.2 Response Results</a></li>
+</ul></li>
+<li><a href="#333-openc2-event">3.3.3 OpenC2 Event</a></li>
+<li><a href="#334-message-signatures">3.3.4 Message Signatures</a></li>
+</ul></li>
+<li><a href="#34-type-definitions">3.4 Type Definitions</a>
+<ul type="none">
+<li><a href="#341-target-types">3.4.1 Target Types</a>
+<ul type="none">
+<li><a href="#3411-artifact">3.4.1.1 Artifact</a></li>
+<li><a href="#3412-device">3.4.1.2 Device</a></li>
+<li><a href="#3413-domain-name">3.4.1.3 Domain Name</a></li>
+<li><a href="#3414-email-address">3.4.1.4 Email Address</a></li>
+<li><a href="#3415-features">3.4.1.5 Features</a></li>
+<li><a href="#3416-file">3.4.1.6 File</a></li>
+<li><a href="#3417-internationalized-domain-name">3.4.1.7
+Internationalized Domain Name</a></li>
+<li><a href="#3418-internationalized-email-address">3.4.1.8
+Internationalized Email Address</a></li>
+<li><a href="#3419-ipv4-address-range">3.4.1.9 IPv4 Address
+Range</a></li>
+<li><a href="#34110-ipv4-connection">3.4.1.10 IPv4 Connection</a></li>
+<li><a href="#34111-ipv6-address-range">3.4.1.11 IPv6 Address
+Range</a></li>
+<li><a href="#34112-ipv6-connection">3.4.1.12 IPv6 Connection</a></li>
+<li><a href="#34113-iri">3.4.1.13 IRI</a></li>
+<li><a href="#34114-mac-address">3.4.1.14 MAC Address</a></li>
+<li><a href="#34115-process">3.4.1.15 Process</a></li>
+<li><a href="#34116-uri">3.4.1.16 URI</a></li>
+</ul></li>
+<li><a href="#342-data-types">3.4.2 Data Types</a>
+<ul type="none">
+<li><a href="#3421-action-targets">3.4.2.1 Action-Targets</a></li>
+<li><a href="#3422-command-id">3.4.2.2 Command-ID</a></li>
+<li><a href="#3423-date-time">3.4.2.3 Date-Time</a></li>
+<li><a href="#3424-duration">3.4.2.4 Duration</a></li>
+<li><a href="#3425-feature">3.4.2.5 Feature</a></li>
+<li><a href="#3426-hashes">3.4.2.6 Hashes</a></li>
+<li><a href="#3427-hostname">3.4.2.7 Hostname</a></li>
+<li><a href="#3428-internationalized-hostname">3.4.2.8 Internationalized
+Hostname</a></li>
+<li><a href="#3429-ipv4-address">3.4.2.9 IPv4 Address</a></li>
+<li><a href="#34210-ipv6-address">3.4.2.10 IPv6 Address</a></li>
+<li><a href="#34211-l4-protocol">3.4.2.11 L4 Protocol</a></li>
+<li><a href="#34212-message-type">3.4.2.12 Message-Type</a></li>
+<li><a href="#34213-namespace-identifier">3.4.2.13 Namespace
+Identifier</a></li>
+<li><a href="#34214-payload">3.4.2.14 Payload</a></li>
+<li><a href="#34215-port">3.4.2.15 Port</a></li>
+<li><a href="#34216-response-type">3.4.2.16 Response-Type</a></li>
+<li><a href="#34217-targets">3.4.2.17 Targets</a></li>
+<li><a href="#34218-version">3.4.2.18 Version</a></li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li><a href="#4-mandatory-commandsresponses">4 Mandatory
+Commands/Responses</a>
+<ul type="none">
+<li><a href="#41-implementation-of-query-features-command">4.1
+Implementation of 'query features' Command</a></li>
+<li><a href="#42-examples-of-query-features-commands-and-responses">4.2
+Examples of 'query features' Commands and Responses</a>
+<ul type="none">
+<li><a href="#421-example-1-bare-query--features">4.2.1 Example 1: Bare
+"query : features"</a></li>
+<li><a href="#422-example-2-query-for-specific-features">4.2.2 Example
+2: Query for Specific Features</a></li>
+<li><a
+href="#423-example-3-query-features-detailed-response-with-multiple-profiles">4.2.3
+Example 3: Query Features Detailed Response with Multiple
+Profiles</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#5-conformance">5 Conformance</a>
+<ul type="none">
+<li><a href="#51-conformance-clause-1-command">5.1 Conformance Clause 1:
+Command</a></li>
+<li><a href="#52-conformance-clause-2-response">5.2 Conformance Clause
+2: Response</a></li>
+<li><a href="#53-conformance-clause-3-producer">5.3 Conformance Clause
+3: Producer</a></li>
+<li><a href="#54-conformance-clause-4-consumer">5.4 Conformance Clause
+4: Consumer</a></li>
+</ul></li>
+<li><a href="#appendix-a-references">Appendix A. References</a>
+<ul type="none">
+<li><a href="#a1-normative-references">A.1 Normative References</a></li>
+<li><a href="#a2-informative-references">A.2 Informative
+References</a></li>
+</ul></li>
+<li><a
+href="#appendix-b-safety-security-and-privacy-considerations">Appendix
+B. Safety, Security and Privacy Considerations</a></li>
+<li><a href="#appendix-c-acknowledgments">Appendix C.
+Acknowledgments</a>
+<ul type="none">
+<li><a href="#c1-special-thanks">C.1 Special Thanks</a></li>
+<li><a href="#c2-participants">C.2 Participants</a></li>
+</ul></li>
+<li><a href="#appendix-d-revision-history">Appendix D. Revision
+History</a></li>
+<li><a href="#appendix-e-examples">Appendix E. Examples</a>
+<ul type="none">
+<li><a href="#e1-example-1-device-quarantine">E.1 Example 1: Device
+Quarantine</a></li>
+<li><a href="#e2-example-2-block-connection">E.2 Example 2: Block
+Connection</a></li>
+</ul></li>
+<li><a href="#appendix-f-notices">Appendix F. Notices</a></li>
+</ul>
+<hr />
+<h1 id="1-introduction">1 Introduction</h1>
+<p><em>The content in this section is non-normative, except where it is
+marked normative.</em></p>
+<p>OpenC2 is a suite of specifications that enables command and control
+of cyber defense systems and components. OpenC2 typically uses a
+request-response paradigm where a <em>Command</em> is encoded by a
+<em>Producer</em> (managing application) and transferred to a
+<em>Consumer</em> (managed device or virtualized function) using a
+secure transfer protocol, and the Consumer can respond with status and
+any requested information. An overview of the concepts that underlie
+OpenC2 and the structure of the suite of specifications can be found in
+the OpenC2 Architecture Specification [<a
+href="#openc2-arch-v10">OpenC2-Arch-v1.0</a>].</p>
+<p>The goal of OpenC2 is to provide a language for interoperating
+between functional elements of cyber defense systems. This language,
+used in conjunction with OpenC2 Actuator Profiles (e.g., the <a
+href="#openc2-slpf-v10">[Stateless Packet Filtering AP]</a>) and OpenC2
+Transfer Specifications (e.g., for <a href="#openc2-mqtt-v10">[MQTT]</a>
+and <a href="#openc2-https-v11">[HTTPS]</a>), allows for vendor-agnostic
+cybertime response to attacks.</p>
+<p>This <strong>OpenC2 Language Specification</strong> provides the
+semantics for the essential elements of the language, the structure for
+Commands and Responses, and the schema that defines the proper syntax
+for the language elements that represents the Command or Response. It
+also describes the mechanisms for extending the capabilities of the
+language.</p>
+<p>OpenC2 allows the application producing the commands to discover the
+set of capabilities supported by the managed devices. These capabilities
+permit the managing application to adjust its behavior to take advantage
+of the features exposed by the managed device. The capability
+definitions can be easily extended in a non-centralized manner, allowing
+standard and non-standard capabilities to be defined with semantic and
+syntactic rigor.</p>
+<h2 id="11-changes-from-earlier-versions">1.1 Changes From Earlier
+Versions</h2>
+<!-- Optional section -->
+
+<!-- Describe significant changes from previous differently-numbered Versions, not changes between stages of the current Version -->
+
+<p>To Be Supplied.</p>
+<h2 id="12-glossary">1.2 Glossary</h2>
+<h3 id="121-definitions-of-terms">1.2.1 Definitions of Terms</h3>
+<p><em>This section is normative.</em></p>
+<ul>
+<li><p><strong>Action</strong>: The task or activity to be performed
+(e.g., 'deny').</p></li>
+<li><p><strong>Actuator</strong>: The Consumer that executes a
+Command.</p></li>
+<li><p><strong>Actuator Profile (AP)</strong>: A defined subset of the
+OpenC2 language (i.e., actions, targets, command arguments, results)
+plus any extensions required to specify the use of OpenC2 to command a
+particular function. Actuator Profiles are defined in JADN schemas
+associated with published actuator profile specification
+documents.</p></li>
+<li><p><strong>Argument</strong>: A property of a Command that provides
+additional information on how to perform the Command, such as date/time,
+periodicity, duration, etc.</p></li>
+<li><p><strong>Command</strong>: A Message defined by an Action-Target
+pair that is sent from a Producer and received by a Consumer.</p></li>
+<li><p><strong>Consumer</strong>: A managed device / application that
+receives Commands. Note that a single device / application can have both
+Consumer and Producer capabilities. A Consumer will implement one or
+more Actuator Profiles.</p></li>
+<li><p><strong>Message</strong>: A content- and transport-independent
+set of elements conveyed between Consumers and Producers.</p></li>
+<li><p><strong>Producer</strong>: A manager application that sends
+Commands.</p></li>
+<li><p><strong>Response</strong>: A Message from a Consumer to a
+Producer acknowledging a Command or returning the requested resources or
+status to a previously received Command.</p></li>
+<li><p><strong>Specifier</strong>: A property or field that identifies a
+Target to some level of precision.</p></li>
+<li><p><strong>Target</strong>: The object of the Action, i.e., the
+Action is performed on the Target (e.g., IP Address).</p></li>
+</ul>
+<h3 id="122-acronyms-and-abbreviations">1.2.2 Acronyms and
+abbreviations</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Acronym</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>API</td>
+<td>Application Programming Interface</td>
+</tr>
+<tr class="even">
+<td>AP</td>
+<td>Actuator Profile</td>
+</tr>
+<tr class="odd">
+<td>BCP</td>
+<td>Best Current Practice</td>
+</tr>
+<tr class="even">
+<td>CACAO</td>
+<td>Collaborative Automated Course of Action Operations</td>
+</tr>
+<tr class="odd">
+<td>CBOR</td>
+<td>Concise Binary Object Representation</td>
+</tr>
+<tr class="even">
+<td>CIDR</td>
+<td>Classless Inter-Domain Routing</td>
+</tr>
+<tr class="odd">
+<td>DOI</td>
+<td>Digital Object Identifier</td>
+</tr>
+<tr class="even">
+<td>EUI</td>
+<td>Extended Unique Identifier</td>
+</tr>
+<tr class="odd">
+<td>HTTP</td>
+<td>Hyper Text Transfer Protocol</td>
+</tr>
+<tr class="even">
+<td>HTTPS</td>
+<td>Hyper Text Transfer Protocol Secure</td>
+</tr>
+<tr class="odd">
+<td>IACD</td>
+<td>Integrated Adaptive Cyber Defense</td>
+</tr>
+<tr class="even">
+<td>IANA</td>
+<td>Internet Assigned Numbers Authority</td>
+</tr>
+<tr class="odd">
+<td>ICMP</td>
+<td>Internet Control Message Protocol</td>
+</tr>
+<tr class="even">
+<td>ID</td>
+<td>Identifier</td>
+</tr>
+<tr class="odd">
+<td>IP</td>
+<td>Internet Protocol</td>
+</tr>
+<tr class="even">
+<td>IPR</td>
+<td>Intellectual Property Rights</td>
+</tr>
+<tr class="odd">
+<td>ITU-T</td>
+<td>International Telecommunications Union - Telecommunications</td>
+</tr>
+<tr class="even">
+<td>JADN</td>
+<td>JSON Abstract Data Notation</td>
+</tr>
+<tr class="odd">
+<td>JSON</td>
+<td>JavaScript Object Notation</td>
+</tr>
+<tr class="even">
+<td>JSS</td>
+<td>JSON Signature Scheme</td>
+</tr>
+<tr class="odd">
+<td>MAC</td>
+<td>Media Access Control</td>
+</tr>
+<tr class="even">
+<td>MD5</td>
+<td>Message Digest</td>
+</tr>
+<tr class="odd">
+<td>MQTT</td>
+<td>Message Queuing Telemetry Transfer</td>
+</tr>
+<tr class="even">
+<td>OASIS</td>
+<td>Organization for the Advancement of Structured Information
+Standards</td>
+</tr>
+<tr class="odd">
+<td>OpenC2</td>
+<td>Open Command and Control</td>
+</tr>
+<tr class="even">
+<td>RFC</td>
+<td>Request for Comment</td>
+</tr>
+<tr class="odd">
+<td>SCTP</td>
+<td>Stream Control Transmission Protocol</td>
+</tr>
+<tr class="even">
+<td>SHA</td>
+<td>Secure Hash Algorithm</td>
+</tr>
+<tr class="odd">
+<td>SLPF</td>
+<td>StateLess Packet Filtering</td>
+</tr>
+<tr class="even">
+<td>STD</td>
+<td>Standard</td>
+</tr>
+<tr class="odd">
+<td>STIX</td>
+<td>Structured Threat Information Expression</td>
+</tr>
+<tr class="even">
+<td>TC</td>
+<td>Technical Committee</td>
+</tr>
+<tr class="odd">
+<td>TCP</td>
+<td>Transmission Control Protocol</td>
+</tr>
+<tr class="even">
+<td>UDP</td>
+<td>User Datagram Control Protocol</td>
+</tr>
+<tr class="odd">
+<td>UML</td>
+<td>Unified Modeling Language</td>
+</tr>
+<tr class="even">
+<td>URI</td>
+<td>Uniform Resource Identifier</td>
+</tr>
+<tr class="odd">
+<td>UTC</td>
+<td>Coordinated Universal Time</td>
+</tr>
+<tr class="even">
+<td>UUID</td>
+<td>Universally Unique IDentifier</td>
+</tr>
+<tr class="odd">
+<td>XML</td>
+<td>eXtensibel Markup Language</td>
+</tr>
+</tbody>
+</table>
+<h3 id="123-document-conventions">1.2.3 Document Conventions</h3>
+<h4 id="1231-naming-conventions">1.2.3.1 Naming Conventions</h4>
+<p>The OpenC2 language is formally defined by a schema written in JSON
+Abstract Data Notation (JADN) [<a href="#jadn-v10">JADN-v1.0</a>]. The
+naming conventions used in this specification are consistent with JADN's
+default conventions.</p>
+<ul>
+<li><p>All property names and literals are in lowercase, except when
+referencing canonical names defined in another standard (e.g., literal
+values from an IANA registry).</p></li>
+<li><p>All type names begin with an uppercase character.</p></li>
+<li><p>Property names and type names are between 1 and 32 characters
+long.</p></li>
+<li><p>Words in property names are separated with an underscore (_),
+while words in type names are separated with a hyphen (-).</p></li>
+<li><p>"Underscore" refers to Unicode "low line", U+005F; "hyphen"
+refers to Unicode "hyphen-minus", U+002D.</p></li>
+</ul>
+<h4 id="1232-font-colors-and-style">1.2.3.2 Font Colors and Style</h4>
+<p>The following color, font and font style conventions are used in this
+document:</p>
+<ul>
+<li><p>A fixed width font is used for all type names, property names,
+and literals.</p></li>
+<li><p>Property names are in bold style –
+<strong>'created_at'</strong>.</p></li>
+<li><p>All examples in this document are expressed in JSON. They are in
+fixed width font, with straight quotes, black text and a light shaded
+background, and 4-space indentation. JSON examples in this document are
+representations of JSON Objects. They should not be interpreted as
+string literals. The ordering of object keys is insignificant.
+Whitespace before or after JSON structural characters in the examples
+are insignificant <a href="#rfc8259">[RFC8259]</a>.</p></li>
+<li><p>Parts of the example may be omitted for conciseness and clarity.
+These omitted parts are denoted with ellipses (...).</p></li>
+</ul>
+<p>Example:</p>
+<pre><code>{
+    &quot;action&quot;: &quot;deny&quot;,
+    &quot;target&quot;: {
+        &quot;file&quot;: {
+            &quot;hashes&quot;: {
+                &quot;sha256&quot;: &quot;22fe72a34f006ea67d26bb7004e2b6941b5c3953d43ae7ec24d41b1a928a6973&quot;
+            }
+        }
+    }
+}</code></pre>
+<h2 id="14-purpose-and-scope">1.4 Purpose and Scope</h2>
+<p>This OpenC2 Language Specification defines the set of components to
+assemble a complete command and control Message and provides a framework
+so that the language can be extended. To achieve this purpose, the scope
+of this specification includes:</p>
+<ol type="1">
+<li>the set of Actions and options that may be used in Commands;</li>
+<li>the set of Targets and Target Specifiers;</li>
+<li>a syntax that defines the structure of Commands and Responses;</li>
+<li>a JSON serialization of Commands and Responses;</li>
+<li>the procedures for extending the language.</li>
+</ol>
+<p>The OpenC2 language assumes that the event has been detected, a
+decision to act has been made, the act is warranted, and the initiator
+and recipient of the Commands are authenticated and authorized. The
+OpenC2 language was designed to be agnostic of the other aspects of
+cyber defense implementations that realize these assumptions. The
+following items are beyond the scope of this specification:</p>
+<ol type="1">
+<li><p>Language elements applicable to some Actuator functions, which
+may be defined in individual Actuator profiles.</p></li>
+<li><p>Alternate serializations of Commands and Responses.</p></li>
+<li><p>The enumeration of the protocols required for transport,
+information assurance, sensing, analytics and other external
+dependencies.</p></li>
+</ol>
+<hr />
+<h1 id="2-openc2-language-description">2 OpenC2 Language
+Description</h1>
+<p><em>The content in this section is non-normative.</em></p>
+<p>The OpenC2 language has two distinct content types: Command and
+Response. The Command is sent from a Producer to a Consumer and
+describes an Action to be performed by the Consumer on a Target. The
+Response is sent from a Consumer, usually back to the Producer, and is a
+means to provide information (such as acknowledgment, status, etc.) as a
+result of a Command.</p>
+<h2 id="21-openc2-command">2.1 OpenC2 Command</h2>
+<p>A command has four main components, two required and two optional.
+The required components are the Action and the Target. The optional
+components are command Arguments and the Profile identifier. A command
+can also contain an optional Command identifier, if necessary. <a
+href="#331-openc2-command">Section 3.3.1</a> defines the syntax of an
+OpenC2 Command.</p>
+<p>The following list summarizes the main four components of a
+command.</p>
+<ul>
+<li><p><strong>Action</strong> (required): The task or activity to be
+performed.</p></li>
+<li><p><strong>Target</strong> (required): The object of the action. The
+Action is performed on the Target. Properties of the Target, called
+Target Specifiers, further identify the Target to some level of
+precision, such as a specific Target, a list of Targets, or a class of
+Targets.</p></li>
+<li><p><strong>Arguments</strong> (optional): Provide additional
+information on how the command is to be performed, such as date/time,
+periodicity, duration, etc.</p></li>
+<li><p><strong>Profile</strong> (optional): Specifies the Actuator
+Profile that defines the function to be performed by the
+command.</p></li>
+</ul>
+<p>The Action and Target components are required and are populated by
+one of the Actions in <a href="#3311-action">Section 3.3.1.1</a> and and
+either a Target from <a href="#3312-target">Section 3.3.1.2</a> or an
+extension Target defined in an AP. A particular Target may be further
+refined by the Target type definitions in <a
+href="#341-target-types">Section 3.4.1</a>. Procedures to extend the
+Targets are described in <a
+href="#314-extensions">Section 3.1.4</a>.</p>
+<p>Command Arguments, if present, influence the command by providing
+information such as timing, periodicity, duration, or other details on
+what is to be executed. They can also be used to convey the need for
+acknowledgment or additional status information about the execution of a
+command. The valid Arguments defined in this specification are in <a
+href="#3314-command-arguments">Section 3.3.1.4</a>. Procedures to extend
+Arguments are described in <a
+href="#314-extensions">Section 3.1.4</a>.</p>
+<p>The Profile field, if present, specifies the profile that defines the
+function to be performed. A Consumer executes the command if it supports
+the specified profile, otherwise the command is ignored. The Profile
+field may be omitted and typically will not be included in
+implementations where the functions of the recipients are unambiguous or
+when a high-level effects-based command is desired and tactical
+decisions on how the effect is achieved is left to the recipient. If
+Profile is omitted and the recipient supports multiple profiles, the
+command will be executed in the context of each profile that supports
+the command's combination of action and target.</p>
+<h2 id="22-openc2-response">2.2 OpenC2 Response</h2>
+<p>The Response is a Message sent from the recipient of a Command.
+Response messages provide acknowledgment, status, results from a query,
+or other information. At a minimum, a Response will contain a status
+code to indicate the result of performing the Command. Additional status
+text and response fields optionally provide more detailed information
+that is specific to or requested by the Command. <a
+href="#332-openc2-response">Section 3.3.2</a> defines the syntax of an
+OpenC2 Response.</p>
+<hr />
+<h1 id="3-openc2-language-definition">3 OpenC2 Language Definition</h1>
+<p><em>The content in this section is normative.</em></p>
+<h2 id="31-base-components-and-structures">3.1 Base Components and
+Structures</h2>
+<p>OpenC2 data types are defined using using the types and options
+available in [<a href="#jadn-v10">JADN</a>]. JADN is a UML-based
+<em>information modeling</em> language that defines data structure
+independently of data format. <a href="#rfc3444">RFC 3444</a>,
+"Information Models and Data Models", describes the main purpose of an
+<em>information model</em> as modeling objects at a conceptual level,
+independent of specific implementations or protocols used to transport
+the data. This concept of an information model is consistent with the
+goal of defining OpenC2 commands and responses independent of their
+representation in any specific implementation. JADN provides a tool for
+developing information models, which can be used to define and generate
+physical data models, validate information instances, and enable
+lossless translation across data formats. Information modeling concepts
+are discussed in more detail in <em>Information Modeling with JADN</em>
+[<a href="#im-jadn-v10">IM-JADN-v1.0</a>].</p>
+<p>This section provides a concise summary of JADN type definitions to
+facilitate readability; for more complete explanations refer to the JADN
+Committee Specification and the <em>Information Modeling with JADN</em>
+Committee Note.</p>
+<h3 id="311-data-types">3.1.1 Data Types</h3>
+<p>The use of JADN enables type definitions that are independent of both
+their representation within applications ("<strong>API</strong>" values)
+and their format for transmission between applications
+("<strong>serialized</strong>" values). The data types used in OpenC2
+Messages are:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Primitive Types</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Binary</td>
+<td>A sequence of octets. Length is the number of octets.</td>
+</tr>
+<tr class="odd">
+<td>Boolean</td>
+<td>An element with one of two values: <code>true</code> and
+<code>false</code>.</td>
+</tr>
+<tr class="even">
+<td>Integer</td>
+<td>A positive or negative whole number.</td>
+</tr>
+<tr class="odd">
+<td>Number</td>
+<td>A real number.</td>
+</tr>
+<tr class="even">
+<td>String</td>
+<td>A sequence of characters, each of which has a Unicode codepoint.
+Length is the number of characters.</td>
+</tr>
+<tr class="odd">
+<td><strong>Structures</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Array</td>
+<td>An ordered list of unnamed fields with positionally-defined
+semantics. Each field has a position, label, and type.</td>
+</tr>
+<tr class="odd">
+<td>ArrayOf(<em>vtype</em>)</td>
+<td>An ordered list of fields with the same semantics. Each field has a
+position and type <em>vtype</em>.</td>
+</tr>
+<tr class="even">
+<td>Choice</td>
+<td>One field selected from a set of named fields. The API value has a
+name and a type.</td>
+</tr>
+<tr class="odd">
+<td>Choice.ID</td>
+<td>One field selected from a set of fields. The API value has an id and
+a type.</td>
+</tr>
+<tr class="even">
+<td>Enumerated</td>
+<td>A set of named integral constants. The API value is a name.</td>
+</tr>
+<tr class="odd">
+<td>Enumerated.ID</td>
+<td>A set of unnamed integral constants. The API value is an id.</td>
+</tr>
+<tr class="even">
+<td>Map</td>
+<td>An unordered map from a set of specified keys to values with
+semantics bound to each key. Each field has an id, name and type.</td>
+</tr>
+<tr class="odd">
+<td>Map.ID</td>
+<td>An unordered set of fields. The API value of each field has an id,
+label, and type.</td>
+</tr>
+<tr class="even">
+<td>MapOf(<em>ktype</em>, <em>vtype</em>)</td>
+<td>An unordered set of keys to values with the same semantics. Each key
+has key type <em>ktype</em> and is mapped to value type
+<em>vtype</em>.</td>
+</tr>
+<tr class="odd">
+<td>Record</td>
+<td>An ordered map from a list of keys with positions to values with
+positionally-defined semantics. Each key has a position and name, and is
+mapped to a type. Represents a row in a spreadsheet or database
+table.</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><p><strong>API</strong> values do not affect interoperability, and
+although they must exhibit the characteristics specified above, their
+representation within applications is unspecified. A Python application
+might represent the Map type as a dict variable, a javascript
+application might represent it as an object literal or an ES6 Map type,
+and a C# application might represent it as a Dictionary or a
+Hashtable.</p></li>
+<li><p><strong>Serialized</strong> values are critical to
+interoperability, and this document defines a set of
+<strong>serialization rules</strong> that unambiguously define how each
+of the above types are serialized using a human-friendly JSON format.
+Other serialization rules, such as for XML, machine-optimized JSON, and
+Concise Binary Object Representation (CBOR) formats, exist but are out
+of scope for this document.</p></li>
+</ul>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>OpenC2 messages in JSON format SHALL be serialized in accordance
+with the rules defined in the JADN Specification [<a
+href="#jadn-v10">JADN</a>], section 4.</li>
+</ul>
+<p>OpenC2 type definitions are presented in this specification in table
+format. All table columns except Description are Normative, however any
+conflict between the table presentation and the JADN schema must be
+resolved by applying the schema definition. The Description column is
+always Non-normative.</p>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>The format-agnostic type definitions in <a
+href="#34-type-definitions">Section 3.4</a> are Normative.</li>
+</ul>
+<p>For types without individual field definitions (Primitive types and
+ArrayOf), the type definition includes the name of the type being
+defined and the definition of that type. This table defines a type
+called <em>Email-Addr</em> that is a <em>String</em> that has a semantic
+value constraint of <em>email</em>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Email-Addr</strong></td>
+<td>String (email)</td>
+<td>Email address</td>
+</tr>
+</tbody>
+</table>
+<p>For Structured types, the definition includes the name of the type
+being defined, the built-in type on which it is based, and options
+applicable to the type as a whole. This is followed by a table defining
+each of the fields in the structure. This table defines a type called
+<em>Args</em> that is a <em>Map</em> containing at least one field. Each
+of the fields has an integer Tag/ID, a Name, and a Type. Each field in
+this example type definition is optional (Multiplicity = 0..1), but per
+the type definition (Multiplicity = 1..*) at least one field must be
+present.</p>
+<p><strong>Type: Args (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>start_time</strong></td>
+<td>Date-Time</td>
+<td>0..1</td>
+<td>The specific date/time to initiate the action</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>stop_time</strong></td>
+<td>Date-Time</td>
+<td>0..1</td>
+<td>The specific date/time to terminate the action</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>duration</strong></td>
+<td>Duration</td>
+<td>0..1</td>
+<td>The length of time for an action to be in effect</td>
+</tr>
+</tbody>
+</table>
+<p>The field columns present in a structure definition depends on the
+base type:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Base Type</th>
+<th>Field Definition Columns</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Enumerated.ID</td>
+<td>ID, Description</td>
+</tr>
+<tr class="even">
+<td>Enumerated</td>
+<td>ID, Name, Description</td>
+</tr>
+<tr class="odd">
+<td>Array, Choice.ID, Map.ID</td>
+<td>ID, Type, Multiplicity (#), Description</td>
+</tr>
+<tr class="even">
+<td>Choice, Map, Record</td>
+<td>ID, Name, Type, Multiplicity (#), Description</td>
+</tr>
+</tbody>
+</table>
+<p>The ID column of Array and Record types contains the ordinal position
+of the field, numbered sequentially starting at 1. The ID column of
+Choice, Enumerated, and Map types contains tags with arbitrary integer
+values. IDs and Names are unique within each type definition.</p>
+<h3 id="312-semantic-value-constraints">3.1.2 Semantic Value
+Constraints</h3>
+<p>Structural validation alone may be insufficient to validate that an
+instance meets all the requirements of an application. Semantic
+validation keywords specify value constraints for which an authoritative
+definition exists.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Keyword</th>
+<th>Applies to Type</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>email</strong></td>
+<td>String</td>
+<td>Value must be an email address as defined in <a
+href="#rfc5322">[RFC5322]</a>, Section 3.4.1</td>
+</tr>
+<tr class="even">
+<td><strong>eui</strong></td>
+<td>Binary</td>
+<td>Value must be an EUI-48 or EUI-64 as defined in <a
+href="#eui">[EUI]</a></td>
+</tr>
+<tr class="odd">
+<td><strong>hostname</strong></td>
+<td>String</td>
+<td>Value must be a hostname as defined in <a
+href="#rfc1034">[RFC1034]</a>, Section 3.1</td>
+</tr>
+<tr class="even">
+<td><strong>idn-email</strong></td>
+<td>String</td>
+<td>Value must be an internationalized email address as defined in <a
+href="#rfc6531">[RFC6531]</a></td>
+</tr>
+<tr class="odd">
+<td><strong>idn-hostname</strong></td>
+<td>String</td>
+<td>Value must be an internationalized hostname as defined in <a
+href="#rfc5890">[RFC5890]</a>, Section 2.3.2.3</td>
+</tr>
+<tr class="even">
+<td><strong>iri</strong></td>
+<td>String</td>
+<td>Value must be an Internationalized Resource Identifier (IRI) as
+defined in <a href="#rfc3987">[RFC3987]</a></td>
+</tr>
+<tr class="odd">
+<td><strong>uri</strong></td>
+<td>String</td>
+<td>Value must be a Uniform Resource Identifier (URI) as defined in <a
+href="#rfc3986">[RFC3986]</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>Properties identified as conforming to <code>eui</code> SHOULD be
+interpreted according to the values documented in the <a
+href="#ieee_ra">[IEEE Registration Authority registry]</a>.</li>
+</ul>
+<h3 id="313-multiplicity">3.1.3 Multiplicity</h3>
+<p>Property tables for types based on Array, Choice, Map and Record
+include a multiplicity column (#) that specifies the minimum and maximum
+cardinality (number of elements) of a field. As used in the Unified
+Modeling Language (<a href="#uml">[UML]</a>), typical examples of
+multiplicity are:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Multiplicity</th>
+<th>Description</th>
+<th>Keywords</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Exactly one instance</td>
+<td>Required</td>
+</tr>
+<tr class="even">
+<td>0..1</td>
+<td>No instances or one instance</td>
+<td>Optional</td>
+</tr>
+<tr class="odd">
+<td>1..*</td>
+<td>At least one instance</td>
+<td>Required, Repeatable</td>
+</tr>
+<tr class="even">
+<td>0..*</td>
+<td>Zero or more instances</td>
+<td>Optional, Repeatable</td>
+</tr>
+<tr class="odd">
+<td>m..n</td>
+<td>At least m but no more than n instances</td>
+<td>Required, Repeatable</td>
+</tr>
+</tbody>
+</table>
+<p>When a repeatable field type is converted to a separate ArrayOf()
+Type, multiplicity is converted to the array size, enclosed in curly
+brackets, e.g.,:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Features</strong></td>
+<td>ArrayOf(Feature){0..10}</td>
+<td>An array of zero to ten names used to query an actuator for its
+supported capabilities.</td>
+</tr>
+</tbody>
+</table>
+<p>A multiplicity of 0..1 denotes a single optional value of the
+specified type. A multiplicity of 0..n denotes a field that is either
+omitted or is an array containing one or more values of the specified
+type.</p>
+<p>An array containing zero or more values of a specified type cannot be
+created implicitly using multiplicity, it must be defined explicitly as
+a named ArrayOf type. The named type can then be used as the type of a
+required field (multiplicity 1). Results are unspecified if an optional
+field (multiplicity 0..1) is a named ArrayOf type with a minimum length
+of zero.</p>
+<h3 id="314-extensions">3.1.4 Extensions</h3>
+<p>One of the main design goals of OpenC2 is extensibility. Actuator
+Profiles define the language extensions that are meaningful and possibly
+unique to the Actuator.</p>
+<p>Each Profile has a unique name used to identify the profile document
+and a short reference called a namespace identifier (NSID). The NSID is
+a prefix used to separate types defined in one profile document from
+types defined in other profiles or this specification. OpenC2
+conventions for managing namespaces are described in Appendix F of the
+OpenC2 <em>Architecture Specification</em> [<a
+href="#openc2-arch-v10">Openc2-Arch-v1.0</a>].</p>
+<p><strong>Example</strong>: the OASIS standard Stateless Packet
+Filtering profile has:</p>
+<ul>
+<li><strong>Namespace</strong>: <a
+href="http://docs.oasis-open.org/openc2/ns/ap/slpf/v1.0">http://docs.oasis-open.org/openc2/ns/ap/slpf/v1.0</a></li>
+<li><strong>NSID</strong>: slpf</li>
+<li><strong>Language-defined type</strong>: IPv4-Net</li>
+<li><strong>Profile-defined type</strong>: slpf/Rule-ID</li>
+</ul>
+<p><strong>Example</strong>: the fictional, non-standard Superwidget
+Profile has:</p>
+<ul>
+<li><strong>Namespace</strong>: <a
+href="http://www.acme.com/openc2/superwidget-v1.0.html">http://www.acme.com/openc2/superwidget-v1.0.html</a></li>
+<li><strong>NSID</strong>: acmesw</li>
+<li><strong>Language-defined type</strong>: Device</li>
+<li><strong>Profile-defined type</strong>: acmesw/Device</li>
+</ul>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>The list of Actions in <a href="#3311-action">Section 3.3.1.1</a>
+SHALL NOT be extended.</p></li>
+<li><p>Targets, defined in <a href="#3312-target">Section 3.3.1.2</a>,
+MAY be extended. Extended Target type names MUST be prefixed with a
+namespace identifier followed by a slash ("/"). Extended target
+properties appear beneath (nested within) a profile property
+name.</p></li>
+</ul>
+<p><strong>Example:</strong> The Stateless Packet Filtering Profile
+supports both common and profile-specific targets:</p>
+<p>Targets used in Consumers that support the SLPF actuator profile:</p>
+<p><strong>Type: Target (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>13</td>
+<td>ipv4_net</td>
+<td>IPv4-Net</td>
+<td>Targets defined in the LS</td>
+</tr>
+<tr class="even">
+<td>1024</td>
+<td>slpf</td>
+<td>slpf/AP-Target</td>
+<td>Targets defined in the SLPF AP</td>
+</tr>
+</tbody>
+</table>
+<p>Targets defined in the SLPF actuator profile:</p>
+<p><strong>Type: slpf/AP-Target (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>rule_number</td>
+<td>slpf/Rule-ID</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>In this example Command, the extended Target <code>rule_number</code>
+of type <code>slpf/Rule-ID</code> appears within the SLPF profile
+property name <code>slpf</code>:</p>
+<pre><code>{
+    &quot;action&quot;: &quot;delete&quot;,
+    &quot;target&quot;: {
+        &quot;slpf&quot;: {
+            &quot;rule_number&quot;: 1234
+        }
+    }
+}</code></pre>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>Command Arguments, defined in <a
+href="#3314-command-arguments">Section 3.3.1.4</a>, MAY also be extended
+using profile-defined types appearing within the profile property
+name.</li>
+</ul>
+<p><strong>Type: Args (Map)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>start_time</td>
+<td>Date-Time</td>
+<td>Args defined in the LS</td>
+</tr>
+<tr class="even">
+<td>1024</td>
+<td>slpf</td>
+<td>slpf/AP-Args</td>
+<td>Args defined in the SLPF AP</td>
+</tr>
+</tbody>
+</table>
+<p>Args defined in the SLPF actuator profile:</p>
+<p><strong>Type: slpf/AP-Args (Map)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>3</td>
+<td>direction</td>
+<td>slpf/Direction</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong> In this example Command, the extended
+Argument, <code>direction</code> of type slpf:Direction contained in
+type slpf:AP-Args, appears in the Stateless Packet Filtering property
+name <code>slpf</code>:</p>
+<pre><code>{
+    &quot;action&quot;: &quot;deny&quot;,
+    &quot;target&quot;: {
+        &quot;ipv6_net&quot;: {...}
+    },
+    &quot;args&quot;: {
+        &quot;slpf&quot;: {
+            &quot;direction&quot;: &quot;ingress&quot;
+        }
+    }
+}</code></pre>
+<p>The Profile property of a Command, defined in <a
+href="#3313-profile">Section&amp;nbps;3.3.1.3</a>, specifies the
+property name of the Actuator Profile that defines the function to be
+performed.</p>
+<p><strong>Example:</strong> In this example Command, the
+<code>profile</code> name <code>slpf</code> indicates that the
+<code>deny ipv4_connection</code> command is to be performed as defined
+by the Stateless Packet Filtering Profile.</p>
+<pre><code>{
+    &quot;action&quot;: &quot;deny&quot;,
+    &quot;target&quot;: {
+        &quot;ipv4_connection&quot;: {...}
+    },
+    &quot;profile&quot;: &quot;slpf&quot;
+}</code></pre>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>Response results, defined in <a
+href="#3322-response-results">Section 3.3.2.2</a>, MAY be extended using
+the namespace identifier as the results name, called an extended results
+namespace. Extended results MUST be defined within the extended results
+namespace.</li>
+</ul>
+<p><strong>Example:</strong> In this example Response, the Response
+results property, <code>rule_number</code>, is defined within the
+Stateless Packet Filtering Profile namespace, <code>slpf</code>.</p>
+<pre><code>{
+    &quot;status&quot;: 200,
+    &quot;results&quot;: {
+        &quot;slpf&quot;: {
+            &quot;rule_number&quot;: 1234
+        }
+    }
+}</code></pre>
+<h3 id="315-serialization">3.1.5 Serialization</h3>
+<p>OpenC2 is agnostic of any particular serialization; however,
+implementations MUST support JSON serialization in accordance with</p>
+<ul>
+<li><a href="#rfc7493">[RFC7493]</a> and</li>
+<li>[<a href="#jadn-v10">JADN</a>].</li>
+</ul>
+<p>Types defined with the ".ID" appended to the base type (Enumerated,
+Choice, Map) are serialized in accordance with [<a
+href="#jadn-v10">JADN</a>].</p>
+<h2 id="32-message">3.2 Message</h2>
+<p>This language specification and one or more Actuator Profiles define
+the content of Commands and Responses, while transfer specifications
+define the on-the-wire format of a Message over specific secure
+transport protocols. Transfer specifications are agnostic with regard to
+content, and content is agnostic with regard to transfer protocol. This
+decoupling is accomplished by defining a standard message interface used
+to transfer any type of content over any transfer protocol.</p>
+<p>A message is a content- and transport-independent set of elements
+conveyed between Producers and Consumers. To ensure interoperability all
+transfer specifications must unambiguously define how the Message
+elements in <a href="#table-3-1-common-message-elements">Table 3-1</a>
+are represented within the secure transport protocol. This does not
+imply that all Message elements must be used in all Messages. Content,
+content_type, and msg_type are required in all Messages. Other Message
+elements are not required by this specification but may be required by
+other specifications. The internal representation of a Message does not
+affect interoperability and is therefore beyond the scope of OpenC2.</p>
+<h6 id="table-3-1-common-message-elements">Table 3-1. Common Message
+Elements</h6>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>content</strong></td>
+<td></td>
+<td>Message body as specified by content_type and msg_type.</td>
+</tr>
+<tr class="even">
+<td><strong>content_type</strong></td>
+<td>String</td>
+<td>Media Type that identifies the format of the content, including
+major version. Incompatible content formats must have different
+content_types. Content_type <strong>application/openc2</strong>
+identifies content defined by OpenC2 language specification versions
+1.x, i.e., all versions that are compatible with version 1.1.</td>
+</tr>
+<tr class="odd">
+<td><strong>msg_type</strong></td>
+<td>Message-Type</td>
+<td>The type of OpenC2 Message.</td>
+</tr>
+<tr class="even">
+<td><strong>status</strong></td>
+<td>Status-Code</td>
+<td>Populated with a numeric status code in Responses.</td>
+</tr>
+<tr class="odd">
+<td><strong>request_id</strong></td>
+<td>Command-ID</td>
+<td>A unique identifier created by the Producer and copied by Consumer
+into all Responses, in order to support reference to a particular
+Command, transaction, or event chain.</td>
+</tr>
+<tr class="even">
+<td><strong>created</strong></td>
+<td>Date-Time</td>
+<td>Creation date/time of the content.</td>
+</tr>
+<tr class="odd">
+<td><strong>from</strong></td>
+<td>String</td>
+<td>Authenticated identifier of the creator of or authority for
+execution of a message.</td>
+</tr>
+<tr class="even">
+<td><strong>to</strong></td>
+<td>ArrayOf(String)</td>
+<td>Authenticated identifier(s) of the authorized recipient(s) of a
+message.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>As an alternative to using protocol-specific mechanisms to convey
+message elements, transfer specifications MAY collect all message
+elements into a single Message structure used as a protocol
+payload.</li>
+</ul>
+<p>The media type "application/openc2" is reserved with IANA to
+designate content in OpenC2 Message format. The Message structure and
+its media type are intended to remain stable across future versions of
+this specification.</p>
+<p><strong>Type: Message (Record)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>headers</strong></td>
+<td>Headers</td>
+<td>0..1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>body</strong></td>
+<td>Body</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>signature</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Headers contains optional common message elements. Additional
+constraints on common header values may be defined. Additional headers
+may be defined. The "signature" field is used to contain an option
+digital signature to provide source authentication and integrity
+protections of the OpenC2 message.</p>
+<p><strong>Type: Headers (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>request_id</strong></td>
+<td>Command-ID</td>
+<td>0..1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>created</strong></td>
+<td>Date-Time</td>
+<td>0..1</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>from</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>to</strong></td>
+<td>String</td>
+<td>0..*</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Body indicates the Message content format and is intended to support
+new types of OpenC2 Content such as command lists or bundle objects, but
+OpenC2 may also assign Body types for non-OpenC2 content such as STIX or
+CACAO objects.</p>
+<p><strong>Type: Body (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>openc2</strong></td>
+<td>OpenC2-Content</td>
+<td>1</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Type: OpenC2-Content (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>request</strong></td>
+<td>OpenC2-Command</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>response</strong></td>
+<td>OpenC2-Response</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>notification</strong></td>
+<td>OpenC2-Event</td>
+<td>1</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Example JSON-serialized Message payload (without signature):</p>
+<pre><code>{
+  &quot;headers&quot;: {
+    &quot;request_id&quot;: &quot;95ad511c-3339-4111-9c47-9156c47d37d3&quot;,
+    &quot;created&quot;: 1595268027000,
+    &quot;from&quot;: &quot;Producer1@example.com&quot;,
+    &quot;to&quot;: [&quot;consumer1@example.com&quot;, &quot;consumer2@example.com&quot;, &quot;consumer3@example.com&quot;]
+  },
+  &quot;body&quot;: {
+    &quot;openc2&quot;: {
+      &quot;request&quot;: {
+        &quot;action&quot;: &quot;deny&quot;,
+        &quot;target&quot;: {
+          &quot;uri&quot;: &quot;http://www.example.com&quot; }}}}}</code></pre>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>A Producer MUST include a <code>request_id</code> in the Message
+header of a Command if it requests a Response.</p></li>
+<li><p>The request_id of a Message SHOULD be a Version 4 UUID as
+specified in <a href="#rfc4122">[RFC4122]</a>, Section 4.4.</p></li>
+<li><p>A Consumer MUST copy the <code>request_id</code> from the Message
+header of a Command into each Response to that Command.</p></li>
+</ul>
+<h2 id="33-content">3.3 Content</h2>
+<p>The purpose of this specification is to define the Action and Target
+portions of a Command and the common portions of a Response. The
+properties of the Command are defined in <a
+href="#331-openc2-command">Section 3.3.1</a> and the properties of the
+Response are defined in <a
+href="#332-openc2-response">Section 3.3.2</a>.</p>
+<p>In addition to the Action and Target, a Command has an optional
+Profile field. The semantics associated with Command and Response
+content are defined in the specified Actuator Profile.</p>
+<h3 id="331-openc2-command">3.3.1 OpenC2 Command</h3>
+<p>The Command defines an Action to be performed on a Target.</p>
+<p><strong>Type: OpenC2-Command (Record)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>action</strong></td>
+<td>Action</td>
+<td>1</td>
+<td>The task or activity to be performed (i.e., the 'verb').</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>target</strong></td>
+<td>Target</td>
+<td>1</td>
+<td>The object of the Action. The Action is performed on the
+Target.</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>args</strong></td>
+<td>Args</td>
+<td>0..1</td>
+<td>Additional information that applies to the Command.</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>profile</strong></td>
+<td>Profile</td>
+<td>0..1</td>
+<td>The actuator profile defining the function to be performed by the
+Command.</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>command_id</strong></td>
+<td>Command-ID</td>
+<td>0..1</td>
+<td>An identifier of this Command.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>A Consumer receiving a Command with <code>command_id</code>
+absent and <code>request_id</code> present in the header of the Message
+MUST use the value of <code>request_id</code> as the
+<code>command_id</code>.</p></li>
+<li><p>If present, the <code>args</code> property MUST contain at least
+one element defined in <a
+href="#3314-command-arguments">Section 3.3.1.4</a>.</p></li>
+<li><p>If a Consumer that implements multiple actuator profiles receives
+a Command with no <code>Profile</code> specified, the command will be
+executed in the context of each profile that supports the command's
+combination of action and target.</p></li>
+</ul>
+<h4 id="3311-action">3.3.1.1 Action</h4>
+<p><strong>Type: Action (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>scan</strong></td>
+<td>Systematic examination of some aspect of the entity or its
+environment.</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>locate</strong></td>
+<td>Find an object physically, logically, functionally, or by
+organization.</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>query</strong></td>
+<td>Initiate a request for information.</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>deny</strong></td>
+<td>Prevent a certain event or action from completion, such as
+preventing a flow from reaching a destination or preventing access.</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td><strong>contain</strong></td>
+<td>Isolate a file, process, or entity so that it cannot modify or
+access assets or processes.</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td><strong>allow</strong></td>
+<td>Permit access to or execution of a Target.</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td><strong>start</strong></td>
+<td>Initiate a process, application, system, or activity.</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td><strong>stop</strong></td>
+<td>Halt a system or end an activity.</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td><strong>restart</strong></td>
+<td>Stop then start a system or an activity.</td>
+</tr>
+<tr class="even">
+<td>14</td>
+<td><strong>cancel</strong></td>
+<td>Invalidate a previously issued Action.</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td><strong>set</strong></td>
+<td>Change a value, configuration, or state of a managed entity.</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td><strong>update</strong></td>
+<td>Instruct a component to retrieve, install, process, and operate in
+accordance with a software update, reconfiguration, or other
+update.</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td><strong>redirect</strong></td>
+<td>Change the flow of traffic to a destination other than its original
+destination.</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td><strong>create</strong></td>
+<td>Add a new entity of a known type (e.g., data, files,
+directories).</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td><strong>delete</strong></td>
+<td>Remove an entity (e.g., data, files, flows).</td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td><strong>detonate</strong></td>
+<td>Execute and observe the behavior of a Target (e.g., file, hyperlink)
+in an isolated environment.</td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td><strong>restore</strong></td>
+<td>Return a system to a previously known state.</td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td><strong>copy</strong></td>
+<td>Duplicate an object, file, data flow, or artifact.</td>
+</tr>
+<tr class="odd">
+<td>30</td>
+<td><strong>investigate</strong></td>
+<td>Task the recipient to aggregate and report information as it
+pertains to a security event or incident.</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td><strong>remediate</strong></td>
+<td>Task the recipient to eliminate a vulnerability or attack
+point.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>Each Command MUST contain exactly one Action defined in <a
+href="#3311-action">Section 3.3.1.1</a>.</li>
+</ul>
+<h4 id="3312-target">3.3.1.2 Target</h4>
+<p><strong>Type: Target (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>artifact</strong></td>
+<td>Artifact</td>
+<td>1</td>
+<td>An array of bytes representing a file-like object or a link to that
+object.</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>command</strong></td>
+<td>Command-ID</td>
+<td>1</td>
+<td>A reference to a previously issued Command.</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>device</strong></td>
+<td>Device</td>
+<td>1</td>
+<td>The properties of a hardware device.</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td><strong>domain_name</strong></td>
+<td>Domain-Name</td>
+<td>1</td>
+<td>A network domain name.</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td><strong>email_addr</strong></td>
+<td>Email-Addr</td>
+<td>1</td>
+<td>A single email address.</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td><strong>features</strong></td>
+<td>Features</td>
+<td>1</td>
+<td>A set of items used with the query Action to determine an Actuator's
+capabilities.</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td><strong>file</strong></td>
+<td>File</td>
+<td>1</td>
+<td>Properties of a file.</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td><strong>idn_domain_name</strong></td>
+<td>IDN-Domain-Name</td>
+<td>1</td>
+<td>An internationalized domain name.</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td><strong>idn_email_addr</strong></td>
+<td>IDN-Email-Addr</td>
+<td>1</td>
+<td>A single internationalized email address.</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td><strong>ipv4_net</strong></td>
+<td>IPv4-Net</td>
+<td>1</td>
+<td>An IPv4 address range including CIDR prefix length.</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td><strong>ipv6_net</strong></td>
+<td>IPv6-Net</td>
+<td>1</td>
+<td>An IPv6 address range including an address and a prefix length.</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td><strong>ipv4_connection</strong></td>
+<td>IPv4-Connection</td>
+<td>1</td>
+<td>A 5-tuple of source and destination IPv4 address ranges, source and
+destination ports, and protocol.</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td><strong>ipv6_connection</strong></td>
+<td>IPv6-Connection</td>
+<td>1</td>
+<td>A 5-tuple of source and destination IPv6 address ranges, source and
+destination ports, and protocol.</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td><strong>iri</strong></td>
+<td>IRI</td>
+<td>1</td>
+<td>An internationalized resource identifier (IRI).</td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td><strong>mac_addr</strong></td>
+<td>MAC-Addr</td>
+<td>1</td>
+<td>A Media Access Control (MAC) address - EUI-48 or EUI-64 as defined
+in <a href="#eui">[EUI]</a>.</td>
+</tr>
+<tr class="even">
+<td>18</td>
+<td><strong>process</strong></td>
+<td>Process</td>
+<td>1</td>
+<td>Common properties of an instance of a computer program as executed
+on an operating system.</td>
+</tr>
+<tr class="odd">
+<td>19</td>
+<td><strong>uri</strong></td>
+<td>URI</td>
+<td>1</td>
+<td>A uniform resource identifier (URI).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>The <code>target</code> field in a Command MUST contain exactly one
+type of Target (e.g., ipv4_net).</li>
+</ul>
+<h4 id="3313-profile">3.3.1.3 Profile</h4>
+<p>OpenC2 maintains an <a
+href="https://github.com/oasis-tcs/openc2-oc2arch/blob/published/namespace-registry.md">administrative
+document</a> listing current, planned, and extension actuator profile
+information.</p>
+<p><strong>Type: Profile (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1024</td>
+<td><strong>slpf</strong></td>
+<td>Stateless Packet Filtering</td>
+</tr>
+<tr class="even">
+<td>1025</td>
+<td><strong>sfpf</strong></td>
+<td>Stateful Packet Filtering</td>
+</tr>
+<tr class="odd">
+<td>1026</td>
+<td><strong>sbom</strong></td>
+<td>Software Bill of Materials</td>
+</tr>
+<tr class="even">
+<td>1027</td>
+<td><strong>er</strong></td>
+<td>Endpoint Response</td>
+</tr>
+<tr class="odd">
+<td>1028</td>
+<td><strong>hop</strong></td>
+<td>Honeypot Control</td>
+</tr>
+<tr class="even">
+<td>1029</td>
+<td><strong>av</strong></td>
+<td>Anti-Virus</td>
+</tr>
+<tr class="odd">
+<td>1030</td>
+<td><strong>ids</strong></td>
+<td>Intrusion Detection System</td>
+</tr>
+<tr class="even">
+<td>1031</td>
+<td><strong>log</strong></td>
+<td>Logging Control</td>
+</tr>
+<tr class="odd">
+<td>1032</td>
+<td><strong>swup</strong></td>
+<td>Software Update</td>
+</tr>
+<tr class="even">
+<td>1034</td>
+<td><strong>pf</strong></td>
+<td>Packet Filtering</td>
+</tr>
+<tr class="odd">
+<td>1035</td>
+<td><strong>pac</strong></td>
+<td>Security Posture Attribute Collection</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3314-command-arguments">3.3.1.4 Command Arguments</h4>
+<p><strong>Type: Args (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>start_time</strong></td>
+<td>Date-Time</td>
+<td>0..1</td>
+<td>The specific date/time to initiate the Command</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>stop_time</strong></td>
+<td>Date-Time</td>
+<td>0..1</td>
+<td>The specific date/time to terminate the Command</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>duration</strong></td>
+<td>Duration</td>
+<td>0..1</td>
+<td>The length of time for a Command to be in effect</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>response_requested</strong></td>
+<td>Response-Type</td>
+<td>0..1</td>
+<td>The type of Response required for the Command: <code>none</code>,
+<code>ack</code>, <code>status</code>, <code>complete</code>.</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>comment</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>A human-readable note to annotate or provide information regarding
+the action.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p><code>start_time</code>, <code>stop_time</code>,
+<code>duration</code>:</p>
+<ul>
+<li><p>If none are specified, then <code>start_time</code> is now,
+<code>stop_time</code> is never, and <code>duration</code> is
+infinity.</p>
+<ul>
+<li><p>Only two of the three are allowed on any given Command and the
+third is derived from the equation <code>stop_time</code> =
+<code>start_time</code> + <code>duration</code>.</p></li>
+<li><p>If only <code>start_time</code> is specified then
+<code>stop_time</code> is never and <code>duration</code> is
+infinity.</p></li>
+<li><p>If only <code>stop_time</code> is specified then
+<code>start_time</code> is now and <code>duration</code> is
+derived.</p></li>
+<li><p>If only <code>duration</code> is specified then
+<code>start_time</code> is now and <code>stop_time</code> is
+derived.</p></li>
+</ul></li>
+</ul></li>
+<li><p><code>response_requested</code>:</p>
+<ul>
+<li><p>If <code>response_requested</code> is specified as
+<code>none</code> and the Consumer successfully executes the Command
+then the Consumer SHOULD NOT send a Response.</p></li>
+<li><p>If <code>response_requested</code> is specified as
+<code>none</code> and the Consumer encounters an error then the Consumer
+SHOULD send a Response with a <code>status</code> consistent with the
+error detected.</p></li>
+<li><p>If <code>response_requested</code> is specified as
+<code>ack</code> then the Consumer SHOULD send a Response acknowledging
+receipt of the Command: <code>{"status": 102}</code>.</p></li>
+<li><p>If <code>response_requested</code> is specified as
+<code>status</code> then the Consumer SHOULD send a Response containing
+the current status of Command execution.</p></li>
+<li><p>If <code>response_requested</code> is specified as
+<code>complete</code> then the Consumer SHOULD send a Response
+containing the status or results upon completion of Command
+execution.</p></li>
+<li><p>If <code>response_requested</code> is not explicitly specified
+then the Consumer SHOULD respond as if <code>complete</code> was
+specified.</p></li>
+</ul></li>
+</ul>
+<h3 id="332-openc2-response">3.3.2 OpenC2 Response</h3>
+<p>OpenC2-Response defines the structure of a response to
+OpenC2-Command.</p>
+<p><strong>Type: OpenC2-Response (Record)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>status</strong></td>
+<td>Status-Code</td>
+<td>1</td>
+<td>An integer status code.</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>status_text</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>A free-form human-readable description of the Response status.</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>results</strong></td>
+<td>Results</td>
+<td>0..1</td>
+<td>Map of key:value pairs that contain additional results based on the
+invoking Command.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong></p>
+<pre><code>{
+    &quot;status&quot;: 200,
+    &quot;results&quot;: {
+        &quot;versions&quot;: [&quot;1.1&quot;]
+    }
+}</code></pre>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>All Responses MUST contain a status.</li>
+</ul>
+<h4 id="3321-response-status-code">3.3.2.1 Response Status Code</h4>
+<p><strong>Type: Status-Code (Enumerated.ID)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>102</td>
+<td><strong>Processing</strong> - an interim Response used to inform the
+Producer that the Consumer has accepted the Command but has not yet
+completed it.</td>
+</tr>
+<tr class="even">
+<td>200</td>
+<td><strong>OK</strong> - the Command has succeeded.</td>
+</tr>
+<tr class="odd">
+<td>400</td>
+<td><strong>Bad Request</strong> - the Consumer cannot process the
+Command due to something that is perceived to be a Producer error (e.g.,
+malformed Command syntax).</td>
+</tr>
+<tr class="even">
+<td>401</td>
+<td><strong>Unauthorized</strong> - the Command Message lacks valid
+authentication credentials for the target resource or authorization has
+been refused for the submitted credentials.</td>
+</tr>
+<tr class="odd">
+<td>403</td>
+<td><strong>Forbidden</strong> - the Consumer understood the Command but
+refuses to authorize it.</td>
+</tr>
+<tr class="even">
+<td>404</td>
+<td><strong>Not Found</strong> - the Consumer has not found anything
+matching the Command.</td>
+</tr>
+<tr class="odd">
+<td>500</td>
+<td><strong>Internal Error</strong> - the Consumer encountered an
+unexpected condition that prevented it from performing the Command.</td>
+</tr>
+<tr class="even">
+<td>501</td>
+<td><strong>Not Implemented</strong> - the Consumer does not support the
+functionality required to perform the Command.</td>
+</tr>
+<tr class="odd">
+<td>503</td>
+<td><strong>Service Unavailable</strong> - the Consumer is currently
+unable to perform the Command due to a temporary overloading or
+maintenance of the Consumer.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3322-response-results">3.3.2.2 Response Results</h4>
+<p><strong>Type: Results (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>versions</strong></td>
+<td>Version unique</td>
+<td>0..*</td>
+<td>List of OpenC2 language versions supported by this Consumer</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>profiles</strong></td>
+<td>Nsid</td>
+<td>0..*</td>
+<td>List of profiles supported by this Consumer</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>pairs</strong></td>
+<td>Action-Targets</td>
+<td>0..1</td>
+<td>List of targets applicable to each supported Action</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>rate_limit</strong></td>
+<td>Number{0..*}</td>
+<td>0..1</td>
+<td>Maximum number of requests per minute supported by design or
+policy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<blockquote>
+<p><em>NOTE: Confirm whether any language schema changes are necessary
+to support this.</em></p>
+</blockquote>
+<ul>
+<li><code>pairs</code> results SHOULD be grouped by profile such that a
+Producer processing the Response message can identify the commands
+available for each supported profile. See <a
+href="#423-example-3-query-features-detailed-response-with-multiple-profiles">Example
+3</a> in <a
+href="#42-examples-of-query-features-commands-and-responses">Section 4.2</a>.</li>
+</ul>
+<h3 id="333-openc2-event">3.3.3 OpenC2 Event</h3>
+<p>OpenC2-Event defines the content of a one-way notification. This
+structure defines no common event fields, but is the point at which
+profile-defined event content may be added.</p>
+<p><strong>Type: OpenC2-Event (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+<h3 id="334-message-signatures">3.3.4 Message Signatures</h3>
+<blockquote>
+<p>To-Do: develop a replacement JSS-based example and add to Appendix E.
+Need to find tooling to assist.</p>
+</blockquote>
+<p>Command and control mechanisms need to provide appropriate security
+controls protecting message content (especially authentication of
+command origin and protection of command integrity) so that Consumers
+receiving commands can proceed to execute them with confidence and
+Producers can have confidence that the feedback in response messages is
+meaningful. Digital signatures can provide both of those security
+properties. OpenC2 messages can be protected with digital signatures
+using standard mechanisms. ITU-T Recommendation X.590 [<a
+href="#itu-t-x590">ITU-T X.590</a>], <em>JSON Signature Scheme
+(JSS)</em> provides a signature mechanism for JSON content that aligns
+with the needs of OpenC2.</p>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>OpenC2 messages SHOULD be digitally signed, unless message
+integrity and source authentication are provided by other
+mechanisms.</p></li>
+<li><p>OpenC2 messages serialized in JSON MUST conform to the
+requirements of <a href="#rfc7493">[RFC 7493]</a> to support
+canonicalization.</p></li>
+<li><p>Digitally-signed OpenC2 messages serialized in JSON MUST be
+signed using JSON Signature Scheme in accordance with ITU-T
+X.590.</p></li>
+</ul>
+<p>The method for message recipients to identify and validate the
+appropriate public key to validate a message signature is beyond the
+scope of this specification. Alternative, appropriate signature
+mechanisms will need to be specified for serializations other than
+JSON.</p>
+<h2 id="34-type-definitions">3.4 Type Definitions</h2>
+<h3 id="341-target-types">3.4.1 Target Types</h3>
+<h4 id="3411-artifact">3.4.1.1 Artifact</h4>
+<p><strong>Type: Artifact (Record{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>media_type</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>Media type description formatted as specified in <a
+href="#rfc6838">[RFC6838]</a></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>payload</strong></td>
+<td>Payload</td>
+<td>0..1</td>
+<td>Choice of literal content or URL</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>hashes</strong></td>
+<td>Hashes</td>
+<td>0..1</td>
+<td>Hashes of the payload content</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>An "Artifact" Target MUST contain at least one property.</li>
+<li><code>media_type</code> "Artifact" property values SHOULD be
+interpreted according to the values documented in the <a
+href="#iana_media">IANA Media Types registry</a>.</li>
+</ul>
+<h4 id="3412-device">3.4.1.2 Device</h4>
+<p><strong>Type: Device (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>hostname</strong></td>
+<td>Hostname</td>
+<td>0..1</td>
+<td>A hostname that can be used to connect to this device over a
+network</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>idn_hostname</strong></td>
+<td>IDN-Hostname</td>
+<td>0..1</td>
+<td>An internationalized hostname that can be used to connect to this
+device over a network</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>device_id</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>An identifier that refers to this device within an inventory or
+management system</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>A "Device" Target MUST contain at least one property.</li>
+</ul>
+<h4 id="3413-domain-name">3.4.1.3 Domain Name</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Domain-Name</strong></td>
+<td>String /hostname</td>
+<td><a href="#rfc1034">[RFC1034]</a>, Section 3.5</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3414-email-address">3.4.1.4 Email Address</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Email-Addr</strong></td>
+<td>String /email</td>
+<td>Email address, <a href="#rfc5322">[RFC5322]</a>, Section 3.4.1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3415-features">3.4.1.5 Features</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Features</strong></td>
+<td>Feature unique</td>
+<td>0..*</td>
+<td>An array of feature names used to query a Consumer for its supported
+capabilities.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>A Producer MUST NOT send a list containing more than one instance
+of any Feature.</p></li>
+<li><p>A Consumer receiving a list containing more than one instance of
+any Feature SHOULD behave as if the duplicate(s) were not
+present.</p></li>
+<li><p>A Producer MAY send a 'query' Command containing an empty list of
+features. A Producer could do this to determine if a Consumer is
+responding to Commands (a heartbeat command) or to generate idle traffic
+to keep a connection to a Consumer from being closed due to inactivity
+(a keep-alive command). An active Consumer could return an empty
+response to this command, minimizing the amount of traffic used to
+perform heartbeat / keep-alive functions.</p></li>
+</ul>
+<h4 id="3416-file">3.4.1.6 File</h4>
+<p><strong>Type: File (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>name</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>The name of the file as defined in the file system</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>path</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>The absolute path to the location of the file in the file
+system</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>hashes</strong></td>
+<td>Hashes</td>
+<td>0..1</td>
+<td>One or more cryptographic hash codes of the file contents</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>A "File" Target MUST contain at least one property.</li>
+</ul>
+<h4 id="3417-internationalized-domain-name">3.4.1.7 Internationalized
+Domain Name</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IDN-Domain-Name</strong></td>
+<td>String /idn-hostname</td>
+<td>Internationalized Domain Name, <a href="#rfc5890">[RFC5890]</a>,
+Section 2.3.2.3.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3418-internationalized-email-address">3.4.1.8 Internationalized
+Email Address</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IDN-Email-Addr</strong></td>
+<td>String /idn-email</td>
+<td>Internationalized email address, <a
+href="#rfc6531">[RFC6531]</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="3419-ipv4-address-range">3.4.1.9 IPv4 Address Range</h4>
+<p>An IPv4 address range is a CIDR block per "Classless Inter-domain
+Routing (CIDR): The Internet Address Assignment and Aggregation Plan" <a
+href="#rfc4632">[RFC4632]</a> and consists of two values, an IPv4
+address and a prefix.</p>
+<p>For example, <code>"192.168.17.0/24"</code> is range of IP addresses
+with a prefix of 24 (i.e.
+<code>192.168.17.0 - 192.168.17.255</code>).</p>
+<p><strong>Type: IPv4-Net (Array /ipv4-net)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>IPv4-Addr</td>
+<td>1</td>
+<td>IPv4 address as defined in <a href="#rfc0791">[RFC0791]</a></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Integer</td>
+<td>0..1</td>
+<td>CIDR prefix-length. If omitted, refers to a single host
+address.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>JSON serialization of an IPv4 address range SHALL use the
+'dotted/slash' textual representation of <a
+href="#rfc4632">[RFC4632]</a>.</p></li>
+<li><p>CBOR serialization of an IPv4 address range SHALL use a binary
+representation of the IP address and the prefix, each in their own
+field.</p></li>
+</ul>
+<h4 id="34110-ipv4-connection">3.4.1.10 IPv4 Connection</h4>
+<p><strong>Type: IPv4-Connection (Record{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>src_addr</strong></td>
+<td>IPv4-Net</td>
+<td>0..1</td>
+<td>IPv4 source address range</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>src_port</strong></td>
+<td>Port</td>
+<td>0..1</td>
+<td>Source service per <a href="#rfc6335">[RFC6335]</a></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>dst_addr</strong></td>
+<td>IPv4-Net</td>
+<td>0..1</td>
+<td>IPv4 destination address range</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>dst_port</strong></td>
+<td>Port</td>
+<td>0..1</td>
+<td>Destination service per <a href="#rfc6335">[RFC6335]</a></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>protocol</strong></td>
+<td>L4-Protocol</td>
+<td>0..1</td>
+<td>Layer 4 protocol (e.g., TCP) - see <a
+href="#34211-l4-protocol">Section 3.4.2.11</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>An "IPv4-Connection" MUST contain at least one property.</li>
+</ul>
+<h4 id="34111-ipv6-address-range">3.4.1.11 IPv6 Address Range</h4>
+<p>An IPv6 address range is a a block of contiguous IPv6 addresses, per
+"IP Version 6 Addressing Architecture" <a href="#rfc4291">[RFC4291]</a>
+and consists of two values, an IPv6 address and a prefix.</p>
+<p>For example,
+<code>"2001:0DB8:0000:CD30:0000:0000:0000:0000/60"</code> is range of
+IPv6 addresses with a 60-bit prefix. Per Section 2.3 of RFC4291, the
+address portion may completely specify a node address (i.e., all
+128-bits are meaningful) while the prefix value identifies the node's
+subnet.</p>
+<p><strong>Type: IPv6-Net (Array /ipv6-net)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>IPv6-Addr</td>
+<td>1</td>
+<td>IPv6 address as defined in <a href="#rfc8200">[RFC8200]</a></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Integer</td>
+<td>0..1</td>
+<td>Prefix-length</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li><p>JSON serialization of an IPv6 address range SHALL use the textual
+representation of IPv6 addresses and prefix lengths defined in <a
+href="#rfc4291">[RFC4291]</a>.</p></li>
+<li><p>CBOR serialization of an IPv6 address range SHALL use a binary
+representation of the IP address and the prefix, each in their own
+field.</p></li>
+</ul>
+<h4 id="34112-ipv6-connection">3.4.1.12 IPv6 Connection</h4>
+<p><strong>Type: IPv6-Connection (Record{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>src_addr</strong></td>
+<td>IPv6-Net</td>
+<td>0..1</td>
+<td>IPv6 source address range</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>src_port</strong></td>
+<td>Port</td>
+<td>0..1</td>
+<td>Source service per <a href="#rfc6335">[RFC6335]</a></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>dst_addr</strong></td>
+<td>IPv6-Net</td>
+<td>0..1</td>
+<td>IPv6 destination address range</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>dst_port</strong></td>
+<td>Port</td>
+<td>0..1</td>
+<td>Destination service per <a href="#rfc6335">[RFC6335]</a></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>protocol</strong></td>
+<td>L4-Protocol</td>
+<td>0..1</td>
+<td>Layer 4 protocol (e.g., TCP) - <a
+href="#34211-l4-protocol">Section 3.4.2.11</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>An "IPv6-Connection" Target MUST contain at least one property.</li>
+</ul>
+<h4 id="34113-iri">3.4.1.13 IRI</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IRI</strong></td>
+<td>String /iri</td>
+<td>Internationalized Resource Identifier, <a
+href="#rfc3987">[RFC3987]</a>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34114-mac-address">3.4.1.14 MAC Address</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>MAC-Addr</strong></td>
+<td>Binary /eui</td>
+<td>Media Access Control / Extended Unique Identifier address - EUI-48
+or EUI-64 as defined in <a href="#eui">[EUI]</a>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34115-process">3.4.1.15 Process</h4>
+<p><strong>Type: Process (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>pid</strong></td>
+<td>Key(Integer{0..*})</td>
+<td>0..1</td>
+<td>Process ID of the process</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>name</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>Name of the process</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>cwd</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>Current working directory of the process</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>executable</strong></td>
+<td>File</td>
+<td>0..1</td>
+<td>Executable that was executed to start the process</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>parent</strong></td>
+<td>Link(Process)</td>
+<td>0..1</td>
+<td>Process that spawned this one</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>command_line</strong></td>
+<td>String</td>
+<td>0..1</td>
+<td>The full command line invocation used to start this process,
+including all arguments</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>A "Process" Target MUST contain at least one property.</li>
+</ul>
+<h4 id="34116-uri">3.4.1.16 URI</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>URI</strong></td>
+<td>String (uri)</td>
+<td>Uniform Resource Identifier, <a href="#rfc3986">[RFC3986]</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="342-data-types">3.4.2 Data Types</h3>
+<h4 id="3421-action-targets">3.4.2.1 Action-Targets</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Action-Targets</strong></td>
+<td>MapOf(Action, Targets){1..*}</td>
+<td>Map of each action supported by this actuator function to the list
+of targets applicable to that action.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3422-command-id">3.4.2.2 Command-ID</h4>
+<p>Included in a Command message by an OpenC2 Producer to enable future
+references to the specific command. OpenC2 Consumers can include the
+<code>command_id</code> from the Command message in Responses to specify
+the Command to which the Response corresponds.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Command-ID</strong></td>
+<td>String (%^\S{0,36}$%)</td>
+<td>Command Identifier</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>Value SHOULD be a string representation of a UUIDv4 as defined in
+[<a href="#rfc4122">RFC4122</a>].</li>
+</ul>
+<h4 id="3423-date-time">3.4.2.3 Date-Time</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Date-Time</strong></td>
+<td>Integer{0..*}</td>
+<td>Date and Time</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>Value is the number of milliseconds since 00:00:00 UTC, 1 January
+1970</li>
+</ul>
+<h4 id="3424-duration">3.4.2.4 Duration</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Duration</strong></td>
+<td>Integer{0..*}</td>
+<td>A length of time</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>Value is a number of milliseconds</li>
+</ul>
+<h4 id="3425-feature">3.4.2.5 Feature</h4>
+<p>Specifies the results to be returned from a query features
+Command.</p>
+<p><strong>Type: Feature (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>versions</strong></td>
+<td>List of OpenC2 Language versions supported by this Consumer</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>profiles</strong></td>
+<td>List of Actuator profiles supported by this Consumer</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>pairs</strong></td>
+<td>List of supported Actions and applicable Targets</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>rate_limit</strong></td>
+<td>Maximum number of Commands per minute supported by design or
+policy</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3426-hashes">3.4.2.6 Hashes</h4>
+<p><strong>Type: Hashes (Map{1..*})</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>md5</strong></td>
+<td>Binary /x</td>
+<td>0..1</td>
+<td>MD5 hash as defined in <a href="#rfc1321">[RFC1321]</a></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>sha1</strong></td>
+<td>Binary /x</td>
+<td>0..1</td>
+<td>SHA1 hash as defined in <a href="#rfc6234">[RFC6234]</a></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>sha256</strong></td>
+<td>Binary /x</td>
+<td>0..1</td>
+<td>SHA256 hash as defined in <a href="#rfc6234">[RFC6234]</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>A "Hashes" data type MUST contain at least one property.</li>
+</ul>
+<h4 id="3427-hostname">3.4.2.7 Hostname</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Hostname</strong></td>
+<td>String /hostname</td>
+<td>Internet host name as specified in <a
+href="#rfc1123">[RFC1123]</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="3428-internationalized-hostname">3.4.2.8 Internationalized
+Hostname</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IDN-Hostname</strong></td>
+<td>String /idn-hostname</td>
+<td>Internationalized Internet host name as specified in <a
+href="#rfc5890">[RFC5890]</a>, Section 2.3.2.3.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3429-ipv4-address">3.4.2.9 IPv4 Address</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IPv4-Addr</strong></td>
+<td>Binary /ipv4-addr</td>
+<td>32 bit IPv4 address as defined in <a
+href="#rfc0791">[RFC0791]</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="34210-ipv6-address">3.4.2.10 IPv6 Address</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>IPv6-Addr</strong></td>
+<td>Binary /ipv6-addr</td>
+<td>128 bit IPv6 address as defined in <a
+href="#rfc8200">[RFC8200]</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="34211-l4-protocol">3.4.2.11 L4 Protocol</h4>
+<p>Value of the IPv4 <code>"protocol"</code> or IPv6
+<code>"next header"</code> field in an IP packet. Recognized values for
+these fields are registered with IANA, according to the process defined
+in <a href="#rfc5237">[RFC5237]</a>. The table below identifies a
+non-exhaustive set of commonly used values.</p>
+<p><strong>Type: L4-Protocol (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>icmp</strong></td>
+<td>Internet Control Message Protocol - <a
+href="#rfc0792">[RFC0792]</a></td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>tcp</strong></td>
+<td>Transmission Control Protocol - <a
+href="#rfc9293">[RFC9293]</a></td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td><strong>udp</strong></td>
+<td>User Datagram Protocol - <a href="#rfc0768">[RFC0768]</a></td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td><strong>ipv6_icmp</strong></td>
+<td>ICMP for IPv6 - <a href="#rfc8200">[RFC8200]</a></td>
+</tr>
+<tr class="odd">
+<td>132</td>
+<td><strong>sctp</strong></td>
+<td>Stream Control Transmission Protocol - <a
+href="#rfc4960">[RFC4960]</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>The IPv4 Protocol field and IPv6 Next Header field are 8-bit values,
+therefore L4-Protocol is an enumeration from 0..255.</li>
+<li>Values of L4-Protocol SHOULD be interpreted as documented in <a
+href="#iana_protocols">[IANA_Protocols]</a>.</li>
+</ul>
+<h4 id="34212-message-type">3.4.2.12 Message-Type</h4>
+<p>Identifies the type of Message.</p>
+<p><strong>Type: Message-Type (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>command</strong></td>
+<td>The Message content is an OpenC2 Command</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>response</strong></td>
+<td>The Message content is an OpenC2 Response</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34213-namespace-identifier">3.4.2.13 Namespace Identifier</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Nsid</strong></td>
+<td>String{1..16}</td>
+<td>A short identifier that refers to a namespace.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34214-payload">3.4.2.14 Payload</h4>
+<p><strong>Type: Payload (Choice)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Type</th>
+<th>#</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>bin</strong></td>
+<td>Binary</td>
+<td>1</td>
+<td>Specifies the data contained in the artifact</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>url</strong></td>
+<td>URI</td>
+<td>1</td>
+<td>MUST be a valid URL that resolves to the un-encoded content</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34215-port">3.4.2.15 Port</h4>
+<p>Value of the port specified by a Layer 4 protocol, such as the
+<code>source port</code> in a TCP protocol header. Recognized values for
+these fields are registered with IANA, according to the process defined
+in <a href="#rfc6335">[RFC6335]</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Port</strong></td>
+<td>Integer{0..65535}</td>
+<td>Transport Protocol Port Number, <a
+href="#rfc6335">[RFC6335]</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirements:</strong></p>
+<ul>
+<li>The Port type is a 16-bit value, therefore provides an enumeration
+from 0..65535.</li>
+<li>Values of Port SHOULD be interpreted as documented in <a
+href="#iana_ports">[IANA_Ports]</a>.</li>
+</ul>
+<h4 id="34216-response-type">3.4.2.16 Response-Type</h4>
+<p><strong>Type: Response-Type (Enumerated)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td><strong>none</strong></td>
+<td>No response</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td><strong>ack</strong></td>
+<td>Respond when Command received</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td><strong>status</strong></td>
+<td>Respond with progress toward Command completion</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td><strong>complete</strong></td>
+<td>Respond when all aspects of Command completed</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34217-targets">3.4.2.17 Targets</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Targets</strong></td>
+<td>ArrayOf(Enum(Target)){1..*} unique</td>
+<td>List of Target fields</td>
+</tr>
+</tbody>
+</table>
+<h4 id="34218-version">3.4.2.18 Version</h4>
+<p>Used to report the version(s) of OpenC2 supported by Consumers.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type Name</th>
+<th>Type Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Version</strong></td>
+<td>String</td>
+<td>OpenC2 version in "Major.Minor" format</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Requirement:</strong></p>
+<ul>
+<li>A Version string MUST contain the major and minor version numbers,
+represented as integers separated by a period (e.g., "1.1").</li>
+</ul>
+<hr />
+<h1 id="4-mandatory-commandsresponses">4 Mandatory
+Commands/Responses</h1>
+<p><em>The content in this section is normative, except where it is
+marked non-normative.</em></p>
+<p>A Command consists of an Action/Target pair and associated Specifiers
+and Arguments. This section enumerates the allowed Commands, identifies
+which are required or optional to implement, and presents the associated
+responses.</p>
+<h2 id="41-implementation-of-query-features-command">4.1 Implementation
+of 'query features' Command</h2>
+<p>The 'query features' Command is REQUIRED for all Producers and
+Consumers implementing OpenC2. This section defines the REQUIRED and
+OPTIONAL aspects of the 'query features' Command and associated response
+for Producers and Consumers.</p>
+<p>The 'query features' Command is REQUIRED for all Producers. The
+'query features' Command MAY include one or more Features as defined in
+<a href="#3425-feature">Section 3.4.2.5</a>. The 'query features'
+Command MAY include the <code>"response_requested": "complete"</code>
+Argument. The 'query features' Command MUST NOT include any other
+Argument.</p>
+<p>The 'query features' Command is REQUIRED for all Consumers. Consumers
+that receive and parse the 'query features':</p>
+<ul>
+<li><p>With any Argument other than
+<code>"response_requested": "complete"</code></p>
+<ul>
+<li>MUST NOT respond with OK/200.</li>
+<li>SHOULD respond with Bad Request/400.</li>
+<li>MAY respond with the 500 status code.</li>
+</ul></li>
+<li><p>With no Target Specifiers MUST respond with response code
+200.</p></li>
+<li><p>With the "versions" Target Specifier MUST respond with status 200
+and populate the versions field with a list of the OpenC2 Language
+Versions supported by the consumer.</p></li>
+<li><p>With the "profiles" Target Specifier MUST respond with status 200
+and populate the profiles field with a list of profiles supported by the
+consumer.</p></li>
+<li><p>With the "pairs" Target Specifier MUST respond with status 200
+and populate the pairs field with a list of action target pairs that
+define valid commands supported by the consumer.</p></li>
+<li><p>With the "rate_limit" Target Specifier populated:</p>
+<ul>
+<li><p>SHOULD respond with status 200 and populate the rate_limit field
+with the maximum number of Commands per minute that the Consumer may
+support.</p></li>
+<li><p>MAY respond with status 200 and with the rate_limit field
+unpopulated.</p></li>
+</ul></li>
+</ul>
+<h2 id="42-examples-of-query-features-commands-and-responses">4.2
+Examples of 'query features' Commands and Responses</h2>
+<p><em>This section is non-normative.</em></p>
+<p>This sub-section provides examples of <code>query features</code>
+Commands and Responses. The examples provided in this section are for
+illustrative purposes only and are not to be interpreted as operational
+examples for actual systems.</p>
+<h3 id="421-example-1-bare-query--features">4.2.1 Example 1: Bare "query
+: features"</h3>
+<p>There are no features specified in the <code>query features</code>
+Command. A simple "OK" Response Message is returned.</p>
+<p><strong>Command:</strong></p>
+<pre><code>{
+    &quot;action&quot;: &quot;query&quot;,
+    &quot;target&quot;: {
+        &quot;features&quot;: []
+    }
+}</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code>{
+    &quot;status&quot;: 200
+}</code></pre>
+<h3 id="422-example-2-query-for-specific-features">4.2.2 Example 2:
+Query for Specific Features</h3>
+<p>There are several features requested in the
+<code>query features</code> Command. All requested features can be
+returned in a single Response Message.</p>
+<p><strong>Command:</strong></p>
+<pre><code>{
+    &quot;action&quot;: &quot;query&quot;,
+    &quot;target&quot;: {
+        &quot;features&quot;: [&quot;versions&quot;, &quot;profiles&quot;, &quot;rate_limit&quot;]
+    }
+}</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code>{
+    &quot;status&quot;: 200,
+    &quot;results&quot;: {
+        &quot;versions&quot;: [&quot;1.1&quot;],
+        &quot;profiles&quot;: [&quot;slpf&quot;, &quot;x-lock&quot;],
+        &quot;rate_limit&quot;: 30
+    }
+}</code></pre>
+<h3
+id="423-example-3-query-features-detailed-response-with-multiple-profiles">4.2.3
+Example 3: Query Features Detailed Response with Multiple Profiles</h3>
+<p>This example illustrates a response to the
+<code>query features</code> command from a Consumer that implements two
+Profiles: stateless packet filtering (<code>slpf</code>) and a notional
+<code>blinky</code> profile. The Command exercises the full range of
+<code>query features</code> options. Both profiles define custom
+targets:</p>
+<ul>
+<li><code>slpf</code> defines the <code>rule_number</code> target</li>
+<li><code>blinky</code> defines the <code>device</code> and
+<code>display</code> targets</li>
+</ul>
+<p>This example illustrates the response to this mandatory command is
+split among aspects defined at the Consumer level and aspects defined at
+the individual Profile level. In a sense, the requirements of <a
+href="#41-implementation-of-query-features-command">Section 4.1</a> of
+this specification constitute a base "profile" for the Consumer as a
+whole, and the results for <code>versions</code>, <code>profiles</code>,
+<code>rate_limit</code> and the basic <code>"query": ["features"]</code>
+appear in that portion of the response. The remaining content in the
+response is grouped by the two supported profiles.</p>
+<p><strong>Command:</strong></p>
+<pre><code>{
+  &quot;action&quot;: &quot;query&quot;,
+  &quot;target&quot;: {
+    &quot;features&quot;: [&quot;versions&quot;, &quot;profiles&quot;, &quot;pairs&quot;, &quot;rate_limit&quot;]
+  }
+}</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code>{
+  &quot;status&quot;: 200,
+  &quot;results&quot;: {
+    &quot;versions&quot;: [&quot;1.1&quot;],
+    &quot;profiles&quot;: [&quot;slpf&quot;, &quot;blinky&quot;],
+    &quot;pairs&quot;: {
+      &quot;query&quot;: [&quot;features&quot;]
+    },
+    &quot;rate_limit&quot;: 30,
+    &quot;slpf&quot;: {
+      &quot;pairs&quot;: {
+        &quot;allow&quot;: [&quot;ipv6_net&quot;, &quot;ipv6_connection&quot;],
+        &quot;deny&quot;: [&quot;ipv6_net&quot;, &quot;ipv6_connection&quot;],
+        &quot;delete&quot;: [&quot;slpf/rule_number&quot;],
+        &quot;update&quot;: [&quot;file&quot;]
+      }
+    },
+    &quot;blinky&quot;: {
+      &quot;pairs&quot;: {
+        &quot;query&quot;: [&quot;blinky/device&quot;],
+        &quot;set&quot;: [&quot;blinky/display&quot;]
+      }
+    }
+  }
+}</code></pre>
+<hr />
+<h1 id="5-conformance">5 Conformance</h1>
+<p><em>This content in this section is normative.</em></p>
+<h3 id="51-conformance-clause-1-command">5.1 Conformance Clause 1:
+Command</h3>
+<p>A conformant Command</p>
+<ul>
+<li><p>5.1-1 MUST be structured in accordance with <a
+href="#331-openc2-command">Section 3.3.1</a>.</p></li>
+<li><p>5.1-2 MUST include exactly one <code>action</code> property
+defined in accordance with <a
+href="#3311-action">Section 3.3.1.1</a>.</p></li>
+<li><p>5.1-3 MUST include exactly one <code>target</code> property
+defined in accordance with <a href="#3312-target">Section 3.3.1.2</a> or
+exactly one imported <code>target</code> property defined in accordance
+with <a href="#314-extensions">Section 3.1.4</a>.</p></li>
+<li><p>5.1-4 MUST include zero or one <code>profile</code> property
+defined in accordance with <a
+href="#3313-profile">Section 3.3.1.3</a>.</p></li>
+<li><p>5.1-5 MUST include zero or one <code>args</code> property defined
+in accordance with <a href="#3314-command-arguments">Section 3.3.1.4</a>
+or zero or one imported <code>args</code> property defined in accordance
+with <a href="#314-extensions">Section 3.1.4</a>.</p></li>
+</ul>
+<h3 id="52-conformance-clause-2-response">5.2 Conformance Clause 2:
+Response</h3>
+<p>A conformant Response</p>
+<ul>
+<li><p>5.2-1 MUST be structured in accordance with <a
+href="#332-openc2-response">Section 3.3.2</a>.</p></li>
+<li><p>5.2-2 MUST include exactly one <code>status</code> property
+defined in accordance with <a
+href="#3321-response-status-code">Section 3.3.2.1</a>.</p></li>
+</ul>
+<h2 id="53-conformance-clause-3-producer">5.3 Conformance Clause 3:
+Producer</h2>
+<p>A conformant Producer</p>
+<ul>
+<li><p>5.3-1 MUST issue Commands and process Responses in accordance
+with <a href="#4-mandatory-commandsresponses">Section 4</a>.</p></li>
+<li><p>5.3-2 MUST implement JSON serialization of generated Commands in
+accordance with <a href="#rfc7493">[RFC7493]</a>.</p></li>
+<li><p>5.3-3 MUST implement JSON deserialization of received Responses
+in accordance with <a href="#rfc7493">[RFC7493]</a>.</p></li>
+</ul>
+<h2 id="54-conformance-clause-4-consumer">5.4 Conformance Clause 4:
+Consumer</h2>
+<p>A conformant Consumer</p>
+<ul>
+<li><p>5.4-1 MUST process Commands and issue Responses in accordance
+with <a href="#4-mandatory-commandsresponses">Section 4</a>.</p></li>
+<li><p>5.4-2 MUST implement JSON serialization of generated Responses in
+accordance with <a href="#rfc7493">[RFC7493]</a>.</p></li>
+<li><p>5.4-3 MUST implement JSON deserialization of received Commands in
+accordance with <a href="#rfc7493">[RFC7493]</a>.</p></li>
+</ul>
+<hr />
+<h1 id="appendix-a-references">Appendix A. References</h1>
+<!-- Required section -->
+
+<p>This appendix contains the normative and informative references that
+are used in this document. Normative references are specific (identified
+by date of publication and/or edition number or version number) and
+Informative references are either specific or non-specific.</p>
+<p>While any hyperlinks included in this appendix were valid at the time
+of publication, OASIS cannot guarantee their long-term validity.</p>
+<h2 id="a1-normative-references">A.1 Normative References</h2>
+<p>The following documents are referenced in such a way that some or all
+of their content constitutes requirements of this document.</p>
+<h6 id="jadn-v10">[JADN-v1.0]</h6>
+<p>JSON Abstract Data Notation Version 1.0. Edited by David Kemp. 17
+August 2021. OASIS Committee Specification 01. <a
+href="https://docs.oasis-open.org/openc2/jadn/v1.0/cs01/jadn-v1.0-cs01.html">https://docs.oasis-open.org/openc2/jadn/v1.0/cs01/jadn-v1.0-cs01.html</a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/jadn/v1.0/jadn-v1.0.html">https://docs.oasis-open.org/openc2/jadn/v1.0/jadn-v1.0.html</a>.</p>
+<h6 id="openc2-arch-v10">[OpenC2-Arch-v1.0]</h6>
+<p><em>Open Command and Control (OpenC2) Architecture Specification
+Version 1.0</em>. Edited by Duncan Sparrell. 30 September 2022. OASIS
+Committee Specification 01. <a
+href="https://docs.oasis-open.org/openc2/oc2arch/v1.0/cs01/oc2arch-v1.0-cs01.html">https://docs.oasis-open.org/openc2/oc2arch/v1.0/cs01/oc2arch-v1.0-cs01.html</a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/oc2arch/v1.0/oc2arch-v1.0.html">https://docs.oasis-open.org/openc2/oc2arch/v1.0/oc2arch-v1.0.html</a>.</p>
+<h6 id="openc2-https-v11">[OpenC2-HTTPS-v1.1]</h6>
+<p>Specification for Transfer of OpenC2 Messages via HTTPS Version 1.1.
+Edited by David Lemire. 30 November 2021. OASIS Committee Specification
+01. <a
+href="https://docs.oasis-open.org/openc2/open-impl-https/v1.1/cs01/open-impl-https-v1.1-cs01.html">https://docs.oasis-open.org/openc2/open-impl-https/v1.1/cs01/open-impl-https-v1.1-cs01.html</a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/open-impl-https/v1.1/open-impl-https-v1.1.html">https://docs.oasis-open.org/openc2/open-impl-https/v1.1/open-impl-https-v1.1.html</a>.</p>
+<h6 id="openc2-mqtt-v10">[OpenC2-MQTT-v1.0]</h6>
+<p>Specification for Transfer of OpenC2 Messages via MQTT Version 1.0.
+Edited by David Lemire. 19 November 2021. OASIS Committee Specification
+01. <a
+href="https://docs.oasis-open.org/openc2/transf-mqtt/v1.0/cs01/transf-mqtt-v1.0-cs01.html">https://docs.oasis-open.org/openc2/transf-mqtt/v1.0/cs01/transf-mqtt-v1.0-cs01.html</a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/transf-mqtt/v1.0/transf-mqtt-v1.0.html">https://docs.oasis-open.org/openc2/transf-mqtt/v1.0/transf-mqtt-v1.0.html</a></p>
+<h6 id="openc2-slpf-v10">[OpenC2-SLPF-v1.0]</h6>
+<p><em>Open Command and Control (OpenC2) Profile for Stateless Packet
+Filtering Version 1.0</em>. Edited by Joe Brule, Duncan Sparrell, and
+Alex Everett. Latest version: <a
+href="http://docs.oasis-open.org/openc2/oc2slpf/v1.0/oc2slpf-v1.0.html">http://docs.oasis-open.org/openc2/oc2slpf/v1.0/oc2slpf-v1.0.html</a></p>
+<h6 id="rfc0768">[RFC0768]</h6>
+<p>Postel, J., "User Datagram Protocol", STD 6, RFC 768, DOI
+10.17487/RFC0768, August 1980, <a
+href="https://www.rfc-editor.org/info/rfc768">https://www.rfc-editor.org/info/rfc768</a>.</p>
+<h6 id="rfc0791">[RFC0791]</h6>
+<p>Postel, J., "Internet Protocol", STD 5, RFC 791, DOI
+10.17487/RFC0791, September 1981, <a
+href="https://www.rfc-editor.org/info/rfc791">https://www.rfc-editor.org/info/rfc791</a>.</p>
+<h6 id="rfc0792">[RFC0792]</h6>
+<p>Postel, J., "Internet Control Message Protocol", STD 5, RFC 792, DOI
+10.17487/RFC0792, September 1981, <a
+href="https://www.rfc-editor.org/info/rfc792">https://www.rfc-editor.org/info/rfc792</a>.</p>
+<h6 id="rfc1034">[RFC1034]</h6>
+<p>Mockapetris, P., "Domain names - concepts and facilities", STD 13,
+RFC 1034, DOI 10.17487/RFC1034, November 1987, <a
+href="https://www.rfc-editor.org/info/rfc1034">https://www.rfc-editor.org/info/rfc1034</a>.</p>
+<h6 id="rfc1123">[RFC1123]</h6>
+<p>Braden, R., Ed., "Requirements for Internet Hosts - Application and
+Support", STD 3, RFC 1123, DOI 10.17487/RFC1123, October 1989, <a
+href="https://www.rfc-editor.org/info/rfc1123">https://www.rfc-editor.org/info/rfc1123</a>.</p>
+<h6 id="rfc1321">[RFC1321]</h6>
+<p>Rivest, R., "The MD5 Message-Digest Algorithm", RFC 1321, DOI
+10.17487/RFC1321, April 1992, <a
+href="https://www.rfc-editor.org/info/rfc1321">https://www.rfc-editor.org/info/rfc1321</a>.</p>
+<h6 id="rfc2119">[RFC2119]</h6>
+<p>Bradner, S., "Key words for use in RFCs to Indicate Requirement
+Levels", BCP 14, RFC 2119, DOI 10.17487/RFC2119, March 1997, <a
+href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>.</p>
+<h6 id="rfc3444">[RFC3444]</h6>
+<p>Pras, A., Schoenwaelder, J., "On the Difference between Information
+Models and Data Models", RFC 3444, January 2003, <a
+href="https://tools.ietf.org/html/rfc3444">https://tools.ietf.org/html/rfc3444</a>.</p>
+<h6 id="rfc3986">[RFC3986]</h6>
+<p>Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform Resource
+Identifier (URI): Generic Syntax", STD 66, RFC 3986, DOI
+10.17487/RFC3986, January 2005, <a
+href="https://www.rfc-editor.org/info/rfc3986">https://www.rfc-editor.org/info/rfc3986</a>.</p>
+<h6 id="rfc3987">[RFC3987]</h6>
+<p>Duerst, M. and M. Suignard, "Internationalized Resource Identifiers
+(IRIs)", RFC 3987, DOI 10.17487/RFC3987, January 2005, <a
+href="https://www.rfc-editor.org/info/rfc3987">https://www.rfc-editor.org/info/rfc3987</a>.</p>
+<h6 id="rfc4122">[RFC4122]</h6>
+<p>Leach, P., Mealling, M., and R. Salz, "A Universally Unique
+IDentifier (UUID) URN Namespace", RFC 4122, DOI 10.17487/RFC4122, July
+2005, <a
+href="https://www.rfc-editor.org/info/rfc4122">https://www.rfc-editor.org/info/rfc4122</a>.</p>
+<h6 id="rfc4291">[RFC4291]</h6>
+<p>Hinden, R. and S. Deering, "IP Version 6 Addressing Architecture",
+RFC 4291, DOI 10.17487/RFC4291, February 2006, <a
+href="https://www.rfc-editor.org/info/rfc4291">https://www.rfc-editor.org/info/rfc4291</a>.</p>
+<h6 id="rfc4632">[RFC4632]</h6>
+<p>Fuller, V. and T. Li, "Classless Inter-domain Routing (CIDR): The
+Internet Address Assignment and Aggregation Plan", BCP 122, RFC 4632,
+DOI 10.17487/RFC4632, August 2006, <a
+href="https://www.rfc-editor.org/info/rfc4632">https://www.rfc-editor.org/info/rfc4632</a>.</p>
+<h6 id="rfc4960">[RFC4960]</h6>
+<p>Stewart, R., Ed., "Stream Control Transmission Protocol", RFC 4960,
+DOI 10.17487/RFC4960, September 2007, <a
+href="https://www.rfc-editor.org/info/rfc4960">https://www.rfc-editor.org/info/rfc4960</a>.</p>
+<h6 id="rfc5237">[RFC5237]</h6>
+<p>Arkko, J. and S. Bradner, "IANA Allocation Guidelines for the
+Protocol Field", BCP 37, RFC 5237, DOI 10.17487/RFC5237, February 2008,
+<a
+href="https://www.rfc-editor.org/info/rfc5237">https://www.rfc-editor.org/info/rfc5237</a>.</p>
+<h6 id="rfc5322">[RFC5322]</h6>
+<p>Resnick, P., Ed., "Internet Message Format", RFC 5322, DOI
+10.17487/RFC5322, October 2008, <a
+href="https://www.rfc-editor.org/info/rfc5322">https://www.rfc-editor.org/info/rfc5322</a>.</p>
+<h6 id="rfc5890">[RFC5890]</h6>
+<p>Klensin, J., "Internationalized Domain Names for Applications (IDNA):
+Definitions and Document Framework", RFC 5890, DOI 10.17487/RFC5890,
+August 2010, <a
+href="https://www.rfc-editor.org/info/rfc5890">https://www.rfc-editor.org/info/rfc5890</a>.</p>
+<h6 id="rfc6234">[RFC6234]</h6>
+<p>Eastlake 3rd, D. and T. Hansen, "US Secure Hash Algorithms (SHA and
+SHA-based HMAC and HKDF)", RFC 6234, DOI 10.17487/RFC6234, May 2011, <a
+href="https://www.rfc-editor.org/info/rfc6234">https://www.rfc-editor.org/info/rfc6234</a>.</p>
+<h6 id="rfc6335">[RFC6335]</h6>
+<p>Cotton, M., Eggert, L., Touch, J., Westerlund, M., and S. Cheshire,
+"Internet Assigned Numbers Authority (IANA) Procedures for the
+Management of the Service Name and Transport Protocol Port Number
+Registry", BCP 165, RFC 6335, DOI 10.17487/RFC6335, August 2011, <a
+href="https://www.rfc-editor.org/info/rfc6335">https://www.rfc-editor.org/info/rfc6335</a>.</p>
+<h6 id="rfc6531">[RFC6531]</h6>
+<p>Yao, J. and W. Mao, "SMTP Extension for Internationalized Email", RFC
+6531, DOI 10.17487/RFC6531, February 2012, <a
+href="https://www.rfc-editor.org/info/rfc6531">https://www.rfc-editor.org/info/rfc6531</a>.</p>
+<h6 id="rfc6838">[RFC6838]</h6>
+<p>Freed, N., Klensin, J., and T. Hansen, "Media Type Specifications and
+Registration Procedures", BCP 13, RFC 6838, DOI 10.17487/RFC6838,
+January 2013, <a
+href="https://www.rfc-editor.org/info/rfc6838">https://www.rfc-editor.org/info/rfc6838</a>.</p>
+<h6 id="rfc7493">[RFC7493]</h6>
+<p>Bray, T., Ed., "The I-JSON Message Format", RFC 7493, DOI
+10.17487/RFC7493, March 2015, <a
+href="https://www.rfc-editor.org/info/rfc7493">https://www.rfc-editor.org/info/rfc7493</a>.</p>
+<h6 id="rfc8174">[RFC8174]</h6>
+<p>Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key
+Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May 2017, <a
+href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>.</p>
+<h6 id="rfc8200">[RFC8200]</h6>
+<p>Deering, S. and R. Hinden, "Internet Protocol, Version 6 (IPv6)
+Specification", STD 86, RFC 8200, DOI 10.17487/RFC8200, July 2017, <a
+href="https://www.rfc-editor.org/info/rfc8200">https://www.rfc-editor.org/info/rfc8200</a>.</p>
+<h6 id="rfc8259">[RFC8259]</h6>
+<p>Bray, T., Ed., "The JavaScript Object Notation (JSON) Data
+Interchange Format", STD 90, RFC 8259, DOI 10.17487/RFC8259, December
+2017, <a
+href="https://www.rfc-editor.org/info/rfc8259">https://www.rfc-editor.org/info/rfc8259</a>.</p>
+<h6 id="rfc9293">[RFC9293]</h6>
+<p>Eddy, W., "Transmission Control Protocol (TCP)", RFC 9293, DOI:
+10.17487/RFC9293, August 2022, <a
+href="https://www.rfc-editor.org/info/rfc9293">https://www.rfc-editor.org/info/rfc9293</a>.</p>
+<h6 id="eui">[EUI]</h6>
+<p>"IEEE Registration Authority Guidelines for use of EUI, OUI, and
+CID", IEEE, August 2017, <a
+href="https://standards.ieee.org/content/dam/ieee-standards/standards/web/documents/tutorials/eui.pdf">https://standards.ieee.org/content/dam/ieee-standards/standards/web/documents/tutorials/eui.pdf</a></p>
+<h6 id="ieee_ra">[IEEE_RA]</h6>
+<p>"IEEE Registration Authority: Assignments", IEEE, August 2022, <a
+href="https://regauth.standards.ieee.org/standards-ra-web/pub/view.html#registries">https://regauth.standards.ieee.org/standards-ra-web/pub/view.html#registries</a></p>
+<h6 id="iana_ports">[IANA_Ports]</h6>
+<p>"Internet Assigned Numbers Authority Service Name and Transport
+Protocol Port Number Registry", IANA, April 2024, <a
+href="https://www.iana.org/assignments/service-names-port-numbers/">https://www.iana.org/assignments/service-names-port-numbers/</a></p>
+<h6 id="iana_protocols">[IANA_Protocols]</h6>
+<p>"Internet Assigned Numbers Authority Protocol Numbers", IANA, January
+2024, <a
+href="https://www.iana.org/assignments/protocol-numbers">https://www.iana.org/assignments/protocol-numbers</a></p>
+<h6 id="iana_media">[IANA_Media]</h6>
+<p>"Internet Assigned Numbers Authority Media Types", IANA, April 2024,
+<a
+href="https://www.iana.org/assignments/media-types">https://www.iana.org/assignments/media-types</a></p>
+<h6 id="itu-t-x590">[ITU-T X.590]</h6>
+<p>Recommendation ITU-T X.509 | ISO/IEC 9594-8 (2019), <em>Information
+technology – Open Systems Interconnection – The Directory: Public-key
+and attribute certificate frameworks. JSON Signature Scheme (JSS)</em>,
+<a
+href="https://www.itu.int/rec/T-REC-X.590-202310-I">https://www.itu.int/rec/T-REC-X.590-202310-I</a></p>
+<h2 id="a2-informative-references">A.2 Informative References</h2>
+<h6 id="rfc3552">[RFC3552]</h6>
+<p>Rescorla, E. and B. Korver, "Guidelines for Writing RFC Text on
+Security Considerations", BCP 72, RFC 3552, DOI 10.17487/RFC3552, July
+2003, <a
+href="https://www.rfc-editor.org/info/rfc3552">https://www.rfc-editor.org/info/rfc3552</a>.</p>
+<h6 id="iacd">[IACD]</h6>
+<p>"What is IACD?", <strong>IACD</strong>, Integrated Adaptive Cyber
+Defense, 3/17/2018, <a
+href="https://www.iacdautomate.org/">https://www.iacdautomate.org/</a></p>
+<h6 id="im-jadn-v10">[IM-JADN-v1.0]</h6>
+<p>Information Modeling with JADN Version 1.0. Edited by David Kemp. 19
+April 2023. OASIS Committee Note 01. <a
+href="https://docs.oasis-open.org/openc2/imjadn/v1.0/cn01/imjadn-v1.0-cn01.html">https://docs.oasis-open.org/openc2/imjadn/v1.0/cn01/imjadn-v1.0-cn01.html</a>.
+Latest stage: <a
+href="https://docs.oasis-open.org/openc2/imjadn/v1.0/imjadn-v1.0.html">https://docs.oasis-open.org/openc2/imjadn/v1.0/imjadn-v1.0.html</a>.</p>
+<h6 id="json-schema">[JSON-Schema]</h6>
+<p>"JSON Schema, a vocabulary that allows you to annotate and validate
+JSON documents.", retrieved 9/26/2022, <a
+href="https://json-schema.org/">https://json-schema.org/</a></p>
+<h6 id="uml">[UML]</h6>
+<p>"Unified Modeling Language", Version 2.5.1, December 2017, <a
+href="https://www.omg.org/spec/UML/2.5.1/About-UML/">https://www.omg.org/spec/UML/2.5.1/About-UML/</a></p>
+<hr />
+<h1 id="appendix-b-safety-security-and-privacy-considerations">Appendix
+B. Safety, Security and Privacy Considerations</h1>
+<p>OpenC2, as a cyber defense automation tool, is high-value target for
+adversaries attempting to exploit an environment where it is used.
+Appendix B of the OpenC2 Architecture Specification [<a
+href="#openc2-arch-v10">OpenC2-Arch-v1.0</a>] discusses:</p>
+<ul>
+<li>Threats to OpenC2</li>
+<li>Applying security services to OpenC2 operations</li>
+<li>Network topology considerations for OpenC2 messages</li>
+</ul>
+<p>Refer to that document for a review of these topics in the context of
+OpenC2.</p>
+<hr />
+<h1 id="appendix-c-acknowledgments">Appendix C. Acknowledgments</h1>
+<p><em>The content in this section is non-normative.</em></p>
+<h2 id="c1-special-thanks">C.1 Special Thanks</h2>
+<!-- This is an optional subsection to call out contributions from TC members. If a TC wants to thank non-TC members then they should avoid using the term "contribution" and instead thank them for their "expertise" or "assistance". -->
+
+<p>Substantial contributions to this document from the following
+individuals are gratefully acknowledged:</p>
+<ul>
+<li>Jason Romano, National Security Agency</li>
+</ul>
+<h2 id="c2-participants">C.2 Participants</h2>
+<!-- A TC can determine who they list here, however, TC Observers must not be listed. It is common practice for TCs to list everyone that was part of the TC during the creation of the document, but this is ultimately a TC decision on who they want to list and not list. -->
+
+<p>The following individuals have participated in the creation of this
+specification and are gratefully acknowledged:</p>
+<p><strong>OpenC2 TC Members:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>First Name</th>
+<th>Last Name</th>
+<th>Company</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Stephen</td>
+<td>Banghart</td>
+<td>NIST</td>
+</tr>
+<tr class="even">
+<td>Michelle</td>
+<td>Barry</td>
+<td>AT&amp;T</td>
+</tr>
+<tr class="odd">
+<td>David</td>
+<td>Bizeul</td>
+<td>SEKOIA.IO</td>
+</tr>
+<tr class="even">
+<td>Jason</td>
+<td>Callaway</td>
+<td>Google Inc.</td>
+</tr>
+<tr class="odd">
+<td>Marco</td>
+<td>Caselli</td>
+<td>Siemens AG</td>
+</tr>
+<tr class="even">
+<td>Toby</td>
+<td>Considine</td>
+<td>University of North Carolina at Chapel Hill</td>
+</tr>
+<tr class="odd">
+<td>Shiva</td>
+<td>Dasari</td>
+<td>Hewlett Packard Enterprise (HPE)</td>
+</tr>
+<tr class="even">
+<td>Alexandre</td>
+<td>Dulaunoy</td>
+<td>CIRCL</td>
+</tr>
+<tr class="odd">
+<td>Alex</td>
+<td>Everett</td>
+<td>University of North Carolina at Chapel Hill</td>
+</tr>
+<tr class="even">
+<td>Jessica</td>
+<td>Fitzgerald-McKay</td>
+<td>National Security Agency</td>
+</tr>
+<tr class="odd">
+<td>Jane</td>
+<td>Ginn</td>
+<td>Cyber Threat Intelligence Network, Inc. (CTIN)</td>
+</tr>
+<tr class="even">
+<td>Zachary</td>
+<td>Gorak</td>
+<td>National Security Agency</td>
+</tr>
+<tr class="odd">
+<td>Stephanie</td>
+<td>Hazlewood</td>
+<td>IBM</td>
+</tr>
+<tr class="even">
+<td>Tim</td>
+<td>Hudson</td>
+<td>Cryptsoft Pty Ltd.</td>
+</tr>
+<tr class="odd">
+<td>Christian</td>
+<td>Hunt</td>
+<td>Cyber Threat Intelligence Network, Inc. (CTIN)</td>
+</tr>
+<tr class="even">
+<td>Andras</td>
+<td>Iklody</td>
+<td>CIRCL</td>
+</tr>
+<tr class="odd">
+<td>Ryan</td>
+<td>Joyce</td>
+<td>DarkLight</td>
+</tr>
+<tr class="even">
+<td>Takahiro</td>
+<td>Kakumaru</td>
+<td>NEC Corporation</td>
+</tr>
+<tr class="odd">
+<td>Jason</td>
+<td>Keirstead</td>
+<td>Cyware Labs</td>
+</tr>
+<tr class="even">
+<td>David</td>
+<td>Kemp</td>
+<td>National Security Agency</td>
+</tr>
+<tr class="odd">
+<td>Lauri</td>
+<td>Korts-PÃ¤rn</td>
+<td>NEC Corporation</td>
+</tr>
+<tr class="even">
+<td>Cheolho</td>
+<td>Lee</td>
+<td>NSR</td>
+</tr>
+<tr class="odd">
+<td>David</td>
+<td>Lemire</td>
+<td>National Security Agency</td>
+</tr>
+<tr class="even">
+<td>Anthony</td>
+<td>Librera</td>
+<td>AT&amp;T</td>
+</tr>
+<tr class="odd">
+<td>Jason</td>
+<td>Liu</td>
+<td>Northrop Grumman</td>
+</tr>
+<tr class="even">
+<td>Terry</td>
+<td>MacDonald</td>
+<td>Terry MacDonald (Personal)</td>
+</tr>
+<tr class="odd">
+<td>Patrick</td>
+<td>Maroney</td>
+<td>AT&amp;T Services, Inc.</td>
+</tr>
+<tr class="even">
+<td>Vasileios</td>
+<td>Mavroeidis</td>
+<td>University of Oslo</td>
+</tr>
+<tr class="odd">
+<td>Luca</td>
+<td>Morgese Zangrandi</td>
+<td>TNO</td>
+</tr>
+<tr class="even">
+<td>Ben</td>
+<td>Ottoman</td>
+<td>Cyber Threat Intelligence Network, Inc. (CTIN)</td>
+</tr>
+<tr class="odd">
+<td>Paul</td>
+<td>Patrick</td>
+<td>DarkLight</td>
+</tr>
+<tr class="even">
+<td>Chris</td>
+<td>Ricard</td>
+<td>Financial Services Information Sharing and Analysis Center
+(FS-ISAC)</td>
+</tr>
+<tr class="odd">
+<td>Daniel</td>
+<td>Riedel</td>
+<td>Daniel Riedel/Next Level Assurance LLC (Sole Member LLC)</td>
+</tr>
+<tr class="even">
+<td>Christopher</td>
+<td>Robinson</td>
+<td>Cyber Threat Intelligence Network, Inc. (CTIN)</td>
+</tr>
+<tr class="odd">
+<td>Michael</td>
+<td>Rosa</td>
+<td>National Security Agency</td>
+</tr>
+<tr class="even">
+<td>Omar</td>
+<td>Santos</td>
+<td>Cisco Systems</td>
+</tr>
+<tr class="odd">
+<td>Aleksandra</td>
+<td>Scalco</td>
+<td>US Department of Defense (DoD)</td>
+</tr>
+<tr class="even">
+<td>Randall</td>
+<td>Sharo</td>
+<td>US Department of Defense (DoD)</td>
+</tr>
+<tr class="odd">
+<td>Michael</td>
+<td>Simonson</td>
+<td>Cisco Systems</td>
+</tr>
+<tr class="even">
+<td>Duane</td>
+<td>Skeen</td>
+<td>Northrop Grumman</td>
+</tr>
+<tr class="odd">
+<td>Calvin</td>
+<td>Smith</td>
+<td>Northrop Grumman</td>
+</tr>
+<tr class="even">
+<td>Dan</td>
+<td>Solero</td>
+<td>AT&amp;T Services, Inc.</td>
+</tr>
+<tr class="odd">
+<td>Ben</td>
+<td>Sooter</td>
+<td>Electric Power Research Institute (EPRI)</td>
+</tr>
+<tr class="even">
+<td>Duncan</td>
+<td>Sparrell</td>
+<td>sFractal Consulting LLC</td>
+</tr>
+<tr class="odd">
+<td>Michael</td>
+<td>Stair</td>
+<td>AT&amp;T</td>
+</tr>
+<tr class="even">
+<td>Sam</td>
+<td>Taghavi Zargar</td>
+<td>Cisco Systems</td>
+</tr>
+<tr class="odd">
+<td>Bill</td>
+<td>Trost</td>
+<td>AT&amp;T</td>
+</tr>
+<tr class="even">
+<td>Drew</td>
+<td>Varner</td>
+<td>NineFX, Inc.</td>
+</tr>
+<tr class="odd">
+<td>Jyoti</td>
+<td>Verma</td>
+<td>Cisco Systems</td>
+</tr>
+<tr class="even">
+<td>David</td>
+<td>Waltermire</td>
+<td>NIST</td>
+</tr>
+<tr class="odd">
+<td>Russ</td>
+<td>Warren</td>
+<td>IBM</td>
+</tr>
+<tr class="even">
+<td>Sean</td>
+<td>Welsh</td>
+<td>AT&amp;T</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="appendix-d-revision-history">Appendix D. Revision History</h1>
+<!-- Optional section -->
+
+<table>
+<thead>
+<tr class="header">
+<th>Revision</th>
+<th>Date</th>
+<th>Editor</th>
+<th>Changes Made</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>v1.1-wd01</td>
+<td>10/31/2017</td>
+<td>Sparrell, Considine</td>
+<td>Initial working draft</td>
+</tr>
+<tr class="even">
+<td>Issue #388, item 1, #390</td>
+<td>08/xx/2022</td>
+<td>Lemire</td>
+<td>Add guidance in 3.1.2, 3.4.1.1, 3.4.2.10 regarding types that depend
+on external registries, and add associated references; update RFC
+reference for TCP</td>
+</tr>
+<tr class="odd">
+<td>Issue #388, item 4</td>
+<td>08/xx/2022</td>
+<td>Lemire</td>
+<td>Add usage requirement for <code>Version</code> format in
+3.4.2.17</td>
+</tr>
+<tr class="even">
+<td>Issue #386, #387</td>
+<td>08/xx/2022</td>
+<td>Lemire</td>
+<td>Adjust <code>response_requested</code> handling (3.3.1.4) to
+consider Consumer error situations</td>
+</tr>
+<tr class="odd">
+<td>Issues #389, #392</td>
+<td>8/24/2022</td>
+<td>Lemire</td>
+<td>Remove Properties target type, per 8/10/2022 working meeting
+discussion</td>
+</tr>
+<tr class="even">
+<td>Issue #369</td>
+<td>7/27/2022</td>
+<td>Lemire</td>
+<td>* Add "comment" as command argument</td>
+</tr>
+<tr class="odd">
+<td>Issue #393</td>
+<td>8/2/2022</td>
+<td>Lemire</td>
+<td>* Change ArrayOf() to multiplicity where possible</td>
+</tr>
+<tr class="even">
+<td>Issue #396</td>
+<td>8/xx/2022</td>
+<td>Lemire</td>
+<td>* Fixed malformed table in 3.4.2.1 <br> * Reordered data types
+alphabetically</td>
+</tr>
+<tr class="odd">
+<td>Administrative</td>
+<td>9/07/2022</td>
+<td>Lemire</td>
+<td>Changes for version update, v1.1 to v2.0</td>
+</tr>
+<tr class="even">
+<td>Issue #361</td>
+<td>9/xx/2022</td>
+<td>Lemire</td>
+<td>Add explanatory JADN appendix</td>
+</tr>
+<tr class="odd">
+<td>Create WD01</td>
+<td>11/11/2022</td>
+<td>Lemire</td>
+<td>Create first WD package for v2.0</td>
+</tr>
+<tr class="even">
+<td>Issues #350, 365</td>
+<td>02/14/2024</td>
+<td>Lemire</td>
+<td>Address <code>query features</code> response for multiple
+profiles</td>
+</tr>
+<tr class="odd">
+<td>Document Quality Updates</td>
+<td>05/08/2024</td>
+<td>Lemire</td>
+<td>Address numerous small fixes throughout</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="appendix-e-examples">Appendix E. Examples</h1>
+<p><em>The content in this section is non-normative.</em></p>
+<h2 id="e1-example-1-device-quarantine">E.1 Example 1: Device
+Quarantine</h2>
+<p>This Command would be used to quarantine a device on the network.</p>
+<pre><code>{
+    &quot;action&quot;: &quot;contain&quot;,
+    &quot;target&quot;: {
+        &quot;device&quot;: {
+            &quot;device_id&quot;: &quot;9BCE8431AC106FAA3861C7E771D20E53&quot;
+        }
+    }
+}</code></pre>
+<h2 id="e2-example-2-block-connection">E.2 Example 2: Block
+Connection</h2>
+<p>This Command blocks a particular connection within the domain. The
+standard Actuator Profile <code>slpf</code> defines the extended Command
+Argument <code>drop_process</code>. The Response is a simple
+acknowledgment that was requested in the Command arguments.</p>
+<p><strong>Command:</strong></p>
+<pre><code>{
+    &quot;action&quot;: &quot;deny&quot;,
+    &quot;target&quot;: {
+        &quot;ipv4_connection&quot;: {
+            &quot;protocol&quot;: &quot;tcp&quot;,
+            &quot;src_addr&quot;: &quot;1.2.3.4&quot;,
+            &quot;src_port&quot;: 10996,
+            &quot;dst_addr&quot;: &quot;198.2.3.4&quot;,
+            &quot;dst_port&quot;: 80
+        }
+    },
+    &quot;args&quot;: {
+        &quot;start_time&quot;: 1534775460000,
+        &quot;duration&quot;: 500,
+        &quot;response_requested&quot;: &quot;ack&quot;,
+        &quot;slpf&quot;: {
+            &quot;drop_process&quot;: &quot;none&quot;
+        }
+    },
+    &quot;profile&quot;: &quot;slpf&quot;
+}</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code>{
+    &quot;status&quot;: 102
+}</code></pre>
+<p><em>Editor's Note: Replace with an example that does not use
+"properties".</em></p>
+<hr />
+<h1 id="appendix-f-notices">Appendix F. Notices</h1>
+<!-- Required section. Do not modify. -->
+
+<p>Copyright © OASIS Open 2024. All Rights Reserved.</p>
+<p>All capitalized terms in the following text have the meanings
+assigned to them in the OASIS Intellectual Property Rights Policy (the
+"OASIS IPR Policy"). The full <a
+href="https://www.oasis-open.org/policies-guidelines/ipr/">Policy</a>
+may be found at the OASIS website.</p>
+<p>This document and translations of it may be copied and furnished to
+others, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published, and
+distributed, in whole or in part, without restriction of any kind,
+provided that the above copyright notice and this section are included
+on all such copies and derivative works. However, this document itself
+may not be modified in any way, including by removing the copyright
+notice or references to OASIS, except as needed for the purpose of
+developing any document or deliverable produced by an OASIS Technical
+Committee (in which case the rules applicable to copyrights, as set
+forth in the OASIS IPR Policy, must be followed) or as required to
+translate it into languages other than English.</p>
+<p>The limited permissions granted above are perpetual and will not be
+revoked by OASIS or its successors or assigns.</p>
+<p>This document and the information contained herein is provided on an
+"AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+INFORMATION HEREIN WILL NOT INFRINGE ANY OWNERSHIP RIGHTS OR ANY IMPLIED
+WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.</p>
+<p>As stated in the OASIS IPR Policy, the following three paragraphs in
+brackets apply to OASIS Standards Final Deliverable documents (Committee
+Specification, Candidate OASIS Standard, OASIS Standard, or Approved
+Errata).</p>
+<p>[OASIS requests that any OASIS Party or any other party that believes
+it has patent claims that would necessarily be infringed by
+implementations of this OASIS Standards Final Deliverable, to notify
+OASIS TC Administrator and provide an indication of its willingness to
+grant patent licenses to such patent claims in a manner consistent with
+the IPR Mode of the OASIS Technical Committee that produced this
+deliverable.]</p>
+<p>[OASIS invites any party to contact the OASIS TC Administrator if it
+is aware of a claim of ownership of any patent claims that would
+necessarily be infringed by implementations of this OASIS Standards
+Final Deliverable by a patent holder that is not willing to provide a
+license to such patent claims in a manner consistent with the IPR Mode
+of the OASIS Technical Committee that produced this OASIS Standards
+Final Deliverable. OASIS may include such claims on its website, but
+disclaims any obligation to do so.]</p>
+<p>[OASIS takes no position regarding the validity or scope of any
+intellectual property or other rights that might be claimed to pertain
+to the implementation or use of the technology described in this OASIS
+Standards Final Deliverable or the extent to which any license under
+such rights might or might not be available; neither does it represent
+that it has made any effort to identify any such rights. Information on
+OASIS' procedures with respect to rights in any document or deliverable
+produced by an OASIS Technical Committee can be found on the OASIS
+website. Copies of claims of rights made available for publication and
+any assurances of licenses to be made available, or the result of an
+attempt made to obtain a general license or permission for the use of
+such proprietary rights by implementers or users of this OASIS Standards
+Final Deliverable, can be obtained from the OASIS TC Administrator.
+OASIS makes no representation that any information or list of
+intellectual property rights will at any time be complete, or that any
+claims in such list are, in fact, Essential Claims.]</p>
+<p>The name "OASIS" is a trademark of <a
+href="https://www.oasis-open.org/">OASIS</a>, the owner and developer of
+this specification, and should be used only to refer to the organization
+and its official outputs. OASIS welcomes reference to, and
+implementation and use of, specifications, while reserving the right to
+enforce its marks against misleading uses. Please see <a
+href="https://www.oasis-open.org/policies-guidelines/trademark/">https://www.oasis-open.org/policies-guidelines/trademark/</a>
+for above guidance.</p>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<div *ngFor="let question of task?.questions" class="question-container">
+    <crczp-question-detail
+        [question]="question"
+        [questionnaireType]="task?.questionnaireType"
+    />
+</div>

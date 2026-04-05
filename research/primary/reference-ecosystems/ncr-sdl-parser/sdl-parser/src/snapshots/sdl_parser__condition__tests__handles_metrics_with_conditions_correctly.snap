@@ -1,0 +1,21 @@
+---
+source: sdl-parser/src/condition.rs
+expression: conditions
+---
+condition-1:
+  name: ~
+  command: executable/path.sh
+  interval: 30
+  source: ~
+  description: This is a description for condition 1
+  environment: ~
+condition-2:
+  name: ~
+  command: ~
+  interval: ~
+  source:
+    name: digital-library-package
+    version: "*"
+  description: This is a description for condition 2
+  environment: ~
+

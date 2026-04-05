@@ -1,0 +1,1 @@
+ALTER TABLE metrics DROP COLUMN user_id;

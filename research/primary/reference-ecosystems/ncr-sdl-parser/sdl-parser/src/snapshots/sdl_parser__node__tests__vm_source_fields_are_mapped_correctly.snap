@@ -1,0 +1,33 @@
+---
+source: sdl-parser/src/node.rs
+expression: nodes
+---
+deb-10:
+  conditions: {}
+  description: ~
+  features: {}
+  injects: {}
+  resources:
+    ram: 2147483648
+    cpu: 2
+  roles: ~
+  source:
+    name: debian10
+    version: 1.2.3
+  type: VM
+  vulnerabilities: []
+win-10:
+  conditions: {}
+  description: ~
+  features: {}
+  injects: {}
+  resources:
+    ram: 2147483648
+    cpu: 2
+  roles: ~
+  source:
+    name: windows10
+    version: "*"
+  type: VM
+  vulnerabilities: []
+

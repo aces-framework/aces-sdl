@@ -1,0 +1,13 @@
+.container {
+    height: 100%;
+    margin: 20px 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    align-content: stretch;
+    align-items: flex-start;
+}
+
+text {
+    font-family: sans-serif;
+}

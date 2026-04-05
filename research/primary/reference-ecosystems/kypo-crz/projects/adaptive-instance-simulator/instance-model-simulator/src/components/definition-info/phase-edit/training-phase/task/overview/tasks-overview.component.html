@@ -1,0 +1,27 @@
+<mat-expansion-panel>
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Tasks
+        </mat-panel-title>
+        <mat-panel-description>
+        </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <mat-divider />
+
+    <div *ngIf="stepperTasks.length > 0 else noTasks">
+        <crczp-task-stepper [activeStep]="activeStep"
+                            [tasks]="stepperTasks"
+                            (activeStepChange)="onActiveTaskChanged($event)">
+        </crczp-task-stepper>
+        <mat-divider />
+        <div class="step-content">
+            <crczp-task-configuration [task]="tasks[activeStep]" />
+        </div>
+    </div>
+    <div>
+    </div>
+    <ng-template #noTasks>
+        <h3>There are no Tasks</h3>
+    </ng-template>
+</mat-expansion-panel>

@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netsecgame"
+dynamic = ["version"]
+description = "A package for coordinating AI-driven network simulation games."
+readme = "README_pypi.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Ondrej Lukas", email = "ondrej.lukas@aic.fel.cvut.cz" },
+    { name = "Sebastian Garcia", email = "sebastian.garcia@agents.fel.cvut.cz" },
+    { name = "Maria Rigaki", email = "maria.rigaki@aic.fel.cvut.cz" }
+]
+# light-weight version (allows running and development of agents)
+dependencies = [
+    "jsonlines>=4.0.0",
+    "netaddr==0.9.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+
+# dependencies allowing to run the game server and the simulation
+server = [
+    "aiohttp>=3.11",      
+    "cyst-core>=0.6.6",   
+    "Faker>=23.2",          
+    "numpy>=1.26",        
+    "PyYAML>=6.0",        
+    "requests>=2.32",
+    "pyserde==0.21.0"
+]
+
+dev = [
+    "netsecgame[server]",
+    "pytest",
+    "ruff",
+    "pytest-asyncio",
+    "twine"
+]
+
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "pymdown-extensions"
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "netsecgame.__version__" }
+
+[project.urls]
+Homepage = "https://github.com/stratosphereips/NetSecGame"
+Repository = "https://github.com/stratosphereips/NetSecGame"
+Documentation = "https://github.com/stratosphereips/NetSecGame"
+Issues = "https://github.com/stratosphereips/NetSecGame/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["netsecgame*"]
+exclude = [
+    "tests*",
+    "notebooks*",
+    "site*",
+    "docs*",
+    "logs*",
+    "mkdocs.yml",
+    "Dockerfile",
+    "NetSecGameAgents*"
+]
+
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+addopts = "-p no:warnings -vvvv -s --full-trace"
+
+[tool.ruff]
+lint.select = ["E9", "F4", "F6", "F7", "F8", "N8"]
+lint.ignore = ["F405"]
+output-format = "github"
+target-version = "py312"
+line-length = 120
+exclude = ["NetSecGameAgents"]
