@@ -36,3 +36,4 @@ Each ADR includes:
 | [008](adr-008-processor-layer-and-execution-artifact-boundaries.md) | Processor Layer and Execution Artifact Boundaries | accepted | 2026-04-04 |
 | [009](adr-009-normative-artifact-authority-and-repository-structure.md) | Normative Artifact Authority and Repository Structure | accepted | 2026-04-04 |
 | [010](adr-010-repository-realignment-order-and-compatibility-policy.md) | Repository Realignment Order and Compatibility Policy | accepted | 2026-04-04 |
+| [011](adr-011-narrow-end-to-end-mvp-validation.md) | Narrow End-to-End MVP Validation | accepted | 2026-04-04 |

@@ -98,7 +98,7 @@ the owning package for each concern becomes clearer, not blurrier.
 Realignment work should happen through requirement slices, in this order:
 
 1. The processor/backend core of `API-400`
-   - Start with `API-404`, `API-412`, and `API-413`.
+   - Start with `API-412` and `API-413`.
    - After that slice, re-audit any directly affected requirements such as
      `ASR-501`, `ASR-502`, `ASR-526`, and `API-400` itself.
    - Treat `API-400` itself as an umbrella and keep it `DRAFT` until its
@@ -113,6 +113,10 @@ Realignment work should happen through requirement slices, in this order:
 5. Deferred `API-400` expansion surfaces
    - Return later to the broader participant/time contract children under
      `API-400` such as `API-405` through `API-421`.
+
+`API-404` is intentionally not part of this realignment ordering. It may still
+need a requirement audit and status transition, but it does not materially
+drive the repository toward the post-reorganization structure.
 
 ## Consequences
 
