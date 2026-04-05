@@ -6,9 +6,11 @@ import json
 from pathlib import Path
 
 import pytest
-from aces_processor.contracts import (
+from aces_contracts.contracts import (
     ConceptFamilyCatalogModel,
-    ConceptFamilyModel,
+    ConceptFamilyDefinitionModel,
+)
+from aces_contracts.vocabulary import (
     ConceptProvenanceCategory,
 )
 from pydantic import ValidationError
@@ -24,23 +26,20 @@ def test_provenance_category_values():
     assert {c.value for c in ConceptProvenanceCategory} == {"adopted", "adapted", "native"}
 
 
-def test_concept_family_model_construction():
-    family = ConceptFamilyModel(
-        id="assets",
+def test_concept_family_definition_construction():
+    family = ConceptFamilyDefinitionModel(
         title="Assets",
         description="Nodes and infrastructure.",
         provenance=ConceptProvenanceCategory.ADOPTED,
         authority="UCO",
         authority_reference="https://github.com/ucoProject/UCO",
     )
-    assert family.id == "assets"
     assert family.provenance == ConceptProvenanceCategory.ADOPTED
     assert family.authority == "UCO"
 
 
-def test_concept_family_model_defaults():
-    family = ConceptFamilyModel(
-        id="scenarios",
+def test_concept_family_definition_defaults():
+    family = ConceptFamilyDefinitionModel(
         title="Scenarios",
         description="SDL scenarios.",
         provenance=ConceptProvenanceCategory.NATIVE,
@@ -49,10 +48,9 @@ def test_concept_family_model_defaults():
     assert family.authority_reference is None
 
 
-def test_concept_family_model_rejects_extra_fields():
+def test_concept_family_definition_rejects_extra_fields():
     with pytest.raises(ValidationError):
-        ConceptFamilyModel(
-            id="bad",
+        ConceptFamilyDefinitionModel(
             title="Bad",
             description="Bad.",
             provenance="native",
@@ -60,30 +58,69 @@ def test_concept_family_model_rejects_extra_fields():
         )
 
 
+def test_adopted_family_requires_authority():
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel(
+            title="Assets",
+            description="Nodes.",
+            provenance=ConceptProvenanceCategory.ADOPTED,
+            authority_reference="https://github.com/ucoProject/UCO",
+        )
+
+
+def test_adopted_family_requires_authority_reference():
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel(
+            title="Assets",
+            description="Nodes.",
+            provenance=ConceptProvenanceCategory.ADOPTED,
+            authority="UCO",
+        )
+
+
+def test_adapted_family_requires_authority_metadata():
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel(
+            title="Relationships",
+            description="Typed associations.",
+            provenance=ConceptProvenanceCategory.ADAPTED,
+            authority="UCO",
+        )
+
+
+def test_native_family_rejects_authority_metadata():
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel(
+            title="Scenarios",
+            description="SDL scenarios.",
+            provenance=ConceptProvenanceCategory.NATIVE,
+            authority="ACES",
+            authority_reference="https://aces-framework.org/concepts",
+        )
+
+
 def test_catalog_model_roundtrip():
     payload = {
         "schema_version": "concept-families/v1",
-        "families": [
-            {
-                "id": "assets",
+        "families": {
+            "assets": {
                 "title": "Assets",
                 "description": "Nodes.",
                 "provenance": "adopted",
                 "authority": "UCO",
                 "authority_reference": "https://github.com/ucoProject/UCO",
             },
-            {
-                "id": "scenarios",
+            "scenarios": {
                 "title": "Scenarios",
                 "description": "SDL scenarios.",
                 "provenance": "native",
             },
-        ],
+        },
     }
     model = ConceptFamilyCatalogModel.model_validate(payload)
     assert len(model.families) == 2
-    assert model.families[0].provenance == ConceptProvenanceCategory.ADOPTED
-    assert model.families[1].provenance == ConceptProvenanceCategory.NATIVE
+    assert model.families["assets"].provenance == ConceptProvenanceCategory.ADOPTED
+    assert model.families["scenarios"].provenance == ConceptProvenanceCategory.NATIVE
 
 
 def test_catalog_model_rejects_extra_fields():
@@ -100,14 +137,29 @@ def test_catalog_rejects_invalid_provenance():
         ConceptFamilyCatalogModel.model_validate(
             {
                 "schema_version": "concept-families/v1",
-                "families": [
-                    {
-                        "id": "bad",
+                "families": {
+                    "bad": {
                         "title": "Bad",
                         "description": "Bad provenance.",
                         "provenance": "invented",
                     }
-                ],
+                },
+            }
+        )
+
+
+def test_catalog_rejects_empty_family_identifier():
+    with pytest.raises(ValidationError):
+        ConceptFamilyCatalogModel.model_validate(
+            {
+                "schema_version": "concept-families/v1",
+                "families": {
+                    "": {
+                        "title": "Bad",
+                        "description": "Empty id.",
+                        "provenance": "native",
+                    }
+                },
             }
         )
 
@@ -118,27 +170,31 @@ def test_authoritative_catalog_validates():
     assert len(model.families) >= 12
 
 
-def test_authoritative_catalog_families_have_unique_ids():
+def test_authoritative_catalog_uses_keyed_family_map():
     payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
     model = ConceptFamilyCatalogModel.model_validate(payload)
-    ids = [f.id for f in model.families]
-    assert len(ids) == len(set(ids)), f"Duplicate family IDs: {ids}"
+    assert set(payload["families"]) == set(model.families)
+    assert "assets" in model.families
 
 
-def test_authoritative_catalog_cyber_families_have_authority():
+def test_authoritative_catalog_cyber_families_have_authority_metadata():
     payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
     model = ConceptFamilyCatalogModel.model_validate(payload)
-    for family in model.families:
+    for family_id, family in model.families.items():
         if family.provenance in {ConceptProvenanceCategory.ADOPTED, ConceptProvenanceCategory.ADAPTED}:
-            assert family.authority is not None, f"Family '{family.id}' is {family.provenance} but has no authority"
+            assert family.authority is not None, f"Family '{family_id}' is {family.provenance} but has no authority"
+            assert family.authority_reference is not None, (
+                f"Family '{family_id}' is {family.provenance} but has no authority reference"
+            )
 
 
-def test_authoritative_catalog_native_families_have_no_authority():
+def test_authoritative_catalog_native_families_have_no_authority_metadata():
     payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
     model = ConceptFamilyCatalogModel.model_validate(payload)
-    for family in model.families:
+    for family_id, family in model.families.items():
         if family.provenance == ConceptProvenanceCategory.NATIVE:
-            assert family.authority is None, f"Native family '{family.id}' should not have an authority"
+            assert family.authority is None, f"Native family '{family_id}' should not have an authority"
+            assert family.authority_reference is None, f"Native family '{family_id}' should not have an authority ref"
 
 
 def test_valid_fixture_passes_validation():

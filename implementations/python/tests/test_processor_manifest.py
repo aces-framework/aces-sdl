@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 from aces_cli.main import app
-from aces_processor.capabilities import ProcessorFeature, ProcessorManifest
-from aces_processor.contracts import ProcessorManifestModel
+from aces_contracts.contracts import ProcessorManifestModel
+from aces_contracts.vocabulary import ProcessorFeature
+from aces_processor.capabilities import ProcessorManifest
 from aces_processor.manifest import (
     create_reference_processor_manifest,
     reference_processor_manifest_payload,
@@ -19,6 +20,16 @@ from typer.testing import CliRunner
 FIXTURES_ROOT = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 VALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v1" / "valid"
 INVALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v1" / "invalid"
+EXPECTED_SUPPORTED_CONTRACT_VERSIONS = [
+    "processor-manifest-v1",
+    "provisioning-plan-v1",
+    "orchestration-plan-v1",
+    "evaluation-plan-v1",
+    "workflow-cancellation-request-v1",
+    "operation-receipt-v1",
+    "operation-status-v1",
+    "runtime-snapshot-v1",
+]
 
 
 def test_processor_feature_enum_values():
@@ -120,9 +131,15 @@ def test_reference_processor_manifest_matches_contract_payload():
 
     assert manifest.name == payload["name"]
     assert manifest.version == payload["version"]
+    assert set(manifest.supported_contract_versions) == set(EXPECTED_SUPPORTED_CONTRACT_VERSIONS)
     assert payload["supported_sdl_versions"] == ["sdl-authoring-input-v1"]
+    assert payload["supported_contract_versions"] == EXPECTED_SUPPORTED_CONTRACT_VERSIONS
     assert payload["compatible_backends"] == ["stub"]
     assert payload["supported_features"] == [feature.value for feature in ProcessorFeature]
+    assert "backend-manifest-v1" not in payload["supported_contract_versions"]
+    assert "concept-families-v1" not in payload["supported_contract_versions"]
+    assert "instantiated-scenario-v1" not in payload["supported_contract_versions"]
+    assert "scenario-instantiation-request-v1" not in payload["supported_contract_versions"]
 
 
 def test_reference_processor_fixture_matches_reference_manifest():

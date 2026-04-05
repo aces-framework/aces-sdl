@@ -1,11 +1,78 @@
 {
   "$defs": {
-    "ConceptFamilyModel": {
+    "ConceptFamilyDefinitionModel": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "adopted"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "required": [
+              "authority",
+              "authority_reference"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "adapted"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "required": [
+              "authority",
+              "authority_reference"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "const": "native"
+              }
+            },
+            "required": [
+              "provenance"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "authority"
+                  ]
+                },
+                {
+                  "required": [
+                    "authority_reference"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
       "properties": {
         "authority": {
           "anyOf": [
             {
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -18,6 +85,7 @@
         "authority_reference": {
           "anyOf": [
             {
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -31,10 +99,6 @@
           "title": "Description",
           "type": "string"
         },
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
         "provenance": {
           "$ref": "#/$defs/ConceptProvenanceCategory"
         },
@@ -44,12 +108,11 @@
         }
       },
       "required": [
-        "id",
         "title",
         "description",
         "provenance"
       ],
-      "title": "ConceptFamilyModel",
+      "title": "ConceptFamilyDefinitionModel",
       "type": "object"
     },
     "ConceptProvenanceCategory": {
@@ -66,11 +129,14 @@
   "additionalProperties": false,
   "properties": {
     "families": {
-      "items": {
-        "$ref": "#/$defs/ConceptFamilyModel"
+      "additionalProperties": {
+        "$ref": "#/$defs/ConceptFamilyDefinitionModel"
+      },
+      "propertyNames": {
+        "minLength": 1
       },
       "title": "Families",
-      "type": "array"
+      "type": "object"
     },
     "schema_version": {
       "const": "concept-families/v1",
@@ -79,9 +145,6 @@
       "type": "string"
     }
   },
-  "required": [
-    "families"
-  ],
   "title": "ConceptFamilyCatalogModel",
   "type": "object"
 }
