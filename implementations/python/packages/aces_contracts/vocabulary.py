@@ -16,6 +16,35 @@ class ProcessorFeature(str, Enum):
     RUNTIME_CONTROL_PLANE = "runtime-control-plane"
 
 
+class WorkflowFeature(str, Enum):
+    """Portable workflow control features that an orchestrator may support."""
+
+    DECISION = "decision"
+    SWITCH = "switch"
+    RETRY = "retry"
+    CALL = "call"
+    PARALLEL_BARRIER = "parallel-barrier"
+    FAILURE_TRANSITIONS = "failure-transitions"
+    CANCELLATION = "cancellation"
+    TIMEOUTS = "timeouts"
+    COMPENSATION = "compensation"
+
+
+class WorkflowStatePredicateFeature(str, Enum):
+    """Portable workflow state-predicate features that an orchestrator may support."""
+
+    OUTCOME_MATCHING = "outcome-matching"
+    ATTEMPT_COUNTS = "attempt-counts"
+
+
+class RealizationSupportMode(str, Enum):
+    """How an apparatus can supply realizations for underspecified inputs."""
+
+    EXACT_ONLY = "exact-only"
+    CONSTRAINED = "constrained"
+    OPEN_REALIZATION = "open-realization"
+
+
 class ConceptProvenanceCategory(str, Enum):
     """How a concept family relates to its authority source."""
 

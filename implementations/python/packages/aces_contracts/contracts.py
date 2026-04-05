@@ -11,16 +11,24 @@ from pydantic_core import CoreSchema
 
 from .versions import (
     BACKEND_MANIFEST_SCHEMA_VERSION,
+    BACKEND_MANIFEST_V2_SCHEMA_VERSION,
     CONCEPT_FAMILIES_SCHEMA_VERSION,
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_SCHEMA_VERSION,
+    PROCESSOR_MANIFEST_V2_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION,
     WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
-from .vocabulary import ConceptProvenanceCategory, ProcessorFeature
+from .vocabulary import (
+    ConceptProvenanceCategory,
+    ProcessorFeature,
+    RealizationSupportMode,
+    WorkflowFeature,
+    WorkflowStatePredicateFeature,
+)
 
 
 class ContractModel(BaseModel):
@@ -183,8 +191,8 @@ class OrchestratorCapabilitiesModel(ContractModel):
     supports_workflows: bool = False
     supports_condition_refs: bool = True
     supports_inject_bindings: bool = True
-    supported_workflow_features: list[str] = Field(default_factory=list)
-    supported_workflow_state_predicates: list[str] = Field(default_factory=list)
+    supported_workflow_features: list[WorkflowFeature] = Field(default_factory=list)
+    supported_workflow_state_predicates: list[WorkflowStatePredicateFeature] = Field(default_factory=list)
     constraints: dict[str, str] = Field(default_factory=dict)
 
 
@@ -213,6 +221,57 @@ class ProcessorManifestModel(ContractModel):
     supported_features: list[ProcessorFeature] = Field(default_factory=list)
     compatible_backends: list[str] = Field(default_factory=list)
     constraints: dict[str, str] = Field(default_factory=dict)
+
+
+class ApparatusIdentityModel(ContractModel):
+    name: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+
+
+class ApparatusCompatibilityModel(ContractModel):
+    processors: list[str] = Field(default_factory=list)
+    backends: list[str] = Field(default_factory=list)
+    participant_implementations: list[str] = Field(default_factory=list)
+
+
+class RealizationSupportDeclarationModel(ContractModel):
+    domain: str = Field(min_length=1)
+    support_mode: RealizationSupportMode
+    supported_constraint_kinds: list[str] = Field(default_factory=list)
+    supported_exact_requirement_kinds: list[str] = Field(default_factory=list)
+    disclosure_kinds: list[str] = Field(default_factory=list)
+    constraints: dict[str, str] = Field(default_factory=dict)
+
+
+class ProcessorCapabilitiesV2Model(ContractModel):
+    supported_sdl_versions: list[str] = Field(default_factory=list)
+    supported_features: list[ProcessorFeature] = Field(default_factory=list)
+
+
+class BackendCapabilitiesV2Model(ContractModel):
+    provisioner: ProvisionerCapabilitiesModel
+    orchestrator: OrchestratorCapabilitiesModel | None = None
+    evaluator: EvaluatorCapabilitiesModel | None = None
+
+
+class ProcessorManifestV2Model(ContractModel):
+    schema_version: Literal[PROCESSOR_MANIFEST_V2_SCHEMA_VERSION] = PROCESSOR_MANIFEST_V2_SCHEMA_VERSION
+    identity: ApparatusIdentityModel
+    supported_contract_versions: list[str] = Field(default_factory=list)
+    compatibility: ApparatusCompatibilityModel = Field(default_factory=ApparatusCompatibilityModel)
+    realization_support: list[RealizationSupportDeclarationModel] = Field(default_factory=list)
+    constraints: dict[str, str] = Field(default_factory=dict)
+    capabilities: ProcessorCapabilitiesV2Model
+
+
+class BackendManifestV2Model(ContractModel):
+    schema_version: Literal[BACKEND_MANIFEST_V2_SCHEMA_VERSION] = BACKEND_MANIFEST_V2_SCHEMA_VERSION
+    identity: ApparatusIdentityModel
+    supported_contract_versions: list[str] = Field(default_factory=list)
+    compatibility: ApparatusCompatibilityModel = Field(default_factory=ApparatusCompatibilityModel)
+    realization_support: list[RealizationSupportDeclarationModel] = Field(default_factory=list)
+    constraints: dict[str, str] = Field(default_factory=dict)
+    capabilities: BackendCapabilitiesV2Model
 
 
 class ConceptFamilyDefinitionModel(ContractModel):
@@ -308,7 +367,9 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "instantiated-scenario-v1": InstantiatedScenario.model_json_schema(),
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
         "backend-manifest-v1": BackendManifestModel.model_json_schema(),
+        "backend-manifest-v2": BackendManifestV2Model.model_json_schema(),
         "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
+        "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
@@ -336,7 +397,12 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
 
 __all__ = [
     "BACKEND_MANIFEST_SCHEMA_VERSION",
+    "BACKEND_MANIFEST_V2_SCHEMA_VERSION",
+    "ApparatusCompatibilityModel",
+    "ApparatusIdentityModel",
     "BackendManifestModel",
+    "BackendManifestV2Model",
+    "BackendCapabilitiesV2Model",
     "CONCEPT_FAMILIES_SCHEMA_VERSION",
     "ContractModel",
     "ConceptFamilyCatalogModel",
@@ -356,9 +422,14 @@ __all__ = [
     "PlanOperationModel",
     "ProcessorFeature",
     "PROCESSOR_MANIFEST_SCHEMA_VERSION",
+    "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",
     "ProcessorManifestModel",
+    "ProcessorManifestV2Model",
+    "ProcessorCapabilitiesV2Model",
     "ProvisionerCapabilitiesModel",
     "ProvisioningPlanModel",
+    "RealizationSupportDeclarationModel",
+    "RealizationSupportMode",
     "RUNTIME_SNAPSHOT_SCHEMA_VERSION",
     "RuntimeSnapshotEnvelopeModel",
     "SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION",
@@ -367,7 +438,9 @@ __all__ = [
     "WorkflowCancellationRequestModel",
     "WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION",
     "WorkflowExecutionStateModel",
+    "WorkflowFeature",
     "WorkflowHistoryEventModel",
+    "WorkflowStatePredicateFeature",
     "WorkflowStepStateModel",
     "WORKFLOW_STATE_SCHEMA_VERSION",
 ]

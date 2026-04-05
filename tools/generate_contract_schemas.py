@@ -15,9 +15,9 @@ def _schema_output_path(schemas_dir: Path, name: str) -> Path:
         "scenario-instantiation-request-v1",
     }:
         return schemas_dir / "sdl" / f"{name}.json"
-    if name == "backend-manifest-v1":
+    if name.startswith("backend-manifest-v"):
         return schemas_dir / "backend-manifest" / f"{name}.json"
-    if name == "processor-manifest-v1":
+    if name.startswith("processor-manifest-v"):
         return schemas_dir / "processor-manifest" / f"{name}.json"
     if name == "concept-families-v1":
         return schemas_dir / "concept-authority" / f"{name}.json"

@@ -185,14 +185,28 @@ is a current architectural direction rather than a fully finished contract set.
 
 ## Capability Validation
 
-Backends declare a `BackendManifest` composed of:
+Backends and processors now publish a shared apparatus-manifest envelope with:
 
-- `ProvisionerCapabilities`
-- `OrchestratorCapabilities`
-- zero or one `EvaluatorCapabilities`
+- `identity`
+- `supported_contract_versions`
+- `compatibility`
+- `realization_support`
+- `constraints`
+- `capabilities`
+
+Backend manifests preserve nested concern blocks inside `capabilities`:
+
+- `provisioner`
+- `orchestrator`
+- zero or one `evaluator`
+
+Processor manifests preserve processor-specific capability blocks inside `capabilities`:
+
+- `supported_sdl_versions`
+- `supported_features`
 
 At the ecosystem level, backend manifests are only one declaration surface.
-The reference processor now also publishes a separate processor manifest.
+The reference processor publishes the same shared envelope with processor-specific capabilities.
 Participant-implementation manifests remain a distinct apparatus surface that
 is not yet materially implemented in code.
 
@@ -216,6 +230,11 @@ Validation is semantic, not section-only. Current checks include:
 - `supports_condition_refs`
 - `supported_workflow_features`
 - `supported_workflow_state_predicates`
+
+Both the backend and processor manifest surfaces now also carry explicit
+`realization_support` declarations. These make constrained realization and its
+required disclosures visible in the machine-readable apparatus boundary rather
+than leaving them implied by docs or implementation code.
 
 Capability validation now operates on concrete instantiated values rather than
 placeholder domains guessed by backends. This removes the old “defer until
