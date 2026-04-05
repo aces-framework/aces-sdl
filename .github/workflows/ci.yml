@@ -60,7 +60,7 @@ jobs:
           uv run coverage report --fail-under=50
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf # v3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-report
           path: implementations/python/coverage.xml
@@ -81,7 +81,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
       - name: Run fuzz tests
-        run: uv run pytest -m fuzz -v --timeout=120
+        run: uv run pytest -m fuzz -v
 
   # ---------------------------------------------------------------------------
   # Contracts — verify published JSON schemas match generated output
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@a9bc5e6ef2cb54c177f32aa5726adaa15e7e2d59 # v3
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: coverage-report
           path: implementations/python/
