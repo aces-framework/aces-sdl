@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aces-sdl"
-version = "0.1.0"
+version = "0.2.0"
 description = "Backend-agnostic cyber range scenario description language and runtime."
 requires-python = ">=3.11"
 dependencies = [
