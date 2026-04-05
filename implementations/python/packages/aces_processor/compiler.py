@@ -7,6 +7,7 @@ from aces_backend_protocols.capabilities import (
     WorkflowFeature,
     WorkflowStatePredicateFeature,
 )
+from aces_contracts.versions import WORKFLOW_STATE_SCHEMA_VERSION
 from aces_sdl.entities import flatten_entities
 from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.nodes import NodeType
@@ -47,7 +48,6 @@ from .models import (
 )
 from .semantics.objectives import analyze_objective_window
 from .semantics.workflow import (
-    WORKFLOW_STATE_SCHEMA_VERSION,
     workflow_step_semantic_contract,
 )
 

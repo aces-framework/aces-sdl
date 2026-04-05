@@ -10,8 +10,10 @@ from textwrap import dedent
 from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
+from aces_backend_protocols.manifest import backend_manifest_payload
 from aces_contracts.contracts import (
     BackendManifestModel,
+    BackendManifestV2Model,
     EvaluationHistoryEventModel,
     EvaluationPlanModel,
     EvaluationResultStateModel,
@@ -80,7 +82,7 @@ class BackendConformanceReport:
 _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
     BackendCapabilityProfile.PROVISIONING_ONLY: frozenset(
         {
-            "backend-manifest-v1",
+            "backend-manifest-v2",
             "operation-receipt-v1",
             "operation-status-v1",
             "runtime-snapshot-v1",
@@ -88,7 +90,7 @@ _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
     ),
     BackendCapabilityProfile.ORCHESTRATION_CAPABLE: frozenset(
         {
-            "backend-manifest-v1",
+            "backend-manifest-v2",
             "operation-receipt-v1",
             "operation-status-v1",
             "runtime-snapshot-v1",
@@ -98,7 +100,7 @@ _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
     ),
     BackendCapabilityProfile.ORCHESTRATION_EVALUATION: frozenset(
         {
-            "backend-manifest-v1",
+            "backend-manifest-v2",
             "operation-receipt-v1",
             "operation-status-v1",
             "runtime-snapshot-v1",
@@ -110,7 +112,7 @@ _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
     ),
     BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE: frozenset(
         {
-            "backend-manifest-v1",
+            "backend-manifest-v2",
             "provisioning-plan-v1",
             "orchestration-plan-v1",
             "evaluation-plan-v1",
@@ -128,6 +130,7 @@ _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
 
 _MODEL_VALIDATORS = {
     "backend-manifest-v1": BackendManifestModel.model_validate,
+    "backend-manifest-v2": BackendManifestV2Model.model_validate,
     "provisioning-plan-v1": ProvisioningPlanModel.model_validate,
     "orchestration-plan-v1": OrchestrationPlanModel.model_validate,
     "evaluation-plan-v1": EvaluationPlanModel.model_validate,
@@ -458,57 +461,12 @@ def _live_target_cases(
     profile: BackendCapabilityProfile,
 ) -> tuple[ConformanceCaseResult, ...]:
     cases: list[ConformanceCaseResult] = []
-    manifest_payload = BackendManifestModel.model_validate(
-        {
-            "schema_version": "backend-manifest/v1",
-            "name": target.manifest.name,
-            "provisioner": {
-                "name": target.manifest.provisioner.name,
-                "supported_node_types": sorted(target.manifest.provisioner.supported_node_types),
-                "supported_os_families": sorted(target.manifest.provisioner.supported_os_families),
-                "supported_content_types": sorted(target.manifest.provisioner.supported_content_types),
-                "supported_account_features": sorted(target.manifest.provisioner.supported_account_features),
-                "max_total_nodes": target.manifest.provisioner.max_total_nodes,
-                "supports_acls": target.manifest.provisioner.supports_acls,
-                "supports_accounts": target.manifest.provisioner.supports_accounts,
-                "constraints": dict(target.manifest.provisioner.constraints),
-            },
-            "orchestrator": (
-                {
-                    "name": target.manifest.orchestrator.name,
-                    "supported_sections": sorted(target.manifest.orchestrator.supported_sections),
-                    "supports_workflows": target.manifest.orchestrator.supports_workflows,
-                    "supports_condition_refs": target.manifest.orchestrator.supports_condition_refs,
-                    "supports_inject_bindings": target.manifest.orchestrator.supports_inject_bindings,
-                    "supported_workflow_features": sorted(
-                        feature.value for feature in target.manifest.orchestrator.supported_workflow_features
-                    ),
-                    "supported_workflow_state_predicates": sorted(
-                        feature.value for feature in target.manifest.orchestrator.supported_workflow_state_predicates
-                    ),
-                    "constraints": dict(target.manifest.orchestrator.constraints),
-                }
-                if target.manifest.orchestrator is not None
-                else None
-            ),
-            "evaluator": (
-                {
-                    "name": target.manifest.evaluator.name,
-                    "supported_sections": sorted(target.manifest.evaluator.supported_sections),
-                    "supports_scoring": target.manifest.evaluator.supports_scoring,
-                    "supports_objectives": target.manifest.evaluator.supports_objectives,
-                    "constraints": dict(target.manifest.evaluator.constraints),
-                }
-                if target.manifest.evaluator is not None
-                else None
-            ),
-        }
-    ).model_dump(mode="json")
-    manifest_diags = _validate_payload("backend-manifest-v1", manifest_payload)
+    manifest_payload = backend_manifest_payload(target.manifest, version="v2")
+    manifest_diags = _validate_payload("backend-manifest-v2", manifest_payload)
     cases.append(
         ConformanceCaseResult(
             name="live-manifest",
-            contract_name="backend-manifest-v1",
+            contract_name="backend-manifest-v2",
             valid=True,
             passed=not manifest_diags,
             diagnostics=tuple(manifest_diags),

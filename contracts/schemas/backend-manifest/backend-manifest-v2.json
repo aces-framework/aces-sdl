@@ -1,5 +1,89 @@
 {
   "$defs": {
+    "ApparatusCompatibilityModel": {
+      "additionalProperties": false,
+      "properties": {
+        "backends": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Backends",
+          "type": "array"
+        },
+        "participant_implementations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Participant Implementations",
+          "type": "array"
+        },
+        "processors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Processors",
+          "type": "array"
+        }
+      },
+      "title": "ApparatusCompatibilityModel",
+      "type": "object"
+    },
+    "ApparatusIdentityModel": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ApparatusIdentityModel",
+      "type": "object"
+    },
+    "BackendCapabilitiesV2Model": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluatorCapabilitiesModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orchestrator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OrchestratorCapabilitiesModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "provisioner": {
+          "$ref": "#/$defs/ProvisionerCapabilitiesModel"
+        }
+      },
+      "required": [
+        "provisioner"
+      ],
+      "title": "BackendCapabilitiesV2Model",
+      "type": "object"
+    },
     "EvaluatorCapabilitiesModel": {
       "additionalProperties": false,
       "properties": {
@@ -166,6 +250,63 @@
       "title": "ProvisionerCapabilitiesModel",
       "type": "object"
     },
+    "RealizationSupportDeclarationModel": {
+      "additionalProperties": false,
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "disclosure_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Disclosure Kinds",
+          "type": "array"
+        },
+        "domain": {
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "support_mode": {
+          "$ref": "#/$defs/RealizationSupportMode"
+        },
+        "supported_constraint_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supported Constraint Kinds",
+          "type": "array"
+        },
+        "supported_exact_requirement_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supported Exact Requirement Kinds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domain",
+        "support_mode"
+      ],
+      "title": "RealizationSupportDeclarationModel",
+      "type": "object"
+    },
+    "RealizationSupportMode": {
+      "description": "How an apparatus can supply realizations for underspecified inputs.",
+      "enum": [
+        "exact-only",
+        "constrained",
+        "open-realization"
+      ],
+      "title": "RealizationSupportMode",
+      "type": "string"
+    },
     "WorkflowFeature": {
       "description": "Portable workflow control features that an orchestrator may support.",
       "enum": [
@@ -194,46 +335,47 @@
   },
   "additionalProperties": false,
   "properties": {
-    "evaluator": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/EvaluatorCapabilitiesModel"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "capabilities": {
+      "$ref": "#/$defs/BackendCapabilitiesV2Model"
     },
-    "name": {
-      "title": "Name",
-      "type": "string"
+    "compatibility": {
+      "$ref": "#/$defs/ApparatusCompatibilityModel"
     },
-    "orchestrator": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/OrchestratorCapabilitiesModel"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "constraints": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "object"
     },
-    "provisioner": {
-      "$ref": "#/$defs/ProvisionerCapabilitiesModel"
+    "identity": {
+      "$ref": "#/$defs/ApparatusIdentityModel"
+    },
+    "realization_support": {
+      "items": {
+        "$ref": "#/$defs/RealizationSupportDeclarationModel"
+      },
+      "title": "Realization Support",
+      "type": "array"
     },
     "schema_version": {
-      "const": "backend-manifest/v1",
-      "default": "backend-manifest/v1",
+      "const": "backend-manifest/v2",
+      "default": "backend-manifest/v2",
       "title": "Schema Version",
       "type": "string"
+    },
+    "supported_contract_versions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supported Contract Versions",
+      "type": "array"
     }
   },
   "required": [
-    "name",
-    "provisioner"
+    "identity",
+    "capabilities"
   ],
-  "title": "BackendManifestModel",
+  "title": "BackendManifestV2Model",
   "type": "object"
 }
