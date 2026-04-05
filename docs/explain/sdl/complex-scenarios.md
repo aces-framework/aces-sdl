@@ -18,6 +18,10 @@ The corresponding specifications live in `examples/*.sdl.yaml`.
   abstract toy graphs.
 - Surface authoring friction explicitly when the SDL makes a concept
   awkward or requires approximation.
+- When a scenario depends on observability, evidence capture, or participant
+  decision surfaces, distinguish authored world-state concerns from broader
+  ecosystem requirements that may still need external contracts or future SDL
+  syntax.
 
 ## Scenario 1: Hospital Ransomware on Surgery Day
 
@@ -60,6 +64,7 @@ red team attempts data theft and radiology disruption?
 - Phishing lure dataset in Exchange
 - Vendor support credential material
 - Immutable backup manifest and restore runbooks
+- Clinical and security telemetry that exist inside the scenario world
 
 ### Exercise Narrative
 
@@ -81,6 +86,8 @@ red team attempts data theft and radiology disruption?
   recovery phases
 - Success based on a mix of conditional uptime metrics and manual
   reporting / recovery evaluation
+- Strong distinction between in-world telemetry and any extra experiment-side
+  evidence capture the ecosystem may eventually require
 
 ### SDL Stress Surface
 
@@ -129,6 +136,7 @@ while maintaining customer telemetry and tenant isolation?
 - Registry credentials and signing material
 - Customer API keys
 - Rollback playbooks and canary reports
+- Tenant-facing telemetry and internal observability streams
 
 ### Exercise Narrative
 
@@ -150,6 +158,8 @@ while maintaining customer telemetry and tenant isolation?
   deadline
 - Relationships express management, federation, authentication, and
   replication paths
+- Useful stress case for authored observability versus experiment evidence
+  capture versus apparatus augmentation
 
 ### SDL Stress Surface
 
@@ -200,6 +210,8 @@ degrades crane/HMI operations?
 - Customs hold records
 - Yard camera clips
 - Maintenance procedures and recovery runbooks
+- OT and safety telemetry that blue teams may depend on and red teams may try
+  to degrade
 
 ### Exercise Narrative
 

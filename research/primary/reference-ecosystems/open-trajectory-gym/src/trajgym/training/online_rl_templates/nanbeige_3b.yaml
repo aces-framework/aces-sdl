@@ -1,0 +1,78 @@
+# SkyRL Online RL config for Nanbeige4.1-3B (3B dense, fast validation)
+# Matches SkyRLConfig dataclass schema.
+# Used as reference — actual config is built by training/online_rl/runtime.py from training.yaml.
+
+data:
+  train_data:
+    - outputs/skyrl_online_rl_data.jsonl
+
+trainer:
+  strategy: fsdp2
+  bf16: true
+  gradient_checkpointing: true
+  seed: 42
+  epochs: 1
+  train_batch_size: 1
+  micro_train_batch_size_per_gpu: 1
+  max_prompt_length: 32768
+  ckpt_path: outputs/online_rl
+  ckpt_interval: 50
+  export_path: outputs/online_rl/final
+  log_path: outputs/online_rl/logs
+  project_name: trajgym
+  run_name: online-rl-nanbeige-3b
+  logger: none
+
+  placement:
+    colocate_all: true
+
+  ref:
+    model:
+      path: outputs/sft-merged/
+
+  policy:
+    model:
+      path: outputs/sft-merged/
+      lora:
+        rank: 64
+        alpha: 128
+        dropout: 0.0
+        target_modules: "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"
+    optimizer_config:
+      lr: 5.0e-6
+      weight_decay: 0.0
+      max_grad_norm: 5.0
+
+  algorithm:
+    advantage_estimator: online_rl
+    policy_loss_type: regular
+    kl_loss_coef: 0.0
+    use_kl_loss: false
+    loss_reduction: token_mean
+    eps_clip_low: 0.2
+    eps_clip_high: 0.2
+
+generator:
+  model_dtype: bfloat16
+  backend: vllm
+  run_engines_locally: true
+  num_inference_engines: 1
+  n_samples_per_prompt: 8
+  max_input_length: 32768
+  max_turns: 15
+  inference_engine_tensor_parallel_size: 1
+  gpu_memory_utilization: 0.8
+  max_num_seqs: 32
+  max_num_batched_tokens: 32768
+  enable_prefix_caching: true
+  enable_chunked_prefill: true
+  sampling_params:
+    max_generate_length: 8192
+    temperature: 1.0
+    top_p: 0.95
+    logprobs: 1
+
+environment:
+  env_class: trajgym
+  skyrl_gym:
+    max_env_workers: 32

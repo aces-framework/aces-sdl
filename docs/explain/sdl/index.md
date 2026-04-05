@@ -9,6 +9,24 @@ repository now includes SDL-native instantiation, compilation, planning,
 contracts, and a reference control-plane surface; the broader backend ecosystem
 and production implementations are still evolving.
 
+The SDL now sits inside a broader ecosystem architecture with several distinct
+surfaces:
+
+- the **authored scenario and experiment** expressed in SDL
+- the **processor** that instantiates, compiles, plans, and coordinates live
+  execution
+- the **backend** that realizes the scenario against infrastructure or
+  simulation targets
+- optional **participant implementations** such as agents, policies, scripts,
+  or human-control proxies that consume participant contracts during a run
+- **live runtime state** used for operational observation and control
+- **archival run/evidence/provenance artifacts** used for comparison, replay,
+  and experiment review
+
+Those boundaries matter because the same authored scenario may be processed by
+different processors, realized by different backends, and driven by different
+participant implementations without changing its core meaning.
+
 The raw YAML document is only the entrypoint. The SDL's semantic behavior is
 defined above that syntax layer through typed SDL models, semantic validation,
 and the runtime/compiler/planner contracts. The repository-wide policy for when
@@ -21,6 +39,11 @@ variables, and the workflow/runtime semantics are further disciplined by mature
 control-flow systems such as Step Functions, Argo, and SCXML plus portable
 runtime-boundary patterns from systems such as Kubernetes and Temporal. The
 crosswalk lives in [Design Precedents](precedents.md).
+
+The imported research also informs newer ecosystem concerns that are only partly
+surfaced in the current SDL syntax, including participant decision surfaces,
+hidden benchmark assets, trajectory corpora, experiment evidence capture, and
+participant-implementation apparatus.
 
 ## Stable IDs, Variable Values
 

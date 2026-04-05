@@ -39,6 +39,8 @@ The requirements architecture now makes these concerns explicit:
 
 - processing lifecycle is a separate pillar from portable contracts
 - processor and backend both need explicit identity/capability declarations
+- participant implementations also need explicit declaration and provenance when
+  they are part of the apparatus
 - canonical run provenance must be distinct from live execution state
 - optional compatibility declarations must not silently become mandatory SDL
   meaning
@@ -83,18 +85,23 @@ surfaces** such as:
 This preserves a useful term for operational state while removing it as the
 name for the whole middle layer.
 
-### 3. Treat processors and backends as symmetric experimental apparatus
+### 3. Treat processors, backends, and participant implementations as
+experimental apparatus
 
-Processors and backends are both part of the experimental apparatus.
+Processors, backends, and participant implementations are all part of the
+experimental apparatus when they materially shape a run.
 
 Therefore:
 
 - backends publish backend manifests
 - processors publish processor manifests
-- runs preserve the identity and manifest context of both
+- participant implementations publish participant-implementation manifests when
+  they are first-class run components
+- runs preserve the identity and manifest context of each applicable apparatus
+  surface
 
 The architecture must not treat the backend as observable and accountable while
-leaving the processor implicit.
+leaving the processor or participant implementation implicit.
 
 ### 4. Distinguish live execution state from archival run provenance
 
@@ -112,10 +119,11 @@ on reconstructing facts from mutable control-plane state.
 
 The SDL remains the author-facing specification of scenario meaning.
 
-Processor/backend compatibility or capability constraints are supported as
-optional task- or run-level apparatus declarations. They are not required SDL
-syntax and they do not become part of mandatory scenario meaning merely because
-some experimental uses need tighter apparatus control.
+Processor/backend/participant-implementation compatibility or capability
+constraints are supported as optional task- or run-level apparatus
+declarations. They are not required SDL syntax and they do not become part of
+mandatory scenario meaning merely because some experimental uses need tighter
+apparatus control.
 
 ### 6. Relationship to ADR-004
 
@@ -137,7 +145,9 @@ ADR-004 remains the source decision for the compile/plan/execute model itself.
   rather than invisible plumbing.
 - Live operational state and archival provenance are no longer conceptually
   blended.
-- Processor and backend contracts become structurally symmetric.
+- Processor, backend, and participant-implementation contracts can now be kept
+  structurally distinct instead of being collapsed into one hidden execution
+  stack.
 - The SDL can remain author-friendly without forcing every user to bind to a
   specific apparatus stack.
 
@@ -157,6 +167,8 @@ ADR-004 remains the source decision for the compile/plan/execute model itself.
 - If processor manifests are treated as mere metadata instead of capability and
   compatibility declarations, the symmetry with backend manifests will remain
   superficial.
+- If participant implementations are left implicit in run configuration, the
+  architecture will still understate a major source of experimental variation.
 - If archival run provenance is implemented as just another field on mutable
   live-state artifacts, this decision will not actually improve reviewability
   or reproducibility.

@@ -1,0 +1,10 @@
+.venv
+.git
+outputs
+data
+runs
+references
+logs
+unsloth_compiled_cache
+.pytest_cache
+__pycache__

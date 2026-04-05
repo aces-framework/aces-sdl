@@ -413,6 +413,28 @@ agents:
 
 `entity` is required and must resolve to the `entities` section. `initial_knowledge.hosts` references VM node names, `subnets` references switch-backed infrastructure names, `services` references service names declared in `nodes.*.services`, and `accounts` references entries in the `accounts` section. `allowed_subnets` follows the same switch-backed infrastructure rule.
 
+This current section is intentionally narrower than the full participant
+architecture now recognized by the ecosystem requirements. Today it primarily
+captures declarative participant framing: who the participant is aligned with,
+what coarse actions it is associated with, and what initial knowledge/scope it
+starts with.
+
+Broader participant concerns are now treated as first-class ecosystem surfaces,
+even where the current SDL syntax does not yet expose their full shape. Those
+concerns include:
+
+- participant-visible tool and affordance surfaces
+- participant control-context artifacts such as directives and policies
+- decision-surface exposure policies describing what is visible or hidden to a
+  participant
+- trajectory, episode, benchmark, verifier, and reward assets
+- concrete participant implementations, which remain distinct from authored
+  participant intent and from backend realization
+
+That distinction is important: the SDL describes participant intent and
+scenario meaning, while processors, backends, and participant implementations
+remain separate apparatus surfaces.
+
 ---
 
 ## Objectives

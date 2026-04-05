@@ -1,0 +1,103 @@
+# Open Trajectory Gym - Docker Compose
+#
+# Single Dockerfile with multi-stage build targets:
+#   docker/Dockerfile → targets: base, sft, online RL
+#
+# Usage:
+#   docker compose run --rm sft        # Stage 1: SFT (TRL)
+#   docker compose run --rm merge      # Merge LoRA adapter
+#   docker compose run --rm online_rl       # Stage 2: Online RL (SkyRL)
+#   docker compose run --rm validate   # Validate pipeline
+#   docker compose run --rm export     # Export to GGUF
+#
+# Override model/data paths via environment or .env file.
+# Default target model: Qwen3.5-27B (requires vLLM nightly, transformers>=5.2.0)
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+  shm_size: "64g"
+
+x-volumes: &volumes
+  volumes:
+    - ./data:/workspace/data
+    - ./outputs:/workspace/outputs
+    - ./configs:/workspace/configs
+    - ./examples:/workspace/examples
+
+services:
+  # Stage 1: SFT via TRL
+  sft:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: sft
+    <<: [*gpu, *volumes]
+    command: >
+      trajgym-train sft
+        --model ${MODEL:-Qwen/Qwen3.5-27B}
+        --data /workspace/data/${SFT_DATA:-sft.jsonl}
+        --output /workspace/outputs/sft
+        --config /workspace/examples/qwen35-27b/${TRAINING_CONFIG:-training.yaml}
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+
+  # Merge LoRA adapter into base (uses SFT image)
+  merge:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: sft
+    <<: [*gpu, *volumes]
+    command: >
+      trajgym-train merge
+        --adapter ${ADAPTER:-/workspace/outputs/sft}
+        --base-model ${MODEL:-Qwen/Qwen3.5-27B}
+        --output /workspace/outputs/sft-merged
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+
+  # Stage 2: Online RL via SkyRL (requires merged model)
+  online_rl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: online_rl
+    <<: [*gpu, *volumes]
+    command: >
+      trajgym-train rl
+        --model ${GRPO_MODEL:-/workspace/outputs/sft-merged}
+        --data /workspace/data/${GRPO_DATA:-online_rl.jsonl}
+        --output /workspace/outputs/online_rl
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+
+  # Validation (uses base — no heavy ML deps needed)
+  validate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: base
+    <<: *volumes
+    command: trajgym-validate
+
+  # Export to GGUF (uses SFT image for merge + export tools)
+  export:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: sft
+    <<: [*gpu, *volumes]
+    command: >
+      trajgym-export
+        --adapter ${ADAPTER:-/workspace/outputs/sft}
+        --base-model ${MODEL:-Qwen/Qwen3.5-27B}
+        --output /workspace/outputs/model.gguf
+        --quant ${QUANT:-Q4_K_M}

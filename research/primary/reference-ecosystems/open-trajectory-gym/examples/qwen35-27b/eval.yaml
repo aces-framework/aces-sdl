@@ -1,0 +1,290 @@
+# Baseline Evaluation: All 40 CyBench Challenges
+# ===================================================================
+# Pre-training baseline measurement against the full CyBench benchmark.
+# Run BEFORE SFT/Online RL to establish solve rates, turn counts, and
+# timing per challenge. Post-training, re-run with the fine-tuned model
+# and compare via `trajgym-eval compare`.
+#
+# Infrastructure:
+#   - 25 docker challenges: require running containers
+#   - 15 static challenges: require benchmark repo files on disk
+#   - Challenge registry: configs/challenges/cybench.yaml
+#
+# vLLM launch (single high-memory GPU, eval-only):
+#   vllm serve <model-path> \
+#     --max-model-len 65536 --dtype bfloat16 \
+#     --gpu-memory-utilization 0.85 --trust-remote-code \
+#     --enable-auto-tool-choice --tool-call-parser qwen3_coder \
+#     --reasoning-parser qwen3 --language-model-only --enforce-eager \
+#     --port 8001
+#
+# Usage:
+#   trajgym-eval run \
+#     --model <model-path> \
+#     --challenges examples/qwen35-27b/eval.yaml \
+#     --challenge-registry configs/challenges/cybench.yaml \
+#     --max-turns 30 \
+#     --max-time 20 \
+#     --attempts 1 \
+#     --strategy chat_tools \
+#     --output outputs/eval_baseline
+#
+# Post-training comparison:
+#   trajgym-eval compare \
+#     --base outputs/eval_baseline/eval_report.json \
+#     --tuned outputs/eval_finetuned/eval_report.json \
+#     --output outputs/eval_comparison.md
+#
+# Expected baseline solve rate (pre-training): 15-22% (6-9 / 40)
+# Expected runtime: ~8-13 hours serial (40 challenges x 10-20 min avg)
+#
+# Distribution:
+#   very_easy: 5    easy: 9    medium: 3    hard: 10    expert: 11    master: 2
+#   docker: 25      static: 15
+
+challenges:
+  # --- very_easy (5) — expected solve: 3-4 ---
+  - id: "[Very Easy] It Has Begun"
+    platform: cybench
+    vuln_type: forensics
+    difficulty: very_easy
+    infra_type: static
+
+  - id: "[Very Easy] Urgent"
+    platform: cybench
+    vuln_type: forensics
+    difficulty: very_easy
+    infra_type: static
+
+  - id: "[Very Easy] PackedAway"
+    platform: cybench
+    vuln_type: reverse
+    difficulty: very_easy
+    infra_type: static
+
+  - id: "[Very Easy] LootStash"
+    platform: cybench
+    vuln_type: reverse
+    difficulty: very_easy
+    infra_type: static
+
+  - id: "[Very Easy] Flag Command"
+    platform: cybench
+    vuln_type: web
+    difficulty: very_easy
+    infra_type: docker
+
+  # --- easy (9) — expected solve: 3-4 ---
+  - id: "[Very Easy] Primary Knowledge"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: easy
+    infra_type: static
+
+  - id: "[Very Easy] Dynastic"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: easy
+    infra_type: static
+
+  - id: "[Very Easy] Delulu"
+    platform: cybench
+    vuln_type: pwn
+    difficulty: easy
+    infra_type: docker
+
+  - id: "[Easy] Crushing"
+    platform: cybench
+    vuln_type: reverse
+    difficulty: easy
+    infra_type: static
+
+  - id: "skilift"
+    platform: cybench
+    vuln_type: intro
+    difficulty: easy
+    infra_type: docker
+
+  - id: "[Easy] Labyrinth Linguist"
+    platform: cybench
+    vuln_type: web
+    difficulty: easy
+    infra_type: docker
+
+  - id: "22-back-to-the-past"
+    platform: cybench
+    vuln_type: misc
+    difficulty: easy
+    infra_type: docker
+
+  - id: "[Easy] Unbreakable"
+    platform: cybench
+    vuln_type: misc
+    difficulty: easy
+    infra_type: docker
+
+  - id: "eval-me"
+    platform: cybench
+    vuln_type: forensics
+    difficulty: easy
+    infra_type: docker
+
+  # --- medium (3) — expected solve: 0-1 ---
+  - id: "network-tools"
+    platform: cybench
+    vuln_type: pwn
+    difficulty: medium
+    infra_type: docker
+
+  - id: "[Medium] Data Siege"
+    platform: cybench
+    vuln_type: forensics
+    difficulty: medium
+    infra_type: static
+
+  - id: "05-motp"
+    platform: cybench
+    vuln_type: web
+    difficulty: medium
+    infra_type: docker
+
+  # --- hard (10) — expected solve: 0-1 ---
+  - id: "chunky"
+    platform: cybench
+    vuln_type: web
+    difficulty: hard
+    infra_type: docker
+
+  - id: "[Medium] Partial Tenacity"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: hard
+    infra_type: static
+
+  - id: "[Medium] Were Pickle Phreaks Revenge"
+    platform: cybench
+    vuln_type: misc
+    difficulty: hard
+    infra_type: docker
+
+  - id: "rpgo"
+    platform: cybench
+    vuln_type: rev
+    difficulty: hard
+    infra_type: static
+
+  - id: "diffecient"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: hard
+    infra_type: docker
+
+  - id: "ezmaze"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: hard
+    infra_type: docker
+
+  - id: "frog-waf"
+    platform: cybench
+    vuln_type: web
+    difficulty: hard
+    infra_type: docker
+
+  - id: "[Hard] Permuted"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: hard
+    infra_type: static
+
+  - id: "[Medium] LockTalk"
+    platform: cybench
+    vuln_type: web
+    difficulty: hard
+    infra_type: docker
+
+  - id: "noisy-crc"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: hard
+    infra_type: docker
+
+  # --- expert (11) — expected solve: 0 ---
+  - id: "noisier-crc"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: docker
+
+  - id: "[Hard] FlecksOfGold"
+    platform: cybench
+    vuln_type: reverse
+    difficulty: expert
+    infra_type: static
+
+  - id: "MissingBits"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: static
+
+  - id: "SLCG"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: static
+
+  - id: "WalkingToTheSeaSide"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: docker
+
+  - id: "shuffled-aes"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: docker
+
+  - id: "avatar"
+    platform: cybench
+    vuln_type: misc
+    difficulty: expert
+    infra_type: docker
+
+  - id: "sop"
+    platform: cybench
+    vuln_type: rev
+    difficulty: expert
+    infra_type: static
+
+  - id: "GlacierExchange"
+    platform: cybench
+    vuln_type: web
+    difficulty: expert
+    infra_type: docker
+
+  - id: "robust-cbc"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: docker
+
+  - id: "failproof"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: expert
+    infra_type: docker
+
+  # --- master (2) — expected solve: 0 ---
+  - id: "just-another-pickle-jail"
+    platform: cybench
+    vuln_type: misc
+    difficulty: master
+    infra_type: docker
+
+  - id: "randsubware"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: master
+    infra_type: docker

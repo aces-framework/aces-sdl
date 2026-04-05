@@ -1,0 +1,140 @@
+---
+title: "Model Providers"
+description: "openbench supports 30+ model providers through openbench."
+---
+
+To access any major model, set the appropriate API key environment variable:
+
+| Provider              | Environment Variable   | Example Model String             |
+| --------------------- | ---------------------- | -------------------------------- |
+| **AI21 Labs**         | `AI21_API_KEY`         | `ai21/model-name`                |
+| **Anthropic**         | `ANTHROPIC_API_KEY`    | `anthropic/model-name`           |
+| **AWS Bedrock**       | AWS credentials        | `bedrock/model-name`             |
+| **Azure**             | `AZURE_OPENAI_API_KEY` | `azure/<deployment-name>`        |
+| **Baseten**           | `BASETEN_API_KEY`      | `baseten/model-name`             |
+| **Cerebras**          | `CEREBRAS_API_KEY`     | `cerebras/model-name`            |
+| **Cohere**            | `COHERE_API_KEY`       | `cohere/model-name`              |
+| **Crusoe**            | `CRUSOE_API_KEY`       | `crusoe/model-name`              |
+| **DeepInfra**         | `DEEPINFRA_API_KEY`    | `deepinfra/model-name`           |
+| **Friendli**          | `FRIENDLI_TOKEN`       | `friendli/model-name`            |
+| **Google**            | `GOOGLE_API_KEY`       | `google/model-name`              |
+| **Groq**              | `GROQ_API_KEY`         | `groq/model-name`                |
+| **Hugging Face**      | `HF_TOKEN`             | `huggingface/model-name`         |
+| **Hyperbolic**        | `HYPERBOLIC_API_KEY`   | `hyperbolic/model-name`          |
+| **Lambda**            | `LAMBDA_API_KEY`       | `lambda/model-name`              |
+| **MiniMax**           | `MINIMAX_API_KEY`      | `minimax/model-name`             |
+| **Mistral**           | `MISTRAL_API_KEY`      | `mistral/model-name`             |
+| **Moonshot**          | `MOONSHOT_API_KEY`     | `moonshot/model-name`            |
+| **Nebius**            | `NEBIUS_API_KEY`       | `nebius/model-name`              |
+| **Nous Research**     | `NOUS_API_KEY`         | `nous/model-name`                |
+| **Novita AI**         | `NOVITA_API_KEY`       | `novita/model-name`              |
+| **Ollama**            | None (local)           | `ollama/model-name`              |
+| **OpenAI**            | `OPENAI_API_KEY`       | `openai/model-name`              |
+| **OpenRouter**        | `OPENROUTER_API_KEY`   | `openrouter/model-name`          |
+| **Parasail**          | `PARASAIL_API_KEY`     | `parasail/model-name`            |
+| **Perplexity**        | `PERPLEXITY_API_KEY`   | `perplexity/model-name`          |
+| **Reka**              | `REKA_API_KEY`         | `reka/model-name`                |
+| **SambaNova**         | `SAMBANOVA_API_KEY`    | `sambanova/model-name`           |
+| **SiliconFlow**       | `SILICONFLOW_API_KEY`  | `siliconflow/model-name`         |
+| **Together AI**       | `TOGETHER_API_KEY`     | `together/model-name`            |
+| **Vercel AI Gateway** | `AI_GATEWAY_API_KEY`   | `vercel/creator-name/model-name` |
+| **W&B Inference**     | `WANDB_API_KEY`        | `wandb/model-name`               |
+| **vLLM**              | None (local)           | `vllm/model-name`                |
+
+## Using Unsupported Providers
+
+openbench works with any OpenAI-compatible API endpoint, even if the provider isn't listed above. This allows you to benchmark models from new or specialized providers that support the OpenAI Chat Completions API format.
+
+1. Use the model string format: `openai-api/<provider>/<model-name>`
+2. Set environment variables: `<PROVIDER>_API_KEY` and `<PROVIDER>_BASE_URL`
+
+```bash
+# Example with Groq (shown for demonstration since Groq is natively supported)
+export GROQ_API_KEY="gsk_..."
+export GROQ_BASE_URL=https://api.groq.com/openai/v1
+
+bench eval mmlu --model openai-api/groq/openai/gpt-oss-120b
+```
+
+## General Model Configuration
+| CLI Command        | Environment Variable   | Description                                   |
+|--------------------|------------------------|-----------------------------------------------|
+| `--model`          | `BENCH_MODEL`          | Model(s) to evaluate.                         |
+| `--model-base-url` | `BENCH_MODEL_BASE_URL` | Base URL for model(s).                        |
+| `--model-role`     | `BENCH_MODEL_ROLE`     | Map role(s) to specific models.               |
+
+<Tip>Use the `-M` flag for model-specific arguments
+(e.g. `bench eval simpleqa --model openrouter/openai/gpt-oss-120b -M only=groq`)</Tip>
+
+## Provider-Specific Model Configuration
+
+### Groq
+[Groq](https://groq.com/) provides fast inference with advanced features including tool calling and reasoning support. To begin using Groq, first set your API key:
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+**Streaming Messages**
+
+Groq has streaming enabled by default. It is encouraged to use streaming for long tasks which might take the model >60 seconds before returning a response. Idle connections may be dropped after a certain period of time, which can cause the task to fail by timing out before receiving a response from the API. However, streaming can be disabled with `-M stream=false`:
+
+```bash
+# Streaming enabled by default
+bench eval simpleqa \
+  --model groq/llama-3.1-70b-versatile \
+  --limit 10
+
+# Explicitly disable streaming
+bench eval simpleqa \
+  --model groq/llama-3.1-70b-versatile \
+  --limit 10 \
+  -M stream=false
+```
+
+**Tool Calling**
+
+Groq supports built-in tools through the `-M tools` and `-M tool_choice` parameters:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| **tools** | List of tool definitions | `-M tools='[{"type": "browser_search"}]'` |
+| **tool_choice** | Tool selection strategy: *auto* (model decides), *any* (at least one tool), or *none* (never call a tool) | `-M tool_choice=auto`|
+| **parallel_tool_calls** | Enable parallel tool execution | `-M parallel_tool_calls=true` |
+
+```bash
+# Using browser search tool with SimpleQA
+bench eval simpleqa \
+  --model groq/openai/gpt-oss-120b \
+  --limit 10 \
+  -M tools='[{"type": "browser_search"}]' \
+  -M tool_choice=auto
+```
+
+### OpenRouter
+[OpenRouter](https://openrouter.ai/) allows access to 60+ providers and 500+ models, all through one centralized platform. See a comprehensive list of available models [here](https://openrouter.ai/models). To begin using OpenRouter, first set your API key:
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+**OpenRouter Configuration Options**  
+Provider routing parameters can be specified with the `-M` flag to control which providers are used.:
+
+| Parameter        | Description   | Example                                   |
+|--------------------|------------------------|-----------------------------------------------|
+| **only**       | Restrict to specific providers   | `-M only=groq` or <br />`-M only=cerebras,openai`                     |
+| **order**    | Provider priority order   | `-M order=openai,anthropic`      |
+| **allow_fallbacks**       | Enable/disable fallback providers        |     `-M allow_fallbacks=True`                     |
+| **ignore** | `Providers to skip | `-M ignore=cerebras,fireworks`  |
+| **sort**  | Sort providers  | `-M sort=price` or <br />`-M sort=throughput` |
+| **max_price**       | Maximum price limits   | `-M max_price={"completion": 0.01}`                     |
+| **quantizations**    | Filter by quantization levels     | `-M quantizations=int4,int8`      |
+| **require_parameters**       | Require parameter support        | `-M require_parameters=False`         |
+| **data_collection** | Data collection setting | `-M data_collection=allow` or <br />`-M data_collection=deny` |
+
+```bash
+bench eval mmlu 
+    --model openrouter/openai/gpt-oss-120b 
+    --max-connections 100
+    -M only=groq,together 
+    -M sort=price 
+```

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T04:54:17.192828+00:00",
+  "generator": "trajgym-generate-rl",
+  "output_path": "data/online_rl.jsonl",
+  "output_sha256": "15924a7ef00664c48e69abbde2ef7ebb82e51c39f4aa1c763589f1b8406943fb",
+  "sample_count": 9,
+  "challenge_ids": [
+    "05-motp",
+    "22-back-to-the-past",
+    "[Easy] Labyrinth Linguist",
+    "[Easy] Unbreakable",
+    "[Very Easy] Delulu",
+    "[Very Easy] Flag Command",
+    "eval-me",
+    "network-tools",
+    "skilift"
+  ],
+  "source": {
+    "registry_path": "configs/challenges/cybench.yaml",
+    "registry_sha256": "ca9b43163b371aa68f51ac85038eb2c7ecff6d380a247a56b83bc8c13f6c6d25",
+    "metadata_path": "configs/challenges/cybench_metadata.json",
+    "metadata_sha256": "20e0ff90599b577aff9550e5bf9429418545ad7a1c68899600c71e0495c6fbef",
+    "target_map_path": null,
+    "target_map_sha256": null
+  },
+  "filters": {
+    "include_static": false,
+    "difficulty_min": null,
+    "difficulty_max": "medium",
+    "target_host": "localhost",
+    "target_port_base": 32801,
+    "probe_targets": false,
+    "strict_target_probe": false,
+    "connect_timeout": 1.5
+  },
+  "counts": {
+    "generated": 9,
+    "skipped_static": 15,
+    "skipped_difficulty": 16,
+    "skipped_no_flag": 0,
+    "skipped_unreachable": 0,
+    "probe_ok": 0,
+    "probe_fail": 0,
+    "target_override_count": 0,
+    "registry_challenge_count": 40
+  }
+}

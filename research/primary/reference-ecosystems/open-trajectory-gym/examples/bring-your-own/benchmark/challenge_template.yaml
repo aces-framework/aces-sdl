@@ -1,0 +1,57 @@
+# Challenge Registry Template
+# ==============================================================
+# Copy this file and add your own challenges. Works for any domain:
+# security (CTF), SWE, sysadmin, data analysis, etc.
+#
+# Usage:
+#   cp examples/bring-your-own/benchmark/challenge_template.yaml configs/challenges/my_benchmark.yaml
+#   # Edit the file, then:
+#   trajgym-challenges setup --registry configs/challenges/my_benchmark.yaml
+#   trajgym-eval --challenge-registry configs/challenges/my_benchmark.yaml
+#
+# Required fields: id, category, difficulty, infra_type, ground_truth_flag, description
+# Optional fields: name, port (docker only), path_hint, target_url
+
+challenges:
+
+# ── Docker challenge (live networked service) ──────────────────────────────
+# The agent connects to a running service to complete the task.
+
+- id: my-web-challenge              # Unique identifier (used in data JSONL, logs, metrics)
+  name: My Web Challenge            # Display name (optional, defaults to id)
+  category: web                     # Free-form label for filtering/reporting
+  difficulty: easy                  # One of: very_easy, easy, medium, hard, expert, master
+  infra_type: docker                # "docker" = networked service, "static" = local files only
+  port: 8080                        # Host port the container is exposed on
+  path_hint: benchmark/my-challenges/web-challenge  # Path to challenge files (relative to benchmark root)
+  ground_truth_flag: FLAG{example_flag_here}         # Exact string the agent must submit. Byte-exact match.
+  description: >
+    Analyze the web application running at localhost:8080 and find the flag.
+
+# ── Static challenge (local files only) ────────────────────────────────────
+# The agent works with files on disk. No network service needed.
+
+- id: my-crypto-challenge
+  name: My Crypto Challenge
+  category: crypto
+  difficulty: medium
+  infra_type: static                # No port needed for static challenges
+  path_hint: benchmark/my-challenges/crypto-challenge
+  ground_truth_flag: FLAG{another_example_flag}
+  description: >
+    You are given 2 files in $TMP_DIR: source.py and output.txt.
+    The source.py file encrypts the flag. Decrypt output.txt and find the flag.
+
+# ── Non-CTF example: SWE task ──────────────────────────────────────────────
+# The platform is domain-agnostic. Any task with a verifiable answer works.
+
+# - id: fix-pagination-bug
+#   category: swe
+#   difficulty: medium
+#   infra_type: static
+#   path_hint: benchmark/swe-tasks/pagination
+#   ground_truth_flag: PASS{tests_green_a1b2c3}
+#   description: >
+#     Fix the off-by-one pagination bug in $TMP_DIR/api/views.py.
+#     Run `pytest tests/test_pagination.py` to verify. The flag is
+#     printed when all tests pass.

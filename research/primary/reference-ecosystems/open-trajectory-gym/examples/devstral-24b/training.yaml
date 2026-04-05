@@ -1,0 +1,146 @@
+# Devstral-Small-2-24B-Instruct Training Configuration (2x high-memory GPUs)
+# ==============================================================
+# Dense 24B model — strong code/tool-calling alternative.
+# Single H100 for vLLM, single H100+ for FSDP2 trainer.
+#
+# Key properties:
+#   - Dense model: BF16 LoRA (no quantization needed)
+#   - batch_size > 1 safe (no MoE routing NaN)
+#   - Online RL: non-colocated vLLM server mode with LoRA weight sync
+#   - ~48 GB BF16 inference
+#
+# Architecture: MistralForCausalLM (dense transformer)
+# Tool calling: Mistral native function calling
+# Chat template: Mistral instruct format
+
+model:
+  name: "mistralai/Devstral-Small-2507"
+  max_seq_length: 32768
+  load_in_4bit: false
+  load_in_8bit: false
+
+lora:
+  r: 64
+  alpha: 128
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  use_rslora: false
+
+sft:
+  epochs: 3
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 2.0e-5
+  warmup_steps: 1
+  weight_decay: 0.01
+  lr_scheduler_type: cosine
+  packing: true
+  flash_attn: false
+  gradient_checkpointing: true
+
+online_rl:
+  epochs: 1
+  difficulty_max: "master"
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 2.0e-6
+  warmup_ratio: 0.10
+  beta: 0.0
+  loss_type: dapo
+  num_generations: 8
+  advantage_estimator: rloo
+  max_completion_length: 8192
+  max_prompt_length: 32768
+  vllm_max_model_len: 65536
+  max_tool_calling_iterations: 60
+  horizon_schedule:
+    rounds: [20, 30, 45, 60]
+    step_interval: 10
+  hard_mask_statuses:
+    - infra_unreachable
+    - target_mismatch
+    - parser_error
+    - tool_timeout
+  positive_only_until_step: 120
+  positive_only_reward_floor: 0.0
+  max_samples_per_challenge: 1
+  drop_static_challenges: false
+  drop_unresolved_registry_samples: true
+  target_port_offset: 0
+  target_host_override: null
+  target_map_path: null
+  target_map_strict: false
+  prefer_registry_target: true
+  fail_on_target_collisions: true
+  fail_on_flag_mismatch: true
+  fail_on_missing_registry_flag: true
+  require_all_registry_challenges: false
+  use_new_inference: true
+  enable_prefix_caching: true
+  enable_chunked_prefill: true
+  enforce_eager: true
+  max_grad_norm: 1.0
+  epsilon_high: 0.28
+  weight_decay: 0.1
+  scale_rewards: false
+  generation_temperature: 0.7
+  generation_top_p: 0.95
+  generation_top_k: 50
+  generation_min_p: 0.0
+  use_vllm: true
+  vllm_mode: server
+  vllm_server_url: null
+  gpu_memory_utilization: 0.80
+  max_num_seqs: 8
+  max_num_batched_tokens: 32768
+  apply_overlong_filtering: false
+  max_env_workers: 8
+  flash_attn: false
+  use_sample_packing: false
+  pytorch_cuda_alloc_conf: "expandable_segments:True"
+  zero_variance_filter: true
+  dynamic_sampling:
+    type: null
+    max_sample_batches: 10
+  step_wise_trajectories: false
+  agent_class: trajgym.agent.default_agent.DefaultStepAgent
+  agent_kwargs:
+    max_consecutive_no_tool_calls: 2
+    max_tool_response_chars: 2500
+    runtime_cmd: "python src/trajgym/agent/framework_runtime_bridge.py"
+    runtime_timeout_seconds: 20
+    runtime_passthrough: false
+    runtime_fallback_to_parser: false
+    runtime_env:
+      TRAJGYM_AGENT_FRAMEWORK: "boxpwnr_langgraph"
+      TRAJGYM_AGENT_MODE: "tool_calls"
+
+reward:
+  flag_weight: 1.0
+  efficiency_weight: 0.0
+  progression_weight: 0.0
+  exploration_weight: 0.0
+  uniqueness_weight: 0.0
+  format_weight: 0.0
+  recovery_weight: 0.0
+  cognitive_weight: 0.0
+  hallucination_penalty: 0.0
+  interaction_quality_weight: 0.0
+  noise_range: 0.0
+  exploration_gamma: 0.95
+  use_gdpo: false
+
+output:
+  save_steps: 25
+  logging_steps: 1
+  report_to: tensorboard
+
+online_rl_logging:
+  enable_trajectory_logging: true

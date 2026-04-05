@@ -1,8 +1,10 @@
 # Migration Notes
 
-The repository is in the middle of a structural reorganization.
+This note records the major documentation and repository-structure moves that
+established the current layout. The paths below describe historical moves, not
+current uncertainty about where authoritative material lives.
 
-This pass moved existing material into the intended long-term buckets:
+The reorganization moved existing material into the current long-term buckets:
 
 - root `schemas/` -> `contracts/schemas/`
 - root `conformance/fixtures` and `conformance/profiles` -> `contracts/`
@@ -10,6 +12,6 @@ This pass moved existing material into the intended long-term buckets:
 - `docs/sdl/` -> `docs/explain/sdl/`
 - Python implementation code and tests -> `implementations/python/`
 
-Breakage is expected during this phase. Follow-on passes will reconcile imports,
-tooling, packaging, and individual contract/spec requirements against the new
-layout.
+Most of this re-homing is now complete. Follow-on passes may still refine
+individual imports, tooling, or contract/spec details, but the authoritative
+locations listed above are the intended home for current work.

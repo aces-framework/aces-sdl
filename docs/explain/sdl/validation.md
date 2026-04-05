@@ -53,6 +53,13 @@ The SDL validator is intentionally structural/semantic. The SDL-native runtime
 compiler performs additional fail-closed binding checks, including node-local
 feature dependency enforcement and bound-resource reference resolution.
 
+This also means the validator only enforces what the current SDL syntax can
+actually express. Broader ecosystem concerns such as participant-implementation
+manifests, decision-surface exposure policy contracts, augmentation disclosure,
+and full evidence-capture contract surfaces are separate validation domains.
+They should not be retrofitted into validator-only behavior before the authored
+surface or external contracts exist.
+
 ## Static Semantic Invariants
 
 The validator is the main enforcement point for static SDL semantics, but not
@@ -85,6 +92,11 @@ surface is still simple YAML, but the semantic meaning comes from one shared
 analysis pass that resolves normalized references, checks story/script/event and
 workflow/step consistency, derives refresh semantics, and feeds both validator
 errors and compiled runtime forms.
+
+The same pattern now applies conceptually to newer participant and
+observability concerns: author-facing syntax, shared semantics, runtime
+contracts, and provenance must stay aligned, but they do not all collapse into
+the current validator surface.
 
 ## Advisories
 

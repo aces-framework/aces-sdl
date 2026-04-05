@@ -1,0 +1,45 @@
+# GLM-5-FP8 - FP8 quantized model with MTP speculative decoding
+# https://huggingface.co/zai-org/GLM-5-FP8
+#
+# 131K context variant
+#
+# Hardware: 4 nodes × 4x GH200 96GB (shared memory) = 16 GPUs (~1.5TB total)
+#   - FP8 weights → very memory efficient, ample room for KV cache
+#   - TP=4 within node (shared memory), PP=4 across nodes, DP=1 (more memory per stage)
+#
+engine:
+  type: vllm_local
+  model: zai-org/GLM-5-FP8
+  max_output_tokens: 16384
+  healthcheck_interval: 300
+  request_params:
+    temperature: 0.7
+    top_p: 0.95
+  vllm_local: {}
+backend:
+  type: ray
+  wait_for_endpoint: true
+  ray_cgraph_max_inflight_executions: 16
+  healthcheck_max_attempts: 160
+  healthcheck_retry_delay: 15
+vllm_server:
+  model_path: zai-org/GLM-5-FP8
+  num_replicas: 1
+  tensor_parallel_size: 4
+  pipeline_parallel_size: 4
+  data_parallel_size: 1
+  time_limit: '48:00:00'
+  max_model_len: 131072
+  max_num_seqs: 50
+  gpu_memory_utilization: 0.9
+  swap_space: 32
+  enable_expert_parallel: true
+  enable_auto_tool_choice: true
+  tool_call_parser: glm47
+  reasoning_parser: glm45
+  trust_remote_code: true
+  extra_args:
+  # Prefill/caching optimizations
+  - --enable-prefix-caching
+  - --max-num-batched-tokens
+  - '16384'

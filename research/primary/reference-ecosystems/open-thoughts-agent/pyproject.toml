@@ -1,0 +1,213 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OpenThoughts-Agent"
+version = "0.1.0"
+description = "OT-Agent HPC launch and data tooling"
+requires-python = ">=3.10"
+dependencies = [
+    # Core HPC + data infrastructure deps
+    "pydantic>=2.0.0,<3.0.0",
+    "pyyaml",
+    "omegaconf",
+    "wandb",
+    "bs4",
+    "numpy<=2.26.0",
+    "huggingface_hub>=0.20.0,<1.0.0",
+    "datasets>=2.0.0",
+    "supabase>=2.22.3",
+    "python-dotenv>=1.0.0",
+    "harbor[daytona] @ git+https://github.com/laude-institute/harbor.git@penfever/temp-override",
+    "dynamic-semaphore @ git+https://github.com/penfever/dynamic-semaphore",
+    "google-cloud-storage",
+    "h5py",
+    "certifi",
+    "rapidfuzz",
+    "huggingface_hub",
+    "uv>=0.4.17",
+    "socksio",  # SOCKS5 proxy support for httpx (needed for JSC SSH tunnels)
+]
+
+[project.optional-dependencies]
+datagen-cpu = [
+    "google-cloud-aiplatform>=1.67.0",
+    "google-genai>=0.1.0",
+    "accelerate==1.12.0",
+    "trufflehog>=2.2.0",
+]
+datagen = [
+    "ray[default]>=2.50.0",
+    "torch-c-dlpack-ext==0.1.4",
+    "google-cloud-aiplatform>=1.67.0",
+    "google-genai>=0.1.0",
+    "vllm[flashinfer]>=0.11.2,<=0.16.0; platform_system != 'Darwin'",
+    "transformers==4.57.3",
+    "torch>=2.9.0,<=2.10.0; platform_system != 'Darwin'",
+    "accelerate==1.12.0",
+    "trufflehog>=2.2.0",
+]
+# ROCm/AMD GPU variant for datagen (e.g., OLCF Frontier with MI250X)
+# Install with:
+#   uv pip install -e ".[datagen-rocm]" \
+#     --extra-index-url https://wheels.vllm.ai/rocm/0.14.0/rocm700 \
+#     --prerelease=allow
+datagen-rocm = [
+    "ray[default]>=2.50.0",
+    "torch-c-dlpack-ext==0.1.4",
+    "google-cloud-aiplatform>=1.67.0",
+    "google-genai>=0.1.0",
+    "transformers==4.57.3",
+    # PyTorch ROCm 6.4 - must install with --index-url https://download.pytorch.org/whl/rocm6.4
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "torchaudio==2.8.0",
+    # vLLM ROCm wheel (requires --extra-index-url https://wheels.vllm.ai/rocm/0.14.0/rocm700 --prerelease=allow)
+    "vllm==0.14.0+rocm700",
+    # Note: flash-attn is CUDA-only; PyTorch native attention used instead
+]
+datagen-swesmith = [
+    "swesmith",
+]
+cloud = [
+    "skypilot>=0.6.1",
+    "google-api-python-client",  # GCP support for SkyPilot
+    "boto3",  # S3-compatible object storage (MinIO, AWS S3)
+    "s3fs",   # Filesystem interface for S3/MinIO
+]
+cloud-aws = [
+    "skypilot>=0.6.1",
+    "boto3",
+]
+cloud-lambda = [
+    "skypilot>=0.6.1",
+    # Lambda Cloud only needs skypilot + API key configuration
+]
+cloud-vast = [
+    "skypilot>=0.6.1",
+    "vastai-sdk>=0.1.12",
+]
+cloud-kubernetes = [
+    "skypilot>=0.6.1",
+    # Kubernetes needs kubectl + kubeconfig, no extra Python deps
+]
+cloud-all = [
+    "skypilot>=0.6.1",
+    "google-api-python-client",
+    "boto3",
+    "vastai-sdk>=0.1.12",
+]
+rl = [
+    # SkyRL training framework - install with vllm extra for inference
+    # Uses mlfoundations fork with custom patches
+    "skyrl[vllm] @ git+https://github.com/mlfoundations/skyrl.git",
+    "Jinja2",  # For chat templates
+]
+# ROCm/AMD GPU variant for RL (e.g., OLCF Frontier with MI250X)
+# Install with: uv pip install -e ".[rl-rocm]" --index-url https://download.pytorch.org/whl/rocm6.4
+# Or use: ./hpc/setup_rl_env.sh --rocm
+rl-rocm = [
+    # SkyRL without vllm extra (vLLM ROCm support is experimental)
+    "skyrl @ git+https://github.com/mlfoundations/skyrl.git",
+    "Jinja2",  # For chat templates
+    # PyTorch ROCm 6.4 - must install with --index-url https://download.pytorch.org/whl/rocm6.4
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "torchaudio==2.8.0",
+    # Note: flash-attn is CUDA-only; PyTorch native attention used instead
+]
+# IMPORTANT: RL and datagen extras are INCOMPATIBLE due to version conflicts:
+#   - RL (SkyRL): torch==2.8.0, vllm==0.11.0, Python 3.12 required
+#   - datagen:    torch==2.9.0, vllm==0.11.2, Python 3.10+
+# The RL environment must be set up separately using: ./hpc/setup_rl_env.sh
+# The RL launcher will automatically use the separate environment.
+# See hpc/rl_launch_utils.py for details.
+# SFT for Qwen3.5 models (requires transformers v5+ for hybrid GDN architecture)
+# IMPORTANT: Incompatible with datagen/RL extras (transformers 4.x vs 5.x).
+# Must be installed in a separate environment.
+# Install with:
+#   uv pip install -e ".[sft-qwen35]"
+sft-qwen35 = [
+    "transformers>=5.3.0",
+    "torch>=2.6.0",
+    "accelerate>=1.3.0",
+    "datasets>=2.16.0",
+    "peft>=0.14.0",
+    "trl>=0.8.6",
+    "tokenizers>=0.19.0",
+    "deepspeed>=0.16.0",
+    "flash-attn>=2.7.0; platform_system != 'Darwin'",
+    "torchao>=0.8.0",
+    "liger-kernel>=0.5.0",
+    "trufflehog>=2.2.0",
+]
+# Harbor environment backends
+curator = [
+    "bespokelabs-curator>=0.1.0",
+]
+harbor-docker = [
+    "docker>=7.0.0",
+]
+harbor-modal = [
+    "modal>=0.60.0",
+]
+harbor-all = [
+    "docker>=7.0.0",
+    "modal>=0.60.0",
+]
+# Beam cluster setup (self-hosted Beta9 on GKE)
+beam = [
+    "requests>=2.31.0",
+    "beta9>=0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "data",
+    "data.*",
+    "database",
+    "database.*",
+    "sft",
+    "sft.*",
+    "eval",
+    "eval.*",
+    "hpc",
+    "hpc.*",
+    "rl",
+    "rl.*",
+    "scripts",
+    "scripts.*",
+    "train",
+    "train.*",
+]
+exclude = [
+    "docs*",
+    "notes*",
+    "wheels*",
+    "tmp*",
+]
+
+[tool.uv.pip]
+# Default: CUDA 12.8 PyTorch index
+# For ROCm/AMD GPUs (e.g., Frontier), use instead:
+#   uv pip install ... --index-url https://download.pytorch.org/whl/rocm6.4
+extra-index-url = ["https://download.pytorch.org/whl/cu128"]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+# =============================================================================
+# ROCm Installation Notes (for AMD GPUs like Frontier MI250X)
+# =============================================================================
+# ROCm extras (datagen-rocm, rl-rocm) require the ROCm PyTorch index:
+#
+#   # For datagen on ROCm:
+#   uv pip install -e ".[datagen-rocm]" --index-url https://download.pytorch.org/whl/rocm6.4
+#
+#   # For RL on ROCm (preferred method is setup script):
+#   ./hpc/setup_rl_env.sh --rocm
+#
+# See: https://docs.olcf.ornl.gov/software/analytics/pytorch_frontier.html
+# =============================================================================

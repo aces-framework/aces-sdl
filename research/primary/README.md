@@ -25,6 +25,9 @@ and draft documents.
 - `reference-ecosystems/`
   - Upstream/reference ecosystems and specifications most directly relevant to
     SDL, runtime, experiment, and control-plane work
+- `reference-organizations/`
+  - Primary organization-owned materials relevant to agent, benchmark, and
+    evaluation ecosystem design
 
 ## Notes
 

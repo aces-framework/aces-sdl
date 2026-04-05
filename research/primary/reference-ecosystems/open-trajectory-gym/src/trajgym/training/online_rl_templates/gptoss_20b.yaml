@@ -1,0 +1,96 @@
+# SkyRL Online RL config for GPT-OSS 20B (MoE, colocated vLLM on B200)
+# Matches SkyRLConfig dataclass schema.
+# Used as reference — actual config is built by training/online_rl/runtime.py from archive/training_gptoss_20b.yaml.
+#
+# SkyRL has native GPT-OSS support:
+#   - Attention sink patches: skyrl_train/patches/gptoss/
+#   - Flex attention: skyrl_train/patches/gptoss/flex_attn_sink.py
+#   - Example: skyrl-train/examples/gptoss/
+
+data:
+  train_data:
+    - outputs/skyrl_online_rl_data.jsonl
+
+trainer:
+  strategy: fsdp2
+  bf16: true
+  gradient_checkpointing: true
+  flash_attn: true
+  use_sample_packing: false
+  seed: 42
+  epochs: 1
+  train_batch_size: 1
+  micro_train_batch_size_per_gpu: 1
+  max_prompt_length: 16384
+  ckpt_path: outputs/online_rl
+  ckpt_interval: 25
+  export_path: outputs/online_rl/final
+  log_path: outputs/online_rl/logs
+  project_name: trajgym
+  run_name: online-rl-gptoss-20b
+  logger: none
+
+  # Colocate: vLLM shares model weights with trainer on B200.
+  # Eliminates HTTP overhead, no NCCL weight sync patch needed.
+  placement:
+    colocate_all: true
+
+  ref:
+    model:
+      path: outputs/sft_gptoss_merged/
+
+  policy:
+    model:
+      path: outputs/sft_gptoss_merged/
+      lora:
+        rank: 64
+        alpha: 128
+        dropout: 0.0
+        # Attention only — no MoE expert/router layers.
+        target_modules: "q_proj,k_proj,v_proj,o_proj"
+    optimizer_config:
+      lr: 2.0e-6
+      weight_decay: 0.0
+      max_grad_norm: 5.0
+
+  algorithm:
+    advantage_estimator: rloo_n
+    policy_loss_type: regular
+    kl_loss_coef: 0.0
+    use_kl_loss: false
+    loss_reduction: token_mean
+    eps_clip_low: 0.2
+    eps_clip_high: 0.28
+
+generator:
+  model_dtype: bfloat16
+  backend: vllm
+  # Colocate mode: vLLM runs in-process, shares weights.
+  run_engines_locally: true
+  num_inference_engines: 1
+  # 4 samples per prompt.
+  n_samples_per_prompt: 4
+  max_input_length: 16384
+  max_turns: 30
+  inference_engine_tensor_parallel_size: 1
+  gpu_memory_utilization: 0.45
+  max_num_seqs: 4
+  max_num_batched_tokens: 32768
+  enable_prefix_caching: true
+  enable_chunked_prefill: true
+  sampling_params:
+    max_generate_length: 16384
+    temperature: 1.0
+    top_p: 0.95
+    logprobs: 1
+
+  # GPT-OSS attention sink patches — apply automatically via SkyRL.
+  # Handles sliding_window + full_attention alternation pattern.
+  patches:
+    - skyrl_train.patches.gptoss.patch_transformers
+    - skyrl_train.patches.gptoss.flex_attn_sink
+
+environment:
+  env_class: trajgym
+  skyrl_gym:
+    max_env_workers: 32

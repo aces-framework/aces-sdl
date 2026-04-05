@@ -5,8 +5,6 @@ Keep this PR body concise and review-friendly.
 
 Closes #
 
-<!-- Default base branch for normal feature work is `dev`, not `main`. -->
-
 ## Summary
 
 <!-- What changed, and why? -->

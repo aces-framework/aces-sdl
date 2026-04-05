@@ -1,0 +1,187 @@
+{
+  "generated_at": "manual-registry-port-offset",
+  "host": "localhost",
+  "port_offset": 10200,
+  "docker_challenge_count": 25,
+  "mapped_count": 25,
+  "unmapped_ids": [],
+  "challenge_targets": {
+    "noisier-crc": "http://localhost:43024",
+    "just-another-pickle-jail": "http://localhost:43033",
+    "chunky": "http://localhost:43032",
+    "network-tools": "http://localhost:43029",
+    "[Medium] Were Pickle Phreaks Revenge": "http://localhost:43003",
+    "[Very Easy] Delulu": "http://localhost:43001",
+    "WalkingToTheSeaSide": "http://localhost:43041",
+    "shuffled-aes": "http://localhost:43040",
+    "skilift": "http://localhost:43042",
+    "avatar": "http://localhost:43043",
+    "GlacierExchange": "http://localhost:43044",
+    "diffecient": "http://localhost:43020",
+    "robust-cbc": "http://localhost:43023",
+    "ezmaze": "http://localhost:43021",
+    "randsubware": "http://localhost:43026",
+    "frog-waf": "http://localhost:43031",
+    "05-motp": "http://localhost:43012",
+    "[Easy] Labyrinth Linguist": "http://localhost:43008",
+    "22-back-to-the-past": "http://localhost:43013",
+    "[Very Easy] Flag Command": "http://localhost:43010",
+    "[Easy] Unbreakable": "http://localhost:43002",
+    "[Medium] LockTalk": "http://localhost:43009",
+    "noisy-crc": "http://localhost:43025",
+    "eval-me": "http://localhost:43027",
+    "failproof": "http://localhost:43022"
+  },
+  "challenges": [
+    {
+      "id": "noisier-crc",
+      "target_url": "http://localhost:43024",
+      "host_port": 43024,
+      "host_port_source": 32824
+    },
+    {
+      "id": "just-another-pickle-jail",
+      "target_url": "http://localhost:43033",
+      "host_port": 43033,
+      "host_port_source": 32833
+    },
+    {
+      "id": "chunky",
+      "target_url": "http://localhost:43032",
+      "host_port": 43032,
+      "host_port_source": 32832
+    },
+    {
+      "id": "network-tools",
+      "target_url": "http://localhost:43029",
+      "host_port": 43029,
+      "host_port_source": 32829
+    },
+    {
+      "id": "[Medium] Were Pickle Phreaks Revenge",
+      "target_url": "http://localhost:43003",
+      "host_port": 43003,
+      "host_port_source": 32803
+    },
+    {
+      "id": "[Very Easy] Delulu",
+      "target_url": "http://localhost:43001",
+      "host_port": 43001,
+      "host_port_source": 32801
+    },
+    {
+      "id": "WalkingToTheSeaSide",
+      "target_url": "http://localhost:43041",
+      "host_port": 43041,
+      "host_port_source": 32841
+    },
+    {
+      "id": "shuffled-aes",
+      "target_url": "http://localhost:43040",
+      "host_port": 43040,
+      "host_port_source": 32840
+    },
+    {
+      "id": "skilift",
+      "target_url": "http://localhost:43042",
+      "host_port": 43042,
+      "host_port_source": 32842
+    },
+    {
+      "id": "avatar",
+      "target_url": "http://localhost:43043",
+      "host_port": 43043,
+      "host_port_source": 32843
+    },
+    {
+      "id": "GlacierExchange",
+      "target_url": "http://localhost:43044",
+      "host_port": 43044,
+      "host_port_source": 32844
+    },
+    {
+      "id": "diffecient",
+      "target_url": "http://localhost:43020",
+      "host_port": 43020,
+      "host_port_source": 32820
+    },
+    {
+      "id": "robust-cbc",
+      "target_url": "http://localhost:43023",
+      "host_port": 43023,
+      "host_port_source": 32823
+    },
+    {
+      "id": "ezmaze",
+      "target_url": "http://localhost:43021",
+      "host_port": 43021,
+      "host_port_source": 32821
+    },
+    {
+      "id": "randsubware",
+      "target_url": "http://localhost:43026",
+      "host_port": 43026,
+      "host_port_source": 32826
+    },
+    {
+      "id": "frog-waf",
+      "target_url": "http://localhost:43031",
+      "host_port": 43031,
+      "host_port_source": 32831
+    },
+    {
+      "id": "05-motp",
+      "target_url": "http://localhost:43012",
+      "host_port": 43012,
+      "host_port_source": 32812
+    },
+    {
+      "id": "[Easy] Labyrinth Linguist",
+      "target_url": "http://localhost:43008",
+      "host_port": 43008,
+      "host_port_source": 32808
+    },
+    {
+      "id": "22-back-to-the-past",
+      "target_url": "http://localhost:43013",
+      "host_port": 43013,
+      "host_port_source": 32813
+    },
+    {
+      "id": "[Very Easy] Flag Command",
+      "target_url": "http://localhost:43010",
+      "host_port": 43010,
+      "host_port_source": 32810
+    },
+    {
+      "id": "[Easy] Unbreakable",
+      "target_url": "http://localhost:43002",
+      "host_port": 43002,
+      "host_port_source": 32802
+    },
+    {
+      "id": "[Medium] LockTalk",
+      "target_url": "http://localhost:43009",
+      "host_port": 43009,
+      "host_port_source": 32809
+    },
+    {
+      "id": "noisy-crc",
+      "target_url": "http://localhost:43025",
+      "host_port": 43025,
+      "host_port_source": 32825
+    },
+    {
+      "id": "eval-me",
+      "target_url": "http://localhost:43027",
+      "host_port": 43027,
+      "host_port_source": 32827
+    },
+    {
+      "id": "failproof",
+      "target_url": "http://localhost:43022",
+      "host_port": 43022,
+      "host_port_source": 32822
+    }
+  ]
+}

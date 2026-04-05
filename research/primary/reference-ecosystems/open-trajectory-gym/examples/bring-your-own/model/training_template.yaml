@@ -1,0 +1,184 @@
+# Training Configuration Template
+# ==============================================================
+# Copy this file and fill in your model's values.
+# See examples/qwen35-27b/training.yaml for a production 27B example,
+# or examples/qwen35-4b/training.yaml for a smaller model config.
+#
+# Usage:
+#   cp examples/bring-your-own/model/training_template.yaml examples/my-model/training.yaml
+#   # Edit the file, then:
+#   trajgym-train sft --config examples/my-model/training.yaml --model <model-id> --data data/sft.jsonl --output outputs/sft_my_model
+
+# ── Model ────────────────────────────────────────────────────────────────────
+
+model:
+  # HuggingFace model ID or local path.
+  # Examples: "Qwen/Qwen3.5-27B", "Nanbeige/Nanbeige4.1-3B", "meta-llama/Llama-3.1-8B-Instruct"
+  name: "YOUR_MODEL_ID_HERE"
+
+  # Maximum sequence length for training. Must fit in GPU memory.
+  # Common values: 8192 (small GPU), 16384, 32768, 65536 (large GPU).
+  # Check your model's max_position_embeddings in config.json.
+  max_seq_length: 8192
+
+  # QLoRA 4-bit quantization. Reduces model memory by ~4x.
+  # Set to true for small GPUs (<48GB). Set to false for BF16 on large GPUs.
+  # MoE models may have issues with 4-bit -- use BF16 if possible.
+  load_in_4bit: false
+
+  # 8-bit quantization. Less memory savings than 4-bit but higher quality.
+  # Usually not needed -- prefer 4-bit (small GPU) or BF16 (large GPU).
+  load_in_8bit: false
+
+# ── LoRA ─────────────────────────────────────────────────────────────────────
+
+lora:
+  # LoRA rank. Higher = more expressive adapter, more memory.
+  # Common values: 32 (minimal), 64 (standard), 128 (high), 256 (aggressive).
+  # Rule of thumb: use higher rank when you have GPU headroom.
+  r: 64
+
+  # LoRA alpha. Controls scaling. alpha/r = effective scaling factor.
+  # Standard: alpha = 2 * r (scaling factor = 2.0).
+  alpha: 128
+
+  # LoRA dropout. Set to 0 for most cases. Use 0.05 for very high rank (r>=256).
+  dropout: 0
+
+  # Target modules to apply LoRA to. These are the standard transformer linear layers.
+  # Works for most models (Llama, Qwen, Mistral, etc.).
+  # For non-standard architectures, check the model's module names.
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+  # RSLoRA: rank-stabilized scaling (alpha / sqrt(r) instead of alpha / r).
+  # Recommended for r >= 128 to prevent training instability.
+  use_rslora: false
+
+# ── SFT (Supervised Fine-Tuning) ────────────────────────────────────────────
+
+sft:
+  # Number of training epochs.
+  # Small models (<10B): 5 epochs. Large models (>20B): 3 epochs.
+  epochs: 3
+
+  # Micro batch size per GPU. Keep at 1 unless you have significant VRAM headroom.
+  # Logits tensor size = batch_size * seq_length * vocab_size * 4 bytes.
+  batch_size: 1
+
+  # Gradient accumulation. Effective batch = batch_size * gradient_accumulation_steps.
+  # Common effective batch sizes: 8, 16.
+  gradient_accumulation_steps: 8
+
+  # Learning rate. Standard range: 1e-5 to 2e-4.
+  # With QLoRA 4-bit: 5e-5 to 2e-4. With BF16: 1e-5 to 5e-5.
+  learning_rate: 2.0e-5
+
+  # Warmup steps. 1-3 steps with packing. Use warmup_steps, not warmup_ratio.
+  warmup_steps: 1
+
+  weight_decay: 0.01
+  lr_scheduler_type: cosine
+
+  # Packing: pack multiple short sequences into one batch for efficiency.
+  # Highly recommended -- 2-3x faster SFT.
+  packing: true
+
+  # Flash attention. Set to false if you see illegal memory access errors
+  # during gradient checkpointing (known issue with some model architectures).
+  flash_attn: false
+
+  # Gradient checkpointing. Trades compute for memory. Required for long contexts.
+  gradient_checkpointing: true
+
+# ── Online RL (Online RL) ────────────────────────────────────────────────────────
+
+online_rl:
+  epochs: 1
+
+  batch_size: 1
+  gradient_accumulation_steps: 8
+
+  # Online RL learning rate. Usually lower than SFT (1e-6 to 1e-4).
+  learning_rate: 5.0e-6
+
+  warmup_ratio: 0.10
+
+  # KL divergence coefficient. Set to 0.0 to disable reference model (saves memory).
+  beta: 0.0
+
+  # Loss type. "dapo" is the standard for Online RL.
+  loss_type: dapo
+
+  # Number of generations per prompt. More = better RLOO variance signal.
+  # Common values: 4, 6, 8. Must divide batch_size * gradient_accumulation_steps.
+  num_generations: 4
+
+  # Advantage estimator. "rloo" (leave-one-out) is the standard.
+  advantage_estimator: rloo
+
+  # Maximum tokens per completion. Must be large enough for tool calls.
+  # 8192 is safe for most models. Increase if tool calls get truncated.
+  max_completion_length: 8192
+
+  # Maximum tool-calling iterations per episode.
+  max_tool_calling_iterations: 15
+
+  max_grad_norm: 1.0
+  epsilon_high: 0.28
+  weight_decay: 0.1
+  scale_rewards: false
+
+  # vLLM for fast generation.
+  use_vllm: true
+  vllm_mode: server
+  vllm_server_url: null
+  gpu_memory_utilization: 0.40
+
+  # Agent configuration. DefaultStepAgent handles tool parsing and execution.
+  agent_class: trajgym.agent.default_agent.DefaultStepAgent
+  agent_kwargs:
+    max_consecutive_no_tool_calls: 3
+    runtime_cmd: "python src/trajgym/agent/framework_runtime_bridge.py"
+    runtime_timeout_seconds: 20
+    runtime_passthrough: false
+    runtime_fallback_to_parser: false
+    runtime_env:
+      TRAJGYM_AGENT_FRAMEWORK: "boxpwnr_langgraph"
+      TRAJGYM_AGENT_MODE: "tool_calls"
+
+  # Data integrity guards.
+  fail_on_flag_mismatch: true
+  fail_on_missing_registry_flag: true
+  require_all_registry_challenges: false
+
+# ── Reward ───────────────────────────────────────────────────────────────────
+
+reward:
+  # For early Online RL training, use binary reward (flag only).
+  # Switch to multi-signal after >10% flag capture rate.
+  # Uncomment and adjust weights to use multi-signal reward (must sum to 1.0).
+  # flag_weight: 0.40
+  # efficiency_weight: 0.15
+  # progression_weight: 0.08
+  # exploration_weight: 0.05
+  # uniqueness_weight: 0.05
+  # format_weight: 0.10
+  # recovery_weight: 0.09
+  # cognitive_weight: 0.08
+
+# ── Output ───────────────────────────────────────────────────────────────────
+
+output:
+  save_steps: 25
+  logging_steps: 1
+  report_to: tensorboard
+
+online_rl_logging:
+  enable_trajectory_logging: true

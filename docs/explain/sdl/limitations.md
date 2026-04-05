@@ -31,9 +31,26 @@ These are things that *should* be expressible in the SDL but aren't yet:
 | **Manual compensation APIs / advanced rollback patterns** | SDL workflows now support explicit automatic compensation targets, reverse-completion rollback ordering, and cancel/timeout/failure compensation observation, but not manual rollback triggers, nested compensation-of-compensation, or richer exception-style recovery surfaces | CACAO v2.0 workflow types, saga compensation patterns |
 | **Temporal operators** | STIX-style FOLLOWEDBY/WITHIN for time-ordered event assertions | STIX Patterning Language |
 | **Full solver-backed verification** | Global proof-style verification that attack paths are reachable and defenses are consistent is still future work; today the repo adopts lightweight semantic modeling, invariants, typed contracts, and selective property/state-machine methods instead | VSDL SMT solver, CRACK Datalog |
-| **Participant behavior semantics** | Rich role-neutral action, observation, state, and behavior models for red, blue, user, and autonomous participants remain future work beyond the current declarative agent framing | CybORG, Incalmo-class experiment systems |
+| **Full participant behavior surface** | The current `agents` section still under-expresses richer role-neutral behavior concerns such as tool/affordance declarations, control-context assets, decision-surface exposure policies, episode structure, and benchmark-oriented participant assets | CybORG, OpenRange, Open Trajectory Gym |
+| **Scenario-native observability and authored evidence requirements** | The ecosystem now treats in-world observability systems and authored “capture these data from these sources” requirements as first-class concerns, but the current SDL syntax does not yet surface the full required authoring model | OpenRange, OCSF-informed telemetry models |
 | **User behavior profiles** | Normal user activity patterns (browsing, email, file access schedules) | CybORG Green agents |
 | **Multi-tenancy** | Multiple independent exercises sharing infrastructure | Locked Shields team-per-subnet model |
+
+### Ecosystem-Layer Gaps (outside pure SDL syntax)
+
+Some of the newest requirement work is intentionally broader than SDL syntax
+alone. These concerns are now first-class ecosystem requirements, but they are
+not yet fully materialized as published contracts and implementations:
+
+- participant-implementation manifests for agents, policies, scripts, and
+  human-control proxies
+- participant-implementation provenance and exposure disclosure in run records
+- fully materialized evidence-capture, augmentation-disclosure, and
+  participant-exposure contract surfaces
+
+These are not examples of backend leakage into the SDL. They are ecosystem
+surfaces that sit alongside the SDL and must remain distinct from authored
+scenario meaning.
 
 ### Variable Resolution
 

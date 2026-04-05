@@ -1,0 +1,223 @@
+# Qwen3.5-27B Training Configuration (2x high-memory GPUs, 80GB+ each)
+# ==============================================================
+# Dense Qwen3.5 text model (27B params).
+# 2x high-memory GPUs (80GB+ each): GPU 0 vLLM FP8, GPU 1 FSDP2 trainer BF16.
+#
+# Key properties:
+#   - Dense model: BF16 LoRA on high-memory GPU (no quantization needed)
+#   - batch_size > 1 safe (no MoE routing NaN)
+#   - Online RL: non-colocated vLLM server mode with LoRA weight sync
+#   - ~51 GB BF16 inference (merged) / ~54 GB BF16 training weights
+#
+# Architecture: Qwen3_5ForConditionalGeneration (text-only path in Online RL/SFT)
+# Vocab: 248,320 (text config); tokenizer vocab is 248,044
+# Context: 262,144 max_position_embeddings
+# Tool calling: qwen3_coder format (XML-style tool calls)
+# Reasoning: <think> / </think> tags
+# Chat template: ChatML (<|im_start|> / <|im_end|>)
+
+model:
+  name: "Qwen/Qwen3.5-27B"
+  # 16K context for SFT: BF16 27B model + fla gated_delta_rule backward
+  # OOMs at 32K on dual GPU. 16K covers 65% of data directly; packing fills
+  # batches from shorter samples.
+  max_seq_length: 16384
+  # BF16 LoRA: 80GB+ GPU has sufficient VRAM — no need for 4-bit quantization.
+  load_in_4bit: false
+  load_in_8bit: false
+
+lora:
+  r: 64
+  alpha: 128
+  dropout: 0
+  # Standard Qwen3 target modules. Dense model: all FFN layers safe to target.
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  use_rslora: false
+
+sft:
+  epochs: 3
+  # batch_size=1: 248K vocab → logits tensor is ~7.6 GiB at batch=1 x 8K seq.
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  # Effective batch: 1 * 8 = 8
+  learning_rate: 2.0e-5
+  warmup_steps: 1
+  weight_decay: 0.01
+  lr_scheduler_type: cosine
+  # Packing: densely pack multiple short samples per batch.
+  # Reduces optimizer steps ~3x for faster training.
+  packing: true
+  # SDPA attention: FA2 causes illegal memory access during gradient
+  # checkpointing backward pass with multi-GPU device_map sharding on
+  # Qwen3.5. SDPA uses Flash SDP kernels internally on Hopper+ GPUs.
+  flash_attn: false
+  gradient_checkpointing: true
+
+online_rl:
+  epochs: 1
+  # Full CyBench coverage including master difficulty.
+  difficulty_max: "master"
+  batch_size: 1
+  # batch_size(1) * grad_accum(8) must be divisible by num_gen(8): 8 % 8 = 0
+  gradient_accumulation_steps: 8
+  # 5e-6 is stable with max_grad_norm=1.0. Higher (5e-5) caused grad_norm
+  # spikes to 27K on hard challenges and diverged on smaller models.
+  learning_rate: 5.0e-6
+  warmup_ratio: 0.05
+  beta: 0.0
+  loss_type: dapo
+  # More epochs per batch creates policy drift from old_log_probs, activating
+  # PPO clipping. With 1 epoch, ratio ≈ 1.0 always → no clipping.
+  update_epochs_per_batch: 2
+  # Sequence-level loss averaging preserves per-sequence RLOO contrast.
+  # Token-level averaging dilutes advantages across 7K-22K tokens.
+  loss_reduction: sequence_mean
+  # 8 generations for RLOO variance. On easy challenges most gens get identical
+  # rewards — 8 gens increases P(mixed solve/fail) per step.
+  num_generations: 8
+  advantage_estimator: rloo
+  # Per-turn generation cap. Most completions are <2K tokens.
+  # 6K prevents trainer OOM while preserving full solve trajectories.
+  # 4K truncates tool calls; 8K OOMs on long responses.
+  max_completion_length: 6144
+  # 20 turns max. 30+ turns can grow context to 67K tokens and OOM
+  # the trainer SDPA backward pass. Solved episodes average 10 turns.
+  max_tool_calling_iterations: 20
+  # Flat 20-turn horizon. Higher horizons OOM the trainer GPU.
+  horizon_schedule:
+    rounds: [20]
+    step_interval: 10
+  # Rollout statuses hard-masked (reward=0) so infra/parser failures
+  # do not contaminate policy gradients.
+  hard_mask_statuses:
+    - infra_unreachable
+    - target_mismatch
+    - parser_error
+    - tool_timeout
+  # Warmup curriculum: mask non-positive rollout rewards early so failed
+  # trajectories do not dominate updates before tool usage stabilizes.
+  positive_only_until_step: 120
+  positive_only_reward_floor: 0.0
+  max_samples_per_challenge: 1
+  # Include static challenges (file-based targets) for full coverage.
+  drop_static_challenges: false
+  drop_unresolved_registry_samples: true
+  target_port_offset: 0
+  target_host_override: null
+  # Optional per-challenge target map (JSON/YAML) for remote GPU servers
+  # where registry ports differ from externally reachable endpoints.
+  target_map_path: null
+  target_map_strict: false
+  # Use canonical registry target over stale in-prompt localhost URLs.
+  prefer_registry_target: true
+  fail_on_target_collisions: true
+  fail_on_flag_mismatch: true
+  fail_on_missing_registry_flag: true
+  require_all_registry_challenges: false
+  use_new_inference: true
+  allow_new_inference_for_qwen35: true
+  enable_prefix_caching: true
+  enable_chunked_prefill: true
+  enforce_eager: true
+  # Reduced from 32K to 24K to control trainer memory. Multi-turn context
+  # truncates early turns but recent context matters most for RL credit.
+  max_prompt_length: 24576
+  # 131K for vLLM KV cache (GPU 0 only). Qwen3.5 hybrid attention uses
+  # only 16/64 layers for KV → very efficient: 8 seqs x 131K ≈ 32 GB.
+  vllm_max_model_len: 131072
+  # Force text-only vLLM path for Qwen3.5 conditional-generation config.
+  vllm_language_model_only: true
+  vllm_attention_backend: "TRITON_ATTN"
+  max_grad_norm: 1.0
+  epsilon_high: 0.28
+  weight_decay: 0.1
+  scale_rewards: false
+  use_vllm: true
+  vllm_mode: server
+  vllm_server_url: null
+  gpu_memory_utilization: 0.85
+  max_num_seqs: 8
+  max_num_batched_tokens: 32768
+  # Disabled: overlong filter zeros loss_mask when custom template adds
+  # trailing \n (response[-1] != eos_token_id). Safe for retokenized multi-turn.
+  apply_overlong_filtering: false
+  max_env_workers: 8
+  flash_attn: false
+  use_sample_packing: false
+  # Qwen3.5 linear-attention blocks require flash-linear-attention + causal-conv1d.
+  require_fast_linear_attention: true
+  pytorch_cuda_alloc_conf: "expandable_segments:True"
+  generation_temperature: 0.7
+  generation_top_p: 0.90
+  generation_top_k: 0
+  generation_min_p: 0.0
+  tool_call_format: qwen3_coder
+  # SkyRL custom template with loss masking. Thinking stripped from history,
+  # preserved on final turn.
+  chat_template: "qwen3_without_thinking"
+  chat_template_kwargs:
+    enable_thinking: true
+  # Custom template does NOT have {% if tools %} block — tools injected
+  # via text into system message instead.
+  native_tool_schemas: false
+  zero_variance_filter: true
+  # DISABLED: crashes when ALL gens have same reward (zero variance).
+  # zero_variance_filter handles loss masking safely instead.
+  dynamic_sampling:
+    type: null
+    max_sample_batches: 10
+  step_wise_trajectories: false
+  allow_step_wise_with_custom_chat_template: false
+  agent_class: trajgym.agent.default_agent.DefaultStepAgent
+  agent_kwargs:
+    max_consecutive_no_tool_calls: 2
+    max_tool_response_chars: 2500
+    runtime_cmd: "python src/trajgym/agent/framework_runtime_bridge.py"
+    runtime_timeout_seconds: 20
+    runtime_passthrough: false
+    runtime_fallback_to_parser: false
+    runtime_env:
+      TRAJGYM_AGENT_FRAMEWORK: "boxpwnr_langgraph"
+      TRAJGYM_AGENT_MODE: "tool_calls"
+
+reward:
+  # Flag-dominant reward for stable RLOO gradients.
+  # Flag weight 0.85 maintains ~0.86 solve-fail gap.
+  # Efficiency creates within-group variance (prevents zero-variance crashes).
+  # Format rewards well-formed tool calls.
+  flag_weight: 0.85
+  efficiency_weight: 0.10
+  format_weight: 0.05
+  progression_weight: 0.0
+  exploration_weight: 0.0
+  uniqueness_weight: 0.0
+  recovery_weight: 0.0
+  cognitive_weight: 0.0
+  hallucination_penalty: 0.0
+  interaction_quality_weight: 0.0
+  noise_range: 0.0
+  exploration_gamma: 0.95
+  use_gdpo: false
+
+gepa:
+  budget: light
+  max_iters: 5
+  seed: 42
+  num_threads: 4
+  reflection_minibatch_size: 2
+  seed_prompt: null
+
+output:
+  save_steps: 25
+  logging_steps: 1
+  report_to: tensorboard
+
+online_rl_logging:
+  enable_trajectory_logging: true

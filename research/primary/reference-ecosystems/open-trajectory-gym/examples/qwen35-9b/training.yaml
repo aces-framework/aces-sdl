@@ -1,0 +1,170 @@
+# Qwen3.5-9B Training Configuration (2x high-memory GPUs, 80GB+ each)
+# ==============================================================
+# Dense Qwen3.5 text model (9B params, same hybrid GDN+attention as 27B).
+# 2x high-memory GPUs (80GB+ each): GPU 0 vLLM BF16, GPU 1 FSDP2 trainer BF16.
+#
+# Key advantages over 27B config:
+#   - 9B vs 27B: ~19 GB BF16 vs ~54 GB — 3x smaller footprint
+#   - ZERO truncation: 65K context covers 100% of SFT data (max ~61K tokens)
+#   - Double Online RL context: 131K vLLM / 65K prompt / 16K completion
+#   - Higher LoRA rank (r=128 vs r=64) — memory allows more expressivity
+#   - 6 Online RL generations (vs 4) — better RLOO variance signal
+#   - 100+ GB headroom per GPU for activations and KV cache
+#
+# Architecture: Qwen3_5ForConditionalGeneration (text-only path)
+#   32 layers: [3x Linear (Gated DeltaNet) + 1x Full Attention] x 8
+#   Hidden: 4096, Intermediate: 12288
+# Vocab: 248,320 | Context: 262,144 native
+# Tool calling: qwen3_coder XML | Reasoning: <think>/</think>
+
+model:
+  name: "Qwen/Qwen3.5-9B"
+  # 65K: covers 100% of SFT data with zero truncation.
+  # Requires Liger CE (chunked cross-entropy) — without it, logits are 60.5 GiB.
+  max_seq_length: 65536
+  load_in_4bit: false
+  load_in_8bit: false
+
+lora:
+  # r=128: double the 27B config's r=64. Memory headroom allows higher rank.
+  r: 128
+  alpha: 256
+  dropout: 0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  use_rslora: false
+
+sft:
+  epochs: 3
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 2.0e-5
+  warmup_steps: 1
+  weight_decay: 0.01
+  lr_scheduler_type: cosine
+  packing: true
+  # SDPA: FA2 crashes with gradient checkpointing on Qwen3.5 family.
+  flash_attn: false
+  gradient_checkpointing: true
+
+online_rl:
+  epochs: 1
+  difficulty_max: "master"
+  batch_size: 1
+  gradient_accumulation_steps: 6
+  learning_rate: 5.0e-6
+  warmup_ratio: 0.10
+  beta: 0.0
+  loss_type: dapo
+  # 6 generations for better RLOO variance than 27B's 4.
+  num_generations: 6
+  advantage_estimator: rloo
+  # All context doubled from 27B config.
+  max_completion_length: 16384
+  max_prompt_length: 65536
+  vllm_max_model_len: 131072
+  max_tool_calling_iterations: 60
+  horizon_schedule:
+    rounds: [20, 32, 48, 60]
+    step_interval: 4
+  hard_mask_statuses:
+    - infra_unreachable
+    - target_mismatch
+    - parser_error
+    - tool_timeout
+  positive_only_until_step: 120
+  positive_only_reward_floor: 0.0
+  max_samples_per_challenge: 1
+  drop_static_challenges: false
+  drop_unresolved_registry_samples: true
+  target_port_offset: 0
+  target_host_override: null
+  target_map_path: null
+  target_map_strict: false
+  prefer_registry_target: true
+  fail_on_target_collisions: true
+  fail_on_flag_mismatch: true
+  fail_on_missing_registry_flag: true
+  require_all_registry_challenges: false
+  use_new_inference: true
+  allow_new_inference_for_qwen35: true
+  enable_prefix_caching: false
+  enable_chunked_prefill: true
+  enforce_eager: true
+  vllm_language_model_only: true
+  vllm_attention_backend: "TRITON_ATTN"
+  max_grad_norm: 1.0
+  epsilon_high: 0.28
+  weight_decay: 0.1
+  scale_rewards: false
+  repetition_penalty: 1.0
+  generation_temperature: 0.70
+  generation_top_p: 0.95
+  generation_top_k: 20
+  generation_min_p: 0.0
+  generation_stop:
+    - "</tool_call>"
+    - "<|im_end|>"
+  use_vllm: true
+  vllm_mode: server
+  vllm_server_url: null
+  gpu_memory_utilization: 0.85
+  max_num_seqs: 8
+  max_num_batched_tokens: 65536
+  apply_overlong_filtering: false
+  max_env_workers: 40
+  flash_attn: false
+  use_sample_packing: false
+  require_fast_linear_attention: true
+  pytorch_cuda_alloc_conf: "expandable_segments:True"
+  tool_call_format: qwen3_coder
+  chat_template: "qwen3_without_thinking"
+  chat_template_kwargs:
+    enable_thinking: true
+  native_tool_schemas: false
+  zero_variance_filter: true
+  dynamic_sampling:
+    type: null
+    max_sample_batches: 10
+  step_wise_trajectories: false
+  allow_step_wise_with_custom_chat_template: false
+  agent_class: trajgym.agent.default_agent.DefaultStepAgent
+  agent_kwargs:
+    max_consecutive_no_tool_calls: 2
+    max_tool_response_chars: 2500
+    runtime_cmd: "python src/trajgym/agent/framework_runtime_bridge.py"
+    runtime_timeout_seconds: 20
+    runtime_passthrough: false
+    runtime_fallback_to_parser: false
+    runtime_env:
+      TRAJGYM_AGENT_FRAMEWORK: "boxpwnr_langgraph"
+      TRAJGYM_AGENT_MODE: "tool_calls"
+
+reward:
+  flag_weight: 0.85
+  efficiency_weight: 0.10
+  format_weight: 0.05
+  progression_weight: 0.0
+  exploration_weight: 0.0
+  uniqueness_weight: 0.0
+  recovery_weight: 0.0
+  cognitive_weight: 0.0
+  hallucination_penalty: 0.0
+  interaction_quality_weight: 0.0
+  noise_range: 0.0
+  exploration_gamma: 0.95
+  use_gdpo: false
+
+output:
+  save_steps: 25
+  logging_steps: 1
+  report_to: tensorboard
+
+online_rl_logging:
+  enable_trajectory_logging: true

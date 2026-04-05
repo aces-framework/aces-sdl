@@ -54,6 +54,23 @@ The 14 base sections start from the [OCR SDL](https://github.com/Open-Cyber-Rang
 | `Objective.agent/actions` | Agent identity + action space             | Objective actor binding and optional action subset validation |
 
 
+### From Newer Participant And Benchmark Ecosystems
+
+These sources inform the newer participant-, benchmark-, and exposure-related
+ecosystem surfaces. In many cases they are precedents for concerns the
+requirements now recognize even when the current SDL syntax does not yet expose
+the full shape directly.
+
+| Concern | Primary Sources | What We Adapted |
+| ------- | --------------- | --------------- |
+| Participant decision surfaces and role-scoped observations | OpenRange episode/runtime model | Participant-visible decision context is treated as a first-class concern distinct from hidden truth assets and internal apparatus state |
+| Control-context assets (instructions, directives, policies) | OpenRange prompt modes, agent-oriented benchmark/task systems | Execution-guiding context is modeled as a participant concern without binding the ecosystem to one prompting or policy framework |
+| Trajectories, replay assets, and demonstration corpora | OpenRange training data, Open Thoughts Agent, Open Trajectory Gym | Stepwise participant interaction records are first-class experiment artifacts rather than incidental logs |
+| Benchmark protocols, judges, verifiers, and rewards | OpenBench, Open Trajectory Gym, agent benchmark systems | Tasks, protocols, and evaluation components are treated as distinct experiment objects rather than hidden harness details |
+| Hidden truth assets and adjudication surfaces | OpenRange private references, benchmark hidden tests/gold standards | Public task statements are kept distinct from hidden benchmark assets and adjudication material |
+| Swappable participant implementations | Agent benchmark stacks, provider/model-selectable eval systems | Concrete agent/policy/script/human-control implementations are treated as apparatus surfaces distinct from SDL roles, processors, and backends |
+
+
 ### From CyRIS
 
 
@@ -107,6 +124,7 @@ surface.
 | Language-neutral backend boundary | Kubernetes API objects, Temporal payload/history model, OpenC2 abstract model + JSON serialization | Backends exchange plain-data, versioned workflow result envelopes rather than Python object identity |
 | Explicit compiled contract between definition and execution | Kubernetes versioned object schemas, Temporal workflow definition vs event-history separation | Compiler emits a dedicated `result_contract` instead of forcing the manager to infer semantics from incidental planner payloads |
 | Internal typed adapters behind a plain-data boundary | Temporal SDK data conversion, Kubernetes typed models over portable representations | Python typed workflow result models are internal normalization helpers, not the backend protocol |
+| Distinct apparatus declaration surfaces | OpenRange episode/runtime split, OpenBench model/provider configuration, benchmark registries | Processor, backend, and participant-implementation declaration surfaces remain distinct so the same scenario can be run under different apparatus honestly |
 
 
 ### From OCSF

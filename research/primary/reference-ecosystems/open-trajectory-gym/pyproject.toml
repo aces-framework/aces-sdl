@@ -1,0 +1,155 @@
+[project]
+name = "open-trajectory-gym"
+version = "0.1.0"
+description = "Open-source RL training gym for long-horizon tool-using agents: TRL SFT + SkyRL GRPO + GEPA"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Open Trajectory Gym Team"},
+]
+
+# Core dependencies — only what the CLI, data tools, reward, formatters,
+# and ToolExecutor need at the top level.
+# Heavy ML deps (transformers, torch, etc.) live in optional extras.
+dependencies = [
+    "pyyaml",
+    "pydantic>=2.0.0",
+    "jsonlines",
+]
+
+[project.optional-dependencies]
+# LoRA merge + GGUF export (trajgym-train merge, trajgym-export)
+# Qwen3.5-27B requires transformers>=5.2.0 for Qwen3_5ForConditionalGeneration.
+merge = [
+    "torch>=2.5.0",
+    "transformers>=5.2.0",
+    "peft>=0.15.0",
+    "accelerate>=1.4.0",
+]
+# Stage 1: TRL SFT
+sft = [
+    "trl>=0.28.0",
+    "torch>=2.5.0",
+    "transformers>=5.2.0",
+    "peft>=0.15.0",
+    "accelerate>=1.4.0",
+    "datasets>=3.0.0",
+    "bitsandbytes>=0.45.0",
+    "wandb",
+]
+# Stage 2: SkyRL GRPO (online RL)
+#
+# skyrl-train is NOT on PyPI. Install from our patched fork:
+#   git clone -b open-ctf/v0.3.1-patched https://github.com/westonbrown/SkyRL.git skyrl
+#   sed -i 's/requires-python = "==3.12\.\*"/requires-python = ">=3.11"/' \
+#       skyrl/skyrl-train/pyproject.toml
+#   uv pip install -e skyrl/skyrl-train --no-deps
+#
+# Version conflict: vLLM 0.16 pins transformers<5 and peft<0.19 pins an
+# eager HybridCache import. After installing, force the correct versions:
+#   uv pip install 'transformers>=5.2.0' 'huggingface-hub>=1.4' --no-deps
+# Then patch peft's HybridCache import (see docker/patches/apply_all_patches.sh).
+#
+# Qwen3.5 linear-attention: missing `fla`/`causal_conv1d` triggers torch
+# fallback kernels that cause illegal memory access crashes in online GRPO.
+grpo = [
+    "skyrl-gym>=0.1.0",
+    "vllm>=0.16.0",
+    "ray[default]>=2.40.0",
+    "torch>=2.5.0",
+    "transformers>=5.2.0",
+    # Required by transformers loss import path (object-detection loss module
+    # imports scipy.optimize.linear_sum_assignment at import time).
+    "scipy>=1.16.0",
+    # Qwen3.5 linear-attention fast path dependencies (module imports: fla, causal_conv1d)
+    # Pin known-good versions for SkyRL GRPO on CUDA 12.x hosts.
+    "flash-linear-attention==0.4.1; sys_platform == 'linux'",
+    "causal-conv1d==1.6.0; sys_platform == 'linux'",
+    "peft>=0.15.0",
+    "accelerate>=1.4.0",
+    "omegaconf",
+    "hydra-core",
+    "wandb",
+    "jmespath",
+]
+# Stage 2 alias: semantic name for online reinforcement learning.
+online-rl = [
+    "skyrl-gym>=0.1.0",
+    "vllm>=0.16.0",
+    "ray[default]>=2.40.0",
+    "torch>=2.5.0",
+    "transformers>=5.2.0",
+    "scipy>=1.16.0",
+    "flash-linear-attention==0.4.1; sys_platform == 'linux'",
+    "causal-conv1d==1.6.0; sys_platform == 'linux'",
+    "peft>=0.15.0",
+    "accelerate>=1.4.0",
+    "omegaconf",
+    "hydra-core",
+    "wandb",
+    "jmespath",
+]
+# Stage 3: GEPA prompt evolution
+gepa = [
+    "dspy>=3.1.0",
+    "gepa>=0.0.26",
+]
+# Agent runner (wraps BoxPwnr)
+agent = [
+    "litellm",
+]
+# Development and testing
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[project.scripts]
+trajgym-train = "trajgym.cli.train:main"
+trajgym-convert = "trajgym.cli.convert_traces:main"
+trajgym-split = "trajgym.cli.split_dataset:main"
+trajgym-agent = "trajgym.cli.run_agent:main"
+trajgym-eval = "trajgym.cli.evaluate:main"
+trajgym-validate = "trajgym.cli.validate_pipeline:main"
+trajgym-export = "trajgym.cli.export_gguf:main"
+trajgym-challenges = "trajgym.cli.challenges:main"
+trajgym-synthetic-data = "trajgym.cli.synthetic_data_generation:main"
+trajgym-trajectories = "trajgym.cli.trajectories:main"
+trajgym-generate-rl = "trajgym.cli.generate_online_rl:main"
+trajgym-target-map = "trajgym.cli.generate_target_map:main"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trajgym"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.uv]
+# Force transformers>=5.2.0 despite vLLM 0.16 pinning <5 and SkyRL pinning <5.
+# Qwen3.5 requires 5.2.0+ (Qwen3_5ForConditionalGeneration). Both vLLM and
+# SkyRL work fine at runtime with transformers 5.2.0 — the pins are overly
+# conservative. Same for huggingface-hub (transformers 5.2.0 needs >=1.4).
+override-dependencies = [
+    "transformers>=5.2.0",
+    "huggingface-hub>=1.4.0",
+]
+# Keep Qwen3.5 linear-attention deps at known-good minimums for Linux GRPO
+# envs, so fresh resolves don't silently downgrade below crash-fixed baseline.
+constraint-dependencies = [
+    "flash-linear-attention==0.4.1; sys_platform == 'linux'",
+    "causal-conv1d==1.6.0; sys_platform == 'linux'",
+]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["src"]
+norecursedirs = ["references", "benchmarks", "outputs", ".venv", "venv"]

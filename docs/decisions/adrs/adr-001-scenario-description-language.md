@@ -26,6 +26,12 @@ The SDL is a **specification language**, not a deployment tool. It describes
 *what a scenario is*. Backend implementations translate SDL specifications into
 concrete infrastructure and execution behavior.
 
+That boundary also applies to other apparatus surfaces. The SDL may describe
+participants, experiment intent, observability systems, and authored evidence
+requirements, but it does not make concrete participant implementations,
+processor choices, or backend realization details part of scenario meaning by
+default.
+
 ### Sections (21 total)
 
 14 OCR-derived base sections + 7 new:
@@ -81,6 +87,8 @@ None by design. The repository accepts SDL documents only:
 - The OCR-derived coverage gaps identified in review were closed: entity facts
   and orchestration time grammar now align with the verified OCR surface
 - One clear specification surface for backend/runtime work
+- One clear authored surface that can stay distinct from processor, backend,
+  and participant-implementation apparatus
 
 ### Negative
 
@@ -89,10 +97,14 @@ None by design. The repository accepts SDL documents only:
 - Non-SDL scenario YAMLs require migration to SDL format
 - No module composition system yet (Terraform-style imports)
 - No formal verification (VSDL's SMT / CRACK's Datalog)
-- Agent action semantics are strings, not typed operations
+- Agent/participant authoring remains thinner than the broader participant
+  architecture now recognized by the ecosystem requirements
 
 ### Risks
 
 - The SDL has so far been designed and tested within one primary implementation ecosystem. Practitioner feedback may reveal ergonomic issues or missing concepts
 - The relationship model uses a flat `properties` dict which could become a maintenance burden as relationship types proliferate
 - Variable resolution semantics are now repo-defined, but composition/import semantics still need a mature multi-file design
+- If the repository fails to keep authored participant intent distinct from
+  participant implementation and runtime apparatus, future agent-support work
+  could leak execution-stack concerns back into the SDL surface

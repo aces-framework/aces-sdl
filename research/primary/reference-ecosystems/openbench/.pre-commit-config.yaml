@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff
+        name: ruff check
+        args: [--fix]
+        files: ^src/
+      - id: ruff-format
+        name: ruff format
+        files: ^src/
+  - repo: local
+    hooks:
+      - id: sync-pyproject
+        name: sync packages/pyproject.toml
+        entry: bash scripts/run_sync_pyproject.sh
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: .venv/bin/mypy
+        language: system
+        types: [python]
+        args: [src]
+        pass_filenames: false
+        files: ^src/
+      - id: test-registry-imports
+        name: test registry imports
+        entry: .venv/bin/pytest
+        language: system
+        args: [tests/test_registry_imports.py, -v]
+        pass_filenames: false
+        files: ^(src/openbench/_registry\.py|pyproject\.toml)

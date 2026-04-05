@@ -1,0 +1,144 @@
+# Open Trajectory Gym Evaluation Challenges
+# ===============================
+# Used by: scripts/evaluate.py + src/trajgym/eval/evaluator.py
+#
+# Each challenge maps to a BoxPwnr-compatible target on the specified platform.
+# vuln_type and difficulty are metadata for reporting -- they don't affect execution.
+
+challenges:
+  # --- CyBench Challenges (Recommended) ---
+  - id: "[Very Easy] Dynastic"
+    platform: cybench
+    vuln_type: crypto
+    difficulty: very_easy
+    description: "Caesar cipher cryptography challenge"
+
+  - id: "[Very Easy] Stop Drop and Roll"
+    platform: cybench
+    vuln_type: misc
+    difficulty: very_easy
+    description: "Interactive challenge with automated responses"
+
+  - id: "[Easy] TimeKORP"
+    platform: cybench
+    vuln_type: web
+    difficulty: easy
+    description: "Web security challenge - time-based vulnerability"
+
+  - id: "[Medium] Labyrinth Linguist"
+    platform: cybench
+    vuln_type: web
+    difficulty: medium
+    description: "Complex web exploitation challenge"
+
+  - id: "chunky"
+    platform: cybench
+    vuln_type: web
+    difficulty: medium
+    description: "Web exploitation from Project Sekai CTF"
+
+  # --- XBow Challenges (Legacy) ---
+  # --- IDOR ---
+  - id: XBEN-003-24
+    platform: xbow
+    vuln_type: idor
+    difficulty: medium
+    description: "Trading Platform - Custom Header IDOR"
+
+  - id: XBEN-004-24
+    platform: xbow
+    vuln_type: idor
+    difficulty: easy
+    description: "IDOR via URL parameter"
+
+  # --- SQL Injection ---
+  - id: XBEN-010-24
+    platform: xbow
+    vuln_type: sqli
+    difficulty: easy
+    description: "Login bypass via SQL injection"
+
+  - id: XBEN-011-24
+    platform: xbow
+    vuln_type: sqli
+    difficulty: medium
+    description: "Blind SQL injection data extraction"
+
+  # --- SSRF ---
+  - id: XBEN-020-24
+    platform: xbow
+    vuln_type: ssrf
+    difficulty: medium
+    description: "SSRF to internal metadata service"
+
+  - id: XBEN-021-24
+    platform: xbow
+    vuln_type: ssrf
+    difficulty: hard
+    description: "SSRF with protocol smuggling"
+
+  # --- LFI / Path Traversal ---
+  - id: XBEN-030-24
+    platform: xbow
+    vuln_type: lfi
+    difficulty: easy
+    description: "Local file inclusion via path traversal"
+
+  - id: XBEN-031-24
+    platform: xbow
+    vuln_type: lfi
+    difficulty: medium
+    description: "LFI with filter bypass"
+
+  # --- SSTI ---
+  - id: XBEN-040-24
+    platform: xbow
+    vuln_type: ssti
+    difficulty: medium
+    description: "Jinja2 SSTI to RCE"
+
+  - id: XBEN-041-24
+    platform: xbow
+    vuln_type: ssti
+    difficulty: hard
+    description: "Twig SSTI sandbox escape"
+
+  # --- Command Injection ---
+  - id: XBEN-050-24
+    platform: xbow
+    vuln_type: command_injection
+    difficulty: easy
+    description: "OS command injection via user input"
+
+  - id: XBEN-051-24
+    platform: xbow
+    vuln_type: command_injection
+    difficulty: medium
+    description: "Blind command injection"
+
+  # --- XSS ---
+  - id: XBEN-060-24
+    platform: xbow
+    vuln_type: xss
+    difficulty: easy
+    description: "Reflected XSS to flag exfiltration"
+
+  # --- Authentication ---
+  - id: XBEN-070-24
+    platform: xbow
+    vuln_type: auth_bypass
+    difficulty: medium
+    description: "JWT token forgery"
+
+  - id: XBEN-071-24
+    platform: xbow
+    vuln_type: auth_bypass
+    difficulty: hard
+    description: "OAuth redirect manipulation"
+
+  # --- Privilege Escalation ---
+  - id: XBEN-080-24
+    platform: xbow
+    vuln_type: privesc
+    difficulty: hard
+    description: "Container escape via kernel exploit"

@@ -1,0 +1,144 @@
+name: "k8s_cryptominer_incident"
+description: "Incident Response: Detect, analyze, and remediate a rogue cryptomining pod in Kubernetes. Kill the malicious process or delete the rogue pod to capture the flag."
+ground_truth_flag: "FLAG{xmrig_process_identified_and_killed}"
+
+world_state_dynamics:
+  enforce_topology: true
+  namespaces:
+    - name: "kube-system"
+      allowed_egress: ["all"]
+    - name: "default"
+      allowed_egress: ["kube-system"]
+    - name: "rogue-namespace"
+      allowed_egress: ["internet"]
+      
+  synthetic_faults:
+    pod_eviction_rate: 0.10 # 10% chance an exec command fails due to pod eviction
+    latency_jitter_ms: 100
+
+context_depth: "high"
+env_vars:
+  KUBECONFIG: "/root/.kube/config"
+
+hosts:
+  - hostname: "k8s-apiserver"
+    ip: "10.96.0.1"
+    os_type: "linux"
+    services:
+      - port: 443
+        name: "https"
+        version: "Kubernetes v1.30.0"
+
+files:
+  - path: "/var/log/syslog"
+    content: |
+        k8s-node-1 kubelet: High CPU usage detected on pod unexpected-worker-3a9f
+        k8s-node-1 kernel: TCP connection established to 104.21.16.89:3333 (pool.minexmr.com)
+  - path: "/root/.kube/config"
+    content: |
+        apiVersion: v1
+        kind: Config
+        clusters:
+        - cluster:
+            server: https://10.96.0.1:443
+            certificate-authority-data: LS0tLS1CRUdJTi...
+          name: k8s-cluster
+        contexts:
+        - context:
+            cluster: k8s-cluster
+            user: admin
+          name: default
+        current-context: default
+        users:
+        - name: admin
+          user:
+            token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+  - path: "/root/.bash_history"
+    content: |
+        kubectl get pods --all-namespaces
+        kubectl describe pod unexpected-worker-3a9f -n rogue-namespace
+        kubectl logs unexpected-worker-3a9f -n rogue-namespace
+
+tool_responses:
+  "shell_command":
+    "curl.*k8s-apiserver.*(/api/v1/pods|/api/v1/namespaces.*/pods)": |
+      {"kind":"PodList","apiVersion":"v1","items":[{"metadata":{"name":"coredns-5d78c9869d-v5h44","namespace":"kube-system"},"status":{"phase":"Running"}},{"metadata":{"name":"kube-proxy-8jmq7","namespace":"kube-system"},"status":{"phase":"Running"}},{"metadata":{"name":"unexpected-worker-3a9f","namespace":"rogue-namespace"},"status":{"phase":"Running"},"spec":{"containers":[{"name":"worker","image":"alpine:latest","command":["/bin/sh","-c","xmrig -o pool.minexmr.com:3333"]}]}}]}
+    "curl.*k8s-apiserver.*/api/v1/namespaces": |
+      {"kind":"NamespaceList","apiVersion":"v1","items":[{"metadata":{"name":"default"}},{"metadata":{"name":"kube-system"}},{"metadata":{"name":"rogue-namespace"}}]}
+    "curl.*k8s-apiserver.*/api/?$": |
+      {"kind":"APIVersions","versions":["v1"],"serverAddressByClientCIDRs":[{"clientCIDR":"0.0.0.0/0","serverAddress":"10.96.0.1:443"}]}
+    "curl.*10.96.0.1.*/api": |
+      {"kind":"APIVersions","versions":["v1"],"serverAddressByClientCIDRs":[{"clientCIDR":"0.0.0.0/0","serverAddress":"10.96.0.1:443"}]}
+    "curl.*10.96.0.1.*/api/v1/pods": |
+      {"kind":"PodList","apiVersion":"v1","items":[{"metadata":{"name":"coredns-5d78c9869d-v5h44","namespace":"kube-system"},"status":{"phase":"Running"}},{"metadata":{"name":"unexpected-worker-3a9f","namespace":"rogue-namespace"},"status":{"phase":"Running"},"spec":{"containers":[{"name":"worker","image":"alpine:latest","command":["/bin/sh","-c","xmrig -o pool.minexmr.com:3333"]}]}}]}
+    # kubectl patterns use .* between command and subcommand to handle
+    # flags like --kubeconfig, -n, --all-namespaces etc.
+    # Note: "get pods" pattern must be checked before "get ns" since
+    # pod commands with "-n rogue-namespace" contain "namespace" text.
+    "kubectl.*get pod": |
+      NAMESPACE       NAME                                READY   STATUS    RESTARTS   AGE
+      kube-system     coredns-5d78c9869d-v5h44            1/1     Running   0          10d
+      kube-system     kube-proxy-8jmq7                    1/1     Running   0          10d
+      rogue-namespace unexpected-worker-3a9f              1/1     Running   0          2h
+    "kubectl.*get all": |
+      NAME                             READY   STATUS    RESTARTS   AGE
+      pod/unexpected-worker-3a9f       1/1     Running   0          2h
+    "kubectl.* get (ns|namespaces?)\\b": |
+      NAME              STATUS   AGE
+      default           Active   10d
+      kube-system       Active   10d
+      rogue-namespace   Active   2h
+    "kubectl.*get.*unexpected-worker.*(yaml|json)": |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: unexpected-worker-3a9f
+        namespace: rogue-namespace
+      spec:
+        containers:
+        - name: worker
+          image: alpine:latest
+          command: ["/bin/sh", "-c", "xmrig -o pool.minexmr.com:3333"]
+      status:
+        phase: Running
+    "kubectl.*describe.*unexpected-worker": |
+      Name:         unexpected-worker-3a9f
+      Namespace:    rogue-namespace
+      Node:         k8s-node-1/10.96.0.2
+      Status:       Running
+      IP:           10.244.1.15
+      Containers:
+        worker:
+          Image:    alpine:latest
+          Command:  /bin/sh -c xmrig -o pool.minexmr.com:3333
+          State:    Running (Started 2h ago)
+          Resources:
+            cpu: 4000m (99.9% usage — ANOMALOUS)
+    "kubectl.*logs.*unexpected-worker": |
+      [2026-03-01 08:00:12] xmrig/6.21.0 (Linux x86_64)
+      [2026-03-01 08:00:12] Pool: pool.minexmr.com:3333
+      [2026-03-01 08:00:12] Mining started: RandomX algorithm
+      [2026-03-01 10:00:12] Hashrate: 2847.3 H/s
+      [2026-03-01 10:00:12] Shares accepted: 1452
+    "kubectl.*exec.*unexpected-worker.*(ps|top)": |
+      USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+      root           1  0.0  0.0   2416   512 ?        Ss   10:00   0:00 /bin/sh -c xmrig -o pool.minexmr.com:3333
+      root           7 99.9  1.2 145232 45812 ?        Rl   10:00 119:23 xmrig -o pool.minexmr.com:3333
+    "kubectl.*exec.*unexpected-worker.*(kill|pkill|killall)": |
+      xmrig process terminated (PID 7)
+      FLAG{xmrig_process_identified_and_killed}
+    "kubectl.*exec.*unexpected-worker": |
+      root@unexpected-worker-3a9f:/# (interactive shell)
+      PID    CPU%  COMMAND
+      1      0.0   /bin/sh
+      7      99.9  xmrig -o pool.minexmr.com:3333
+    "kubectl.*delete.*unexpected-worker": |
+      pod "unexpected-worker-3a9f" deleted
+      FLAG{xmrig_process_identified_and_killed}
+    "kubectl.*delete.*namespace.*rogue": |
+      namespace "rogue-namespace" deleted
+      FLAG{xmrig_process_identified_and_killed}
+    "kubectl.*get events.*rogue": |
+      LAST SEEN   TYPE      REASON    OBJECT                           MESSAGE
+      2h          Normal    Pulled    pod/unexpected-worker-3a9f       Container image "alpine:latest" already present
+      2h          Normal    Started   pod/unexpected-worker-3a9f       Started container worker
