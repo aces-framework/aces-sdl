@@ -13,13 +13,13 @@ This directory holds the formal artifacts for portable runtime result contracts.
 
 ## Implementation Mapping
 
-- shared result constraints: `src/aces/core/semantics/workflow.py`
-- typed result models: `src/aces/core/runtime/models.py`
-- manager contract validation: `src/aces/core/runtime/manager.py`
-- backend example: `src/aces/backends/stubs.py`
+- shared result constraints: `implementations/python/packages/aces_processor/semantics/workflow.py`
+- typed result models: `implementations/python/packages/aces_processor/models.py`
+- manager contract validation: `implementations/python/packages/aces_processor/manager.py`
+- backend example: `implementations/python/packages/aces_backend_stubs/stubs.py`
 
 ## Tests
 
-- `tests/test_runtime_manager.py`
-- `tests/test_runtime_models.py`
-- `tests/test_runtime_contracts.py`
+- `implementations/python/tests/test_runtime_manager.py`
+- `implementations/python/tests/test_runtime_models.py`
+- `implementations/python/tests/test_runtime_contracts.py`

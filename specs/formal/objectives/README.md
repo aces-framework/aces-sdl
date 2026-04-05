@@ -15,15 +15,15 @@ semantics.
 
 ## Implementation Mapping
 
-- shared helpers: `src/aces/core/semantics/objectives.py`
-- semantic validation: `src/aces/core/sdl/validator.py`
+- shared helpers: `implementations/python/packages/aces_processor/semantics/objectives.py`
+- semantic validation: `implementations/python/packages/aces_sdl/validator.py`
 - compiled runtime diagnostics and dependency derivation:
-  - `src/aces/core/runtime/compiler.py`
-  - `src/aces/core/runtime/models.py`
+  - `implementations/python/packages/aces_processor/compiler.py`
+  - `implementations/python/packages/aces_processor/models.py`
 
 ## Tests
 
-- `tests/test_semantics_objectives.py`
-- `tests/test_fm2_semantics.py`
-- `tests/test_sdl_validator.py`
-- `tests/test_runtime_models.py`
+- `implementations/python/tests/test_semantics_objectives.py`
+- `implementations/python/tests/test_fm2_semantics.py`
+- `implementations/python/tests/test_sdl_validator.py`
+- `implementations/python/tests/test_runtime_models.py`
