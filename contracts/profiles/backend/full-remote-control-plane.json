@@ -1,7 +1,7 @@
 {
   "profile": "full-remote-control-plane",
   "required_contracts": [
-    "backend-manifest-v1",
+    "backend-manifest-v2",
     "provisioning-plan-v1",
     "orchestration-plan-v1",
     "evaluation-plan-v1",

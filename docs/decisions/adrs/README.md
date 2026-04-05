@@ -37,3 +37,4 @@ Each ADR includes:
 | [009](adr-009-normative-artifact-authority-and-repository-structure.md) | Normative Artifact Authority and Repository Structure | accepted | 2026-04-04 |
 | [010](adr-010-repository-realignment-order-and-compatibility-policy.md) | Repository Realignment Order and Compatibility Policy | accepted | 2026-04-04 |
 | [011](adr-011-narrow-end-to-end-mvp-validation.md) | Narrow End-to-End MVP Validation | accepted | 2026-04-04 |
+| [012](adr-012-shared-concept-authority-and-aces-extension-discipline.md) | Shared Concept Authority and ACES Extension Discipline | accepted | 2026-04-05 |

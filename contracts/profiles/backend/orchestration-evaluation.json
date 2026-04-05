@@ -1,7 +1,7 @@
 {
   "profile": "orchestration-evaluation",
   "required_contracts": [
-    "backend-manifest-v1",
+    "backend-manifest-v2",
     "operation-receipt-v1",
     "operation-status-v1",
     "runtime-snapshot-v1",

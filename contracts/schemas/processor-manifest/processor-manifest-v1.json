@@ -20,8 +20,10 @@
   "properties": {
     "compatible_backends": {
       "items": {
+        "minLength": 1,
         "type": "string"
       },
+      "minItems": 1,
       "title": "Compatible Backends",
       "type": "array"
     },
@@ -33,6 +35,7 @@
       "type": "object"
     },
     "name": {
+      "minLength": 1,
       "title": "Name",
       "type": "string"
     },
@@ -44,8 +47,10 @@
     },
     "supported_contract_versions": {
       "items": {
+        "minLength": 1,
         "type": "string"
       },
+      "minItems": 1,
       "title": "Supported Contract Versions",
       "type": "array"
     },
@@ -53,24 +58,32 @@
       "items": {
         "$ref": "#/$defs/ProcessorFeature"
       },
+      "minItems": 1,
       "title": "Supported Features",
       "type": "array"
     },
     "supported_sdl_versions": {
       "items": {
+        "minLength": 1,
         "type": "string"
       },
+      "minItems": 1,
       "title": "Supported Sdl Versions",
       "type": "array"
     },
     "version": {
+      "minLength": 1,
       "title": "Version",
       "type": "string"
     }
   },
   "required": [
     "name",
-    "version"
+    "version",
+    "supported_sdl_versions",
+    "supported_contract_versions",
+    "supported_features",
+    "compatible_backends"
   ],
   "title": "ProcessorManifestModel",
   "type": "object"
