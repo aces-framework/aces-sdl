@@ -236,6 +236,21 @@ Both the backend and processor manifest surfaces now also carry explicit
 required disclosures visible in the machine-readable apparatus boundary rather
 than leaving them implied by docs or implementation code.
 
+The shared manifest envelope is now enforced as a concrete declaration surface,
+not just a shape:
+
+- `compatibility` must name at least one compatible processor, backend, or
+  participant implementation
+- every `realization_support` declaration must name non-empty disclosure kinds
+  and at least one supported exact or constraint kind
+- processor capability blocks must declare non-empty SDL and feature support
+- backend capability blocks must declare concrete provisioning and orchestration
+  support, not empty concern shells
+
+The reference backend, reference processor, and backend conformance profiles use
+the shared `v2` apparatus manifests. Legacy `v1` manifest schemas remain in the
+repo as deprecated reference artifacts, not as the current conformance target.
+
 Capability validation now operates on concrete instantiated values rather than
 placeholder domains guessed by backends. This removes the old “defer until
 instantiation” gap for runtime-relevant fields such as `nodes.os` and

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from aces_backend_protocols.capabilities import BackendManifest, ProvisionerCapabilities
 from aces_backend_protocols.manifest import backend_manifest_payload
 from aces_backend_stubs.stubs import create_stub_manifest
 from aces_contracts.contracts import BackendManifestModel, BackendManifestV2Model
@@ -48,6 +49,27 @@ def test_backend_workflow_vocab_enum_values():
         "outcome-matching",
         "attempt-counts",
     }
+
+
+def test_backend_manifest_rejects_hollow_defaults():
+    with pytest.raises(ValueError):
+        BackendManifest(
+            name="stub",
+            provisioner=ProvisionerCapabilities(
+                name="stub-provisioner",
+                supported_node_types=frozenset({"vm"}),
+                supported_os_families=frozenset({"linux"}),
+            ),
+        )
+
+
+def test_provisioner_capabilities_reject_hollow_declaration():
+    with pytest.raises(ValueError):
+        ProvisionerCapabilities(
+            name="stub-provisioner",
+            supported_node_types=frozenset(),
+            supported_os_families=frozenset({"linux"}),
+        )
 
 
 def test_backend_manifest_v1_roundtrip_from_stub_manifest():
@@ -98,6 +120,96 @@ def test_backend_manifest_v2_roundtrip_from_stub_manifest():
     ]
     assert model.realization_support[0].support_mode.value == "constrained"
     assert model.model_dump(mode="json") == payload
+
+
+def test_backend_manifest_v2_requires_manifest_sections():
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model(
+            identity={"name": "stub", "version": "0.0.1"},
+            capabilities={
+                "provisioner": {
+                    "name": "stub-provisioner",
+                }
+            },
+        )
+
+
+def test_backend_manifest_v2_rejects_empty_compatibility():
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(
+            {
+                "schema_version": "backend-manifest/v2",
+                "identity": {"name": "stub", "version": "0.0.1"},
+                "supported_contract_versions": ["backend-manifest-v2"],
+                "compatibility": {},
+                "realization_support": [
+                    {
+                        "domain": "runtime-realization",
+                        "support_mode": "constrained",
+                        "supported_constraint_kinds": ["node-type"],
+                        "disclosure_kinds": ["runtime-snapshot-v1"],
+                    }
+                ],
+                "capabilities": {
+                    "provisioner": {
+                        "name": "stub-provisioner",
+                        "supported_node_types": ["vm"],
+                        "supported_os_families": ["linux"],
+                    }
+                },
+            }
+        )
+
+
+def test_backend_manifest_v2_rejects_hollow_realization_support():
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(
+            {
+                "schema_version": "backend-manifest/v2",
+                "identity": {"name": "stub", "version": "0.0.1"},
+                "supported_contract_versions": ["backend-manifest-v2"],
+                "compatibility": {"processors": ["aces-reference-processor"]},
+                "realization_support": [
+                    {
+                        "domain": "runtime-realization",
+                        "support_mode": "constrained",
+                        "disclosure_kinds": [],
+                    }
+                ],
+                "capabilities": {
+                    "provisioner": {
+                        "name": "stub-provisioner",
+                        "supported_node_types": ["vm"],
+                        "supported_os_families": ["linux"],
+                    }
+                },
+            }
+        )
+
+
+def test_backend_manifest_v2_rejects_hollow_capability_blocks():
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(
+            {
+                "schema_version": "backend-manifest/v2",
+                "identity": {"name": "stub", "version": "0.0.1"},
+                "supported_contract_versions": ["backend-manifest-v2"],
+                "compatibility": {"processors": ["aces-reference-processor"]},
+                "realization_support": [
+                    {
+                        "domain": "runtime-realization",
+                        "support_mode": "constrained",
+                        "supported_constraint_kinds": ["node-type"],
+                        "disclosure_kinds": ["runtime-snapshot-v1"],
+                    }
+                ],
+                "capabilities": {
+                    "provisioner": {
+                        "name": "stub-provisioner",
+                    }
+                },
+            }
+        )
 
 
 def test_reference_backend_v1_fixture_matches_emitted_manifest():

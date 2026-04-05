@@ -2,6 +2,34 @@
   "$defs": {
     "EvaluatorCapabilitiesModel": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "not": {
+            "allOf": [
+              {
+                "properties": {
+                  "supports_scoring": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "supports_scoring"
+                ]
+              },
+              {
+                "properties": {
+                  "supports_objectives": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "supports_objectives"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "properties": {
         "constraints": {
           "additionalProperties": {
@@ -11,13 +39,16 @@
           "type": "object"
         },
         "name": {
+          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
         "supported_sections": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
+          "minItems": 1,
           "title": "Supported Sections",
           "type": "array"
         },
@@ -33,13 +64,73 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "supported_sections"
       ],
       "title": "EvaluatorCapabilitiesModel",
       "type": "object"
     },
     "OrchestratorCapabilitiesModel": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supports_workflows": {
+                "const": true
+              }
+            },
+            "required": [
+              "supports_workflows"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_sections": {
+                "contains": {
+                  "const": "workflows"
+                }
+              },
+              "supported_workflow_features": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_workflow_features",
+              "supported_sections"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_workflows": {
+                "const": false
+              }
+            },
+            "required": [
+              "supports_workflows"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_sections": {
+                "not": {
+                  "contains": {
+                    "const": "workflows"
+                  }
+                }
+              },
+              "supported_workflow_features": {
+                "maxItems": 0
+              },
+              "supported_workflow_state_predicates": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "constraints": {
           "additionalProperties": {
@@ -49,13 +140,16 @@
           "type": "object"
         },
         "name": {
+          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
         "supported_sections": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
+          "minItems": 1,
           "title": "Supported Sections",
           "type": "array"
         },
@@ -90,13 +184,57 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "supported_sections"
       ],
       "title": "OrchestratorCapabilitiesModel",
       "type": "object"
     },
     "ProvisionerCapabilitiesModel": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supports_accounts": {
+                "const": true
+              }
+            },
+            "required": [
+              "supports_accounts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_account_features": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_account_features"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_accounts": {
+                "const": false
+              }
+            },
+            "required": [
+              "supports_accounts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_account_features": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "constraints": {
           "additionalProperties": {
@@ -108,6 +246,7 @@
         "max_total_nodes": {
           "anyOf": [
             {
+              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
@@ -118,11 +257,13 @@
           "title": "Max Total Nodes"
         },
         "name": {
+          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
         "supported_account_features": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
           "title": "Supported Account Features",
@@ -130,6 +271,7 @@
         },
         "supported_content_types": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
           "title": "Supported Content Types",
@@ -137,15 +279,19 @@
         },
         "supported_node_types": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
+          "minItems": 1,
           "title": "Supported Node Types",
           "type": "array"
         },
         "supported_os_families": {
           "items": {
+            "minLength": 1,
             "type": "string"
           },
+          "minItems": 1,
           "title": "Supported Os Families",
           "type": "array"
         },
@@ -161,7 +307,9 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "supported_node_types",
+        "supported_os_families"
       ],
       "title": "ProvisionerCapabilitiesModel",
       "type": "object"
@@ -206,6 +354,7 @@
       "default": null
     },
     "name": {
+      "minLength": 1,
       "title": "Name",
       "type": "string"
     },
