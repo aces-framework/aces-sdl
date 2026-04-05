@@ -42,18 +42,17 @@ class ObjectiveSuccess(SDLModel):
 
     @model_validator(mode="after")
     def validate_non_empty(self) -> "ObjectiveSuccess":
-        if any((
-            self.conditions,
-            self.metrics,
-            self.evaluations,
-            self.tlos,
-            self.goals,
-        )):
+        if any(
+            (
+                self.conditions,
+                self.metrics,
+                self.evaluations,
+                self.tlos,
+                self.goals,
+            )
+        ):
             return self
-        raise ValueError(
-            "Objective success must reference at least one condition, "
-            "metric, evaluation, TLO, or goal"
-        )
+        raise ValueError("Objective success must reference at least one condition, metric, evaluation, TLO, or goal")
 
 
 class ObjectiveWindow(SDLModel):
@@ -84,7 +83,5 @@ class Objective(SDLModel):
         has_agent = bool(self.agent)
         has_entity = bool(self.entity)
         if has_agent == has_entity:
-            raise ValueError(
-                "Objective must declare exactly one of 'agent' or 'entity'"
-            )
+            raise ValueError("Objective must declare exactly one of 'agent' or 'entity'")
         return self

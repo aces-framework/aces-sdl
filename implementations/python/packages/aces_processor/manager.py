@@ -3,6 +3,9 @@
 from collections.abc import Iterable
 from datetime import UTC, datetime
 
+from aces_sdl.instantiate import instantiate_scenario
+from aces_sdl.scenario import InstantiatedScenario, Scenario
+
 from .compiler import compile_runtime_model
 from .models import (
     ApplyResult,
@@ -15,8 +18,8 @@ from .models import (
     EvaluationResultContract,
     EvaluationResultStatus,
     ExecutionPlan,
-    ProvisionOp,
     ProvisioningPlan,
+    ProvisionOp,
     RuntimeDomain,
     RuntimeSnapshot,
     SnapshotEntry,
@@ -33,17 +36,10 @@ from .planner import plan
 from .registry import RuntimeTarget, _validate_runtime_target_shape
 from .semantics.planner import reverse_delete_order
 from .semantics.workflow import validate_workflow_step_result
-from aces_sdl.instantiate import instantiate_scenario
-from aces_sdl.scenario import InstantiatedScenario, Scenario
 
 
 def _delete_order(entries: dict[str, SnapshotEntry]) -> list[str]:
-    return reverse_delete_order(
-        {
-            address: entry.ordering_dependencies
-            for address, entry in entries.items()
-        }
-    )
+    return reverse_delete_order({address: entry.ordering_dependencies for address, entry in entries.items()})
 
 
 def _has_error_diagnostic(diagnostics: list[Diagnostic]) -> bool:
@@ -80,10 +76,7 @@ def _call_backend_diagnostics(
             _failure_diagnostic(
                 "runtime.backend-call-failed",
                 address,
-                (
-                    f"Backend method '{address}' raised "
-                    f"{type(exc).__name__}: {exc}."
-                ),
+                (f"Backend method '{address}' raised {type(exc).__name__}: {exc}."),
             )
         ]
 
@@ -92,10 +85,7 @@ def _call_backend_diagnostics(
             _failure_diagnostic(
                 "runtime.backend-contract-invalid",
                 address,
-                (
-                    f"Backend method '{address}' returned "
-                    f"{type(result).__name__}; expected diagnostics iterable."
-                ),
+                (f"Backend method '{address}' returned {type(result).__name__}; expected diagnostics iterable."),
             )
         ]
 
@@ -105,10 +95,7 @@ def _call_backend_diagnostics(
             _failure_diagnostic(
                 "runtime.backend-contract-invalid",
                 address,
-                (
-                    f"Backend method '{address}' returned a diagnostics iterable "
-                    "containing non-Diagnostic values."
-                ),
+                (f"Backend method '{address}' returned a diagnostics iterable containing non-Diagnostic values."),
             )
         ]
 
@@ -131,10 +118,7 @@ def _call_backend_apply(
                 _failure_diagnostic(
                     "runtime.backend-call-failed",
                     address,
-                    (
-                        f"Backend method '{address}' raised "
-                        f"{type(exc).__name__}: {exc}."
-                    ),
+                    (f"Backend method '{address}' raised {type(exc).__name__}: {exc}."),
                 )
             ],
         )
@@ -147,10 +131,7 @@ def _call_backend_apply(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     address,
-                    (
-                        f"Backend method '{address}' returned "
-                        f"{type(result).__name__}; expected ApplyResult."
-                    ),
+                    (f"Backend method '{address}' returned {type(result).__name__}; expected ApplyResult."),
                 )
             ],
         )
@@ -171,10 +152,7 @@ def _call_backend_apply(
             ],
         )
 
-    if (
-        not isinstance(result.diagnostics, Iterable)
-        or isinstance(result.diagnostics, (str, bytes))
-    ):
+    if not isinstance(result.diagnostics, Iterable) or isinstance(result.diagnostics, (str, bytes)):
         return ApplyResult(
             success=False,
             snapshot=snapshot,
@@ -198,10 +176,7 @@ def _call_backend_apply(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     address,
-                    (
-                        f"Backend method '{address}' returned ApplyResult.diagnostics "
-                        "containing non-Diagnostic values."
-                    ),
+                    (f"Backend method '{address}' returned ApplyResult.diagnostics containing non-Diagnostic values."),
                 )
             ],
         )
@@ -261,9 +236,7 @@ def _call_backend_apply(
             snapshot=snapshot,
             diagnostics=workflow_result_diagnostics,
         )
-    evaluation_result_diagnostics = _evaluation_result_contract_diagnostics(
-        result.snapshot
-    )
+    evaluation_result_diagnostics = _evaluation_result_contract_diagnostics(result.snapshot)
     if evaluation_result_diagnostics:
         return ApplyResult(
             success=False,
@@ -297,8 +270,7 @@ def _workflow_result_contract_diagnostics(
     workflow_entries = {
         address: entry
         for address, entry in snapshot.entries.items()
-        if entry.domain == RuntimeDomain.ORCHESTRATION
-        and entry.resource_type == "workflow"
+        if entry.domain == RuntimeDomain.ORCHESTRATION and entry.resource_type == "workflow"
     }
 
     for workflow_address, workflow_result in snapshot.orchestration_results.items():
@@ -316,10 +288,7 @@ def _workflow_result_contract_diagnostics(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     workflow_address,
-                    (
-                        "Workflow orchestration results must use "
-                        "plain-data mapping values."
-                    ),
+                    ("Workflow orchestration results must use plain-data mapping values."),
                 )
             )
             continue
@@ -330,21 +299,14 @@ def _workflow_result_contract_diagnostics(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     workflow_address,
-                    (
-                        "Workflow orchestration results must correspond to a "
-                        "workflow entry in the runtime snapshot."
-                    ),
+                    ("Workflow orchestration results must correspond to a workflow entry in the runtime snapshot."),
                 )
             )
             continue
 
         payload = workflow_entry.payload
-        result_contract_payload = (
-            payload.get("result_contract") if isinstance(payload, dict) else None
-        )
-        execution_contract_payload = (
-            payload.get("execution_contract") if isinstance(payload, dict) else None
-        )
+        result_contract_payload = payload.get("result_contract") if isinstance(payload, dict) else None
+        execution_contract_payload = payload.get("execution_contract") if isinstance(payload, dict) else None
         if not isinstance(result_contract_payload, dict):
             diagnostics.append(
                 _failure_diagnostic(
@@ -365,9 +327,7 @@ def _workflow_result_contract_diagnostics(
             continue
 
         try:
-            result_contract = WorkflowResultContract.from_mapping(
-                result_contract_payload
-            )
+            result_contract = WorkflowResultContract.from_mapping(result_contract_payload)
         except (TypeError, ValueError) as exc:
             diagnostics.append(
                 _failure_diagnostic(
@@ -378,9 +338,7 @@ def _workflow_result_contract_diagnostics(
             )
             continue
         try:
-            execution_contract = WorkflowExecutionContract.from_mapping(
-                execution_contract_payload
-            )
+            execution_contract = WorkflowExecutionContract.from_mapping(execution_contract_payload)
         except (TypeError, ValueError) as exc:
             diagnostics.append(
                 _failure_diagnostic(
@@ -479,17 +437,14 @@ def _workflow_result_contract_diagnostics(
             for step_name, workflow_address_target in execution_contract.compensation_targets.items()
             if workflow_address_target
             and step_name in normalized_result.steps
-            and normalized_result.steps[step_name].lifecycle
-            == normalized_result.steps[step_name].lifecycle.COMPLETED
+            and normalized_result.steps[step_name].lifecycle == normalized_result.steps[step_name].lifecycle.COMPLETED
             and normalized_result.steps[step_name].outcome is not None
             and normalized_result.steps[step_name].outcome.value == "succeeded"
         }
 
         if (
-            normalized_result.workflow_status
-            in {WorkflowStatus.PENDING, WorkflowStatus.RUNNING}
-            and normalized_result.compensation_status
-            != WorkflowCompensationStatus.NOT_REQUIRED
+            normalized_result.workflow_status in {WorkflowStatus.PENDING, WorkflowStatus.RUNNING}
+            and normalized_result.compensation_status != WorkflowCompensationStatus.NOT_REQUIRED
         ):
             diagnostics.append(
                 _failure_diagnostic(
@@ -501,11 +456,9 @@ def _workflow_result_contract_diagnostics(
 
         if (
             execution_contract.compensation_mode == "automatic"
-            and normalized_result.workflow_status.value
-            in set(execution_contract.compensation_triggers)
+            and normalized_result.workflow_status.value in set(execution_contract.compensation_triggers)
             and successful_compensation_steps
-            and normalized_result.compensation_status
-            == WorkflowCompensationStatus.NOT_REQUIRED
+            and normalized_result.compensation_status == WorkflowCompensationStatus.NOT_REQUIRED
         ):
             diagnostics.append(
                 _failure_diagnostic(
@@ -516,36 +469,26 @@ def _workflow_result_contract_diagnostics(
             )
 
         unexpected_steps = sorted(
-            step_name
-            for step_name in normalized_result.steps
-            if step_name not in result_contract.observable_steps
+            step_name for step_name in normalized_result.steps if step_name not in result_contract.observable_steps
         )
         if unexpected_steps:
             diagnostics.append(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     workflow_address,
-                    (
-                        "Workflow results include non-observable or undefined steps: "
-                        + ", ".join(unexpected_steps)
-                    ),
+                    ("Workflow results include non-observable or undefined steps: " + ", ".join(unexpected_steps)),
                 )
             )
 
         missing_steps = sorted(
-            step_name
-            for step_name in result_contract.observable_steps
-            if step_name not in normalized_result.steps
+            step_name for step_name in result_contract.observable_steps if step_name not in normalized_result.steps
         )
         if missing_steps:
             diagnostics.append(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     workflow_address,
-                    (
-                        "Workflow results must include all observable steps: "
-                        + ", ".join(missing_steps)
-                    ),
+                    ("Workflow results must include all observable steps: " + ", ".join(missing_steps)),
                 )
             )
 
@@ -628,8 +571,8 @@ def _workflow_result_contract_diagnostics(
                             "runtime.backend-contract-invalid",
                             workflow_address,
                             f"Workflow history references unknown step '{event.step_name}'.",
-                            )
                         )
+                    )
                 if (
                     event.event_type == WorkflowHistoryEventType.SWITCH_CASE_SELECTED
                     and event.step_name is not None
@@ -646,10 +589,7 @@ def _workflow_result_contract_diagnostics(
                     WorkflowHistoryEventType.CALL_STARTED,
                     WorkflowHistoryEventType.CALL_COMPLETED,
                 }:
-                    if (
-                        event.step_name is None
-                        or execution_contract.step_types.get(event.step_name) != "call"
-                    ):
+                    if event.step_name is None or execution_contract.step_types.get(event.step_name) != "call":
                         diagnostics.append(
                             _failure_diagnostic(
                                 "runtime.backend-contract-invalid",
@@ -659,9 +599,7 @@ def _workflow_result_contract_diagnostics(
                         )
                     elif execution_contract.call_steps.get(event.step_name):
                         expected_workflow = execution_contract.call_steps[event.step_name]
-                        actual_workflow = str(
-                            event.details.get("workflow_address", "")
-                        )
+                        actual_workflow = str(event.details.get("workflow_address", ""))
                         if actual_workflow and actual_workflow != expected_workflow:
                             diagnostics.append(
                                 _failure_diagnostic(
@@ -684,10 +622,7 @@ def _workflow_result_contract_diagnostics(
                             )
                         )
                 if event.event_type == WorkflowHistoryEventType.COMPENSATION_REGISTERED:
-                    if (
-                        event.step_name is None
-                        or event.step_name not in execution_contract.compensation_targets
-                    ):
+                    if event.step_name is None or event.step_name not in execution_contract.compensation_targets:
                         diagnostics.append(
                             _failure_diagnostic(
                                 "runtime.backend-contract-invalid",
@@ -700,10 +635,7 @@ def _workflow_result_contract_diagnostics(
                     WorkflowHistoryEventType.COMPENSATION_WORKFLOW_COMPLETED,
                     WorkflowHistoryEventType.COMPENSATION_WORKFLOW_FAILED,
                 }:
-                    if (
-                        event.step_name is None
-                        or event.step_name not in execution_contract.compensation_targets
-                    ):
+                    if event.step_name is None or event.step_name not in execution_contract.compensation_targets:
                         diagnostics.append(
                             _failure_diagnostic(
                                 "runtime.backend-contract-invalid",
@@ -712,9 +644,7 @@ def _workflow_result_contract_diagnostics(
                             )
                         )
                     else:
-                        expected_workflow = execution_contract.compensation_targets[
-                            event.step_name
-                        ]
+                        expected_workflow = execution_contract.compensation_targets[event.step_name]
                         actual_workflow = str(event.details.get("workflow_address", ""))
                         if actual_workflow and actual_workflow != expected_workflow:
                             diagnostics.append(
@@ -731,9 +661,7 @@ def _workflow_result_contract_diagnostics(
             expected_terminal = terminal_event_types.get(normalized_result.workflow_status)
             if expected_terminal is not None:
                 terminal_indexes = [
-                    index
-                    for index, event in enumerate(normalized_history)
-                    if event.event_type == expected_terminal
+                    index for index, event in enumerate(normalized_history) if event.event_type == expected_terminal
                 ]
                 if not terminal_indexes:
                     diagnostics.append(
@@ -761,7 +689,10 @@ def _workflow_result_contract_diagnostics(
                                 "Compensation events may only occur after the primary terminal workflow event.",
                             )
                         )
-            if normalized_result.workflow_status == WorkflowStatus.RUNNING and normalized_history[-1].event_type in terminal_event_types.values():
+            if (
+                normalized_result.workflow_status == WorkflowStatus.RUNNING
+                and normalized_history[-1].event_type in terminal_event_types.values()
+            ):
                 diagnostics.append(
                     _failure_diagnostic(
                         "runtime.backend-contract-invalid",
@@ -772,11 +703,7 @@ def _workflow_result_contract_diagnostics(
             compensation_events = [
                 event for event in normalized_history if event.event_type in compensation_event_types
             ]
-            if (
-                normalized_result.compensation_status
-                == WorkflowCompensationStatus.NOT_REQUIRED
-                and compensation_events
-            ):
+            if normalized_result.compensation_status == WorkflowCompensationStatus.NOT_REQUIRED and compensation_events:
                 diagnostics.append(
                     _failure_diagnostic(
                         "runtime.backend-contract-invalid",
@@ -784,13 +711,8 @@ def _workflow_result_contract_diagnostics(
                         "Workflows without compensation activity may not emit compensation events.",
                     )
                 )
-            if (
-                normalized_result.compensation_status
-                == WorkflowCompensationStatus.RUNNING
-                and not any(
-                    event.event_type == WorkflowHistoryEventType.COMPENSATION_STARTED
-                    for event in compensation_events
-                )
+            if normalized_result.compensation_status == WorkflowCompensationStatus.RUNNING and not any(
+                event.event_type == WorkflowHistoryEventType.COMPENSATION_STARTED for event in compensation_events
             ):
                 diagnostics.append(
                     _failure_diagnostic(
@@ -800,11 +722,9 @@ def _workflow_result_contract_diagnostics(
                     )
                 )
             if (
-                normalized_result.compensation_status
-                == WorkflowCompensationStatus.SUCCEEDED
+                normalized_result.compensation_status == WorkflowCompensationStatus.SUCCEEDED
                 and compensation_events
-                and compensation_events[-1].event_type
-                != WorkflowHistoryEventType.COMPENSATION_COMPLETED
+                and compensation_events[-1].event_type != WorkflowHistoryEventType.COMPENSATION_COMPLETED
             ):
                 diagnostics.append(
                     _failure_diagnostic(
@@ -814,11 +734,9 @@ def _workflow_result_contract_diagnostics(
                     )
                 )
             if (
-                normalized_result.compensation_status
-                == WorkflowCompensationStatus.FAILED
+                normalized_result.compensation_status == WorkflowCompensationStatus.FAILED
                 and compensation_events
-                and compensation_events[-1].event_type
-                != WorkflowHistoryEventType.COMPENSATION_FAILED
+                and compensation_events[-1].event_type != WorkflowHistoryEventType.COMPENSATION_FAILED
             ):
                 diagnostics.append(
                     _failure_diagnostic(
@@ -853,9 +771,7 @@ def _evaluation_result_contract_diagnostics(
         ]
 
     evaluation_entries = {
-        address: entry
-        for address, entry in snapshot.entries.items()
-        if entry.domain == RuntimeDomain.EVALUATION
+        address: entry for address, entry in snapshot.entries.items() if entry.domain == RuntimeDomain.EVALUATION
     }
     observable_entries = {
         address: entry
@@ -865,18 +781,13 @@ def _evaluation_result_contract_diagnostics(
         and isinstance(entry.payload.get("execution_contract"), dict)
     }
 
-    missing_results = sorted(
-        address for address in observable_entries if address not in snapshot.evaluation_results
-    )
+    missing_results = sorted(address for address in observable_entries if address not in snapshot.evaluation_results)
     if missing_results:
         diagnostics.append(
             _failure_diagnostic(
                 "runtime.backend-contract-invalid",
                 "runtime.apply.evaluation-results",
-                (
-                    "Evaluation results must include all observable evaluation addresses: "
-                    + ", ".join(missing_results)
-                ),
+                ("Evaluation results must include all observable evaluation addresses: " + ", ".join(missing_results)),
             )
         )
 
@@ -906,21 +817,14 @@ def _evaluation_result_contract_diagnostics(
                 _failure_diagnostic(
                     "runtime.backend-contract-invalid",
                     evaluation_address,
-                    (
-                        "Evaluation results must correspond to an observable evaluation "
-                        "entry in the runtime snapshot."
-                    ),
+                    ("Evaluation results must correspond to an observable evaluation entry in the runtime snapshot."),
                 )
             )
             continue
 
         payload = evaluation_entry.payload
-        result_contract_payload = (
-            payload.get("result_contract") if isinstance(payload, dict) else None
-        )
-        execution_contract_payload = (
-            payload.get("execution_contract") if isinstance(payload, dict) else None
-        )
+        result_contract_payload = payload.get("result_contract") if isinstance(payload, dict) else None
+        execution_contract_payload = payload.get("execution_contract") if isinstance(payload, dict) else None
         if not isinstance(result_contract_payload, dict):
             diagnostics.append(
                 _failure_diagnostic(
@@ -941,9 +845,7 @@ def _evaluation_result_contract_diagnostics(
             continue
 
         try:
-            result_contract = EvaluationResultContract.from_mapping(
-                result_contract_payload
-            )
+            result_contract = EvaluationResultContract.from_mapping(result_contract_payload)
         except (TypeError, ValueError) as exc:
             diagnostics.append(
                 _failure_diagnostic(
@@ -955,9 +857,7 @@ def _evaluation_result_contract_diagnostics(
             continue
 
         try:
-            execution_contract = EvaluationExecutionContract.from_mapping(
-                execution_contract_payload
-            )
+            execution_contract = EvaluationExecutionContract.from_mapping(execution_contract_payload)
         except (TypeError, ValueError) as exc:
             diagnostics.append(
                 _failure_diagnostic(
@@ -1084,8 +984,7 @@ def _evaluation_result_contract_diagnostics(
         if normalized_history:
             if (
                 execution_contract.requires_start_event
-                and normalized_history[0].event_type
-                != EvaluationHistoryEventType.EVALUATION_STARTED
+                and normalized_history[0].event_type != EvaluationHistoryEventType.EVALUATION_STARTED
             ):
                 diagnostics.append(
                     _failure_diagnostic(
@@ -1123,10 +1022,7 @@ def _evaluation_result_contract_diagnostics(
                 EvaluationResultStatus.READY: EvaluationHistoryEventType.EVALUATION_READY,
                 EvaluationResultStatus.FAILED: EvaluationHistoryEventType.EVALUATION_FAILED,
             }.get(normalized_result.status)
-            if (
-                expected_final_event is not None
-                and normalized_history[-1].event_type != expected_final_event
-            ):
+            if expected_final_event is not None and normalized_history[-1].event_type != expected_final_event:
                 diagnostics.append(
                     _failure_diagnostic(
                         "runtime.backend-contract-invalid",
@@ -1175,10 +1071,7 @@ def _provenance_diagnostics(
             _failure_diagnostic(
                 "runtime.plan-target-mismatch",
                 "runtime.apply",
-                (
-                    f"Execution plan targets '{execution_plan.target_name}', "
-                    f"but manager target is '{target.name}'."
-                ),
+                (f"Execution plan targets '{execution_plan.target_name}', but manager target is '{target.name}'."),
             )
         )
     if execution_plan.manifest != target.manifest:
@@ -1447,9 +1340,7 @@ class RuntimeManager:
                     ("runtime.rollback.orchestrator", self._target.orchestrator),
                 ]
                 if started_evaluator and self._target.evaluator is not None:
-                    rollback_services.append(
-                        ("runtime.rollback.evaluator", self._target.evaluator)
-                    )
+                    rollback_services.append(("runtime.rollback.evaluator", self._target.evaluator))
                 rollback_result = _rollback_services(working_snapshot, rollback_services)
                 diagnostics.extend(rollback_result.diagnostics)
                 changed_addresses.extend(rollback_result.changed_addresses)
@@ -1475,15 +1366,9 @@ class RuntimeManager:
             "backend": self._target.name,
             "resources": len(self._snapshot.entries),
             "domains": {
-                RuntimeDomain.PROVISIONING.value: len(
-                    self._snapshot.for_domain(RuntimeDomain.PROVISIONING)
-                ),
-                RuntimeDomain.ORCHESTRATION.value: len(
-                    self._snapshot.for_domain(RuntimeDomain.ORCHESTRATION)
-                ),
-                RuntimeDomain.EVALUATION.value: len(
-                    self._snapshot.for_domain(RuntimeDomain.EVALUATION)
-                ),
+                RuntimeDomain.PROVISIONING.value: len(self._snapshot.for_domain(RuntimeDomain.PROVISIONING)),
+                RuntimeDomain.ORCHESTRATION.value: len(self._snapshot.for_domain(RuntimeDomain.ORCHESTRATION)),
+                RuntimeDomain.EVALUATION.value: len(self._snapshot.for_domain(RuntimeDomain.EVALUATION)),
             },
         }
         if self._target.orchestrator is not None:
@@ -1551,12 +1436,8 @@ class RuntimeManager:
                     address=address,
                     resource_type=provisioning_entries[address].resource_type,
                     payload=provisioning_entries[address].payload,
-                    ordering_dependencies=(
-                        provisioning_entries[address].ordering_dependencies
-                    ),
-                    refresh_dependencies=(
-                        provisioning_entries[address].refresh_dependencies
-                    ),
+                    ordering_dependencies=(provisioning_entries[address].ordering_dependencies),
+                    refresh_dependencies=(provisioning_entries[address].refresh_dependencies),
                 )
                 for address in _delete_order(provisioning_entries)
             ],

@@ -9,7 +9,7 @@ import textwrap
 
 import pytest
 
-from aces.core.sdl import parse_sdl, SDLParseError, SDLValidationError
+from aces.core.sdl import SDLParseError, SDLValidationError, parse_sdl
 
 
 def _parse(yaml_str: str, label: str):
@@ -1614,18 +1614,18 @@ objectives:
 
 
 SCENARIOS = [
-    ("1. OCR Full Exercise (14 sections)",       OCR_FULL_EXERCISE),
-    ("2. CybORG CAGE-1 (3-host, Metasploit)",   CYBORG_CAGE1),
+    ("1. OCR Full Exercise (14 sections)", OCR_FULL_EXERCISE),
+    ("2. CybORG CAGE-1 (3-host, Metasploit)", CYBORG_CAGE1),
     ("3. CybORG CAGE-2 (13-host enterprise+OT)", CYBORG_CAGE2),
-    ("4. CALDERA Ransack (multi-step attack)",   CALDERA_RANSACK),
-    ("5. Atomic Red Team (credential dumping)",  ATOMIC_CRED_DUMP),
-    ("6. CyRIS DMZ (firewall + web + db)",       CYRIS_DMZ),
-    ("7. KYPO CTF (training + scoring)",         KYPO_CTF),
-    ("8. HTB Machine (single-box challenge)",    HTB_MACHINE),
-    ("9. Enterprise AD (multi-domain forest)",   ENTERPRISE_AD),
+    ("4. CALDERA Ransack (multi-step attack)", CALDERA_RANSACK),
+    ("5. Atomic Red Team (credential dumping)", ATOMIC_CRED_DUMP),
+    ("6. CyRIS DMZ (firewall + web + db)", CYRIS_DMZ),
+    ("7. KYPO CTF (training + scoring)", KYPO_CTF),
+    ("8. HTB Machine (single-box challenge)", HTB_MACHINE),
+    ("9. Enterprise AD (multi-domain forest)", ENTERPRISE_AD),
     ("10. Cloud Hybrid (AWS VPC + on-prem VPN)", CLOUD_HYBRID),
-    ("11. Exchange with data+accounts+ACLs",     EXCHANGE_WITH_DATA),
-    ("12. CybORG CAGE-2 with agents",           CYBORG_WITH_AGENTS),
+    ("11. Exchange with data+accounts+ACLs", EXCHANGE_WITH_DATA),
+    ("12. CybORG CAGE-2 with agents", CYBORG_WITH_AGENTS),
     ("13. Multi-domain AD with trust+federation", AD_TRUST_FEDERATED),
 ]
 
@@ -1645,9 +1645,9 @@ def test_scenario_parses_and_validates(label, yaml_str):
     has_vulns = bool(scenario.vulnerabilities)
     has_metrics = bool(scenario.metrics)
     has_content = bool(scenario.content)
-    assert any([has_nodes, has_features, has_stories, has_entities,
-                has_vulns, has_metrics, has_content]), \
+    assert any([has_nodes, has_features, has_stories, has_entities, has_vulns, has_metrics, has_content]), (
         f"{label} parsed but has no content"
+    )
 
 
 @pytest.mark.parametrize("label,yaml_str", SCENARIOS, ids=[s[0] for s in SCENARIOS])
@@ -1657,20 +1657,17 @@ def test_scenario_topology_integrity(label, yaml_str):
 
     # Every infra entry should match a node
     for name in scenario.infrastructure:
-        assert name in scenario.nodes, \
-            f"{label}: infra '{name}' has no matching node"
+        assert name in scenario.nodes, f"{label}: infra '{name}' has no matching node"
 
     # Every VM feature reference should exist in features
     for node_name, node in scenario.nodes.items():
         for feat_name in node.features:
-            assert feat_name in scenario.features, \
-                f"{label}: node '{node_name}' refs missing feature '{feat_name}'"
+            assert feat_name in scenario.features, f"{label}: node '{node_name}' refs missing feature '{feat_name}'"
 
     # Every vulnerability reference should exist
     for node_name, node in scenario.nodes.items():
         for vuln_name in node.vulnerabilities:
-            assert vuln_name in scenario.vulnerabilities, \
-                f"{label}: node '{node_name}' refs missing vuln '{vuln_name}'"
+            assert vuln_name in scenario.vulnerabilities, f"{label}: node '{node_name}' refs missing vuln '{vuln_name}'"
 
 
 def test_objectives_are_exercised_in_stress_suite():

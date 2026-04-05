@@ -14,10 +14,10 @@ import string
 
 import pytest
 import yaml
-from hypothesis import given, settings, assume, HealthCheck
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from aces.core.sdl import parse_sdl, SDLParseError, SDLValidationError
+from aces.core.sdl import SDLParseError, SDLValidationError, parse_sdl
 from aces.core.sdl.scenario import Scenario
 
 # Mark entire module so it's excluded from default test runs.
@@ -57,10 +57,17 @@ ports = st.integers(min_value=1, max_value=65535)
 password_strengths = st.sampled_from(["weak", "medium", "strong", "none"])
 
 # Relationship types
-relationship_types = st.sampled_from([
-    "authenticates_with", "trusts", "federates_with",
-    "connects_to", "depends_on", "manages", "replicates_to",
-])
+relationship_types = st.sampled_from(
+    [
+        "authenticates_with",
+        "trusts",
+        "federates_with",
+        "connects_to",
+        "depends_on",
+        "manages",
+        "replicates_to",
+    ]
+)
 
 # Variable types
 variable_types = st.sampled_from(["string", "integer", "boolean", "number"])
@@ -75,6 +82,7 @@ metric_types = st.sampled_from(["manual", "conditional"])
 # ---------------------------------------------------------------------------
 # Composite strategies: generating valid-ish SDL sections
 # ---------------------------------------------------------------------------
+
 
 @st.composite
 def vm_nodes(draw):
@@ -270,12 +278,18 @@ def test_arbitrary_text_never_crashes(raw):
 
 
 @given(
-    data=st.fixed_dictionaries({
-        "name": slugs,
-    }).flatmap(lambda base: st.fixed_dictionaries({
-        **{k: st.just(v) for k, v in base.items()},
-        "extra_field": slugs,
-    }))
+    data=st.fixed_dictionaries(
+        {
+            "name": slugs,
+        }
+    ).flatmap(
+        lambda base: st.fixed_dictionaries(
+            {
+                **{k: st.just(v) for k, v in base.items()},
+                "extra_field": slugs,
+            }
+        )
+    )
 )
 @settings(max_examples=50, deadline=2000)
 def test_extra_fields_rejected_cleanly(data):
@@ -290,22 +304,28 @@ def test_extra_fields_rejected_cleanly(data):
 @given(
     nodes=st.dictionaries(
         slugs,
-        st.fixed_dictionaries({
-            "type": st.just("vm"),
-            "resources": st.fixed_dictionaries({
-                "ram": ram_values,
-                "cpu": small_ints,
-            }),
-            "services": st.lists(
-                st.fixed_dictionaries({
-                    "port": ports,
-                    "protocol": st.sampled_from(["tcp", "udp"]),
-                    "name": slugs,
-                }),
-                min_size=0,
-                max_size=10,
-            ),
-        }),
+        st.fixed_dictionaries(
+            {
+                "type": st.just("vm"),
+                "resources": st.fixed_dictionaries(
+                    {
+                        "ram": ram_values,
+                        "cpu": small_ints,
+                    }
+                ),
+                "services": st.lists(
+                    st.fixed_dictionaries(
+                        {
+                            "port": ports,
+                            "protocol": st.sampled_from(["tcp", "udp"]),
+                            "name": slugs,
+                        }
+                    ),
+                    min_size=0,
+                    max_size=10,
+                ),
+            }
+        ),
         min_size=1,
         max_size=5,
     )
@@ -328,12 +348,14 @@ def test_fuzz_service_ports(nodes):
 @given(
     vulns=st.dictionaries(
         slugs,
-        st.fixed_dictionaries({
-            "name": st.text(min_size=1, max_size=20, alphabet=string.ascii_letters),
-            "description": st.text(min_size=1, max_size=30, alphabet=string.ascii_letters),
-            "technical": st.booleans(),
-            "class": st.text(min_size=1, max_size=15),  # intentionally sometimes invalid
-        }),
+        st.fixed_dictionaries(
+            {
+                "name": st.text(min_size=1, max_size=20, alphabet=string.ascii_letters),
+                "description": st.text(min_size=1, max_size=30, alphabet=string.ascii_letters),
+                "technical": st.booleans(),
+                "class": st.text(min_size=1, max_size=15),  # intentionally sometimes invalid
+            }
+        ),
         min_size=1,
         max_size=5,
     )
@@ -352,10 +374,12 @@ def test_fuzz_vulnerability_class_validation(vulns):
 @given(
     features=st.dictionaries(
         slugs,
-        st.fixed_dictionaries({
-            "type": feature_types,
-            "dependencies": st.lists(slugs, min_size=0, max_size=3),
-        }),
+        st.fixed_dictionaries(
+            {
+                "type": feature_types,
+                "dependencies": st.lists(slugs, min_size=0, max_size=3),
+            }
+        ),
         min_size=2,
         max_size=6,
     )

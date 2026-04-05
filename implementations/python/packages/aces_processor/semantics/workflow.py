@@ -36,23 +36,15 @@ class WorkflowStepSemanticContract:
         payload: Mapping[str, object] | None,
         *,
         default_step_type: str = "",
-    ) -> "WorkflowStepSemanticContract":
+    ) -> WorkflowStepSemanticContract:
         if payload is None:
             return workflow_step_semantic_contract(default_step_type)
         return cls(
             step_type=str(payload.get("step_type", default_step_type)),
             state_observable=bool(payload.get("state_observable", False)),
-            observable_outcomes=tuple(
-                str(outcome) for outcome in payload.get("observable_outcomes", ())
-            ),
-            supports_attempt_counts=bool(
-                payload.get("supports_attempt_counts", False)
-            ),
-            fixed_attempts=(
-                int(payload["fixed_attempts"])
-                if payload.get("fixed_attempts") is not None
-                else None
-            ),
+            observable_outcomes=tuple(str(outcome) for outcome in payload.get("observable_outcomes", ())),
+            supports_attempt_counts=bool(payload.get("supports_attempt_counts", False)),
+            fixed_attempts=(int(payload["fixed_attempts"]) if payload.get("fixed_attempts") is not None else None),
         )
 
 
@@ -123,21 +115,14 @@ def validate_workflow_step_result(
             errors.append("completed observable steps must report an outcome")
         elif outcome not in contract.observable_outcomes:
             allowed = ", ".join(contract.observable_outcomes)
-            errors.append(
-                f"outcome '{outcome}' is invalid for step type "
-                f"'{contract.step_type}' (allowed: {allowed})"
-            )
+            errors.append(f"outcome '{outcome}' is invalid for step type '{contract.step_type}' (allowed: {allowed})")
 
     if lifecycle == "completed" and contract.fixed_attempts is not None:
         if attempts != contract.fixed_attempts:
             errors.append(
-                f"completed '{contract.step_type}' steps must report exactly "
-                f"{contract.fixed_attempts} attempts"
+                f"completed '{contract.step_type}' steps must report exactly {contract.fixed_attempts} attempts"
             )
     elif contract.fixed_attempts is not None and attempts > contract.fixed_attempts:
-        errors.append(
-            f"'{contract.step_type}' steps may not exceed {contract.fixed_attempts} "
-            "attempts"
-        )
+        errors.append(f"'{contract.step_type}' steps may not exceed {contract.fixed_attempts} attempts")
 
     return tuple(errors)

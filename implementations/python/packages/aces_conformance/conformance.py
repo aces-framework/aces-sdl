@@ -11,11 +11,10 @@ from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
 from aces_processor.compiler import compile_runtime_model
-from aces_processor.control_plane import RuntimeControlPlane
 from aces_processor.contracts import (
     BackendManifestModel,
-    EvaluationPlanModel,
     EvaluationHistoryEventModel,
+    EvaluationPlanModel,
     EvaluationResultStateModel,
     OperationReceiptModel,
     OperationStatusModel,
@@ -26,6 +25,7 @@ from aces_processor.contracts import (
     WorkflowHistoryEventModel,
     schema_bundle,
 )
+from aces_processor.control_plane import RuntimeControlPlane
 from aces_processor.manager import (
     _evaluation_result_contract_diagnostics,
     _workflow_result_contract_diagnostics,
@@ -34,8 +34,8 @@ from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
     RuntimeDomain,
-    RuntimeSnapshotEnvelope,
     RuntimeSnapshot,
+    RuntimeSnapshotEnvelope,
     Severity,
     SnapshotEntry,
     WorkflowExecutionState,
@@ -261,16 +261,14 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
     return RuntimeSnapshot(
         entries=entries,
         orchestration_results={
-            address: result.model_dump(mode="json")
-            for address, result in validated.orchestration_results.items()
+            address: result.model_dump(mode="json") for address, result in validated.orchestration_results.items()
         },
         orchestration_history={
             address: [event.model_dump(mode="json") for event in history]
             for address, history in validated.orchestration_history.items()
         },
         evaluation_results={
-            address: result.model_dump(mode="json")
-            for address, result in validated.evaluation_results.items()
+            address: result.model_dump(mode="json") for address, result in validated.evaluation_results.items()
         },
         evaluation_history={
             address: [event.model_dump(mode="json") for event in history]
@@ -379,11 +377,7 @@ def run_fixture_suite(
         profile=profile,
         passed=not diagnostics and all(case.passed for case in cases),
         cases=tuple(cases),
-        contract_versions={
-            name: str(schema.get("title", name))
-            for name, schema in bundle.items()
-            if name in required
-        },
+        contract_versions={name: str(schema.get("title", name)) for name, schema in bundle.items() if name in required},
         diagnostics=tuple(diagnostics),
     )
 
@@ -403,16 +397,24 @@ def _capability_gaps(
     target: RuntimeTarget,
 ) -> tuple[str, ...]:
     gaps: list[str] = []
-    if profile in {
-        BackendCapabilityProfile.ORCHESTRATION_CAPABLE,
-        BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
-        BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE,
-    } and target.orchestrator is None:
+    if (
+        profile
+        in {
+            BackendCapabilityProfile.ORCHESTRATION_CAPABLE,
+            BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
+            BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE,
+        }
+        and target.orchestrator is None
+    ):
         gaps.append("orchestrator")
-    if profile in {
-        BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
-        BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE,
-    } and target.evaluator is None:
+    if (
+        profile
+        in {
+            BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
+            BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE,
+        }
+        and target.evaluator is None
+    ):
         gaps.append("evaluator")
     return tuple(gaps)
 

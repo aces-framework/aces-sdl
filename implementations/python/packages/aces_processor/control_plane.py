@@ -11,15 +11,21 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from .control_plane_store import (
+    AuditEvent,
+    ControlPlaneOperationRecord,
+    ControlPlaneStore,
+    InMemoryControlPlaneStore,
+)
 from .manager import _call_backend_apply, _call_backend_diagnostics
 from .models import (
     Diagnostic,
+    EvaluationPlan,
     OperationReceipt,
     OperationState,
     OperationStatus,
     OrchestrationPlan,
     ProvisioningPlan,
-    EvaluationPlan,
     RuntimeDomain,
     RuntimeSnapshot,
     RuntimeSnapshotEnvelope,
@@ -31,12 +37,6 @@ from .models import (
     WorkflowStatus,
 )
 from .registry import RuntimeTarget
-from .control_plane_store import (
-    AuditEvent,
-    ControlPlaneOperationRecord,
-    ControlPlaneStore,
-    InMemoryControlPlaneStore,
-)
 
 
 def _utc_now() -> str:
@@ -55,11 +55,7 @@ class RuntimeControlPlane:
     ) -> None:
         self._target = target
         self._store = store or InMemoryControlPlaneStore(initial_snapshot)
-        self._snapshot = (
-            initial_snapshot
-            if initial_snapshot is not None
-            else self._store.load_snapshot()
-        )
+        self._snapshot = initial_snapshot if initial_snapshot is not None else self._store.load_snapshot()
         self._operations: dict[str, ControlPlaneOperationRecord] = self._store.load_records()
 
     @property
@@ -294,10 +290,7 @@ class RuntimeControlPlane:
         if run_id and normalized.run_id != run_id:
             return self._reject_submission(
                 domain=RuntimeDomain.ORCHESTRATION,
-                message=(
-                    f"Workflow run_id mismatch for {workflow_address}: "
-                    f"{run_id!r} != {normalized.run_id!r}"
-                ),
+                message=(f"Workflow run_id mismatch for {workflow_address}: {run_id!r} != {normalized.run_id!r}"),
                 idempotency_key=idempotency_key,
                 request_fingerprint=request_fingerprint,
             )
@@ -410,8 +403,7 @@ class RuntimeControlPlane:
         changed: list[str] = []
         orchestration_results = dict(self._snapshot.orchestration_results)
         orchestration_history = {
-            address: list(events)
-            for address, events in self._snapshot.orchestration_history.items()
+            address: list(events) for address, events in self._snapshot.orchestration_history.items()
         }
         for workflow_address, entry in self._snapshot.entries.items():
             if entry.domain != RuntimeDomain.ORCHESTRATION or entry.resource_type != "workflow":
@@ -646,11 +638,7 @@ class RuntimeControlPlane:
         record = self._store.find_by_idempotency(idempotency_key)
         if record is None:
             return None
-        if (
-            record.request_fingerprint
-            and request_fingerprint
-            and record.request_fingerprint != request_fingerprint
-        ):
+        if record.request_fingerprint and request_fingerprint and record.request_fingerprint != request_fingerprint:
             raise ValueError("Idempotency-Key was reused with a different request body.")
         self._operations[record.receipt.operation_id] = record
         return record.receipt

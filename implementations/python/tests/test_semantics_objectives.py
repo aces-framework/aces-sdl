@@ -70,10 +70,7 @@ class TestObjectiveWindowSemantics:
             },
         )
 
-        assert {
-            issue.code
-            for issue in analysis.issues
-        } == {
+        assert {issue.code for issue in analysis.issues} == {
             "story-unbound",
             "event-outside-window-scripts",
             "step-invalid-format",

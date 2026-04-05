@@ -81,15 +81,9 @@ def _snapshot_payload(snapshot: RuntimeSnapshot) -> dict[str, Any]:
             for address, entry in snapshot.entries.items()
         },
         "orchestration_results": dict(snapshot.orchestration_results),
-        "orchestration_history": {
-            address: list(events)
-            for address, events in snapshot.orchestration_history.items()
-        },
+        "orchestration_history": {address: list(events) for address, events in snapshot.orchestration_history.items()},
         "evaluation_results": dict(snapshot.evaluation_results),
-        "evaluation_history": {
-            address: list(events)
-            for address, events in snapshot.evaluation_history.items()
-        },
+        "evaluation_history": {address: list(events) for address, events in snapshot.evaluation_history.items()},
         "metadata": dict(snapshot.metadata),
     }
 
@@ -113,14 +107,10 @@ def _snapshot_from_payload(payload: dict[str, Any]) -> RuntimeSnapshot:
         entries=entries,
         orchestration_results=dict(payload.get("orchestration_results", {})),
         orchestration_history={
-            address: list(events)
-            for address, events in payload.get("orchestration_history", {}).items()
+            address: list(events) for address, events in payload.get("orchestration_history", {}).items()
         },
         evaluation_results=dict(payload.get("evaluation_results", {})),
-        evaluation_history={
-            address: list(events)
-            for address, events in payload.get("evaluation_history", {}).items()
-        },
+        evaluation_history={address: list(events) for address, events in payload.get("evaluation_history", {}).items()},
         metadata=dict(payload.get("metadata", {})),
     )
 
@@ -280,8 +270,7 @@ class LocalControlPlaneStore:
         records = self.load_records()
         records[record.receipt.operation_id] = record
         payload = {
-            operation_id: _record_payload(operation_record)
-            for operation_id, operation_record in records.items()
+            operation_id: _record_payload(operation_record) for operation_id, operation_record in records.items()
         }
         self._operations_path.write_text(
             json.dumps(payload, indent=2, sort_keys=True) + "\n",

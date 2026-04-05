@@ -6,7 +6,6 @@ dot-notation (e.g., ``blue-team.bob``).
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator
 
@@ -32,16 +31,13 @@ class Entity(SDLModel):
 
     name: str = ""
     description: str = ""
-    role: Optional[ExerciseRole | str] = None
+    role: ExerciseRole | str | None = None
 
     @field_validator("role", mode="before")
     @classmethod
     def normalize_role(cls, v):
-        return (
-            parse_enum_or_var(v, ExerciseRole, field_name="role")
-            if v is not None
-            else v
-        )
+        return parse_enum_or_var(v, ExerciseRole, field_name="role") if v is not None else v
+
     mission: str = ""
     categories: list[str] = Field(default_factory=list)
     vulnerabilities: list[str] = Field(default_factory=list)
@@ -51,9 +47,7 @@ class Entity(SDLModel):
     entities: dict[str, "Entity"] = Field(default_factory=dict)
 
 
-def flatten_entities(
-    entities: dict[str, Entity], prefix: str = ""
-) -> dict[str, Entity]:
+def flatten_entities(entities: dict[str, Entity], prefix: str = "") -> dict[str, Entity]:
     """Flatten a recursive entity hierarchy into dot-notation names.
 
     Returns a dict mapping ``"parent.child.grandchild"`` to the

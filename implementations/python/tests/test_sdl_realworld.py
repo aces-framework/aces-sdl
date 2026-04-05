@@ -10,7 +10,7 @@ import textwrap
 
 import pytest
 
-from aces.core.sdl import parse_sdl, SDLParseError, SDLValidationError
+from aces.core.sdl import SDLParseError, SDLValidationError, parse_sdl
 
 
 def _parse(yaml_str: str, label: str):
@@ -887,12 +887,12 @@ objectives:
 # =======================================================================
 
 SCENARIOS = [
-    ("14. Incalmo Equifax breach",        INCALMO_EQUIFAX),
-    ("15. NICE Challenge 17",             NICE_CHALLENGE_17),
-    ("16. CCDC 2007 Burnsodyne",          CCDC_BURNSODYNE),
-    ("17. HTB Offshore-style AD",         HTB_OFFSHORE),
-    ("18. Metasploitable 2",              METASPLOITABLE_2),
-    ("19. Locked Shields IT/OT/SCADA",    LOCKED_SHIELDS_STYLE),
+    ("14. Incalmo Equifax breach", INCALMO_EQUIFAX),
+    ("15. NICE Challenge 17", NICE_CHALLENGE_17),
+    ("16. CCDC 2007 Burnsodyne", CCDC_BURNSODYNE),
+    ("17. HTB Offshore-style AD", HTB_OFFSHORE),
+    ("18. Metasploitable 2", METASPLOITABLE_2),
+    ("19. Locked Shields IT/OT/SCADA", LOCKED_SHIELDS_STYLE),
 ]
 
 
@@ -912,11 +912,9 @@ def test_scenario_topology_integrity(label, yaml_str):
         assert name in scenario.nodes, f"{label}: infra '{name}' missing node"
     for node_name, node in scenario.nodes.items():
         for feat_name in node.features:
-            assert feat_name in scenario.features, \
-                f"{label}: node '{node_name}' refs missing feature '{feat_name}'"
+            assert feat_name in scenario.features, f"{label}: node '{node_name}' refs missing feature '{feat_name}'"
         for vuln_name in node.vulnerabilities:
-            assert vuln_name in scenario.vulnerabilities, \
-                f"{label}: node '{node_name}' refs missing vuln '{vuln_name}'"
+            assert vuln_name in scenario.vulnerabilities, f"{label}: node '{node_name}' refs missing vuln '{vuln_name}'"
 
 
 @pytest.mark.parametrize("label,yaml_str", SCENARIOS, ids=[s[0] for s in SCENARIOS])

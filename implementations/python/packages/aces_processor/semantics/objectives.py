@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -39,9 +39,7 @@ class ObjectiveWindowReference:
     raw: str
     canonical_name: str
     reference_kind: ObjectiveWindowReferenceKind
-    dependency_roles: tuple[ObjectiveDependencyRole, ...] = (
-        ObjectiveDependencyRole.REFRESH,
-    )
+    dependency_roles: tuple[ObjectiveDependencyRole, ...] = (ObjectiveDependencyRole.REFRESH,)
     workflow_name: str | None = None
     step_name: str | None = None
     namespace_path: tuple[str, ...] = ()

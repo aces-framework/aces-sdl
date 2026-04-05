@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from aces.core.sdl._errors import SDLParseError, SDLValidationError
+from aces.core.sdl._errors import SDLParseError
 from aces.core.sdl.nodes import NodeType
 from aces.core.sdl.parser import parse_sdl, parse_sdl_file
 
@@ -117,9 +117,7 @@ objectives:
     def test_variable_placeholders_rejected_in_mapping_keys(self, sdl, key_path):
         with pytest.raises(
             SDLParseError,
-            match=re.escape(
-                f"user-defined mapping keys: '{key_path}'"
-            ),
+            match=re.escape(f"user-defined mapping keys: '{key_path}'"),
         ):
             parse_sdl(sdl)
 
@@ -782,6 +780,7 @@ class TestLoadRealScenarios:
     @pytest.fixture
     def scenarios_dir(self):
         from pathlib import Path
+
         d = Path("scenarios")
         if not d.exists():
             pytest.skip("scenarios/ directory not found")

@@ -9,9 +9,8 @@ Scripts use OCR-compatible human-readable duration strings
 
 import math
 import re
-from decimal import Decimal, ROUND_CEILING
+from decimal import ROUND_CEILING, Decimal
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -94,12 +93,7 @@ def parse_duration(value: str | int | float) -> int | str:
     if value_str == "0":
         return 0
 
-    normalized = (
-        value_str.replace("_", "")
-        .replace(" ", "")
-        .replace("µ", "u")
-        .lower()
-    )
+    normalized = value_str.replace("_", "").replace(" ", "").replace("µ", "u").lower()
 
     if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
         total = Decimal(normalized)
@@ -144,7 +138,7 @@ class Inject(SDLModel):
     """An action injected between entities during an exercise."""
 
     name: str = ""
-    source: Optional[Source] = None
+    source: Source | None = None
     from_entity: str = ""
     to_entities: list[str] = Field(default_factory=list)
     tlos: list[str] = Field(default_factory=list)
@@ -156,10 +150,7 @@ class Inject(SDLModel):
         has_from = bool(self.from_entity)
         has_to = bool(self.to_entities)
         if has_from != has_to:
-            raise ValueError(
-                "Inject must have both 'from_entity' and 'to_entities', "
-                "or neither"
-            )
+            raise ValueError("Inject must have both 'from_entity' and 'to_entities', or neither")
         return self
 
 
@@ -167,7 +158,7 @@ class Event(SDLModel):
     """A triggered action combining conditions and injects."""
 
     name: str = ""
-    source: Optional[Source] = None
+    source: Source | None = None
     conditions: list[str] = Field(default_factory=list)
     injects: list[str] = Field(default_factory=list)
     description: str = ""
@@ -208,20 +199,11 @@ class Script(SDLModel):
 
     @model_validator(mode="after")
     def validate_time_bounds(self) -> "Script":
-        if (
-            isinstance(self.start_time, int)
-            and isinstance(self.end_time, int)
-            and self.end_time < self.start_time
-        ):
-            raise ValueError(
-                f"Script end_time ({self.end_time}s) must be >= "
-                f"start_time ({self.start_time}s)"
-            )
+        if isinstance(self.start_time, int) and isinstance(self.end_time, int) and self.end_time < self.start_time:
+            raise ValueError(f"Script end_time ({self.end_time}s) must be >= start_time ({self.start_time}s)")
         for event_name, event_time in self.events.items():
             if not (
-                isinstance(self.start_time, int)
-                and isinstance(self.end_time, int)
-                and isinstance(event_time, int)
+                isinstance(self.start_time, int) and isinstance(self.end_time, int) and isinstance(event_time, int)
             ):
                 continue
             if event_time < self.start_time or event_time > self.end_time:
@@ -301,15 +283,17 @@ class WorkflowPredicate(SDLModel):
 
     @model_validator(mode="after")
     def validate_non_empty(self) -> "WorkflowPredicate":
-        if any((
-            self.conditions,
-            self.metrics,
-            self.evaluations,
-            self.tlos,
-            self.goals,
-            self.objectives,
-            self.steps,
-        )):
+        if any(
+            (
+                self.conditions,
+                self.metrics,
+                self.evaluations,
+                self.tlos,
+                self.goals,
+                self.objectives,
+                self.steps,
+            )
+        ):
             return self
         raise ValueError(
             "Workflow predicate must reference at least one condition, "
@@ -382,14 +366,9 @@ class WorkflowCompensationPolicy(SDLModel):
     @model_validator(mode="after")
     def validate_policy(self) -> "WorkflowCompensationPolicy":
         if self.mode == WorkflowCompensationMode.AUTOMATIC and not self.on:
-            raise ValueError(
-                "Automatic workflow compensation requires at least one trigger in 'on'"
-            )
+            raise ValueError("Automatic workflow compensation requires at least one trigger in 'on'")
         if self.order != "reverse_completion":
-            raise ValueError(
-                "Workflow compensation currently only supports order "
-                "'reverse_completion'"
-            )
+            raise ValueError("Workflow compensation currently only supports order 'reverse_completion'")
         if len(self.on) != len(set(self.on)):
             raise ValueError("Workflow compensation triggers must be unique")
         return self
@@ -439,9 +418,7 @@ class WorkflowStep(SDLModel):
     def validate_type_specific_fields(self) -> "WorkflowStep":
         if self.type == WorkflowStepType.OBJECTIVE:
             if not self.objective or not self.on_success:
-                raise ValueError(
-                    "Objective workflow step requires 'objective' and 'on-success'"
-                )
+                raise ValueError("Objective workflow step requires 'objective' and 'on-success'")
             if (
                 self.next
                 or self.on_exhausted
@@ -461,9 +438,7 @@ class WorkflowStep(SDLModel):
 
         if self.type == WorkflowStepType.DECISION:
             if self.when is None or not self.then_step or not self.else_step:
-                raise ValueError(
-                    "Decision workflow step requires 'when', 'then', and 'else'"
-                )
+                raise ValueError("Decision workflow step requires 'when', 'then', and 'else'")
             if (
                 self.objective
                 or self.next
@@ -475,18 +450,12 @@ class WorkflowStep(SDLModel):
                 or self.max_attempts is not None
                 or self.compensate_with
             ):
-                raise ValueError(
-                    "Decision workflow step only supports 'when', 'then', "
-                    "'else', and 'description'"
-                )
+                raise ValueError("Decision workflow step only supports 'when', 'then', 'else', and 'description'")
             return self
 
         if self.type == WorkflowStepType.SWITCH:
             if not self.cases or not self.default_step:
-                raise ValueError(
-                    "Switch workflow step requires at least one 'case' and a "
-                    "'default' target"
-                )
+                raise ValueError("Switch workflow step requires at least one 'case' and a 'default' target")
             if (
                 self.objective
                 or self.next
@@ -502,18 +471,12 @@ class WorkflowStep(SDLModel):
                 or self.max_attempts is not None
                 or self.compensate_with
             ):
-                raise ValueError(
-                    "Switch workflow step only supports 'cases', 'default', "
-                    "and 'description'"
-                )
+                raise ValueError("Switch workflow step only supports 'cases', 'default', and 'description'")
             return self
 
         if self.type == WorkflowStepType.PARALLEL:
             if len(self.branches) < 2 or not self.join:
-                raise ValueError(
-                    "Parallel workflow step requires at least two 'branches' "
-                    "and a 'join'"
-                )
+                raise ValueError("Parallel workflow step requires at least two 'branches' and a 'join'")
             if (
                 self.objective
                 or self.when is not None
@@ -526,8 +489,7 @@ class WorkflowStep(SDLModel):
                 or self.compensate_with
             ):
                 raise ValueError(
-                    "Parallel workflow step only supports 'branches', 'join', "
-                    "optional 'on-failure', and 'description'"
+                    "Parallel workflow step only supports 'branches', 'join', optional 'on-failure', and 'description'"
                 )
             if len(self.branches) != len(set(self.branches)):
                 raise ValueError("Parallel workflow branches must be unique")
@@ -535,9 +497,7 @@ class WorkflowStep(SDLModel):
 
         if self.type == WorkflowStepType.JOIN:
             if not self.next:
-                raise ValueError(
-                    "Join workflow step requires 'next'"
-                )
+                raise ValueError("Join workflow step requires 'next'")
             if (
                 self.objective
                 or self.on_success
@@ -551,21 +511,12 @@ class WorkflowStep(SDLModel):
                 or self.max_attempts is not None
                 or self.compensate_with
             ):
-                raise ValueError(
-                    "Join workflow step only supports 'next' and 'description'"
-                )
+                raise ValueError("Join workflow step only supports 'next' and 'description'")
             return self
 
         if self.type == WorkflowStepType.RETRY:
-            if (
-                not self.objective
-                or self.max_attempts is None
-                or not self.on_success
-            ):
-                raise ValueError(
-                    "Retry workflow step requires 'objective', 'max-attempts', "
-                    "and 'on-success'"
-                )
+            if not self.objective or self.max_attempts is None or not self.on_success:
+                raise ValueError("Retry workflow step requires 'objective', 'max-attempts', and 'on-success'")
             if (
                 self.next
                 or self.when is not None
@@ -585,9 +536,7 @@ class WorkflowStep(SDLModel):
 
         if self.type == WorkflowStepType.CALL:
             if not self.workflow or not self.on_success:
-                raise ValueError(
-                    "Call workflow step requires 'workflow' and 'on-success'"
-                )
+                raise ValueError("Call workflow step requires 'workflow' and 'on-success'")
             if (
                 self.objective
                 or self.next
@@ -626,9 +575,7 @@ class WorkflowStep(SDLModel):
             or self.max_attempts is not None
             or self.compensate_with
         ):
-            raise ValueError(
-                "End workflow step only supports 'type' and 'description'"
-            )
+            raise ValueError("End workflow step only supports 'type' and 'description'")
         return self
 
 
