@@ -39,7 +39,7 @@ class ControlPlaneSecurityConfig:
         cls,
         *,
         target_name: str | None = None,
-    ) -> "ControlPlaneSecurityConfig":
+    ) -> ControlPlaneSecurityConfig:
         backend_identity = ControlPlaneIdentity(
             identity="backend-service",
             roles=frozenset({ControlPlaneRole.BACKEND}),

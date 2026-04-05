@@ -16,14 +16,15 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
-from .semantics.workflow import (
-    WORKFLOW_STATE_SCHEMA_VERSION,
-    WorkflowStepSemanticContract,
-)
 from aces_backend_protocols.capabilities import (
     BackendManifest,
     WorkflowFeature,
     WorkflowStatePredicateFeature,
+)
+
+from .semantics.workflow import (
+    WORKFLOW_STATE_SCHEMA_VERSION,
+    WorkflowStepSemanticContract,
 )
 
 
@@ -385,15 +386,9 @@ class WorkflowRuntime(ResolvedResource):
     step_condition_addresses: dict[str, tuple[str, ...]] = field(default_factory=dict)
     step_predicate_addresses: dict[str, tuple[str, ...]] = field(default_factory=dict)
     required_features: tuple[WorkflowFeature, ...] = ()
-    required_state_predicate_features: tuple[
-        WorkflowStatePredicateFeature, ...
-    ] = ()
-    result_contract: "WorkflowResultContract" = field(
-        default_factory=lambda: WorkflowResultContract()
-    )
-    execution_contract: "WorkflowExecutionContract" = field(
-        default_factory=lambda: WorkflowExecutionContract()
-    )
+    required_state_predicate_features: tuple[WorkflowStatePredicateFeature, ...] = ()
+    result_contract: "WorkflowResultContract" = field(default_factory=lambda: WorkflowResultContract())
+    execution_contract: "WorkflowExecutionContract" = field(default_factory=lambda: WorkflowExecutionContract())
     state_schema_version: str = WORKFLOW_STATE_SCHEMA_VERSION
 
 
@@ -402,26 +397,17 @@ class WorkflowResultContract:
     """Compiled contract for validating portable workflow result envelopes."""
 
     state_schema_version: str = WORKFLOW_STATE_SCHEMA_VERSION
-    observable_steps: dict[str, WorkflowStepSemanticContract] = field(
-        default_factory=dict
-    )
+    observable_steps: dict[str, WorkflowStepSemanticContract] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not isinstance(self.state_schema_version, str) or not self.state_schema_version:
-            raise TypeError(
-                "workflow result contract state_schema_version must be a non-empty string"
-            )
+            raise TypeError("workflow result contract state_schema_version must be a non-empty string")
         if not isinstance(self.observable_steps, dict):
             raise TypeError("workflow result contract observable_steps must be a dict")
         if any(not isinstance(step_name, str) for step_name in self.observable_steps):
             raise TypeError("workflow result contract step names must be strings")
-        if any(
-            not isinstance(contract, WorkflowStepSemanticContract)
-            for contract in self.observable_steps.values()
-        ):
-            raise TypeError(
-                "workflow result contract step contracts must be WorkflowStepSemanticContract values"
-            )
+        if any(not isinstance(contract, WorkflowStepSemanticContract) for contract in self.observable_steps.values()):
+            raise TypeError("workflow result contract step contracts must be WorkflowStepSemanticContract values")
 
     @classmethod
     def from_mapping(
@@ -438,20 +424,12 @@ class WorkflowResultContract:
             if not isinstance(step_name, str):
                 raise TypeError("workflow result contract step names must be strings")
             if not isinstance(step_payload, Mapping):
-                raise TypeError(
-                    "workflow result contract step payloads must be mappings"
-                )
-            observable_steps[step_name] = WorkflowStepSemanticContract.from_mapping(
-                step_payload
-            )
+                raise TypeError("workflow result contract step payloads must be mappings")
+            observable_steps[step_name] = WorkflowStepSemanticContract.from_mapping(step_payload)
             if not observable_steps[step_name].state_observable:
-                raise ValueError(
-                    "workflow result contract may only include observable steps"
-                )
+                raise ValueError("workflow result contract may only include observable steps")
         return cls(
-            state_schema_version=str(
-                payload.get("state_schema_version", WORKFLOW_STATE_SCHEMA_VERSION)
-            ),
+            state_schema_version=str(payload.get("state_schema_version", WORKFLOW_STATE_SCHEMA_VERSION)),
             observable_steps=observable_steps,
         )
 
@@ -477,9 +455,7 @@ class WorkflowExecutionContract:
 
     def __post_init__(self) -> None:
         if not isinstance(self.state_schema_version, str) or not self.state_schema_version:
-            raise TypeError(
-                "workflow execution contract state_schema_version must be a non-empty string"
-            )
+            raise TypeError("workflow execution contract state_schema_version must be a non-empty string")
         if not isinstance(self.start_step, str):
             raise TypeError("workflow execution contract start_step must be a string")
         if self.timeout_seconds is not None:
@@ -491,16 +467,13 @@ class WorkflowExecutionContract:
             raise TypeError("workflow execution contract steps must be a dict")
         if any(not isinstance(name, str) for name in self.steps):
             raise TypeError("workflow execution contract step names must be strings")
-        if any(
-            not isinstance(contract, WorkflowStepSemanticContract)
-            for contract in self.steps.values()
-        ):
-            raise TypeError(
-                "workflow execution contract step contracts must be WorkflowStepSemanticContract values"
-            )
+        if any(not isinstance(contract, WorkflowStepSemanticContract) for contract in self.steps.values()):
+            raise TypeError("workflow execution contract step contracts must be WorkflowStepSemanticContract values")
         if not isinstance(self.step_types, dict):
             raise TypeError("workflow execution contract step_types must be a dict")
-        if any(not isinstance(name, str) or not isinstance(step_type, str) for name, step_type in self.step_types.items()):
+        if any(
+            not isinstance(name, str) or not isinstance(step_type, str) for name, step_type in self.step_types.items()
+        ):
             raise TypeError("workflow execution contract step_types must map strings to strings")
         if not isinstance(self.control_edges, dict):
             raise TypeError("workflow execution contract control_edges must be a dict")
@@ -508,7 +481,10 @@ class WorkflowExecutionContract:
             raise TypeError("workflow execution contract join_owners must be a dict")
         if not isinstance(self.call_steps, dict):
             raise TypeError("workflow execution contract call_steps must be a dict")
-        if any(not isinstance(step_name, str) or not isinstance(workflow_address, str) for step_name, workflow_address in self.call_steps.items()):
+        if any(
+            not isinstance(step_name, str) or not isinstance(workflow_address, str)
+            for step_name, workflow_address in self.call_steps.items()
+        ):
             raise TypeError("workflow execution contract call_steps must map strings to strings")
         if not isinstance(self.compensation_mode, str):
             raise TypeError("workflow execution contract compensation_mode must be a string")
@@ -516,16 +492,17 @@ class WorkflowExecutionContract:
             raise TypeError("workflow execution contract compensation_triggers must be strings")
         if not isinstance(self.compensation_targets, dict):
             raise TypeError("workflow execution contract compensation_targets must be a dict")
-        if any(not isinstance(step_name, str) or not isinstance(workflow_address, str) for step_name, workflow_address in self.compensation_targets.items()):
+        if any(
+            not isinstance(step_name, str) or not isinstance(workflow_address, str)
+            for step_name, workflow_address in self.compensation_targets.items()
+        ):
             raise TypeError("workflow execution contract compensation_targets must map strings to strings")
         if not isinstance(self.compensation_ordering, str):
             raise TypeError("workflow execution contract compensation_ordering must be a string")
         if not isinstance(self.compensation_failure_policy, str):
             raise TypeError("workflow execution contract compensation_failure_policy must be a string")
         if any(not isinstance(step_name, str) for step_name in self.observable_steps):
-            raise TypeError(
-                "workflow execution contract observable_steps must be strings"
-            )
+            raise TypeError("workflow execution contract observable_steps must be strings")
 
     @classmethod
     def from_mapping(
@@ -546,9 +523,7 @@ class WorkflowExecutionContract:
             steps[step_name] = WorkflowStepSemanticContract.from_mapping(step_payload)
         control_edges_payload = payload.get("control_edges", {})
         if not isinstance(control_edges_payload, Mapping):
-            raise TypeError(
-                "workflow execution contract control_edges must be a mapping"
-            )
+            raise TypeError("workflow execution contract control_edges must be a mapping")
         control_edges = {
             str(step_name): tuple(str(successor) for successor in successors)
             for step_name, successors in control_edges_payload.items()
@@ -558,19 +533,12 @@ class WorkflowExecutionContract:
         if not isinstance(join_owners_payload, Mapping):
             raise TypeError("workflow execution contract join_owners must be a mapping")
         return cls(
-            state_schema_version=str(
-                payload.get("state_schema_version", WORKFLOW_STATE_SCHEMA_VERSION)
-            ),
+            state_schema_version=str(payload.get("state_schema_version", WORKFLOW_STATE_SCHEMA_VERSION)),
             start_step=str(payload.get("start_step", "")),
-            timeout_seconds=(
-                int(payload["timeout_seconds"])
-                if payload.get("timeout_seconds") is not None
-                else None
-            ),
+            timeout_seconds=(int(payload["timeout_seconds"]) if payload.get("timeout_seconds") is not None else None),
             steps=steps,
             step_types={
-                str(step_name): str(step_type)
-                for step_name, step_type in payload.get("step_types", {}).items()
+                str(step_name): str(step_type) for step_name, step_type in payload.get("step_types", {}).items()
             },
             control_edges=control_edges,
             join_owners={str(join): str(owner) for join, owner in join_owners_payload.items()},
@@ -579,22 +547,14 @@ class WorkflowExecutionContract:
                 for step_name, workflow_address in payload.get("call_steps", {}).items()
             },
             compensation_mode=str(payload.get("compensation_mode", "disabled")),
-            compensation_triggers=tuple(
-                str(trigger) for trigger in payload.get("compensation_triggers", ())
-            ),
+            compensation_triggers=tuple(str(trigger) for trigger in payload.get("compensation_triggers", ())),
             compensation_targets={
                 str(step_name): str(workflow_address)
                 for step_name, workflow_address in payload.get("compensation_targets", {}).items()
             },
-            compensation_ordering=str(
-                payload.get("compensation_ordering", "reverse_completion")
-            ),
-            compensation_failure_policy=str(
-                payload.get("compensation_failure_policy", "fail_workflow")
-            ),
-            observable_steps=tuple(
-                str(step_name) for step_name in payload.get("observable_steps", ())
-            ),
+            compensation_ordering=str(payload.get("compensation_ordering", "reverse_completion")),
+            compensation_failure_policy=str(payload.get("compensation_failure_policy", "fail_workflow")),
+            observable_steps=tuple(str(step_name) for step_name in payload.get("observable_steps", ())),
         )
 
 
@@ -620,9 +580,7 @@ class WorkflowHistoryEvent:
         event_type_raw = payload.get("event_type")
         timestamp_raw = payload.get("timestamp")
         if event_type_raw is None or timestamp_raw is None:
-            raise ValueError(
-                "workflow history event is missing required fields: event_type, timestamp"
-            )
+            raise ValueError("workflow history event is missing required fields: event_type, timestamp")
         outcome_raw = payload.get("outcome")
         return cls(
             event_type=(
@@ -631,29 +589,15 @@ class WorkflowHistoryEvent:
                 else WorkflowHistoryEventType(str(event_type_raw))
             ),
             timestamp=str(timestamp_raw),
-            step_name=(
-                str(payload["step_name"]) if payload.get("step_name") is not None else None
-            ),
-            branch_name=(
-                str(payload["branch_name"])
-                if payload.get("branch_name") is not None
-                else None
-            ),
-            join_step=(
-                str(payload["join_step"]) if payload.get("join_step") is not None else None
-            ),
+            step_name=(str(payload["step_name"]) if payload.get("step_name") is not None else None),
+            branch_name=(str(payload["branch_name"]) if payload.get("branch_name") is not None else None),
+            join_step=(str(payload["join_step"]) if payload.get("join_step") is not None else None),
             outcome=(
                 outcome_raw
                 if isinstance(outcome_raw, WorkflowStepOutcome)
-                else (
-                    WorkflowStepOutcome(str(outcome_raw))
-                    if outcome_raw is not None
-                    else None
-                )
+                else (WorkflowStepOutcome(str(outcome_raw)) if outcome_raw is not None else None)
             ),
-            details=dict(payload.get("details", {}))
-            if isinstance(payload.get("details", {}), Mapping)
-            else {},
+            details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -683,14 +627,9 @@ class WorkflowStepExecutionState:
     ) -> "WorkflowStepExecutionState":
         if not isinstance(payload, Mapping):
             raise TypeError("workflow step result must be a mapping")
-        missing_keys = [
-            key for key in ("lifecycle", "outcome", "attempts") if key not in payload
-        ]
+        missing_keys = [key for key in ("lifecycle", "outcome", "attempts") if key not in payload]
         if missing_keys:
-            raise ValueError(
-                "workflow step result is missing required fields: "
-                + ", ".join(missing_keys)
-            )
+            raise ValueError("workflow step result is missing required fields: " + ", ".join(missing_keys))
         lifecycle_raw = payload.get("lifecycle")
         outcome_raw = payload.get("outcome")
         attempts_raw = payload.get("attempts")
@@ -702,9 +641,7 @@ class WorkflowStepExecutionState:
         outcome = None
         if outcome_raw is not None:
             outcome = (
-                outcome_raw
-                if isinstance(outcome_raw, WorkflowStepOutcome)
-                else WorkflowStepOutcome(str(outcome_raw))
+                outcome_raw if isinstance(outcome_raw, WorkflowStepOutcome) else WorkflowStepOutcome(str(outcome_raw))
             )
         if isinstance(attempts_raw, bool) or not isinstance(attempts_raw, int):
             raise TypeError("workflow step attempts must be an int")
@@ -746,9 +683,7 @@ class WorkflowExecutionState:
     started_at: str = ""
     updated_at: str = ""
     terminal_reason: str | None = None
-    compensation_status: WorkflowCompensationStatus = (
-        WorkflowCompensationStatus.NOT_REQUIRED
-    )
+    compensation_status: WorkflowCompensationStatus = WorkflowCompensationStatus.NOT_REQUIRED
     compensation_started_at: str | None = None
     compensation_updated_at: str | None = None
     compensation_failures: list[dict[str, Any]] = field(default_factory=list)
@@ -776,10 +711,7 @@ class WorkflowExecutionState:
             if key not in payload
         ]
         if missing_keys:
-            raise ValueError(
-                "workflow result payload is missing required fields: "
-                + ", ".join(missing_keys)
-            )
+            raise ValueError("workflow result payload is missing required fields: " + ", ".join(missing_keys))
         state_schema_version = str(payload.get("state_schema_version"))
         workflow_status_raw = payload.get("workflow_status")
         steps_payload = payload.get("steps")
@@ -802,30 +734,20 @@ class WorkflowExecutionState:
             run_id=str(payload.get("run_id")),
             started_at=str(payload.get("started_at")),
             updated_at=str(payload.get("updated_at")),
-            terminal_reason=(
-                str(payload["terminal_reason"])
-                if payload.get("terminal_reason") is not None
-                else None
-            ),
+            terminal_reason=(str(payload["terminal_reason"]) if payload.get("terminal_reason") is not None else None),
             compensation_status=(
                 payload.get("compensation_status")
                 if isinstance(payload.get("compensation_status"), WorkflowCompensationStatus)
                 else WorkflowCompensationStatus(str(payload.get("compensation_status")))
             ),
             compensation_started_at=(
-                str(payload["compensation_started_at"])
-                if payload.get("compensation_started_at") is not None
-                else None
+                str(payload["compensation_started_at"]) if payload.get("compensation_started_at") is not None else None
             ),
             compensation_updated_at=(
-                str(payload["compensation_updated_at"])
-                if payload.get("compensation_updated_at") is not None
-                else None
+                str(payload["compensation_updated_at"]) if payload.get("compensation_updated_at") is not None else None
             ),
             compensation_failures=[
-                dict(item)
-                for item in payload.get("compensation_failures", [])
-                if isinstance(item, Mapping)
+                dict(item) for item in payload.get("compensation_failures", []) if isinstance(item, Mapping)
             ],
             steps=steps,
         )
@@ -842,10 +764,7 @@ class WorkflowExecutionState:
             "compensation_started_at": self.compensation_started_at,
             "compensation_updated_at": self.compensation_updated_at,
             "compensation_failures": [dict(item) for item in self.compensation_failures],
-            "steps": {
-                step_name: step_state.to_payload()
-                for step_name, step_state in self.steps.items()
-            },
+            "steps": {step_name: step_state.to_payload() for step_name, step_state in self.steps.items()},
         }
 
     def __post_init__(self) -> None:
@@ -863,13 +782,9 @@ class WorkflowExecutionState:
             raise TypeError("terminal_reason must be a string or None")
         if not isinstance(self.compensation_status, WorkflowCompensationStatus):
             raise TypeError("compensation_status must be a WorkflowCompensationStatus")
-        if self.compensation_started_at is not None and not isinstance(
-            self.compensation_started_at, str
-        ):
+        if self.compensation_started_at is not None and not isinstance(self.compensation_started_at, str):
             raise TypeError("compensation_started_at must be a string or None")
-        if self.compensation_updated_at is not None and not isinstance(
-            self.compensation_updated_at, str
-        ):
+        if self.compensation_updated_at is not None and not isinstance(self.compensation_updated_at, str):
             raise TypeError("compensation_updated_at must be a string or None")
         if not isinstance(self.compensation_failures, list):
             raise TypeError("compensation_failures must be a list")
@@ -879,49 +794,37 @@ class WorkflowExecutionState:
             raise TypeError("workflow step results must be stored in a dict")
         if any(not isinstance(step_name, str) for step_name in self.steps):
             raise TypeError("workflow step result keys must be strings")
-        if any(
-            not isinstance(step_state, WorkflowStepExecutionState)
-            for step_state in self.steps.values()
+        if any(not isinstance(step_state, WorkflowStepExecutionState) for step_state in self.steps.values()):
+            raise TypeError("workflow step results must be WorkflowStepExecutionState values")
+        if (
+            self.workflow_status
+            in {
+                WorkflowStatus.SUCCEEDED,
+                WorkflowStatus.FAILED,
+                WorkflowStatus.CANCELLED,
+                WorkflowStatus.TIMED_OUT,
+            }
+            and self.terminal_reason is None
         ):
-            raise TypeError(
-                "workflow step results must be WorkflowStepExecutionState values"
-            )
-        if self.workflow_status in {
-            WorkflowStatus.SUCCEEDED,
-            WorkflowStatus.FAILED,
-            WorkflowStatus.CANCELLED,
-            WorkflowStatus.TIMED_OUT,
-        } and self.terminal_reason is None:
-            raise ValueError(
-                "terminal workflow statuses must include terminal_reason"
-            )
-        if self.workflow_status in {WorkflowStatus.PENDING, WorkflowStatus.RUNNING} and self.terminal_reason is not None:
-            raise ValueError(
-                "non-terminal workflow statuses may not include terminal_reason"
-            )
+            raise ValueError("terminal workflow statuses must include terminal_reason")
+        if (
+            self.workflow_status in {WorkflowStatus.PENDING, WorkflowStatus.RUNNING}
+            and self.terminal_reason is not None
+        ):
+            raise ValueError("non-terminal workflow statuses may not include terminal_reason")
         if self.workflow_status in {WorkflowStatus.PENDING, WorkflowStatus.RUNNING}:
             if self.compensation_status != WorkflowCompensationStatus.NOT_REQUIRED:
-                raise ValueError(
-                    "non-terminal workflow statuses may not report compensation activity"
-                )
+                raise ValueError("non-terminal workflow statuses may not report compensation activity")
             if self.compensation_started_at is not None or self.compensation_updated_at is not None:
-                raise ValueError(
-                    "non-terminal workflow statuses may not report compensation timestamps"
-                )
+                raise ValueError("non-terminal workflow statuses may not report compensation timestamps")
         if self.compensation_status == WorkflowCompensationStatus.NOT_REQUIRED:
             if self.compensation_started_at is not None or self.compensation_updated_at is not None:
-                raise ValueError(
-                    "compensation_status=not_required may not report compensation timestamps"
-                )
+                raise ValueError("compensation_status=not_required may not report compensation timestamps")
             if self.compensation_failures:
-                raise ValueError(
-                    "compensation_status=not_required may not report compensation failures"
-                )
+                raise ValueError("compensation_status=not_required may not report compensation failures")
         if self.compensation_status == WorkflowCompensationStatus.RUNNING:
             if self.compensation_started_at is None:
-                raise ValueError(
-                    "compensation_status=running requires compensation_started_at"
-                )
+                raise ValueError("compensation_status=running requires compensation_started_at")
 
 
 @dataclass(frozen=True)
@@ -936,9 +839,7 @@ class EvaluationResultContract:
 
     def __post_init__(self) -> None:
         if not isinstance(self.state_schema_version, str) or not self.state_schema_version:
-            raise TypeError(
-                "evaluation result contract state_schema_version must be a non-empty string"
-            )
+            raise TypeError("evaluation result contract state_schema_version must be a non-empty string")
         if not isinstance(self.resource_type, str) or not self.resource_type:
             raise TypeError("evaluation result contract resource_type must be a non-empty string")
         if not isinstance(self.supports_passed, bool):
@@ -951,9 +852,7 @@ class EvaluationResultContract:
             if self.fixed_max_score < 0:
                 raise ValueError("evaluation result contract fixed_max_score must be >= 0")
             if not self.supports_score:
-                raise ValueError(
-                    "evaluation result contract fixed_max_score requires supports_score"
-                )
+                raise ValueError("evaluation result contract fixed_max_score requires supports_score")
 
     @classmethod
     def from_mapping(
@@ -971,9 +870,7 @@ class EvaluationResultContract:
         else:
             fixed_max_score = fixed_max_score_raw
         return cls(
-            state_schema_version=str(
-                payload.get("state_schema_version", EVALUATION_STATE_SCHEMA_VERSION)
-            ),
+            state_schema_version=str(payload.get("state_schema_version", EVALUATION_STATE_SCHEMA_VERSION)),
             resource_type=str(payload.get("resource_type", "")),
             supports_passed=bool(payload.get("supports_passed", False)),
             supports_score=bool(payload.get("supports_score", False)),
@@ -1003,16 +900,12 @@ class EvaluationExecutionContract:
 
     def __post_init__(self) -> None:
         if not isinstance(self.state_schema_version, str) or not self.state_schema_version:
-            raise TypeError(
-                "evaluation execution contract state_schema_version must be a non-empty string"
-            )
+            raise TypeError("evaluation execution contract state_schema_version must be a non-empty string")
         if not isinstance(self.resource_type, str) or not self.resource_type:
             raise TypeError("evaluation execution contract resource_type must be a non-empty string")
         if any(not isinstance(status, str) for status in self.allowed_statuses):
             raise TypeError("evaluation execution contract allowed_statuses must be strings")
-        if any(
-            not isinstance(event_type, str) for event_type in self.history_event_types
-        ):
+        if any(not isinstance(event_type, str) for event_type in self.history_event_types):
             raise TypeError("evaluation execution contract history_event_types must be strings")
         if not isinstance(self.requires_start_event, bool):
             raise TypeError("evaluation execution contract requires_start_event must be a bool")
@@ -1025,9 +918,7 @@ class EvaluationExecutionContract:
         if not isinstance(payload, Mapping):
             raise TypeError("evaluation execution contract must be a mapping")
         return cls(
-            state_schema_version=str(
-                payload.get("state_schema_version", EVALUATION_STATE_SCHEMA_VERSION)
-            ),
+            state_schema_version=str(payload.get("state_schema_version", EVALUATION_STATE_SCHEMA_VERSION)),
             resource_type=str(payload.get("resource_type", "")),
             allowed_statuses=tuple(
                 str(status)
@@ -1078,20 +969,13 @@ class EvaluationHistoryEvent:
     ) -> "EvaluationHistoryEvent":
         if not isinstance(payload, Mapping):
             raise TypeError("evaluation history event must be a mapping")
-        missing_keys = [
-            key for key in ("event_type", "timestamp", "status") if key not in payload
-        ]
+        missing_keys = [key for key in ("event_type", "timestamp", "status") if key not in payload]
         if missing_keys:
-            raise ValueError(
-                "evaluation history event is missing required fields: "
-                + ", ".join(missing_keys)
-            )
+            raise ValueError("evaluation history event is missing required fields: " + ", ".join(missing_keys))
         score_raw = payload.get("score")
         max_score_raw = payload.get("max_score")
         evidence_refs_raw = payload.get("evidence_refs", ())
-        if isinstance(evidence_refs_raw, (str, bytes)) or not isinstance(
-            evidence_refs_raw, Iterable
-        ):
+        if isinstance(evidence_refs_raw, (str, bytes)) or not isinstance(evidence_refs_raw, Iterable):
             raise TypeError("evaluation history event evidence_refs must be an iterable of strings")
         evidence_ref_items = list(evidence_refs_raw)
         evidence_refs = tuple(str(ref) for ref in evidence_ref_items if isinstance(ref, str))
@@ -1109,28 +993,14 @@ class EvaluationHistoryEvent:
                 if isinstance(payload["status"], EvaluationResultStatus)
                 else EvaluationResultStatus(str(payload["status"]))
             ),
-            passed=(
-                payload.get("passed")
-                if isinstance(payload.get("passed"), bool)
-                else None
-            ),
-            score=(
-                score_raw
-                if isinstance(score_raw, (int, float)) and not isinstance(score_raw, bool)
-                else None
-            ),
+            passed=(payload.get("passed") if isinstance(payload.get("passed"), bool) else None),
+            score=(score_raw if isinstance(score_raw, (int, float)) and not isinstance(score_raw, bool) else None),
             max_score=(
-                max_score_raw
-                if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool)
-                else None
+                max_score_raw if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool) else None
             ),
-            detail=(
-                str(payload["detail"]) if payload.get("detail") is not None else None
-            ),
+            detail=(str(payload["detail"]) if payload.get("detail") is not None else None),
             evidence_refs=evidence_refs,
-            details=dict(payload.get("details", {}))
-            if isinstance(payload.get("details", {}), Mapping)
-            else {},
+            details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -1155,13 +1025,9 @@ class EvaluationHistoryEvent:
             raise TypeError("status must be an EvaluationResultStatus")
         if self.passed is not None and not isinstance(self.passed, bool):
             raise TypeError("passed must be a bool or None")
-        if self.score is not None and (
-            isinstance(self.score, bool) or not isinstance(self.score, (int, float))
-        ):
+        if self.score is not None and (isinstance(self.score, bool) or not isinstance(self.score, (int, float))):
             raise TypeError("score must be numeric or None")
-        if self.max_score is not None and (
-            isinstance(self.max_score, bool) or not isinstance(self.max_score, int)
-        ):
+        if self.max_score is not None and (isinstance(self.max_score, bool) or not isinstance(self.max_score, int)):
             raise TypeError("max_score must be an int or None")
         if self.detail is not None and not isinstance(self.detail, str):
             raise TypeError("detail must be a string or None")
@@ -1175,14 +1041,10 @@ class EvaluationHistoryEvent:
             EvaluationResultStatus.FAILED,
         }:
             if self.passed is not None or self.score is not None or self.max_score is not None:
-                raise ValueError(
-                    "pending/running/failed evaluation history events may not report result values"
-                )
+                raise ValueError("pending/running/failed evaluation history events may not report result values")
         if self.status == EvaluationResultStatus.READY:
             if self.passed is None and self.score is None:
-                raise ValueError(
-                    "ready evaluation history events must report passed or score"
-                )
+                raise ValueError("ready evaluation history events must report passed or score")
         if self.max_score is not None and self.score is None:
             raise ValueError("evaluation history events may not report max_score without score")
 
@@ -1223,16 +1085,11 @@ class EvaluationExecutionState:
             if key not in payload
         ]
         if missing_keys:
-            raise ValueError(
-                "evaluation result payload is missing required fields: "
-                + ", ".join(missing_keys)
-            )
+            raise ValueError("evaluation result payload is missing required fields: " + ", ".join(missing_keys))
         score_raw = payload.get("score")
         max_score_raw = payload.get("max_score")
         evidence_refs_raw = payload.get("evidence_refs", ())
-        if isinstance(evidence_refs_raw, (str, bytes)) or not isinstance(
-            evidence_refs_raw, Iterable
-        ):
+        if isinstance(evidence_refs_raw, (str, bytes)) or not isinstance(evidence_refs_raw, Iterable):
             raise TypeError("evaluation result evidence_refs must be an iterable of strings")
         evidence_ref_items = list(evidence_refs_raw)
         evidence_refs = tuple(str(ref) for ref in evidence_ref_items if isinstance(ref, str))
@@ -1249,24 +1106,12 @@ class EvaluationExecutionState:
             ),
             observed_at=str(payload["observed_at"]),
             updated_at=str(payload["updated_at"]),
-            passed=(
-                payload.get("passed")
-                if isinstance(payload.get("passed"), bool)
-                else None
-            ),
-            score=(
-                score_raw
-                if isinstance(score_raw, (int, float)) and not isinstance(score_raw, bool)
-                else None
-            ),
+            passed=(payload.get("passed") if isinstance(payload.get("passed"), bool) else None),
+            score=(score_raw if isinstance(score_raw, (int, float)) and not isinstance(score_raw, bool) else None),
             max_score=(
-                max_score_raw
-                if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool)
-                else None
+                max_score_raw if isinstance(max_score_raw, int) and not isinstance(max_score_raw, bool) else None
             ),
-            detail=(
-                str(payload["detail"]) if payload.get("detail") is not None else None
-            ),
+            detail=(str(payload["detail"]) if payload.get("detail") is not None else None),
             evidence_refs=evidence_refs,
         )
 
@@ -1300,13 +1145,9 @@ class EvaluationExecutionState:
             raise TypeError("updated_at must be a non-empty string")
         if self.passed is not None and not isinstance(self.passed, bool):
             raise TypeError("passed must be a bool or None")
-        if self.score is not None and (
-            isinstance(self.score, bool) or not isinstance(self.score, (int, float))
-        ):
+        if self.score is not None and (isinstance(self.score, bool) or not isinstance(self.score, (int, float))):
             raise TypeError("score must be numeric or None")
-        if self.max_score is not None and (
-            isinstance(self.max_score, bool) or not isinstance(self.max_score, int)
-        ):
+        if self.max_score is not None and (isinstance(self.max_score, bool) or not isinstance(self.max_score, int)):
             raise TypeError("max_score must be an int or None")
         if self.detail is not None and not isinstance(self.detail, str):
             raise TypeError("detail must be a string or None")
@@ -1318,21 +1159,13 @@ class EvaluationExecutionState:
             EvaluationResultStatus.FAILED,
         }:
             if self.passed is not None or self.score is not None or self.max_score is not None:
-                raise ValueError(
-                    "pending/running/failed evaluation results may not report result values"
-                )
+                raise ValueError("pending/running/failed evaluation results may not report result values")
         if self.status == EvaluationResultStatus.READY:
             if self.passed is None and self.score is None:
-                raise ValueError(
-                    "ready evaluation results must report passed or score"
-                )
+                raise ValueError("ready evaluation results must report passed or score")
         if self.max_score is not None and self.score is None:
             raise ValueError("evaluation results may not report max_score without score")
-        if (
-            self.score is not None
-            and self.max_score is not None
-            and float(self.score) > float(self.max_score)
-        ):
+        if self.score is not None and self.max_score is not None and float(self.score) > float(self.max_score):
             raise ValueError("evaluation result score may not exceed max_score")
 
 
@@ -1345,9 +1178,7 @@ def validate_evaluation_result(
     violations: list[str] = []
     if state.resource_type != contract.resource_type:
         violations.append(
-            "Result resource_type "
-            f"{state.resource_type!r} does not match compiled contract "
-            f"{contract.resource_type!r}."
+            f"Result resource_type {state.resource_type!r} does not match compiled contract {contract.resource_type!r}."
         )
     if state.state_schema_version != contract.state_schema_version:
         violations.append(
@@ -1365,10 +1196,7 @@ def validate_evaluation_result(
         violations.append("Ready result must report 'score' for this resource type.")
     if contract.fixed_max_score is not None:
         if state.status == EvaluationResultStatus.READY and state.max_score != contract.fixed_max_score:
-            violations.append(
-                "Ready result must report max_score "
-                f"{contract.fixed_max_score} for this resource type."
-            )
+            violations.append(f"Ready result must report max_score {contract.fixed_max_score} for this resource type.")
     return violations
 
 
@@ -1609,11 +1437,7 @@ class RuntimeSnapshot:
         return self.entries.get(address)
 
     def for_domain(self, domain: RuntimeDomain) -> dict[str, SnapshotEntry]:
-        return {
-            address: entry
-            for address, entry in self.entries.items()
-            if entry.domain == domain
-        }
+        return {address: entry for address, entry in self.entries.items() if entry.domain == domain}
 
     def with_entries(
         self,
@@ -1628,36 +1452,20 @@ class RuntimeSnapshot:
         return RuntimeSnapshot(
             entries=entries,
             orchestration_results=(
-                dict(self.orchestration_results)
-                if orchestration_results is None
-                else dict(orchestration_results)
+                dict(self.orchestration_results) if orchestration_results is None else dict(orchestration_results)
             ),
             orchestration_history=(
-                {
-                    workflow_address: list(events)
-                    for workflow_address, events in self.orchestration_history.items()
-                }
+                {workflow_address: list(events) for workflow_address, events in self.orchestration_history.items()}
                 if orchestration_history is None
-                else {
-                    workflow_address: list(events)
-                    for workflow_address, events in orchestration_history.items()
-                }
+                else {workflow_address: list(events) for workflow_address, events in orchestration_history.items()}
             ),
             evaluation_results=(
-                dict(self.evaluation_results)
-                if evaluation_results is None
-                else dict(evaluation_results)
+                dict(self.evaluation_results) if evaluation_results is None else dict(evaluation_results)
             ),
             evaluation_history=(
-                {
-                    address: list(events)
-                    for address, events in self.evaluation_history.items()
-                }
+                {address: list(events) for address, events in self.evaluation_history.items()}
                 if evaluation_history is None
-                else {
-                    address: list(events)
-                    for address, events in evaluation_history.items()
-                }
+                else {address: list(events) for address, events in evaluation_history.items()}
             ),
             metadata=dict(self.metadata) if metadata is None else dict(metadata),
         )

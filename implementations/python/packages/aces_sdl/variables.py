@@ -10,7 +10,6 @@ at instantiation time when a backend deploys the scenario.
 """
 
 from enum import Enum
-from typing import Union
 
 from pydantic import Field, field_validator, model_validator
 
@@ -48,9 +47,9 @@ class Variable(SDLModel):
     """
 
     type: VariableType
-    default: Union[str, int, float, bool, None] = None
+    default: str | int | float | bool | None = None
     description: str = ""
-    allowed_values: list[Union[str, int, float, bool]] = Field(default_factory=list)
+    allowed_values: list[str | int | float | bool] = Field(default_factory=list)
     required: bool = False
 
     @field_validator("type", mode="before")
@@ -61,27 +60,14 @@ class Variable(SDLModel):
     @model_validator(mode="after")
     def validate_typed_values(self) -> "Variable":
         """Defaults and allowed values must match the declared type."""
-        if (
-            self.default is not None
-            and not _matches_variable_type(self.default, self.type)
-        ):
-            raise ValueError(
-                f"default must match variable type '{self.type.value}'"
-            )
+        if self.default is not None and not _matches_variable_type(self.default, self.type):
+            raise ValueError(f"default must match variable type '{self.type.value}'")
 
         for value in self.allowed_values:
             if not _matches_variable_type(value, self.type):
-                raise ValueError(
-                    f"allowed_values must match variable type '{self.type.value}'"
-                )
+                raise ValueError(f"allowed_values must match variable type '{self.type.value}'")
 
-        if (
-            self.allowed_values
-            and self.default is not None
-            and self.default not in self.allowed_values
-        ):
-            raise ValueError(
-                "default must be one of allowed_values when allowed_values is set"
-            )
+        if self.allowed_values and self.default is not None and self.default not in self.allowed_values:
+            raise ValueError("default must be one of allowed_values when allowed_values is set")
 
         return self

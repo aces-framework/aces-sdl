@@ -30,7 +30,5 @@ class Vulnerability(SDLModel):
     @classmethod
     def validate_cwe_format(cls, v: str) -> str:
         if not _CWE_PATTERN.match(v):
-            raise ValueError(
-                f"Vulnerability class must match CWE-NNN format, got: {v!r}"
-            )
+            raise ValueError(f"Vulnerability class must match CWE-NNN format, got: {v!r}")
         return v

@@ -50,9 +50,7 @@ class OrchestratorCapabilities:
     supports_condition_refs: bool = True
     supports_inject_bindings: bool = True
     supported_workflow_features: frozenset[WorkflowFeature] = frozenset()
-    supported_workflow_state_predicates: frozenset[
-        WorkflowStatePredicateFeature
-    ] = frozenset()
+    supported_workflow_state_predicates: frozenset[WorkflowStatePredicateFeature] = frozenset()
     constraints: dict[str, str] = field(default_factory=dict)
 
 

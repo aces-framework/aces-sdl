@@ -1,0 +1,35 @@
+{
+  "schema_version": "processor-manifest/v1",
+  "name": "aces-reference-processor",
+  "version": "0.2.0",
+  "supported_sdl_versions": ["sdl-authoring-input-v1"],
+  "supported_contract_versions": [
+    "backend-manifest-v1",
+    "evaluation-history-event-stream-v1",
+    "evaluation-plan-v1",
+    "evaluation-result-envelope-v1",
+    "instantiated-scenario-v1",
+    "operation-receipt-v1",
+    "operation-status-v1",
+    "orchestration-plan-v1",
+    "processor-manifest-v1",
+    "provisioning-plan-v1",
+    "runtime-snapshot-v1",
+    "scenario-instantiation-request-v1",
+    "workflow-cancellation-request-v1",
+    "workflow-history-event-stream-v1",
+    "workflow-result-envelope-v1"
+  ],
+  "supported_features": [
+    "compilation",
+    "planning",
+    "orchestration-coordination",
+    "evaluation-coordination",
+    "workflow-semantics",
+    "objective-window-consistency",
+    "dependency-ordering",
+    "runtime-control-plane"
+  ],
+  "compatible_backends": ["stub"],
+  "constraints": {}
+}

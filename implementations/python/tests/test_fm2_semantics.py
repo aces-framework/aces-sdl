@@ -150,9 +150,6 @@ workflows:
             snapshot=snapshot,
         )
 
-        actions = {
-            op.address: op.action.value
-            for op in updated.evaluation.operations
-        }
+        actions = {op.address: op.action.value for op in updated.evaluation.operations}
         assert actions["evaluation.condition.vm.health"] == "update"
         assert actions["evaluation.objective.initial"] == "update"

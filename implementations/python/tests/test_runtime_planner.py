@@ -58,11 +58,13 @@ class TestRuntimePlanner:
         manifest = create_stub_manifest()
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: provenance
 nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             manifest,
             snapshot,
             target_name="custom-target",
@@ -74,11 +76,13 @@ nodes:
 
     def test_direct_plan_is_unbound_by_default(self):
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: provenance
 nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             create_stub_manifest(),
         )
 
@@ -86,11 +90,13 @@ nodes:
 
     def test_planned_payload_excludes_runtime_envelope_fields(self):
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: payload-shape
 nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             create_stub_manifest(),
         )
 
@@ -103,26 +109,28 @@ nodes:
         assert "refresh_dependencies" not in payload
 
     def test_delete_operations_emitted_for_removed_resources(self):
-        old_model = compile_runtime_model(_scenario("""
+        old_model = compile_runtime_model(
+            _scenario("""
 name: original
 nodes:
   vm1: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
   vm2: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
-"""))
+""")
+        )
         old_plan = plan(old_model, create_stub_manifest())
         snapshot = _snapshot_from_plan(old_plan)
 
-        new_model = compile_runtime_model(_scenario("""
+        new_model = compile_runtime_model(
+            _scenario("""
 name: original
 nodes:
   vm1: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
-"""))
+""")
+        )
         new_plan = plan(new_model, create_stub_manifest(), snapshot)
 
         delete_ops = {
-            op.address: op.action.value
-            for op in new_plan.provisioning.operations
-            if op.action.value == "delete"
+            op.address: op.action.value for op in new_plan.provisioning.operations if op.action.value == "delete"
         }
         assert delete_ops == {"provision.node.vm2": "delete"}
 
@@ -145,10 +153,7 @@ infrastructure:
             create_stub_manifest(),
         )
 
-        diagnostics = {
-            (diag.code, diag.address)
-            for diag in execution_plan.diagnostics
-        }
+        diagnostics = {(diag.code, diag.address) for diag in execution_plan.diagnostics}
 
         assert ("provisioning.ordering-cycle", "provision.node.a") in diagnostics
         assert not execution_plan.is_valid
@@ -186,16 +191,14 @@ objectives:
             create_stub_manifest(),
         )
 
-        diagnostics = {
-            (diag.code, diag.address)
-            for diag in execution_plan.diagnostics
-        }
+        diagnostics = {(diag.code, diag.address) for diag in execution_plan.diagnostics}
 
         assert ("evaluation.ordering-cycle", "evaluation.objective.first") in diagnostics
         assert not execution_plan.is_valid
 
     def test_dependency_changes_propagate_through_evaluation_graph(self):
-        old_model = compile_runtime_model(_scenario("""
+        old_model = compile_runtime_model(
+            _scenario("""
 name: original
 nodes:
   vm:
@@ -208,11 +211,13 @@ conditions:
   health: {command: /bin/true, interval: 15}
 metrics:
   uptime: {type: conditional, max-score: 100, condition: health}
-"""))
+""")
+        )
         old_plan = plan(old_model, create_stub_manifest())
         snapshot = _snapshot_from_plan(old_plan)
 
-        new_plan = _plan_with_snapshot("""
+        new_plan = _plan_with_snapshot(
+            """
 name: original
 nodes:
   vm:
@@ -225,7 +230,9 @@ conditions:
   health: {command: /bin/false, interval: 15}
 metrics:
   uptime: {type: conditional, max-score: 100, condition: health}
-""", snapshot)
+""",
+            snapshot,
+        )
 
         eval_actions = {op.address: op.action.value for op in new_plan.evaluation.operations}
         assert eval_actions["evaluation.condition.vm.health"] == "update"
@@ -233,7 +240,8 @@ metrics:
 
     def test_ambiguous_condition_refs_fail_closed(self):
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: ambiguous
 nodes:
   a:
@@ -252,7 +260,8 @@ conditions:
   health: {command: /bin/true, interval: 15}
 events:
   kickoff: {conditions: [health]}
-""")),
+""")
+            ),
             create_stub_manifest(),
         )
 
@@ -262,7 +271,8 @@ events:
 
     def test_top_level_inject_refs_resolve_directly(self):
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: injects
 nodes:
   web:
@@ -273,7 +283,8 @@ injects:
   mail: {source: inbox}
 events:
   kickoff: {injects: [mail]}
-""")),
+""")
+            ),
             create_stub_manifest(),
         )
 
@@ -326,7 +337,8 @@ events:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: workflows
 nodes:
   vm:
@@ -347,7 +359,8 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-""")),
+""")
+            ),
             limited,
         )
 
@@ -369,7 +382,8 @@ workflows:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: workflows
 nodes:
   vm:
@@ -396,7 +410,8 @@ workflows:
         on-success: finish
         max-attempts: 3
       finish: {type: end}
-"""),),
+"""),
+            ),
             limited,
         )
 
@@ -419,7 +434,8 @@ workflows:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: workflows
 entities:
   blue: {role: blue}
@@ -446,7 +462,8 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-""")),
+""")
+            ),
             limited,
         )
 
@@ -463,15 +480,14 @@ workflows:
                 supported_sections=frozenset({"workflows"}),
                 supports_workflows=True,
                 supported_workflow_features=frozenset({WorkflowFeature.DECISION}),
-                supported_workflow_state_predicates=frozenset(
-                    {WorkflowStatePredicateFeature.OUTCOME_MATCHING}
-                ),
+                supported_workflow_state_predicates=frozenset({WorkflowStatePredicateFeature.OUTCOME_MATCHING}),
             ),
             evaluator=create_stub_manifest().evaluator,
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: workflows
 entities:
   blue: {role: blue}
@@ -500,7 +516,8 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-""")),
+""")
+            ),
             limited,
         )
 
@@ -522,7 +539,8 @@ workflows:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: workflows
 entities:
   blue: {role: blue}
@@ -555,7 +573,8 @@ workflows:
         type: join
         next: finish
       finish: {type: end}
-""")),
+""")
+            ),
             limited,
         )
 
@@ -564,7 +583,8 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_workflow_condition_bindings_force_workflow_refresh(self):
-        old_model = compile_runtime_model(_scenario("""
+        old_model = compile_runtime_model(
+            _scenario("""
 name: workflow
 nodes:
   vm:
@@ -591,11 +611,13 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-"""))
+""")
+        )
         old_plan = plan(old_model, create_stub_manifest())
         snapshot = _snapshot_from_plan(old_plan)
 
-        new_plan = _plan_with_snapshot("""
+        new_plan = _plan_with_snapshot(
+            """
 name: workflow
 nodes:
   vm:
@@ -622,11 +644,11 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-""", snapshot)
+""",
+            snapshot,
+        )
 
-        orchestration_actions = {
-            op.address: op.action.value for op in new_plan.orchestration.operations
-        }
+        orchestration_actions = {op.address: op.action.value for op in new_plan.orchestration.operations}
         assert orchestration_actions["orchestration.workflow.flow"] == "update"
 
     def test_cross_domain_refresh_dependencies_do_not_drive_ordering(self):
@@ -660,13 +682,12 @@ events:
             snapshot,
         )
 
-        orchestration_actions = {
-            op.address: op.action.value for op in new_plan.orchestration.operations
-        }
+        orchestration_actions = {op.address: op.action.value for op in new_plan.orchestration.operations}
         assert orchestration_actions["orchestration.event.kickoff"] == "update"
 
     def test_objective_window_refs_are_refresh_only(self):
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: objective-window
 nodes:
   vm:
@@ -698,7 +719,8 @@ workflows:
         then: finish
         else: finish
       finish: {type: end}
-"""))
+""")
+        )
 
         objective = model.objectives["evaluation.objective.initial"]
         execution_plan = plan(model, create_stub_manifest())
@@ -767,7 +789,8 @@ workflows:
             assert actions["evaluation.objective.initial"] == "update"
 
     def test_content_and_account_refresh_only_on_node_changes(self):
-        old_model = compile_runtime_model(_scenario("""
+        old_model = compile_runtime_model(
+            _scenario("""
 name: provision
 nodes:
   web:
@@ -782,11 +805,13 @@ content:
   flag: {type: file, target: web, path: /tmp/flag.txt}
 accounts:
   admin: {username: admin, node: web}
-"""))
+""")
+        )
         old_plan = plan(old_model, create_stub_manifest())
         snapshot = _snapshot_from_plan(old_plan)
 
-        feature_change_plan = _plan_with_snapshot("""
+        feature_change_plan = _plan_with_snapshot(
+            """
 name: provision
 nodes:
   web:
@@ -801,15 +826,16 @@ content:
   flag: {type: file, target: web, path: /tmp/flag.txt}
 accounts:
   admin: {username: admin, node: web}
-""", snapshot)
-        feature_actions = {
-            op.address: op.action.value for op in feature_change_plan.provisioning.operations
-        }
+""",
+            snapshot,
+        )
+        feature_actions = {op.address: op.action.value for op in feature_change_plan.provisioning.operations}
         assert feature_actions["provision.feature.web.nginx"] == "update"
         assert feature_actions["provision.content.flag"] == "unchanged"
         assert feature_actions["provision.account.admin"] == "unchanged"
 
-        node_change_plan = _plan_with_snapshot("""
+        node_change_plan = _plan_with_snapshot(
+            """
 name: provision
 nodes:
   web:
@@ -824,10 +850,10 @@ content:
   flag: {type: file, target: web, path: /tmp/flag.txt}
 accounts:
   admin: {username: admin, node: web}
-""", snapshot)
-        node_actions = {
-            op.address: op.action.value for op in node_change_plan.provisioning.operations
-        }
+""",
+            snapshot,
+        )
+        node_actions = {op.address: op.action.value for op in node_change_plan.provisioning.operations}
         assert node_actions["provision.node.web"] == "update"
         assert node_actions["provision.content.flag"] == "update"
         assert node_actions["provision.account.admin"] == "update"
@@ -858,7 +884,8 @@ accounts:
             ),
         )
 
-        model = compile_runtime_model(_scenario("""
+        model = compile_runtime_model(
+            _scenario("""
 name: limited
 nodes:
   corp: {type: switch}
@@ -899,7 +926,8 @@ workflows:
     steps:
       start: {type: objective, objective: defend, on-success: end}
       end: {type: end}
-"""))
+""")
+        )
         execution_plan = plan(model, limited)
         codes = {diag.code for diag in execution_plan.diagnostics}
 
@@ -924,7 +952,8 @@ workflows:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-os
 variables:
   os_name:
@@ -933,7 +962,8 @@ variables:
     allowed_values: [linux, windows]
 nodes:
   vm: {type: vm, os: '${os_name}', resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             manifest,
         )
 
@@ -953,7 +983,8 @@ nodes:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-os
 variables:
   os_name:
@@ -962,7 +993,8 @@ variables:
     allowed_values: [linux, windows]
 nodes:
   vm: {type: vm, os: '${os_name}', resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             manifest,
         )
 
@@ -982,7 +1014,8 @@ nodes:
         )
 
         with pytest.raises(SDLInstantiationError) as exc:
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-os
 variables:
   os_name:
@@ -991,7 +1024,8 @@ variables:
     allowed_values: [banana]
 nodes:
   vm: {type: vm, os: '${os_name}', resources: {ram: 1 gib, cpu: 1}}
-"""))
+""")
+            )
         assert "nodes.vm.os" in str(exc.value)
 
     def test_variable_backed_os_without_allowed_values_uses_instantiated_default(self):
@@ -1005,7 +1039,8 @@ nodes:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-os
 variables:
   os_name:
@@ -1013,7 +1048,8 @@ variables:
     default: linux
 nodes:
   vm: {type: vm, os: '${os_name}', resources: {ram: 1 gib, cpu: 1}}
-""")),
+""")
+            ),
             manifest,
         )
 
@@ -1057,7 +1093,8 @@ nodes:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-count
 variables:
   node_count:
@@ -1068,7 +1105,8 @@ nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
 infrastructure:
   vm: ${node_count}
-""")),
+""")
+            ),
             manifest,
         )
 
@@ -1089,7 +1127,8 @@ infrastructure:
         )
 
         with pytest.raises(SDLInstantiationError) as exc:
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-count
 variables:
   node_count:
@@ -1100,7 +1139,8 @@ nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
 infrastructure:
   vm: ${node_count}
-"""))
+""")
+            )
         assert "infrastructure.vm.count" in str(exc.value)
 
     def test_variable_backed_counts_without_allowed_values_use_instantiated_default(self):
@@ -1115,7 +1155,8 @@ infrastructure:
         )
 
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: variable-count
 variables:
   node_count:
@@ -1125,7 +1166,8 @@ nodes:
   vm: {type: vm, os: linux, resources: {ram: 1 gib, cpu: 1}}
 infrastructure:
   vm: ${node_count}
-""")),
+""")
+            ),
             manifest,
         )
 
@@ -1162,7 +1204,8 @@ infrastructure:
 
     def test_dependency_ordering_across_domain_plans(self):
         execution_plan = plan(
-            compile_runtime_model(_scenario("""
+            compile_runtime_model(
+                _scenario("""
 name: ordering
 nodes:
   corp: {type: switch}
@@ -1213,15 +1256,12 @@ workflows:
     steps:
       start: {type: objective, objective: initial, on-success: end}
       end: {type: end}
-""")),
+""")
+            ),
             create_stub_manifest(),
         )
 
-        provision_order = [
-            op.address
-            for op in execution_plan.provisioning.operations
-            if op.action.value != "delete"
-        ]
+        provision_order = [op.address for op in execution_plan.provisioning.operations if op.action.value != "delete"]
         orchestration_order = execution_plan.orchestration.startup_order
         evaluation_order = execution_plan.evaluation.startup_order
 
@@ -1229,22 +1269,31 @@ workflows:
         assert provision_order.index("provision.node.web") < provision_order.index("provision.feature.web.nginx")
         assert provision_order.index("provision.node.web") < provision_order.index("provision.content.flag")
         assert provision_order.index("provision.node.web") < provision_order.index("provision.account.admin")
-        assert orchestration_order.index("orchestration.inject.mail") < orchestration_order.index("orchestration.inject-binding.web.mail")
-        assert orchestration_order.index("orchestration.inject-binding.web.mail") < orchestration_order.index("orchestration.event.kickoff")
-        assert orchestration_order.index("orchestration.event.kickoff") < orchestration_order.index("orchestration.script.timeline")
-        assert orchestration_order.index("orchestration.script.timeline") < orchestration_order.index("orchestration.story.main")
-        assert evaluation_order.index("evaluation.condition.web.health") < evaluation_order.index("evaluation.metric.uptime")
-        assert evaluation_order.index("evaluation.metric.uptime") < evaluation_order.index("evaluation.evaluation.overall")
+        assert orchestration_order.index("orchestration.inject.mail") < orchestration_order.index(
+            "orchestration.inject-binding.web.mail"
+        )
+        assert orchestration_order.index("orchestration.inject-binding.web.mail") < orchestration_order.index(
+            "orchestration.event.kickoff"
+        )
+        assert orchestration_order.index("orchestration.event.kickoff") < orchestration_order.index(
+            "orchestration.script.timeline"
+        )
+        assert orchestration_order.index("orchestration.script.timeline") < orchestration_order.index(
+            "orchestration.story.main"
+        )
+        assert evaluation_order.index("evaluation.condition.web.health") < evaluation_order.index(
+            "evaluation.metric.uptime"
+        )
+        assert evaluation_order.index("evaluation.metric.uptime") < evaluation_order.index(
+            "evaluation.evaluation.overall"
+        )
         assert evaluation_order.index("evaluation.evaluation.overall") < evaluation_order.index("evaluation.tlo.defend")
         assert evaluation_order.index("evaluation.tlo.defend") < evaluation_order.index("evaluation.goal.pass")
         assert evaluation_order.index("evaluation.goal.pass") < evaluation_order.index("evaluation.objective.initial")
 
     def test_satcom_release_poisoning_compiles_to_valid_execution_plan(self):
         scenario_path = (
-            Path(__file__).resolve().parents[3]
-            / "examples"
-            / "scenarios"
-            / "satcom-release-poisoning.sdl.yaml"
+            Path(__file__).resolve().parents[3] / "examples" / "scenarios" / "satcom-release-poisoning.sdl.yaml"
         )
         content = scenario_path.read_text(encoding="utf-8")
         model = compile_runtime_model(parse_sdl(content))

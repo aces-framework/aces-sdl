@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 VALID_SDL = """
 name: test-scenario
 description: Minimal SDL scenario
@@ -145,22 +144,13 @@ def test_complex_examples_cover_new_sdl_surfaces():
     satcom = load_scenario(EXAMPLES_DIR / "satcom-release-poisoning.sdl.yaml")
     assert satcom.workflows
     assert any(
-        step.type.value == "parallel"
-        for workflow in satcom.workflows.values()
-        for step in workflow.steps.values()
+        step.type.value == "parallel" for workflow in satcom.workflows.values() for step in workflow.steps.values()
     )
-    assert any(
-        acct.password_strength == "${release_engineer_password_strength}"
-        for acct in satcom.accounts.values()
-    )
+    assert any(acct.password_strength == "${release_engineer_password_strength}" for acct in satcom.accounts.values())
 
-    hospital = load_scenario(
-        EXAMPLES_DIR / "hospital-ransomware-surgery-day.sdl.yaml"
-    )
+    hospital = load_scenario(EXAMPLES_DIR / "hospital-ransomware-surgery-day.sdl.yaml")
     assert any(
-        target.startswith("nodes.")
-        for objective in hospital.objectives.values()
-        for target in objective.targets
+        target.startswith("nodes.") for objective in hospital.objectives.values() for target in objective.targets
     )
     assert any(
         target.startswith("infrastructure.")
@@ -171,19 +161,11 @@ def test_complex_examples_cover_new_sdl_surfaces():
     port = load_scenario(EXAMPLES_DIR / "port-authority-surge-response.sdl.yaml")
     assert port.workflows
     assert any(
-        step.type.value == "parallel"
-        for workflow in port.workflows.values()
-        for step in workflow.steps.values()
+        step.type.value == "parallel" for workflow in port.workflows.values() for step in workflow.steps.values()
     )
+    assert any(target.startswith("nodes.") for objective in port.objectives.values() for target in objective.targets)
     assert any(
-        target.startswith("nodes.")
-        for objective in port.objectives.values()
-        for target in objective.targets
-    )
-    assert any(
-        target.startswith("infrastructure.")
-        for objective in port.objectives.values()
-        for target in objective.targets
+        target.startswith("infrastructure.") for objective in port.objectives.values() for target in objective.targets
     )
 
 

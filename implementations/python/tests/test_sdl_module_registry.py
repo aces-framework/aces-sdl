@@ -32,9 +32,7 @@ def _write(path: Path, content: str) -> Path:
 
 
 def _local_module(path: Path, *, version: str = "1.2.3", exports: str = "nodes: [vm]\ninfrastructure: [vm]") -> Path:
-    exports_block = "\n".join(
-        f"    {line}" for line in textwrap.dedent(exports).strip().splitlines()
-    )
+    exports_block = "\n".join(f"    {line}" for line in textwrap.dedent(exports).strip().splitlines())
     return _write(
         path,
         "\n".join(
@@ -112,9 +110,7 @@ class _OCIHandler(BaseHTTPRequestHandler):
             f"/v2/{self.repo}/manifests/{self.manifest_digest}",
         }:
             self.send_response(200)
-            self.send_header(
-                "Content-Type", "application/vnd.oci.image.manifest.v1+json"
-            )
+            self.send_header("Content-Type", "application/vnd.oci.image.manifest.v1+json")
             self.send_header("Content-Length", str(len(self.manifest_bytes)))
             self.end_headers()
             self.wfile.write(self.manifest_bytes)
@@ -143,10 +139,7 @@ class _OCIRegistry:
         manifest_digest = index_payload["manifests"][0]["digest"]
         tag = index_payload["manifests"][0]["annotations"]["org.opencontainers.image.ref.name"]
         manifest_bytes = (layout_dir / "blobs" / "sha256" / manifest_digest.removeprefix("sha256:")).read_bytes()
-        blobs = {
-            f"sha256:{blob.name}": blob.read_bytes()
-            for blob in (layout_dir / "blobs" / "sha256").iterdir()
-        }
+        blobs = {f"sha256:{blob.name}": blob.read_bytes() for blob in (layout_dir / "blobs" / "sha256").iterdir()}
         handler = type(
             "Handler",
             (_OCIHandler,),
@@ -162,7 +155,7 @@ class _OCIRegistry:
         self.host, self.port = self._server.server_address
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
-    def __enter__(self) -> "_OCIRegistry":
+    def __enter__(self) -> _OCIRegistry:
         self._thread.start()
         return self
 
@@ -378,7 +371,7 @@ def test_signed_oci_import_resolution_and_publish_cli(tmp_path: Path):
                 require_signatures: true
                 allow_insecure_http: true
                 trusted_signers:
-                  test-signer: "{base64.b64encode(public_key).decode('utf-8')}"
+                  test-signer: "{base64.b64encode(public_key).decode("utf-8")}"
             """,
         )
         root = _root_import(

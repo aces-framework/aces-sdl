@@ -24,7 +24,7 @@ from .nodes import Node
 from .objectives import Objective
 from .orchestration import Event, Inject, Script, Story, Workflow
 from .relationships import Relationship
-from .scoring import Evaluation, Goal, Metric, TLO
+from .scoring import TLO, Evaluation, Goal, Metric
 from .variables import Variable
 from .vulnerabilities import Vulnerability
 
@@ -41,9 +41,7 @@ class ModuleDescriptor(SDLModel):
     @model_validator(mode="after")
     def validate_descriptor(self) -> "ModuleDescriptor":
         if "/" not in self.id or self.id.startswith("/") or self.id.endswith("/"):
-            raise ValueError(
-                "module.id must use canonical 'publisher/name' format"
-            )
+            raise ValueError("module.id must use canonical 'publisher/name' format")
         if len(self.parameters) != len(set(self.parameters)):
             raise ValueError("module.parameters must be unique")
         for section, names in self.exports.items():

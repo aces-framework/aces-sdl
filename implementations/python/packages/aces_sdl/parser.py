@@ -18,30 +18,48 @@ from ._errors import SDLParseError, SDLValidationError
 from .scenario import ExpandedScenario, Scenario
 from .validator import SemanticValidator
 
-
 # Top-level sections that are HashMaps of user-defined identifiers.
 # Keys inside these are scenario-author names (e.g., "web-server")
 # and must NOT be transformed.
-_HASHMAP_SECTIONS = frozenset({
-    "nodes", "infrastructure", "features", "conditions",
-    "vulnerabilities", "metrics", "evaluations", "tlos",
-    "goals", "entities", "injects", "events", "scripts", "stories",
-    "content", "accounts", "relationships", "agents", "objectives",
-    "workflows",
-    "variables",
-})
+_HASHMAP_SECTIONS = frozenset(
+    {
+        "nodes",
+        "infrastructure",
+        "features",
+        "conditions",
+        "vulnerabilities",
+        "metrics",
+        "evaluations",
+        "tlos",
+        "goals",
+        "entities",
+        "injects",
+        "events",
+        "scripts",
+        "stories",
+        "content",
+        "accounts",
+        "relationships",
+        "agents",
+        "objectives",
+        "workflows",
+        "variables",
+    }
+)
 
 # Fields within struct models that are also HashMaps of user-defined keys.
-_NESTED_HASHMAP_FIELDS = frozenset({
-    "features",            # VM.features (dict[str, str])
-    "conditions",          # VM.conditions (dict[str, str])
-    "injects",             # VM.injects (dict[str, str])
-    "roles",               # Node.roles (dict[str, Role])
-    "facts",               # Entity.facts (dict[str, str])
-    "entities",            # Entity.entities (dict[str, Entity])
-    "events",              # Script.events (dict[str, int])
-    "steps",               # Workflow.steps (dict[str, WorkflowStep])
-})
+_NESTED_HASHMAP_FIELDS = frozenset(
+    {
+        "features",  # VM.features (dict[str, str])
+        "conditions",  # VM.conditions (dict[str, str])
+        "injects",  # VM.injects (dict[str, str])
+        "roles",  # Node.roles (dict[str, Role])
+        "facts",  # Entity.facts (dict[str, str])
+        "entities",  # Entity.entities (dict[str, Entity])
+        "events",  # Script.events (dict[str, int])
+        "steps",  # Workflow.steps (dict[str, WorkflowStep])
+    }
+)
 
 
 def _child_is_hashmap_field(key: str, value: Any) -> bool:
@@ -104,16 +122,11 @@ def _reject_variable_mapping_keys(
         for k, v in data.items():
             if is_hashmap and is_variable_ref(k):
                 key_path = f"{path}.{k}" if path else str(k)
-                raise SDLParseError(
-                    "Variable placeholders are not allowed in "
-                    f"user-defined mapping keys: '{key_path}'"
-                )
+                raise SDLParseError(f"Variable placeholders are not allowed in user-defined mapping keys: '{key_path}'")
 
             child_key = k if isinstance(k, str) else str(k)
             child_path = f"{path}.{child_key}" if path else child_key
-            child_is_hashmap = (
-                False if is_hashmap else _child_is_hashmap_field(child_key, v)
-            )
+            child_is_hashmap = False if is_hashmap else _child_is_hashmap_field(child_key, v)
             _reject_variable_mapping_keys(
                 v,
                 path=child_path,
@@ -227,17 +240,13 @@ def _expand_shorthands(data: dict[str, Any]) -> dict[str, Any]:
                 # G6: features/conditions/injects as list -> dict with empty role
                 for field in ("features", "conditions", "injects"):
                     if field in node_data and isinstance(node_data[field], list):
-                        node_data[field] = {
-                            name: "" for name in node_data[field]
-                        }
+                        node_data[field] = {name: "" for name in node_data[field]}
 
     # Expand min_score in evaluations
     if "evaluations" in data and isinstance(data["evaluations"], dict):
         for eval_data in data["evaluations"].values():
             if isinstance(eval_data, dict) and "min_score" in eval_data:
-                eval_data["min_score"] = _expand_min_score(
-                    eval_data["min_score"]
-                )
+                eval_data["min_score"] = _expand_min_score(eval_data["min_score"])
 
     return data
 
@@ -360,14 +369,10 @@ def _load_normalized_data(
         raise SDLParseError(f"Invalid YAML: {e}", path=path) from e
 
     if not isinstance(raw, dict):
-        raise SDLParseError(
-            "SDL must be a YAML mapping (not a scalar or list)", path=path
-        )
+        raise SDLParseError("SDL must be a YAML mapping (not a scalar or list)", path=path)
 
     data = _normalize_keys(raw)
     if any(not isinstance(key, str) for key in data):
-        raise SDLParseError(
-            "SDL top-level mapping keys must be strings", path=path
-        )
+        raise SDLParseError("SDL top-level mapping keys must be strings", path=path)
     _reject_variable_mapping_keys(data)
     return _expand_shorthands(data)

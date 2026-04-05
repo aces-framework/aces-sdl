@@ -54,11 +54,7 @@ def dependency_graph(
 
     known_nodes = set(dependencies_by_node)
     return {
-        node: tuple(
-            dependency
-            for dependency in dependencies
-            if dependency in known_nodes
-        )
+        node: tuple(dependency for dependency in dependencies if dependency in known_nodes)
         for node, dependencies in dependencies_by_node.items()
     }
 
@@ -88,9 +84,7 @@ def dependency_edges(
     for source in sorted(resources, key=canonical_resource_identity):
         resource = resources[source]
         dependencies = (
-            resource.ordering_dependencies
-            if kind == DependencyKind.ORDERING
-            else resource.refresh_dependencies
+            resource.ordering_dependencies if kind == DependencyKind.ORDERING else resource.refresh_dependencies
         )
         for target in dependencies:
             if target not in resources:
@@ -218,9 +212,7 @@ def resource_topological_order(
 ) -> list[str]:
     """Return ordering-based topological order for compiled resources."""
 
-    return topological_dependency_order(
-        dependency_graph_for_resources(resources, kind=DependencyKind.ORDERING)
-    )
+    return topological_dependency_order(dependency_graph_for_resources(resources, kind=DependencyKind.ORDERING))
 
 
 def resource_delete_order(
@@ -236,9 +228,7 @@ def resource_dependency_cycles(
 ) -> list[tuple[str, ...]]:
     """Return ordering-cycle SCCs for compiled resources."""
 
-    return dependency_cycles(
-        dependency_graph_for_resources(resources, kind=DependencyKind.ORDERING)
-    )
+    return dependency_cycles(dependency_graph_for_resources(resources, kind=DependencyKind.ORDERING))
 
 
 def refresh_impacted_nodes(
@@ -304,10 +294,7 @@ def reconcile_resource_actions(
         if action in {ReconciliationAction.CREATE, ReconciliationAction.UPDATE}
     }
     impacted_nodes = refresh_impacted_nodes(
-        {
-            address: resource_dependencies(resource)
-            for address, resource in resources.items()
-        },
+        {address: resource_dependencies(resource) for address, resource in resources.items()},
         changed_nodes,
     )
     for address in impacted_nodes:

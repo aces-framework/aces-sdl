@@ -6,7 +6,6 @@ than failing on the first error.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class SDLError(Exception):
@@ -21,7 +20,7 @@ class SDLParseError(SDLError):
         details: Detailed error message.
     """
 
-    def __init__(self, message: str, path: Optional[Path] = None) -> None:
+    def __init__(self, message: str, path: Path | None = None) -> None:
         self.path = path
         self.details = message
         prefix = f"{path}: " if path else ""
@@ -39,9 +38,7 @@ class SDLValidationError(SDLError):
         path: The file that failed validation (if applicable).
     """
 
-    def __init__(
-        self, errors: list[str], path: Optional[Path] = None
-    ) -> None:
+    def __init__(self, errors: list[str], path: Path | None = None) -> None:
         self.errors = errors
         self.path = path
         prefix = f"{path}: " if path else ""
@@ -59,9 +56,7 @@ class SDLInstantiationError(SDLError):
     post-substitution validation failed.
     """
 
-    def __init__(
-        self, errors: list[str], path: Optional[Path] = None
-    ) -> None:
+    def __init__(self, errors: list[str], path: Path | None = None) -> None:
         self.errors = errors
         self.path = path
         prefix = f"{path}: " if path else ""

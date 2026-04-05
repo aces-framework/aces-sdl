@@ -9,10 +9,8 @@ from aces.core.sdl.entities import Entity, ExerciseRole, flatten_entities
 from aces.core.sdl.features import Feature, FeatureType
 from aces.core.sdl.infrastructure import ACLAction, ACLRule, InfraNode, SimpleProperties
 from aces.core.sdl.nodes import Node, NodeType, Resources, Role, parse_ram
-from aces.core.sdl.nodes import Node
 from aces.core.sdl.objectives import Objective, ObjectiveSuccess, ObjectiveWindow
 from aces.core.sdl.orchestration import (
-    Event,
     Inject,
     Script,
     Story,
@@ -23,9 +21,8 @@ from aces.core.sdl.orchestration import (
     WorkflowStepType,
     parse_duration,
 )
-from aces.core.sdl.scoring import Evaluation, Goal, Metric, MetricType, MinScore, TLO
+from aces.core.sdl.scoring import TLO, Evaluation, Goal, Metric, MetricType, MinScore
 from aces.core.sdl.vulnerabilities import Vulnerability
-
 
 # ---------------------------------------------------------------------------
 # Source
@@ -263,16 +260,12 @@ class TestCondition:
 
 class TestVulnerability:
     def test_valid(self):
-        v = Vulnerability(
-            name="SQLi", description="SQL injection", **{"class": "CWE-89"}
-        )
+        v = Vulnerability(name="SQLi", description="SQL injection", **{"class": "CWE-89"})
         assert v.vuln_class == "CWE-89"
 
     def test_invalid_cwe(self):
         with pytest.raises(ValidationError, match="CWE"):
-            Vulnerability(
-                name="Test", description="Desc", **{"class": "INVALID"}
-            )
+            Vulnerability(name="Test", description="Desc", **{"class": "INVALID"})
 
 
 # ---------------------------------------------------------------------------
@@ -327,9 +320,7 @@ class TestMinScore:
 
 class TestEvaluation:
     def test_valid(self):
-        e = Evaluation(
-            metrics=["m-1"], min_score=MinScore(percentage=50)
-        )
+        e = Evaluation(metrics=["m-1"], min_score=MinScore(percentage=50))
         assert len(e.metrics) == 1
 
     def test_empty_metrics_rejected(self):
@@ -639,8 +630,7 @@ class TestAccount:
         assert a.spn == "MSSQL/db.corp.local"
 
     def test_key_auth(self):
-        a = Account(username="labadmin", node="victim", auth_method="key",
-                     password_strength="none")
+        a = Account(username="labadmin", node="victim", auth_method="key", password_strength="none")
         assert a.auth_method == "key"
 
     def test_disabled_placeholder(self):
@@ -662,8 +652,7 @@ class TestAccount:
 
 class TestACLRule:
     def test_allow_rule(self):
-        r = ACLRule(direction="in", from_net="wan", protocol="tcp",
-                    ports=[80, 443], action="allow")
+        r = ACLRule(direction="in", from_net="wan", protocol="tcp", ports=[80, 443], action="allow")
         assert r.action == ACLAction.ALLOW
         assert r.ports == [80, 443]
 
@@ -782,6 +771,7 @@ class TestServicePort:
 class TestConditionExtensions:
     def test_timeout_and_retries(self):
         from aces.core.sdl.conditions import Condition
+
         c = Condition(command="/check", interval=15, timeout=5, retries=3, start_period=10)
         assert c.timeout == 5
         assert c.retries == 3
@@ -791,11 +781,13 @@ class TestConditionExtensions:
 class TestSimplePropertiesInternal:
     def test_internal_flag(self):
         from aces.core.sdl.infrastructure import SimpleProperties
+
         p = SimpleProperties(cidr="10.0.0.0/24", gateway="10.0.0.1", internal=True)
         assert p.internal is True
 
     def test_default_not_internal(self):
         from aces.core.sdl.infrastructure import SimpleProperties
+
         p = SimpleProperties(cidr="10.0.0.0/24", gateway="10.0.0.1")
         assert p.internal is False
 
@@ -971,9 +963,7 @@ class TestWorkflow:
             WorkflowStep(type="join")
 
     def test_step_state_predicate(self):
-        pred = WorkflowPredicate(
-            steps=[{"step": "step-a", "outcomes": ["failed"], "min-attempts": 2}]
-        )
+        pred = WorkflowPredicate(steps=[{"step": "step-a", "outcomes": ["failed"], "min-attempts": 2}])
         assert pred.steps[0].step == "step-a"
         assert pred.steps[0].outcomes == [WorkflowStepOutcome.FAILED]
         assert pred.steps[0].min_attempts == 2
@@ -1012,19 +1002,21 @@ class TestRelationship:
 
     def test_trusts_with_properties(self):
         r = Relationship(
-            type="trusts", source="child-domain", target="parent-domain",
+            type="trusts",
+            source="child-domain",
+            target="parent-domain",
             properties={"trust_type": "parent-child", "trust_direction": "bidirectional"},
         )
         assert r.properties["trust_type"] == "parent-child"
 
     def test_connects_to(self):
-        r = Relationship(type="connects_to", source="webapp", target="db",
-                         properties={"protocol": "tcp", "port": "5432"})
+        r = Relationship(
+            type="connects_to", source="webapp", target="db", properties={"protocol": "tcp", "port": "5432"}
+        )
         assert r.source == "webapp"
 
     def test_federates_with(self):
-        r = Relationship(type="federates_with", source="adfs", target="azure-ad",
-                         properties={"protocol": "SAML"})
+        r = Relationship(type="federates_with", source="adfs", target="azure-ad", properties={"protocol": "SAML"})
         assert r.type == RelationshipType.FEDERATES_WITH
 
 

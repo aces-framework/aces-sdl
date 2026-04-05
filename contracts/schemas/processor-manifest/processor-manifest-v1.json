@@ -1,4 +1,21 @@
 {
+  "$defs": {
+    "ProcessorFeature": {
+      "description": "Processing features that a processor may support.",
+      "enum": [
+        "compilation",
+        "planning",
+        "orchestration-coordination",
+        "evaluation-coordination",
+        "workflow-semantics",
+        "objective-window-consistency",
+        "dependency-ordering",
+        "runtime-control-plane"
+      ],
+      "title": "ProcessorFeature",
+      "type": "string"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "compatible_backends": {
@@ -34,7 +51,7 @@
     },
     "supported_features": {
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/ProcessorFeature"
       },
       "title": "Supported Features",
       "type": "array"

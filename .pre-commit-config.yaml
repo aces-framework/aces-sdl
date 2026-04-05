@@ -1,0 +1,57 @@
+fail_fast: true
+
+# Exclude third-party reference ecosystem code from all hooks
+exclude: ^research/
+
+repos:
+  # =============================================================================
+  # STAGE 1: Fast checks (linting, formatting, syntax)
+  # =============================================================================
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: detect-private-key
+        exclude: ^implementations/python/tests/
+
+  # Python formatting and linting (Ruff — replaces black + isort + flake8)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^implementations/python/
+      - id: ruff-format
+        files: ^implementations/python/
+
+  # =============================================================================
+  # STAGE 2: Security
+  # =============================================================================
+
+  # Secrets detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # =============================================================================
+  # STAGE 3: Full verification (CI-equivalent)
+  # =============================================================================
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (unit tests)
+        entry: bash -c 'cd implementations/python && .venv/bin/python -m pytest -x -q'
+        language: system
+        files: ^implementations/python/
+        pass_filenames: false

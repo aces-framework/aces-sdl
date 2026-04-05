@@ -50,24 +50,16 @@ def _resolve_variable_values(
         elif variable.default is not None:
             value = variable.default
         elif variable.required:
-            errors.append(
-                f"Variable '{name}' is required and has no provided value or default."
-            )
+            errors.append(f"Variable '{name}' is required and has no provided value or default.")
             continue
         else:
             continue
 
         if not _matches_value_type(value, variable):
-            errors.append(
-                f"Variable '{name}' expects type '{variable.type.value}', got "
-                f"{type(value).__name__}."
-            )
+            errors.append(f"Variable '{name}' expects type '{variable.type.value}', got {type(value).__name__}.")
             continue
         if variable.allowed_values and value not in variable.allowed_values:
-            errors.append(
-                f"Variable '{name}' must be one of {variable.allowed_values!r}; "
-                f"got {value!r}."
-            )
+            errors.append(f"Variable '{name}' must be one of {variable.allowed_values!r}; got {value!r}.")
             continue
         resolved[name] = value
 
@@ -151,10 +143,7 @@ def instantiate_scenario(
     if unresolved_refs:
         unresolved_list = ", ".join(sorted(unresolved_refs))
         raise SDLInstantiationError(
-            [
-                "Scenario contains unresolved variable references after "
-                f"instantiation: {unresolved_list}."
-            ]
+            [f"Scenario contains unresolved variable references after instantiation: {unresolved_list}."]
         )
 
     try:
@@ -162,11 +151,7 @@ def instantiate_scenario(
     except ValidationError as exc:
         raise SDLInstantiationError([str(exc)]) from exc
 
-    should_validate_semantics = (
-        raw_scenario.semantic_validated
-        if validate_semantics is None
-        else validate_semantics
-    )
+    should_validate_semantics = raw_scenario.semantic_validated if validate_semantics is None else validate_semantics
     if should_validate_semantics:
         validator = SemanticValidator(instantiated)
         try:
