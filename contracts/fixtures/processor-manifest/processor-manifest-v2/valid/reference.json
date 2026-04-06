@@ -1,0 +1,50 @@
+{
+  "schema_version": "processor-manifest/v2",
+  "identity": {
+    "name": "aces-reference-processor",
+    "version": "0.2.0"
+  },
+  "supported_contract_versions": [
+    "processor-manifest-v2",
+    "provisioning-plan-v1",
+    "orchestration-plan-v1",
+    "evaluation-plan-v1",
+    "workflow-cancellation-request-v1",
+    "operation-receipt-v1",
+    "operation-status-v1",
+    "runtime-snapshot-v1"
+  ],
+  "compatibility": {
+    "processors": [],
+    "backends": ["stub"],
+    "participant_implementations": []
+  },
+  "realization_support": [
+    {
+      "domain": "instantiation",
+      "support_mode": "constrained",
+      "supported_constraint_kinds": ["module-selection", "parameter-values"],
+      "supported_exact_requirement_kinds": ["declared-parameter-values"],
+      "disclosure_kinds": ["module-composition", "parameter-instantiation"],
+      "constraints": {}
+    }
+  ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_sdl_versions", "family": "scenarios"},
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
+  "constraints": {},
+  "capabilities": {
+    "supported_sdl_versions": ["sdl-authoring-input-v1"],
+    "supported_features": [
+      "compilation",
+      "planning",
+      "orchestration-coordination",
+      "evaluation-coordination",
+      "workflow-semantics",
+      "objective-window-consistency",
+      "dependency-ordering",
+      "runtime-control-plane"
+    ]
+  }
+}

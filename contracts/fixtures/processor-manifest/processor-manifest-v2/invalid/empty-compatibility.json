@@ -1,0 +1,24 @@
+{
+  "schema_version": "processor-manifest/v2",
+  "identity": {
+    "name": "aces-reference-processor",
+    "version": "0.2.0"
+  },
+  "supported_contract_versions": ["processor-manifest-v2"],
+  "compatibility": {},
+  "realization_support": [
+    {
+      "domain": "instantiation",
+      "support_mode": "constrained",
+      "supported_constraint_kinds": ["parameter-values"],
+      "disclosure_kinds": ["parameter-instantiation"]
+    }
+  ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
+  "capabilities": {
+    "supported_sdl_versions": ["sdl-authoring-input-v1"],
+    "supported_features": ["compilation"]
+  }
+}

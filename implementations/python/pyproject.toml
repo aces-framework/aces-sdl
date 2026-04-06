@@ -34,6 +34,7 @@ aces = "aces.cli.main:app"
 [tool.hatch.build.targets.wheel]
 packages = [
     "src/aces",
+    "packages/aces_contracts",
     "packages/aces_backend_protocols",
     "packages/aces_backend_stubs",
     "packages/aces_cli",
@@ -53,6 +54,7 @@ addopts = "-m 'not fuzz'"
 [tool.coverage.run]
 source = [
     "aces",
+    "aces_contracts",
     "aces_backend_protocols",
     "aces_backend_stubs",
     "aces_cli",

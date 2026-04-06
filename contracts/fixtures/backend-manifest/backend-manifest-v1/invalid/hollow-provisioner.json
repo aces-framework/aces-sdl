@@ -1,0 +1,7 @@
+{
+  "schema_version": "backend-manifest/v1",
+  "name": "stub",
+  "provisioner": {
+    "name": "stub-provisioner"
+  }
+}

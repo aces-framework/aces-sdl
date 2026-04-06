@@ -1,6 +1,8 @@
 """Runtime registry tests."""
 
 import pytest
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
+from aces_contracts.vocabulary import RealizationSupportMode
 
 from aces.backends.stubs import create_stub_components, create_stub_manifest
 from aces.core.runtime.capabilities import BackendManifest, ProvisionerCapabilities
@@ -115,7 +117,25 @@ class TestBackendRegistry:
         def manifest_factory(**config):
             return BackendManifest(
                 name="manifest-a",
-                provisioner=ProvisionerCapabilities(name="manifest-a-provisioner"),
+                version="0.0.1",
+                supported_contract_versions=frozenset({"backend-manifest-v2"}),
+                compatible_processors=frozenset({"aces-reference-processor"}),
+                realization_support=(
+                    RealizationSupportDeclaration(
+                        domain="runtime-realization",
+                        support_mode=RealizationSupportMode.CONSTRAINED,
+                        supported_constraint_kinds=frozenset({"node-type"}),
+                        disclosure_kinds=frozenset({"runtime-snapshot-v1"}),
+                    ),
+                ),
+                concept_bindings=(
+                    ConceptBinding(scope="capabilities.provisioner.supported_node_types", family="assets"),
+                ),
+                provisioner=ProvisionerCapabilities(
+                    name="manifest-a-provisioner",
+                    supported_node_types=frozenset({"vm"}),
+                    supported_os_families=frozenset({"linux"}),
+                ),
             )
 
         def components_factory(*, manifest, **config):
