@@ -142,3 +142,18 @@ def test_adr_readme_must_match_adr_documents(tmp_path: Path) -> None:
     )
 
     assert [failure.rule_id for failure in failures] == ["adr-index-sync"]
+
+
+def test_adr_index_accepts_legacy_inline_status_and_date_fields(tmp_path: Path) -> None:
+    repo_root = setup_policy_repo(tmp_path)
+    write_text(
+        repo_root / "docs" / "decisions" / "adrs" / "adr-001-example.md",
+        "# ADR-001: Example ADR\n\n**Status:** Accepted\n**Date:** 2026-04-05\n",
+    )
+
+    failures = evaluate_repo_policy(
+        repo_root,
+        ["docs/decisions/adrs/adr-001-example.md"],
+    )
+
+    assert failures == []

@@ -58,14 +58,24 @@ ownership:
     - specs/concept-authority
     - contracts/concept-authority
     - contracts/schemas/concept-authority
+    - contracts/schemas/README.md
+    - contracts/schemas/backend-manifest
+    - contracts/schemas/processor-manifest
     - contracts/fixtures/concept-authority
-    - docs/explain/reference/shared-concept-model.md
-    - docs/decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline.md
+    - contracts/fixtures/backend-manifest
+    - contracts/fixtures/processor-manifest
+    - contracts/profiles
+    - docs/explain/reference
+    - docs/explain/sdl
+    - docs/decisions/adrs
     - implementations/python/packages/aces_contracts
     - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_backend_stubs
+    - implementations/python/packages/aces_conformance
     - implementations/python/packages/aces_processor
-    - implementations/python/tests/test_concept_authority.py
-    - implementations/python/tests/test_requirement_governance.py
+    - implementations/python/pyproject.toml
+    - implementations/python/src/aces
+    - implementations/python/tests
     - CHANGELOG.md
   api400-core:
     - contracts/fixtures/backend-manifest

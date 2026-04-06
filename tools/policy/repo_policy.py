@@ -181,6 +181,8 @@ def _check_changelog(policy: dict, changed: list[str]) -> list[PolicyFailure]:
             )
         ]
     return []
+
+
 ADR_HEADER_RE = re.compile(r"^# ADR-(\d{3}): (.+)$", re.MULTILINE)
 README_ROW_RE = re.compile(r"^\| \[(\d{3})\]\(([^)]+)\) \| (.+?) \| (.+?) \| (\d{4}-\d{2}-\d{2}) \|$", re.MULTILINE)
 
@@ -190,7 +192,7 @@ def _parse_adr_file(path: Path) -> tuple[str, str, str, str]:
     header = ADR_HEADER_RE.search(text)
     if not header:
         raise ValueError(f"{path} is missing ADR header")
-    status = _extract_markdown_section(text, "Status")
+    status = _normalize_adr_status(_extract_markdown_section(text, "Status"))
     date = _extract_markdown_section(text, "Date")
     return header.group(1), header.group(2).strip(), status.strip(), date.strip()
 
@@ -198,14 +200,30 @@ def _parse_adr_file(path: Path) -> tuple[str, str, str, str]:
 def _extract_markdown_section(text: str, section: str) -> str:
     marker = f"## {section}"
     start = text.find(marker)
-    if start == -1:
-        raise ValueError(f"missing {section} section")
-    body = text[start + len(marker) :]
-    body = body.lstrip()
-    next_header = body.find("\n## ")
-    if next_header != -1:
-        body = body[:next_header]
-    return body.strip().splitlines()[0].strip()
+    if start != -1:
+        body = text[start + len(marker) :]
+        body = body.lstrip()
+        next_header = body.find("\n## ")
+        if next_header != -1:
+            body = body[:next_header]
+        return body.strip().splitlines()[0].strip()
+
+    legacy_marker = re.search(rf"^\*\*{re.escape(section)}:\*\*\s*(.+)$", text, re.MULTILINE)
+    if legacy_marker:
+        return legacy_marker.group(1).strip()
+
+    raise ValueError(f"missing {section} section")
+
+
+def _normalize_adr_status(status: str) -> str:
+    normalized = " ".join(status.split())
+    lowered = normalized.lower()
+    if lowered in {"accepted", "proposed", "deprecated"}:
+        return lowered
+    superseded = re.fullmatch(r"superseded by (adr-\d{3})", lowered)
+    if superseded:
+        return f"superseded by {superseded.group(1).upper()}"
+    return normalized
 
 
 def _check_adr_index(repo_root: Path, policy: dict, changed: list[str]) -> list[PolicyFailure]:
@@ -226,7 +244,7 @@ def _check_adr_index(repo_root: Path, policy: dict, changed: list[str]) -> list[
 
     readme_text = (repo_root / index_path).read_text(encoding="utf-8")
     actual = {
-        number: (Path(link).name, title.strip(), status.strip(), date_value)
+        number: (Path(link).name, title.strip(), _normalize_adr_status(status), date_value)
         for number, link, title, status, date_value in README_ROW_RE.findall(readme_text)
     }
 

@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "ApparatusCompatibilityModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "processors": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "processors"
+              ]
+            },
+            {
+              "properties": {
+                "backends": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "backends"
+              ]
+            },
+            {
+              "properties": {
+                "participant_implementations": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "participant_implementations"
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "backends": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Backends",
+          "type": "array"
+        },
+        "participant_implementations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Participant Implementations",
+          "type": "array"
+        },
+        "processors": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Processors",
+          "type": "array"
+        }
+      },
+      "title": "ApparatusCompatibilityModel",
+      "type": "object"
+    },
+    "ApparatusIdentityModel": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ApparatusIdentityModel",
+      "type": "object"
+    },
+    "ConceptBindingEntryModel": {
+      "additionalProperties": false,
+      "description": "Binds a vocabulary surface in an artifact to a canonical concept family.",
+      "properties": {
+        "family": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "title": "Family",
+          "type": "string"
+        },
+        "scope": {
+          "minLength": 1,
+          "pattern": "^[a-z_][a-z0-9_.]*[a-z0-9_]$",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope",
+        "family"
+      ],
+      "title": "ConceptBindingEntryModel",
+      "type": "object"
+    },
+    "ProcessorCapabilitiesV2Model": {
+      "additionalProperties": false,
+      "properties": {
+        "supported_features": {
+          "items": {
+            "$ref": "#/$defs/ProcessorFeature"
+          },
+          "minItems": 1,
+          "title": "Supported Features",
+          "type": "array"
+        },
+        "supported_sdl_versions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Sdl Versions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "supported_sdl_versions",
+        "supported_features"
+      ],
+      "title": "ProcessorCapabilitiesV2Model",
+      "type": "object"
+    },
+    "ProcessorFeature": {
+      "description": "Processing features that a processor may support.",
+      "enum": [
+        "compilation",
+        "planning",
+        "orchestration-coordination",
+        "evaluation-coordination",
+        "workflow-semantics",
+        "objective-window-consistency",
+        "dependency-ordering",
+        "runtime-control-plane"
+      ],
+      "title": "ProcessorFeature",
+      "type": "string"
+    },
+    "RealizationSupportDeclarationModel": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "supported_constraint_kinds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "supported_constraint_kinds"
+              ]
+            },
+            {
+              "properties": {
+                "supported_exact_requirement_kinds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "supported_exact_requirement_kinds"
+              ]
+            }
+          ]
+        },
+        {
+          "if": {
+            "properties": {
+              "support_mode": {
+                "const": "exact-only"
+              }
+            },
+            "required": [
+              "support_mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_constraint_kinds": {
+                "maxItems": 0
+              },
+              "supported_exact_requirement_kinds": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "supported_exact_requirement_kinds"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "disclosure_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Disclosure Kinds",
+          "type": "array"
+        },
+        "domain": {
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "support_mode": {
+          "$ref": "#/$defs/RealizationSupportMode"
+        },
+        "supported_constraint_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Constraint Kinds",
+          "type": "array"
+        },
+        "supported_exact_requirement_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Supported Exact Requirement Kinds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domain",
+        "support_mode",
+        "disclosure_kinds"
+      ],
+      "title": "RealizationSupportDeclarationModel",
+      "type": "object"
+    },
+    "RealizationSupportMode": {
+      "description": "How an apparatus can supply realizations for underspecified inputs.",
+      "enum": [
+        "exact-only",
+        "constrained",
+        "open-realization"
+      ],
+      "title": "RealizationSupportMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/ProcessorCapabilitiesV2Model"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/ApparatusCompatibilityModel"
+    },
+    "concept_bindings": {
+      "items": {
+        "$ref": "#/$defs/ConceptBindingEntryModel"
+      },
+      "minItems": 1,
+      "title": "Concept Bindings",
+      "type": "array"
+    },
+    "constraints": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "object"
+    },
+    "identity": {
+      "$ref": "#/$defs/ApparatusIdentityModel"
+    },
+    "realization_support": {
+      "items": {
+        "$ref": "#/$defs/RealizationSupportDeclarationModel"
+      },
+      "minItems": 1,
+      "title": "Realization Support",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "processor-manifest/v2",
+      "default": "processor-manifest/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supported_contract_versions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Contract Versions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "identity",
+    "supported_contract_versions",
+    "compatibility",
+    "realization_support",
+    "concept_bindings",
+    "capabilities"
+  ],
+  "title": "ProcessorManifestV2Model",
+  "type": "object"
+}

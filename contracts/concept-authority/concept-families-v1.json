@@ -1,0 +1,77 @@
+{
+  "schema_version": "concept-families/v1",
+  "families": {
+    "assets": {
+      "title": "Assets",
+      "description": "Nodes, infrastructure, networks, and deployable resources.",
+      "provenance": "adopted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "identities": {
+      "title": "Identities",
+      "description": "Accounts, entities, roles, and identity-bearing participants.",
+      "provenance": "adopted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "relationships": {
+      "title": "Relationships",
+      "description": "Typed associations between scenario elements.",
+      "provenance": "adapted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "observables": {
+      "title": "Observables",
+      "description": "Conditions, metrics, telemetry, and observable properties.",
+      "provenance": "adopted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "actions-and-events": {
+      "title": "Actions and Events",
+      "description": "Events, injects, workflow steps, and executable actions.",
+      "provenance": "adopted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "tools-and-artifacts": {
+      "title": "Tools and Artifacts",
+      "description": "Features, content, software, and deployable artifacts.",
+      "provenance": "adopted",
+      "authority": "UCO",
+      "authority_reference": "https://github.com/ucoProject/UCO"
+    },
+    "scenarios": {
+      "title": "Scenarios",
+      "description": "SDL scenarios, compositions, modules, and authoring constructs.",
+      "provenance": "native"
+    },
+    "tasks-runs-studies": {
+      "title": "Tasks, Runs, and Studies",
+      "description": "Execution lifecycle, run records, and study organization.",
+      "provenance": "native"
+    },
+    "apparatus-declarations": {
+      "title": "Apparatus Declarations",
+      "description": "Processor, backend, and participant-implementation manifests.",
+      "provenance": "native"
+    },
+    "realization-and-disclosure": {
+      "title": "Realization and Disclosure",
+      "description": "Instantiation, planning, compilation, and realization artifacts.",
+      "provenance": "native"
+    },
+    "provenance-and-evidence": {
+      "title": "Provenance and Evidence",
+      "description": "Run provenance records, evidence expectations, and audit artifacts.",
+      "provenance": "native"
+    },
+    "time-and-apparatus": {
+      "title": "Time and Apparatus",
+      "description": "Clocks, timing constraints, and apparatus-level concerns.",
+      "provenance": "native"
+    }
+  }
+}

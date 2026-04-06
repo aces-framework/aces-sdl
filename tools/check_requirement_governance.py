@@ -88,7 +88,7 @@ def main() -> int:
             print("[requirement-context-missing] requirement UID is missing; set ACES_REQUIREMENT_UID or include a UID like GOV-918 in the branch name", file=sys.stderr)
         return 1
 
-    client = GroundControlHttpClient(base_url=(os.environ.get("GC_BASE_URL") or "http://localhost:8000"))
+    client = GroundControlHttpClient(base_url=(os.environ.get("GC_BASE_URL") or "http://gc-dev:8000"))
     try:
         failures = evaluate_requirement_governance(REPO_ROOT, paths, client=client, requirement_uid=uid)
     except RuntimeError as exc:

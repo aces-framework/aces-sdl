@@ -6,6 +6,8 @@ import textwrap
 from pathlib import Path
 
 import pytest
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
+from aces_contracts.vocabulary import RealizationSupportMode
 
 from aces.backends.stubs import create_stub_manifest
 from aces.core.runtime.capabilities import (
@@ -50,6 +52,33 @@ def _snapshot_from_plan(execution_plan) -> RuntimeSnapshot:
 
 def _plan_with_snapshot(yaml_str: str, snapshot: RuntimeSnapshot):
     return plan(compile_runtime_model(_scenario(yaml_str)), create_stub_manifest(), snapshot)
+
+
+def _limited_backend_manifest(
+    *,
+    name: str = "limited",
+    provisioner: ProvisionerCapabilities,
+    orchestrator: OrchestratorCapabilities | None = None,
+    evaluator: EvaluatorCapabilities | None = None,
+) -> BackendManifest:
+    return BackendManifest(
+        name=name,
+        version="0.0.1",
+        supported_contract_versions=frozenset({"backend-manifest-v2"}),
+        compatible_processors=frozenset({"aces-reference-processor"}),
+        realization_support=(
+            RealizationSupportDeclaration(
+                domain="runtime-realization",
+                support_mode=RealizationSupportMode.CONSTRAINED,
+                supported_constraint_kinds=frozenset({"node-type"}),
+                disclosure_kinds=frozenset({"runtime-snapshot-v1"}),
+            ),
+        ),
+        concept_bindings=(ConceptBinding(scope="capabilities.provisioner.supported_node_types", family="assets"),),
+        provisioner=provisioner,
+        orchestrator=orchestrator,
+        evaluator=evaluator,
+    )
 
 
 class TestRuntimePlanner:
@@ -323,7 +352,7 @@ events:
         assert not execution_plan.is_valid
 
     def test_workflow_condition_refs_require_orchestrator_support(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=create_stub_manifest().provisioner,
             orchestrator=OrchestratorCapabilities(
@@ -369,14 +398,14 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_workflow_feature_requires_orchestrator_support(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=create_stub_manifest().provisioner,
             orchestrator=OrchestratorCapabilities(
                 name="limited-orchestrator",
                 supported_sections=frozenset({"workflows"}),
                 supports_workflows=True,
-                supported_workflow_features=frozenset(),
+                supported_workflow_features=frozenset({WorkflowFeature.DECISION}),
             ),
             evaluator=create_stub_manifest().evaluator,
         )
@@ -420,7 +449,7 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_step_state_predicates_require_orchestrator_support(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=create_stub_manifest().provisioner,
             orchestrator=OrchestratorCapabilities(
@@ -472,7 +501,7 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_attempt_count_predicates_require_specific_support(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=create_stub_manifest().provisioner,
             orchestrator=OrchestratorCapabilities(
@@ -526,14 +555,14 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_parallel_barrier_requires_specific_support(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=create_stub_manifest().provisioner,
             orchestrator=OrchestratorCapabilities(
                 name="limited-orchestrator",
                 supported_sections=frozenset({"workflows"}),
                 supports_workflows=True,
-                supported_workflow_features=frozenset(),
+                supported_workflow_features=frozenset({WorkflowFeature.DECISION}),
             ),
             evaluator=create_stub_manifest().evaluator,
         )
@@ -859,14 +888,14 @@ accounts:
         assert node_actions["provision.account.admin"] == "update"
 
     def test_semantic_capability_validation_catches_real_requirements(self):
-        limited = BackendManifest(
+        limited = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
                 supported_node_types=frozenset({"vm", "switch"}),
                 supported_os_families=frozenset({"linux"}),
                 supported_content_types=frozenset({"file"}),
-                supported_account_features=frozenset(),
+                supported_account_features=frozenset({"groups"}),
                 max_total_nodes=1,
                 supports_acls=False,
                 supports_accounts=True,
@@ -942,7 +971,7 @@ workflows:
         assert not execution_plan.is_valid
 
     def test_variable_backed_os_allowed_values_pass_when_all_supported(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -973,7 +1002,7 @@ nodes:
         assert execution_plan.is_valid
 
     def test_variable_backed_os_allowed_values_fail_when_any_are_unsupported(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1004,7 +1033,7 @@ nodes:
         assert execution_plan.is_valid
 
     def test_variable_backed_os_defaults_must_be_valid_for_nodes_os(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1029,7 +1058,7 @@ nodes:
         assert "nodes.vm.os" in str(exc.value)
 
     def test_variable_backed_os_without_allowed_values_uses_instantiated_default(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1060,7 +1089,7 @@ nodes:
         assert execution_plan.is_valid
 
     def test_variable_backed_os_with_undeclared_variable_fails_instantiation(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1082,7 +1111,7 @@ nodes:
         assert "missing_os" in str(exc.value)
 
     def test_variable_backed_counts_with_allowed_values_enforce_max_nodes(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1116,7 +1145,7 @@ infrastructure:
         assert execution_plan.is_valid
 
     def test_variable_backed_counts_defaults_must_be_valid_for_infrastructure_count(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1144,7 +1173,7 @@ infrastructure:
         assert "infrastructure.vm.count" in str(exc.value)
 
     def test_variable_backed_counts_without_allowed_values_use_instantiated_default(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
@@ -1178,7 +1207,7 @@ infrastructure:
         assert not execution_plan.is_valid
 
     def test_variable_backed_counts_with_undeclared_variable_fail_instantiation(self):
-        manifest = BackendManifest(
+        manifest = _limited_backend_manifest(
             name="limited",
             provisioner=ProvisionerCapabilities(
                 name="limited-provisioner",
