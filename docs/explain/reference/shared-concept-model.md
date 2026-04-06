@@ -138,6 +138,37 @@ instead of repeating it as an artifact-local field that can drift.
 while still allowing each artifact family to keep its own fit-for-purpose
 shape.
 
+## Cross-Artifact Concept Binding (GOV-918)
+
+`GOV-918` implements the artifact binding layer for apparatus manifests.
+
+Both `v2` backend manifests and `v2` processor manifests now require a
+`concept_bindings` section. Each entry maps a dot-delimited field path (scope)
+to a concept family identifier from the authoritative catalog.
+
+For example, a backend manifest binds its provisioner vocabulary:
+
+```json
+"concept_bindings": [
+  {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+  {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
+  {"scope": "capabilities.provisioner.supported_content_types", "family": "tools-and-artifacts"},
+  {"scope": "capabilities.provisioner.supported_account_features", "family": "identities"},
+  {"scope": "capabilities.orchestrator.supported_sections", "family": "actions-and-events"},
+  {"scope": "capabilities.evaluator.supported_sections", "family": "observables"}
+]
+```
+
+This makes it possible for downstream tooling to answer: "which concept family
+does this manifest field belong to?" without relying on field-name conventions
+or documentation.
+
+The binding is required (not optional) to prevent specification gaps where
+concept bindings could be silently omitted. Family identifiers are validated
+against the authoritative catalog at model time, and scope paths must resolve
+to governed manifest vocabulary surfaces that are actually declared in the
+artifact.
+
 ## Relationship To Other Requirements
 
 `GOV-917` is the concept-authority decision surface.
@@ -145,7 +176,7 @@ shape.
 The related requirements split the rest of the problem:
 
 - `GOV-918`
-  Cross-artifact concept binding
+  Cross-artifact concept binding (implemented)
 - `GOV-919`
   ACES extension discipline over the shared authority
 - `GOV-920`

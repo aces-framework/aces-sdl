@@ -1,4 +1,4 @@
-"""Concept authority catalog tests."""
+"""Concept authority catalog and cross-artifact binding tests."""
 
 from __future__ import annotations
 
@@ -7,8 +7,11 @@ from pathlib import Path
 
 import pytest
 from aces_contracts.contracts import (
+    BackendManifestV2Model,
+    ConceptBindingEntryModel,
     ConceptFamilyCatalogModel,
     ConceptFamilyDefinitionModel,
+    ProcessorManifestV2Model,
 )
 from aces_contracts.vocabulary import (
     ConceptProvenanceCategory,
@@ -228,3 +231,111 @@ def test_invalid_fixture_fails_validation():
         payload = json.loads(path.read_text(encoding="utf-8"))
         with pytest.raises(ValidationError):
             ConceptFamilyCatalogModel.model_validate(payload)
+
+
+# --- Cross-artifact concept binding tests ---
+
+BACKEND_V2_VALID_DIR = FIXTURES_ROOT / "backend-manifest" / "backend-manifest-v2" / "valid"
+PROCESSOR_V2_VALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v2" / "valid"
+
+
+def test_concept_binding_entry_construction():
+    entry = ConceptBindingEntryModel(scope="capabilities.provisioner.supported_node_types", family="assets")
+    assert entry.scope == "capabilities.provisioner.supported_node_types"
+    assert entry.family == "assets"
+
+
+def test_concept_binding_entry_roundtrip():
+    payload = {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+    entry = ConceptBindingEntryModel.model_validate(payload)
+    assert entry.model_dump(mode="json") == payload
+
+
+def test_concept_binding_entry_rejects_empty_scope():
+    with pytest.raises(ValidationError):
+        ConceptBindingEntryModel(scope="", family="assets")
+
+
+def test_concept_binding_entry_rejects_invalid_family_pattern():
+    with pytest.raises(ValidationError):
+        ConceptBindingEntryModel(scope="capabilities.provisioner.supported_node_types", family="NOT VALID")
+
+
+def test_concept_binding_entry_rejects_uppercase_family():
+    with pytest.raises(ValidationError):
+        ConceptBindingEntryModel(scope="capabilities.provisioner.supported_node_types", family="Assets")
+
+
+def test_concept_binding_entry_rejects_extra_fields():
+    with pytest.raises(ValidationError):
+        ConceptBindingEntryModel(
+            scope="capabilities.provisioner.supported_node_types",
+            family="assets",
+            unknown_field=True,
+        )
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "model_cls"),
+    [
+        (BACKEND_V2_VALID_DIR / "stub.json", BackendManifestV2Model),
+        (PROCESSOR_V2_VALID_DIR / "reference.json", ProcessorManifestV2Model),
+    ],
+)
+def test_manifest_bindings_reject_unknown_catalog_families(fixture_path: Path, model_cls: type) -> None:
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload["concept_bindings"][0]["family"] = "made-up-family"
+    with pytest.raises(ValidationError, match="concept-families-v1"):
+        model_cls.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "model_cls", "invalid_scope"),
+    [
+        (
+            BACKEND_V2_VALID_DIR / "stub.json",
+            BackendManifestV2Model,
+            "capabilities.provisioner.not_a_real_field",
+        ),
+        (
+            PROCESSOR_V2_VALID_DIR / "reference.json",
+            ProcessorManifestV2Model,
+            "capabilities.not_a_real_field",
+        ),
+    ],
+)
+def test_manifest_bindings_reject_unknown_scopes(
+    fixture_path: Path,
+    model_cls: type,
+    invalid_scope: str,
+) -> None:
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload["concept_bindings"][0]["scope"] = invalid_scope
+    with pytest.raises(ValidationError, match="governed manifest vocabulary surface"):
+        model_cls.model_validate(payload)
+
+
+def test_backend_manifest_bindings_reject_omitted_optional_surface() -> None:
+    payload = json.loads((BACKEND_V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["capabilities"]["evaluator"] = None
+    with pytest.raises(ValidationError, match="does not resolve to a declared field"):
+        BackendManifestV2Model.model_validate(payload)
+
+
+def test_reference_fixture_bindings_resolve_to_authoritative_catalog():
+    """Verify that all concept family IDs used in reference fixtures exist in the catalog."""
+    catalog_payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    catalog = ConceptFamilyCatalogModel.model_validate(catalog_payload)
+    catalog_family_ids = set(catalog.families)
+
+    for fixture_dir, model_cls in [
+        (BACKEND_V2_VALID_DIR, BackendManifestV2Model),
+        (PROCESSOR_V2_VALID_DIR, ProcessorManifestV2Model),
+    ]:
+        for path in sorted(fixture_dir.glob("*.json")):
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            model = model_cls.model_validate(payload)
+            for binding in model.concept_bindings:
+                assert binding.family in catalog_family_ids, (
+                    f"Fixture {path.name} binds to unknown concept family '{binding.family}'"
+                )

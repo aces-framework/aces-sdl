@@ -88,6 +88,30 @@
       "title": "ApparatusIdentityModel",
       "type": "object"
     },
+    "ConceptBindingEntryModel": {
+      "additionalProperties": false,
+      "description": "Binds a vocabulary surface in an artifact to a canonical concept family.",
+      "properties": {
+        "family": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "title": "Family",
+          "type": "string"
+        },
+        "scope": {
+          "minLength": 1,
+          "pattern": "^[a-z_][a-z0-9_.]*[a-z0-9_]$",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope",
+        "family"
+      ],
+      "title": "ConceptBindingEntryModel",
+      "type": "object"
+    },
     "ProcessorCapabilitiesV2Model": {
       "additionalProperties": false,
       "properties": {
@@ -253,6 +277,14 @@
     "compatibility": {
       "$ref": "#/$defs/ApparatusCompatibilityModel"
     },
+    "concept_bindings": {
+      "items": {
+        "$ref": "#/$defs/ConceptBindingEntryModel"
+      },
+      "minItems": 1,
+      "title": "Concept Bindings",
+      "type": "array"
+    },
     "constraints": {
       "additionalProperties": {
         "type": "string"
@@ -292,6 +324,7 @@
     "supported_contract_versions",
     "compatibility",
     "realization_support",
+    "concept_bindings",
     "capabilities"
   ],
   "title": "ProcessorManifestV2Model",

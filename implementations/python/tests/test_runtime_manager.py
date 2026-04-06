@@ -1442,6 +1442,7 @@ class TestRuntimeManager:
             supported_contract_versions=altered_manifest.supported_contract_versions,
             compatibility=altered_manifest.compatibility,
             realization_support=altered_manifest.realization_support,
+            concept_bindings=altered_manifest.concept_bindings,
             constraints=altered_manifest.constraints,
             provisioner=altered_manifest.provisioner,
             orchestrator=altered_manifest.orchestrator,

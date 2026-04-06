@@ -16,6 +16,9 @@
       "support_mode": "not-a-real-support-mode"
     }
   ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
   "constraints": {},
   "capabilities": {
     "supported_sdl_versions": ["sdl-authoring-input-v1"]
