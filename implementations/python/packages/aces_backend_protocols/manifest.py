@@ -9,6 +9,7 @@ from aces_contracts.contracts import (
     ApparatusIdentityModel,
     BackendManifestModel,
     BackendManifestV2Model,
+    ConceptBindingEntryModel,
     RealizationSupportDeclarationModel,
 )
 
@@ -87,6 +88,10 @@ def backend_manifest_v2_model(manifest: BackendManifest) -> BackendManifestV2Mod
                 constraints=dict(declaration.constraints),
             )
             for declaration in manifest.realization_support
+        ],
+        concept_bindings=[
+            ConceptBindingEntryModel(scope=binding.scope, family=binding.family)
+            for binding in manifest.concept_bindings
         ],
         constraints=dict(manifest.constraints),
         capabilities={

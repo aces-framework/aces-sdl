@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from aces_contracts.apparatus import (
     ApparatusCompatibility,
     ApparatusIdentity,
+    ConceptBinding,
     RealizationSupportDeclaration,
 )
 from aces_contracts.vocabulary import ProcessorFeature
@@ -36,6 +37,7 @@ class ProcessorManifest:
     supported_contract_versions: frozenset[str]
     compatibility: ApparatusCompatibility
     realization_support: tuple[RealizationSupportDeclaration, ...]
+    concept_bindings: tuple[ConceptBinding, ...]
     constraints: dict[str, str]
     capabilities: ProcessorCapabilitySet
 
@@ -46,6 +48,7 @@ class ProcessorManifest:
         supported_contract_versions: frozenset[str] = frozenset(),
         compatibility: ApparatusCompatibility | None = None,
         realization_support: tuple[RealizationSupportDeclaration, ...] = (),
+        concept_bindings: tuple[ConceptBinding, ...] = (),
         constraints: dict[str, str] | None = None,
         capabilities: ProcessorCapabilitySet | None = None,
         name: str | None = None,
@@ -73,10 +76,14 @@ class ProcessorManifest:
         realization_support = tuple(realization_support)
         if not realization_support:
             raise ValueError("ProcessorManifest.realization_support must not be empty")
+        concept_bindings = tuple(concept_bindings)
+        if not concept_bindings:
+            raise ValueError("ProcessorManifest.concept_bindings must not be empty")
         object.__setattr__(self, "identity", identity)
         object.__setattr__(self, "supported_contract_versions", supported_contract_versions)
         object.__setattr__(self, "compatibility", compatibility)
         object.__setattr__(self, "realization_support", realization_support)
+        object.__setattr__(self, "concept_bindings", concept_bindings)
         object.__setattr__(self, "constraints", {} if constraints is None else dict(constraints))
         object.__setattr__(self, "capabilities", capabilities)
 

@@ -131,6 +131,7 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
         "supported_contract_versions",
         "compatibility",
         "realization_support",
+        "concept_bindings",
         "capabilities",
     ]
     assert generated["processor-manifest-v2"]["properties"]["identity"]["$ref"] == "#/$defs/ApparatusIdentityModel"
@@ -150,12 +151,34 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
         "supported_contract_versions",
         "compatibility",
         "realization_support",
+        "concept_bindings",
         "capabilities",
     ]
     assert processor_v1["properties"]["supported_sdl_versions"]["minItems"] == 1
     assert processor_v1["properties"]["supported_contract_versions"]["minItems"] == 1
     assert processor_v1["properties"]["supported_features"]["minItems"] == 1
     assert processor_v1["properties"]["compatible_backends"]["minItems"] == 1
+
+
+def test_concept_binding_schema_in_v2_manifests():
+    generated = schema_bundle()
+
+    for schema_name in ("backend-manifest-v2", "processor-manifest-v2"):
+        schema = generated[schema_name]
+        assert "concept_bindings" in schema["properties"], f"{schema_name} should have concept_bindings"
+        assert "concept_bindings" in schema["required"], f"{schema_name} should require concept_bindings"
+        bindings_prop = schema["properties"]["concept_bindings"]
+        assert bindings_prop["type"] == "array"
+        assert bindings_prop["minItems"] == 1
+        assert "$ref" in bindings_prop["items"]
+        assert "ConceptBindingEntryModel" in bindings_prop["items"]["$ref"]
+
+    binding_def = generated["backend-manifest-v2"]["$defs"]["ConceptBindingEntryModel"]
+    assert binding_def["additionalProperties"] is False
+    assert "scope" in binding_def["properties"]
+    assert "family" in binding_def["properties"]
+    assert binding_def["properties"]["scope"]["pattern"]
+    assert binding_def["properties"]["family"]["pattern"]
 
 
 def test_concept_authority_schema_enforces_keyed_catalog_and_provenance_rules():

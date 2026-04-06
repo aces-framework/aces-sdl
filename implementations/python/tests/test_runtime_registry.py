@@ -1,7 +1,7 @@
 """Runtime registry tests."""
 
 import pytest
-from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.vocabulary import RealizationSupportMode
 
 from aces.backends.stubs import create_stub_components, create_stub_manifest
@@ -127,6 +127,9 @@ class TestBackendRegistry:
                         supported_constraint_kinds=frozenset({"node-type"}),
                         disclosure_kinds=frozenset({"runtime-snapshot-v1"}),
                     ),
+                ),
+                concept_bindings=(
+                    ConceptBinding(scope="capabilities.provisioner.supported_node_types", family="assets"),
                 ),
                 provisioner=ProvisionerCapabilities(
                     name="manifest-a-provisioner",

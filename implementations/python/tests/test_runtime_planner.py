@@ -6,7 +6,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.vocabulary import RealizationSupportMode
 
 from aces.backends.stubs import create_stub_manifest
@@ -74,6 +74,7 @@ def _limited_backend_manifest(
                 disclosure_kinds=frozenset({"runtime-snapshot-v1"}),
             ),
         ),
+        concept_bindings=(ConceptBinding(scope="capabilities.provisioner.supported_node_types", family="assets"),),
         provisioner=provisioner,
         orchestrator=orchestrator,
         evaluator=evaluator,

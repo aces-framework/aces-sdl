@@ -45,6 +45,20 @@ class ApparatusCompatibility:
 
 
 @dataclass(frozen=True)
+class ConceptBinding:
+    """Binds a vocabulary surface path to a canonical concept family."""
+
+    scope: str
+    family: str
+
+    def __post_init__(self) -> None:
+        if not self.scope.strip():
+            raise ValueError("ConceptBinding.scope must be non-empty")
+        if not self.family.strip():
+            raise ValueError("ConceptBinding.family must be non-empty")
+
+
+@dataclass(frozen=True)
 class RealizationSupportDeclaration:
     """Declared realization-support and disclosure surface for one concern domain."""
 

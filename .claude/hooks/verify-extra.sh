@@ -4,22 +4,22 @@
 # $CHANGED is passed in as an env var containing the git diff file list.
 # Output any failure reasons to stdout; empty output = all checks pass.
 
-REASONS=""
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PY="$ROOT/implementations/python/.venv/bin/python"
 
-# Example checks:
-# Check: If controllers changed, docs/API.md should be updated
-# HAS_CONTROLLER=$(echo "$CHANGED" | grep -c 'Controller\.java' || true)
-# HAS_API_DOC=$(echo "$CHANGED" | grep -c 'docs/API.md' || true)
-# if [ "$HAS_CONTROLLER" -gt 0 ] && [ "$HAS_API_DOC" -eq 0 ]; then
-#  REASONS="${REASONS}New controller added but docs/API.md not updated. "
-# fi
+if [[ ! -x "$PY" ]]; then
+  echo -n "Missing implementations/python/.venv/bin/python; cannot run repo verification."
+  exit 0
+fi
 
-# Check: If controllers changed, MCP tools (lib.js/index.js) should be updated
-# HAS_LIB=$(echo "$CHANGED" | grep -c 'lib\.js' || true)
-# HAS_INDEX=$(echo "$CHANGED" | grep -c 'index\.js' || true)
-# if [ "$HAS_CONTROLLER" -gt 0 ] && { [ "$HAS_LIB" -eq 0 ] || [ "$HAS_INDEX" -eq 0 ]; }; then
-#  REASONS="${REASONS}New controller added but MCP tools not updated (lib.js/index.js). "
-# fi
-#
+if ! "$PY" "$ROOT/tools/check_repo_policy.py" >/tmp/aces-sdl-policy.out 2>&1; then
+  tr '\n' ' ' </tmp/aces-sdl-policy.out
+  exit 0
+fi
 
-echo -n "$REASONS"
+if ! "$PY" "$ROOT/tools/check_requirement_governance.py" >/tmp/aces-sdl-gc.out 2>&1; then
+  tr '\n' ' ' </tmp/aces-sdl-gc.out
+  exit 0
+fi
+
+echo -n ""

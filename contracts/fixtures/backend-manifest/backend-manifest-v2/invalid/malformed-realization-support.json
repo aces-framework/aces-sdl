@@ -16,6 +16,9 @@
       "support_mode": "not-a-real-support-mode"
     }
   ],
+  "concept_bindings": [
+    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"}
+  ],
   "constraints": {},
   "capabilities": {
     "provisioner": {
