@@ -181,6 +181,8 @@ def _check_changelog(policy: dict, changed: list[str]) -> list[PolicyFailure]:
             )
         ]
     return []
+
+
 ADR_HEADER_RE = re.compile(r"^# ADR-(\d{3}): (.+)$", re.MULTILINE)
 README_ROW_RE = re.compile(r"^\| \[(\d{3})\]\(([^)]+)\) \| (.+?) \| (.+?) \| (\d{4}-\d{2}-\d{2}) \|$", re.MULTILINE)
 

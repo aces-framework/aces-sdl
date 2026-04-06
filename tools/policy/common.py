@@ -54,11 +54,11 @@ def changed_paths(
     base_rev: str | None = None,
 ) -> list[str]:
     if staged:
-        output = run_git(["diff", "--name-only", "--cached"], repo_root=repo_root)
+        output = run_git(["diff", "--name-only", "--diff-filter=d", "--cached"], repo_root=repo_root)
     elif base_rev:
-        output = run_git(["diff", "--name-only", base_rev, "HEAD"], repo_root=repo_root)
+        output = run_git(["diff", "--name-only", "--diff-filter=d", base_rev, "HEAD"], repo_root=repo_root)
     else:
-        output = run_git(["diff", "--name-only", "HEAD"], repo_root=repo_root)
+        output = run_git(["diff", "--name-only", "--diff-filter=d", "HEAD"], repo_root=repo_root)
     return [line.strip() for line in output.splitlines() if line.strip()]
 
 

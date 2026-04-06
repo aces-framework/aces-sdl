@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import aces_processor.contracts as processor_contracts
 from aces_contracts.contracts import (
     BackendManifestV2Model,
     ProcessorManifestModel,
     ProcessorManifestV2Model,
     schema_bundle,
 )
+from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
 from aces.core.runtime import contracts as compat_runtime_contracts
 
@@ -29,13 +29,9 @@ def test_published_contract_schemas_exist_and_match_bundle():
 
 
 def test_compat_contract_imports_reexport_neutral_contracts():
-    assert processor_contracts.ProcessorManifestModel is ProcessorManifestModel
-    assert processor_contracts.ProcessorManifestV2Model is ProcessorManifestV2Model
-    assert processor_contracts.BackendManifestV2Model is BackendManifestV2Model
     assert compat_runtime_contracts.ProcessorManifestModel is ProcessorManifestModel
     assert compat_runtime_contracts.ProcessorManifestV2Model is ProcessorManifestV2Model
     assert compat_runtime_contracts.BackendManifestV2Model is BackendManifestV2Model
-    assert processor_contracts.schema_bundle() == schema_bundle()
     assert compat_runtime_contracts.schema_bundle() == schema_bundle()
 
 
@@ -67,13 +63,13 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
         "#/$defs/WorkflowFeature"
     )
     assert generated["backend-manifest-v1"]["$defs"]["WorkflowFeature"]["enum"] == [
-        feature.value for feature in processor_contracts.WorkflowFeature
+        feature.value for feature in WorkflowFeature
     ]
     assert backend_v1_orchestrator["properties"]["supported_workflow_state_predicates"]["items"]["$ref"] == (
         "#/$defs/WorkflowStatePredicateFeature"
     )
     assert generated["backend-manifest-v1"]["$defs"]["WorkflowStatePredicateFeature"]["enum"] == [
-        feature.value for feature in processor_contracts.WorkflowStatePredicateFeature
+        feature.value for feature in WorkflowStatePredicateFeature
     ]
     assert generated["backend-manifest-v2"]["properties"]["identity"]["$ref"] == "#/$defs/ApparatusIdentityModel"
     assert generated["backend-manifest-v2"]["properties"]["compatibility"]["$ref"] == (
