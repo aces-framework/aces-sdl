@@ -49,6 +49,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: adr-policy
+        name: adr policy
+        entry: bash -c 'implementations/python/.venv/bin/python tools/check_repo_policy.py --staged'
+        language: system
+        pass_filenames: false
+      - id: requirement-governance
+        name: requirement governance
+        entry: bash -c 'implementations/python/.venv/bin/python tools/check_requirement_governance.py --staged'
+        language: system
+        pass_filenames: false
       - id: pytest
         name: pytest (unit tests)
         entry: bash -c 'cd implementations/python && .venv/bin/python -m pytest -x -q'

@@ -108,6 +108,22 @@ The first slice should focus on the cyber-domain concept families listed above
 and the artifact-binding rules needed to carry those concepts across SDL,
 manifests, provenance, and reporting.
 
+### 7. Tighten v2 semantics instead of preserving v1 looseness
+
+The first apparatus-manifest implementation should tighten the `v2` semantics
+instead of preserving any looser `v1` behavior for compatibility.
+
+In practice, that means:
+
+- `concept_bindings` are required on `v2` apparatus manifests
+- each bound family identifier must resolve against the authoritative
+  `concept-families-v1` catalog
+- each bound scope must resolve to a governed manifest vocabulary surface that
+  is actually declared in the artifact being validated
+
+This tightening is intentional. The legacy `v1` shapes are deprecated and are
+not a constraint on how precisely the `v2` concept-binding layer is enforced.
+
 ## Consequences
 
 ### Positive

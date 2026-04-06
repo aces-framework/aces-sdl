@@ -164,8 +164,10 @@ does this manifest field belong to?" without relying on field-name conventions
 or documentation.
 
 The binding is required (not optional) to prevent specification gaps where
-concept bindings could be silently omitted. Family identifiers are
-pattern-validated at model time; cross-catalog resolution is verified in tests.
+concept bindings could be silently omitted. Family identifiers are validated
+against the authoritative catalog at model time, and scope paths must resolve
+to governed manifest vocabulary surfaces that are actually declared in the
+artifact.
 
 ## Relationship To Other Requirements
 

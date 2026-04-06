@@ -13,13 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Backend and processor manifests now require a `concept_bindings` section
   that binds vocabulary fields to canonical concept families from the
   concept-authority catalog.
+- Repo-owned ADR enforcement tooling under `tools/policy/`, including
+  repo-boundary checks, requirement-order gating, exception handling, and a
+  unified verification entrypoint.
+- Hard policy integration for local agents and automation through
+  pre-commit, GitHub Actions, Claude hooks, `AGENTS.md`, and repo-local
+  Codex instructions.
+- Targeted policy unit tests covering generated-schema edits, compatibility
+  boundaries, requirement ordering, path ownership, and traceability failures.
 - `ConceptBindingEntryModel` Pydantic contract with pattern-validated
   `scope` and `family` fields.
 - `ConceptFamilyId` pattern-constrained type for concept family identifiers.
 - `ConceptBinding` frozen dataclass for runtime concept binding declarations.
 - Invalid fixtures for missing, duplicate, and malformed concept bindings.
-- Cross-catalog validation test confirming fixture bindings resolve to
-  the authoritative concept-families-v1 catalog.
+- Contract-level validation ensuring `concept_bindings` resolve to the
+  authoritative concept-families-v1 catalog and to governed manifest
+  vocabulary surfaces.
 
 ### Changed
 
