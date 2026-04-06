@@ -29,6 +29,10 @@
       "constraints": {}
     }
   ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_sdl_versions", "family": "scenarios"},
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
   "constraints": {},
   "capabilities": {
     "supported_sdl_versions": ["sdl-authoring-input-v1"],

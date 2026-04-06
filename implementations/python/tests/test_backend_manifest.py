@@ -244,3 +244,35 @@ def test_backend_manifest_invalid_fixtures_fail_validation():
         payload = json.loads(path.read_text(encoding="utf-8"))
         with pytest.raises(ValidationError):
             BackendManifestV2Model.model_validate(payload)
+
+
+def test_backend_manifest_v2_requires_concept_bindings():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    del payload["concept_bindings"]
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(payload)
+
+
+def test_backend_manifest_v2_rejects_empty_concept_bindings():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["concept_bindings"] = []
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(payload)
+
+
+def test_backend_manifest_v2_rejects_duplicate_binding_scopes():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["concept_bindings"] = [
+        {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+        {"scope": "capabilities.provisioner.supported_node_types", "family": "identities"},
+    ]
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(payload)
+
+
+def test_backend_manifest_v2_concept_bindings_roundtrip():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    model = BackendManifestV2Model.model_validate(payload)
+    assert len(model.concept_bindings) == 6
+    assert model.concept_bindings[0].scope == "capabilities.provisioner.supported_node_types"
+    assert model.concept_bindings[0].family == "assets"

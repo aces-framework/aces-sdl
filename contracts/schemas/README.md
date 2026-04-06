@@ -49,5 +49,23 @@ particular:
 schema artifacts. The reference stack, contract tests, and conformance profiles
 use `v2`.
 
+## Cross-Artifact Concept Binding
+
+Apparatus manifests (`v2`) require a `concept_bindings` section that binds
+vocabulary fields to canonical concept families from the concept-authority
+catalog. Each binding entry declares:
+
+- `scope`: a dot-delimited field path identifying the bound vocabulary surface
+  (e.g. `capabilities.provisioner.supported_node_types`)
+- `family`: a concept family identifier from the authoritative catalog
+  (e.g. `assets`, `identities`, `tools-and-artifacts`)
+
+This is the "artifact binding layer" described in ADR-012. It prevents
+artifact-local strings from becoming de facto semantics by explicitly declaring
+which concept family each vocabulary surface belongs to.
+
+The field is required with at least one binding entry. Duplicate scopes within a
+single manifest are rejected.
+
 Generation or sync helpers may exist under `tools/`, but those helpers are
 supporting repo machinery, not the authority boundary.

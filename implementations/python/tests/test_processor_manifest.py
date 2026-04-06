@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from aces_cli.main import app
-from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.contracts import ProcessorManifestModel, ProcessorManifestV2Model
 from aces_contracts.vocabulary import ProcessorFeature, RealizationSupportMode
 from aces_processor.capabilities import ProcessorManifest
@@ -56,6 +56,13 @@ def _processor_realization_support() -> tuple[RealizationSupportDeclaration, ...
     )
 
 
+def _processor_concept_bindings() -> tuple[ConceptBinding, ...]:
+    return (
+        ConceptBinding(scope="capabilities.supported_sdl_versions", family="scenarios"),
+        ConceptBinding(scope="capabilities.supported_features", family="apparatus-declarations"),
+    )
+
+
 def test_processor_feature_enum_values():
     expected = {
         "compilation",
@@ -79,6 +86,7 @@ def test_processor_manifest_construction():
         supported_features=frozenset({ProcessorFeature.COMPILATION}),
         compatible_backends=frozenset({"stub"}),
         realization_support=_processor_realization_support(),
+        concept_bindings=_processor_concept_bindings(),
     )
     assert manifest.name == "test"
     assert manifest.version == "1.0.0"
@@ -88,6 +96,7 @@ def test_processor_manifest_construction():
     assert manifest.compatible_backends == frozenset({"stub"})
     assert manifest.constraints == {}
     assert manifest.realization_support == _processor_realization_support()
+    assert manifest.concept_bindings == _processor_concept_bindings()
 
 
 def test_processor_manifest_frozen():
@@ -99,6 +108,7 @@ def test_processor_manifest_frozen():
         supported_features=frozenset({ProcessorFeature.COMPILATION}),
         compatible_backends=frozenset({"stub"}),
         realization_support=_processor_realization_support(),
+        concept_bindings=_processor_concept_bindings(),
     )
     with pytest.raises(AttributeError):
         manifest.name = "changed"
@@ -118,6 +128,7 @@ def test_processor_manifest_with_features():
         supported_features=frozenset({ProcessorFeature.COMPILATION, ProcessorFeature.PLANNING}),
         compatible_backends=frozenset({"stub"}),
         realization_support=_processor_realization_support(),
+        concept_bindings=_processor_concept_bindings(),
     )
     assert ProcessorFeature.COMPILATION in manifest.supported_features
     assert ProcessorFeature.PLANNING in manifest.supported_features
@@ -174,6 +185,10 @@ def test_processor_manifest_v2_model_roundtrip():
                 "constraints": {},
             }
         ],
+        "concept_bindings": [
+            {"scope": "capabilities.supported_sdl_versions", "family": "scenarios"},
+            {"scope": "capabilities.supported_features", "family": "apparatus-declarations"},
+        ],
         "constraints": {"max_nodes": "64"},
         "capabilities": {
             "supported_sdl_versions": ["sdl-authoring-input-v1"],
@@ -187,6 +202,8 @@ def test_processor_manifest_v2_model_roundtrip():
         ProcessorFeature.COMPILATION,
         ProcessorFeature.PLANNING,
     ]
+    assert model.concept_bindings[0].scope == "capabilities.supported_sdl_versions"
+    assert model.concept_bindings[0].family == "scenarios"
     assert model.model_dump(mode="json") == payload
 
 
