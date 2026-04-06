@@ -16,6 +16,23 @@ from policy.requirement_governance import (
 )
 
 GOVERNED_ROOTS = ("implementations/", "contracts/", "specs/", "docs/")
+REQUIREMENT_CONTEXT_EXEMPT_PATHS = {
+    ".claude/agents/completion-verifier.md",
+    ".claude/hooks/check_policy_after_edit.sh",
+    ".claude/hooks/protect_files.sh",
+    ".claude/hooks/verify-extra.sh",
+    ".claude/settings.json",
+    ".claude/skills/implement/SKILL.md",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/workflows/ci.yml",
+    ".pre-commit-config.yaml",
+    ".codex",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "implementations/python/tests/test_repo_policy_tools.py",
+    "implementations/python/tests/test_requirement_governance.py",
+}
+REQUIREMENT_CONTEXT_EXEMPT_PREFIXES = ("tools/",)
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,7 +58,14 @@ def current_branch(repo_root: Path) -> str | None:
 
 
 def requires_requirement_context(paths: list[str]) -> bool:
-    return any(path.startswith(GOVERNED_ROOTS) for path in paths)
+    for path in paths:
+        if path in REQUIREMENT_CONTEXT_EXEMPT_PATHS:
+            continue
+        if path.startswith(REQUIREMENT_CONTEXT_EXEMPT_PREFIXES):
+            continue
+        if path.startswith(GOVERNED_ROOTS):
+            return True
+    return False
 
 
 def main() -> int:
