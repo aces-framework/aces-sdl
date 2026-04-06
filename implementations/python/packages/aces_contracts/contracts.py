@@ -23,6 +23,7 @@ from .versions import (
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
 from .vocabulary import (
+    ConceptFamilyId,
     ConceptProvenanceCategory,
     ProcessorFeature,
     RealizationSupportMode,
@@ -455,6 +456,16 @@ class RealizationSupportDeclarationModel(ContractModel):
         return json_schema
 
 
+class ConceptBindingEntryModel(ContractModel):
+    """Binds a vocabulary surface in an artifact to a canonical concept family."""
+
+    scope: NonEmptyString = Field(
+        ...,
+        pattern=r"^[a-z_][a-z0-9_.]*[a-z0-9_]$",
+    )
+    family: ConceptFamilyId
+
+
 class ProcessorCapabilitiesV2Model(ContractModel):
     supported_sdl_versions: list[NonEmptyString] = Field(min_length=1)
     supported_features: list[ProcessorFeature] = Field(min_length=1)
@@ -472,8 +483,16 @@ class ProcessorManifestV2Model(ContractModel):
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
     compatibility: ApparatusCompatibilityModel
     realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
+    concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
     capabilities: ProcessorCapabilitiesV2Model
+
+    @model_validator(mode="after")
+    def _validate_unique_binding_scopes(self) -> ProcessorManifestV2Model:
+        scopes = [binding.scope for binding in self.concept_bindings]
+        if len(scopes) != len(set(scopes)):
+            raise ValueError("concept_bindings must not contain duplicate scopes")
+        return self
 
 
 class BackendManifestV2Model(ContractModel):
@@ -482,8 +501,16 @@ class BackendManifestV2Model(ContractModel):
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
     compatibility: ApparatusCompatibilityModel
     realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
+    concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
     capabilities: BackendCapabilitiesV2Model
+
+    @model_validator(mode="after")
+    def _validate_unique_binding_scopes(self) -> BackendManifestV2Model:
+        scopes = [binding.scope for binding in self.concept_bindings]
+        if len(scopes) != len(set(scopes)):
+            raise ValueError("concept_bindings must not contain duplicate scopes")
+        return self
 
 
 class ConceptFamilyDefinitionModel(ContractModel):
@@ -616,10 +643,12 @@ __all__ = [
     "BackendManifestV2Model",
     "BackendCapabilitiesV2Model",
     "CONCEPT_FAMILIES_SCHEMA_VERSION",
-    "ContractModel",
+    "ConceptBindingEntryModel",
     "ConceptFamilyCatalogModel",
     "ConceptFamilyDefinitionModel",
+    "ConceptFamilyId",
     "ConceptProvenanceCategory",
+    "ContractModel",
     "EvaluationHistoryEventModel",
     "EvaluationPlanModel",
     "EvaluationResultStateModel",

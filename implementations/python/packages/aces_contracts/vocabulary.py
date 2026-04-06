@@ -1,6 +1,9 @@
 """Public vocabulary used by external ACES contracts."""
 
 from enum import Enum
+from typing import Annotated
+
+from pydantic import Field
 
 
 class ProcessorFeature(str, Enum):
@@ -51,3 +54,10 @@ class ConceptProvenanceCategory(str, Enum):
     ADOPTED = "adopted"
     ADAPTED = "adapted"
     NATIVE = "native"
+
+
+ConceptFamilyId = Annotated[
+    str,
+    Field(min_length=1, pattern=r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"),
+]
+"""Pattern-constrained concept family identifier matching the authoritative catalog key format."""

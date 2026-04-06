@@ -6,10 +6,11 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as distribution_version
 from typing import Any, Literal
 
-from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.contracts import (
     ApparatusCompatibilityModel,
     ApparatusIdentityModel,
+    ConceptBindingEntryModel,
     ProcessorCapabilitiesV2Model,
     ProcessorManifestModel,
     ProcessorManifestV2Model,
@@ -49,6 +50,10 @@ REFERENCE_REALIZATION_SUPPORT = (
         disclosure_kinds=frozenset({"parameter-instantiation", "module-composition"}),
     ),
 )
+REFERENCE_CONCEPT_BINDINGS = (
+    ConceptBinding(scope="capabilities.supported_sdl_versions", family="scenarios"),
+    ConceptBinding(scope="capabilities.supported_features", family="apparatus-declarations"),
+)
 
 
 def _current_processor_version() -> str:
@@ -74,6 +79,7 @@ def create_reference_processor_manifest(
         ),
         compatible_backends=frozenset({"stub"}),
         realization_support=REFERENCE_REALIZATION_SUPPORT,
+        concept_bindings=REFERENCE_CONCEPT_BINDINGS,
         constraints={},
     )
 
@@ -119,6 +125,10 @@ def reference_processor_manifest_v2_model(
                 constraints=dict(declaration.constraints),
             )
             for declaration in manifest.realization_support
+        ],
+        concept_bindings=[
+            ConceptBindingEntryModel(scope=binding.scope, family=binding.family)
+            for binding in manifest.concept_bindings
         ],
         constraints=dict(manifest.constraints),
         capabilities=ProcessorCapabilitiesV2Model(

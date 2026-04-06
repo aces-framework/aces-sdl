@@ -14,6 +14,9 @@
       "disclosure_kinds": ["parameter-instantiation"]
     }
   ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
   "capabilities": {
     "supported_sdl_versions": ["sdl-authoring-input-v1"],
     "supported_features": ["compilation"]

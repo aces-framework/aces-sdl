@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-05
+
+### Added
+
+- Cross-artifact concept binding for v2 apparatus manifests (GOV-918).
+  Backend and processor manifests now require a `concept_bindings` section
+  that binds vocabulary fields to canonical concept families from the
+  concept-authority catalog.
+- `ConceptBindingEntryModel` Pydantic contract with pattern-validated
+  `scope` and `family` fields.
+- `ConceptFamilyId` pattern-constrained type for concept family identifiers.
+- `ConceptBinding` frozen dataclass for runtime concept binding declarations.
+- Invalid fixtures for missing, duplicate, and malformed concept bindings.
+- Cross-catalog validation test confirming fixture bindings resolve to
+  the authoritative concept-families-v1 catalog.
+
+### Changed
+
+- `BackendManifestV2Model` and `ProcessorManifestV2Model` now require
+  `concept_bindings` with at least one entry.
+- `BackendManifest` and `ProcessorManifest` frozen dataclasses now require
+  `concept_bindings` tuple.
+- Backend and processor manifest emission functions emit concept bindings.
+- Updated all v2 manifest fixtures with concept binding declarations.
+- Updated all v2 invalid fixtures to include concept bindings for single-concern testing.
+- Regenerated backend-manifest-v2 and processor-manifest-v2 JSON Schemas.
+
 ## [0.2.0] - 2026-04-04
 
 ### Added
@@ -37,5 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial ACES SDL ecosystem extraction from APTL with SDL authoring layer,
   processor layer, backend protocols, conformance infrastructure, and CLI.
 
+[0.3.0]: https://github.com/aces-framework/aces-sdl/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/aces-framework/aces-sdl/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/aces-framework/aces-sdl/releases/tag/v0.1.0
