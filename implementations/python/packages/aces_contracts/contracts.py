@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from aces_sdl.scenario import InstantiatedScenario, Scenario
@@ -39,6 +42,24 @@ class ContractModel(BaseModel):
 
 
 NonEmptyString = Annotated[str, Field(min_length=1)]
+
+_BACKEND_CONCEPT_BINDING_SCOPES = frozenset(
+    {
+        "capabilities.provisioner.supported_node_types",
+        "capabilities.provisioner.supported_os_families",
+        "capabilities.provisioner.supported_content_types",
+        "capabilities.provisioner.supported_account_features",
+        "capabilities.orchestrator.supported_sections",
+        "capabilities.evaluator.supported_sections",
+    }
+)
+
+_PROCESSOR_CONCEPT_BINDING_SCOPES = frozenset(
+    {
+        "capabilities.supported_sdl_versions",
+        "capabilities.supported_features",
+    }
+)
 
 
 class InstantiationRequestModel(ContractModel):
@@ -492,6 +513,7 @@ class ProcessorManifestV2Model(ContractModel):
         scopes = [binding.scope for binding in self.concept_bindings]
         if len(scopes) != len(set(scopes)):
             raise ValueError("concept_bindings must not contain duplicate scopes")
+        _validate_canonical_concept_bindings(self, allowed_scopes=_PROCESSOR_CONCEPT_BINDING_SCOPES)
         return self
 
 
@@ -510,6 +532,7 @@ class BackendManifestV2Model(ContractModel):
         scopes = [binding.scope for binding in self.concept_bindings]
         if len(scopes) != len(set(scopes)):
             raise ValueError("concept_bindings must not contain duplicate scopes")
+        _validate_canonical_concept_bindings(self, allowed_scopes=_BACKEND_CONCEPT_BINDING_SCOPES)
         return self
 
 
@@ -596,6 +619,48 @@ class ConceptFamilyCatalogModel(ContractModel):
         if isinstance(families_schema, dict):
             families_schema.setdefault("propertyNames", {"minLength": 1})
         return json_schema
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+@lru_cache(maxsize=1)
+def _authoritative_concept_family_ids() -> frozenset[str]:
+    catalog_path = _repo_root() / "contracts" / "concept-authority" / "concept-families-v1.json"
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog = ConceptFamilyCatalogModel.model_validate(payload)
+    return frozenset(catalog.families)
+
+
+def _scope_is_present(model: ContractModel, scope: str) -> bool:
+    current: Any = model
+    for segment in scope.split("."):
+        if not isinstance(current, BaseModel):
+            return False
+        if segment not in type(current).model_fields:
+            return False
+        current = getattr(current, segment)
+        if current is None:
+            return False
+    return True
+
+
+def _validate_canonical_concept_bindings(model: ContractModel, *, allowed_scopes: frozenset[str]) -> None:
+    family_ids = _authoritative_concept_family_ids()
+    for binding in getattr(model, "concept_bindings", ()):
+        if binding.family not in family_ids:
+            raise ValueError(f"concept_bindings family '{binding.family}' is not defined in concept-families-v1")
+        if binding.scope not in allowed_scopes:
+            allowed = ", ".join(sorted(allowed_scopes))
+            raise ValueError(
+                f"concept_bindings scope '{binding.scope}' is not a governed manifest vocabulary surface; "
+                f"allowed scopes: {allowed}"
+            )
+        if not _scope_is_present(model, binding.scope):
+            raise ValueError(
+                f"concept_bindings scope '{binding.scope}' does not resolve to a declared field in this manifest"
+            )
 
 
 def schema_bundle() -> dict[str, dict[str, Any]]:

@@ -21,11 +21,45 @@ defaults:
     working-directory: implementations/python
 
 jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Resolve policy base revision
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base_rev=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_rev=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Resolve requirement UID from branch
+        id: requirement
+        run: |
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
+          echo "uid=$UID" >> "$GITHUB_OUTPUT"
+      - name: Check repo ADR policy
+        run: uv run python ../../tools/check_repo_policy.py --base-rev "${{ steps.base.outputs.base_rev }}"
+      - name: Check requirement governance
+        env:
+          ACES_REQUIREMENT_UID: ${{ steps.requirement.outputs.uid }}
+          GC_BASE_URL: ${{ vars.GC_BASE_URL }}
+        run: uv run python ../../tools/check_requirement_governance.py --base-rev "${{ steps.base.outputs.base_rev }}"
+
   # ---------------------------------------------------------------------------
   # Lint — fast formatting and static analysis
   # ---------------------------------------------------------------------------
   lint:
     runs-on: ubuntu-latest
+    needs: [policy]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6

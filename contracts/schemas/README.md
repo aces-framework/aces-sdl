@@ -65,7 +65,9 @@ artifact-local strings from becoming de facto semantics by explicitly declaring
 which concept family each vocabulary surface belongs to.
 
 The field is required with at least one binding entry. Duplicate scopes within a
-single manifest are rejected.
+single manifest are rejected. Family identifiers must resolve against the
+authoritative `concept-families-v1` catalog, and scope paths must resolve to a
+governed vocabulary field that is actually declared in the manifest.
 
 Generation or sync helpers may exist under `tools/`, but those helpers are
 supporting repo machinery, not the authority boundary.

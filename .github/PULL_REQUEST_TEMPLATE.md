@@ -6,6 +6,12 @@
 
 <!-- Link to GitHub issues: Closes #XX -->
 
+## Requirement Context
+
+- Requirement UID:
+- ADRs touched:
+- Ground Control project: `aces-sdl`
+
 ## Changes
 
 -
@@ -24,3 +30,5 @@
 - [ ] Published contract schemas regenerated if models changed
 - [ ] CHANGELOG.md updated
 - [ ] Architectural docs updated if applicable
+- [ ] Branch name or CI context includes the active requirement UID (for example `GOV-918-*`)
+- [ ] Traceability links cover changed code (`IMPLEMENTS`) and tests (`TESTS`)

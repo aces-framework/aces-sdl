@@ -1,217 +1,84 @@
 ---
 name: implement
-description: End-to-end requirement implementation — from plan through merged PR
+description: End-to-end ACES SDL requirement implementation with repo policy and Ground Control gates
 argument-hint: <requirement-uid>
 disable-model-invocation: true
 ---
 
 # Implement Requirement: $ARGUMENTS
 
-This skill handles the ENTIRE lifecycle: plan, implement, verify, commit, push, PR, CI, reviews, fix, merge, cleanup. The user's only checkpoint is plan approval.
+This skill handles the repo-local implementation loop for a single ACES SDL
+requirement. Use it to stay inside ADR-009, ADR-010, and ADR-012 while keeping
+Ground Control traceability aligned with code and tests.
 
----
+## Phase A: Load Context
 
-## Phase A: Plan & Implement
+### Step 1: Resolve Requirement Context
 
-### Step 1: Fetch Requirement and Ensure GitHub Issue Exists
+1. Fetch the requirement with `gc_get_requirement` using uid `$ARGUMENTS`.
+2. Fetch its traceability with `gc_get_traceability`.
+3. Read the applicable ADRs before editing:
+   - ADR-009 normative artifact authority and repo structure
+   - ADR-010 repository realignment order and compatibility policy
+   - ADR-012 shared concept authority and ACES extension discipline
+4. Export `ACES_REQUIREMENT_UID=$ARGUMENTS` for local verification commands if
+   the branch name does not already contain the requirement UID.
 
-1. Enter plan mode.
+### Step 2: Confirm Order and Ownership
 
-2. Use the `gc_get_requirement` MCP tool with uid `GC-$ARGUMENTS` to fetch the requirement details. Note the requirement's UUID, title, statement, status, and wave.
+1. Run
+   `implementations/python/.venv/bin/python tools/check_requirement_governance.py --requirement-uid $ARGUMENTS`.
+2. Treat failures as blockers:
+   - out-of-order requirement work
+   - ownership-root mismatches
+   - missing Ground Control connectivity
+3. Before writing code, identify the allowed roots for this requirement from
+   `tools/policy/requirement_order.yaml`.
 
-3. Use the `gc_get_traceability` MCP tool with the requirement's UUID to check for existing traceability links. Look for a link with artifact_type `GITHUB_ISSUE`.
+## Phase B: Implement
 
-4. If NO GitHub issue link exists:
-   - Use the `gc_create_github_issue` MCP tool with uid `$ARGUMENTS` to create a GitHub issue and auto-link it.
+### Step 3: Implement Inside The Allowed Boundaries
 
-5. If a GitHub issue link DOES exist, note the issue number from the artifact_identifier.
+Respect these hard rules while editing:
 
-6. Run `gh issue develop <issue-number> --checkout --base dev` to switch to the issue branch.
+- do not add authority-bearing artifacts outside `specs/`, `contracts/`, `docs/`,
+  and `implementations/`
+- do not edit `contracts/schemas/` directly; update generator inputs and
+  regenerate
+- do not add substantive implementation logic under
+  `implementations/python/src/aces/`; that tree is compatibility-only wrappers
+- do not import `aces.*` from owning packages under
+  `implementations/python/packages/`
+- keep concept-authority artifacts in the approved authority surfaces only
 
-### Step 2: Read the GitHub Issue
+### Step 4: Keep Traceability In Sync
 
-Run `gh issue view <issue-number>` to read the full issue details including description, labels, and comments.
+When code or tests change, ensure Ground Control has:
 
-### Step 3: Assess Codebase Coverage
+- `IMPLEMENTS` links for changed implementation files
+- `TESTS` links for changed test files
 
-Explore the codebase to determine whether the requirement described in the issue is already satisfied by existing code:
-- Search for relevant classes, methods, tests, and configurations
-- Check if the described behavior already exists
-- Review any existing traceability links (IMPLEMENTS, TESTS) from Step 1
+If the requirement is still `DRAFT` and the implementation is complete,
+transition it to `ACTIVE` as part of the close-out.
 
-### Step 4: Plan or Report
+## Phase C: Verify
 
-- **If the requirement is NOT yet met**: Plan the implementation. Identify which files need to be created or modified, what tests to write, and what approach to take. Enter plan mode.
-- Your plans must respect the coding standards and formal methods classification levels.
-- You must add or update ADRs as appropriate.
-- Plans must include updating the changelog, readme, and docs as appropriate.
-- If designing code, remember to build off existing cross-cutting concerns, code, and patterns
-- Good code is readable, maintainable, and follows the coding standards
-- Address the concerns a FAANG L6+ engineer would have around security, performance, reliability, and scalability
-- Avoid reinventing the wheel - use existing libraries and frameworks where appropriate
-- Code should be easy to understand, test, and maintain. Simple is better than complex.
-- Plans that add database migrations MUST include updating the hardcoded version lists in `MigrationSmokeTest.java` and `RequirementsE2EIntegrationTest.java`.
-- Plans that add `@Audited` JPA entities MUST add `@NotAudited` on any `@ManyToOne` references to non-audited entities (e.g., Project), and MUST include a Flyway migration for the `_audit` table.
-- Plans that add API endpoints MUST include `@WebMvcTest` controller unit tests (not just integration tests). The sonar CI job does not run Testcontainers, so only unit tests contribute to SonarCloud coverage.
-- **If the requirement IS already met**: Report that the requirement is satisfied and identify which code satisfies it.
+### Step 5: Run Repo Policy Checks
 
-### Step 4.5: Clause-by-Clause Verification
+Run these before stopping:
 
-Before declaring implementation complete:
-1. Re-read the requirement statement from Step 1.
-2. Break it into individual clauses and acceptance criteria.
-3. For EACH clause, identify the specific code (file:line) that satisfies it.
-4. If any clause is not satisfied, go back and implement it before proceeding.
+- `implementations/python/.venv/bin/python tools/check_repo_policy.py`
+- `implementations/python/.venv/bin/python tools/check_requirement_governance.py --requirement-uid $ARGUMENTS`
+- `implementations/python/.venv/bin/python tools/verify_all.py --requirement-uid $ARGUMENTS`
+- relevant focused tests for the changed Python packages
+- `pre-commit run --all-files` before commit when the task includes code changes
 
-Present the mapping as a checklist:
-- [ ] Clause: "..." → Satisfied by: file.java:line
-- [ ] Clause: "..." → Satisfied by: file.java:line
+### Step 6: Completion Gate
 
-Do not proceed to Step 5 until every clause is checked off.
+Implementation is not complete until all of these are true:
 
-### Step 5: Ensure Traceability Links
-
-After implementation is complete (or if already implemented):
-- use the `gc_create_traceability_link` MCP tool to create any missing links:
-  - `IMPLEMENTS` links from the requirement to **every** code file that implements it — entities, enums, repositories, services, controllers, migrations, and MCP tool files. Link all substantive files, not just the top 3. DTOs and command records may be omitted.
-  - `TESTS` links from the requirement to the test files that verify it
-  - Only create links that don't already exist (check the traceability data from Step 1).
-- use the `gc_transition_status` MCP tool to transition the requirement to `ACTIVE` if it was `DRAFT`.
-
-Do not update the Changelog if all you did was operate Ground Control tools.
-
----
-
-## Phase B: Quality Gate
-
-### Step 6: Quality Assurance
-
-- run `pre-commit run --all-files` to ensure the codebase is in a healthy state.
-
-### Step 7: Completion Gate
-
-Implementation is NOT complete until ALL of the following are verified:
-
-1. **`make check` passes** — run it and confirm BUILD SUCCESSFUL.
-2. **CHANGELOG.md updated** — verify it is in `git diff --name-only` if any source files changed.
-3. **Traceability links exist** — re-fetch with `gc_get_traceability` and confirm IMPLEMENTS and TESTS links are present.
-4. **Requirement status is ACTIVE** — re-fetch with `gc_get_requirement` and confirm status.
-5. **Step 4.5 clause mapping was completed** — if you skipped it, go back and do it now.
-
-If any check fails, fix it before proceeding. Do NOT move to Phase C until every check passes.
-
----
-
-## Phase C: Stage, Commit, Push
-
-### Step 8: Stage & Pre-commit Loop
-
-1. `git add` all relevant changed files. Do NOT stage .env files, credentials, secrets, or large binaries.
-2. Run `pre-commit run --all-files`.
-3. If pre-commit fails:
-   - Read the failure output.
-   - Fix the issues.
-   - Re-stage any modified files with `git add`.
-   - Re-run `pre-commit run --all-files`.
-   - Repeat up to 5 times. If still failing after 5 attempts, escalate to the user with the failure details.
-4. When pre-commit passes, proceed.
-
-### Step 9: Commit & Push
-
-1. Craft a concise commit message in imperative mood (per coding standards). Example: "Add risk scoring engine for requirement prioritization"
-2. NEVER include Co-Authored-By, "Generated with Claude Code", or any Claude/AI attribution in commit messages.
-3. `git commit -m "<message>"`
-3. `git push -u origin <branch>`
-
----
-
-## Phase D: Ship
-
-### Step 10: Create PR
-
-1. Check if a PR already exists for this branch: `gh pr list --head <branch> --json number,url`
-2. If no PR exists, create one:
-   ```
-   gh pr create --base dev --title "<concise title>" --body "<description with requirement reference>"
-   ```
-3. Note the PR number and URL.
-
-### Step 11: CI Monitor
-
-1. Find the latest workflow run: `gh run list --branch <branch> --limit 1 --json status,conclusion,databaseId`
-2. If the run is in progress, watch it: `gh run watch <id>`
-3. If it failed:
-   - Get failed logs: `gh run view <id> --log-failed`
-   - Diagnose and fix the issue.
-   - `git add`, `git commit`, `git push`.
-   - Go back to step 1 of this phase.
-4. If it succeeded, proceed.
-
-### Step 12: SonarCloud
-
-1. Wait 60 seconds for SonarCloud analysis to propagate.
-2. Use `get_project_quality_gate_status` with project key `KeplerOps_Ground-Control` to check the quality gate.
-3. Use `search_sonar_issues_in_projects` to find new issues on the current branch.
-4. If issues found:
-   - Fix them.
-   - `git add`, `git commit`, `git push`.
-   - Re-run Step 11 (CI Monitor).
-5. If clean, proceed.
-
-### Step 13: Cross-Model Review (Codex)
-
-Run the OpenAI Codex CLI review against the branch:
-
-`Bash(codex review --base dev)`
-
-### Step 14: Code Review
-
-**CRITICAL: You MUST use the Skill tool to invoke the built-in review skill.**
-
-1. Merge dev into the current branch: `git fetch origin dev && git merge origin/dev`
-2. If there are merge conflicts, resolve them, commit, and push.
-3. Call the Skill tool with `skill="review"` to invoke the real built-in code review.
-4. After the review completes, fix ALL issues it identified.
-   - Same rules as Step 13: fix everything, defer nothing.
-5. After fixing, re-read all findings and confirm each one was addressed.
-
-### Step 15: Security Review
-
-**CRITICAL: You MUST use the Skill tool to invoke the built-in security-review skill.**
-
-1. Call the Skill tool with `skill="security-review"` to invoke the real built-in security review.
-2. After the review completes, fix ALL issues it identified.
-   - Same rules as Step 14: fix everything, defer nothing.
-3. After fixing, confirm all findings were addressed.
-
-### Step 16: Test Quality Review
-
-**CRITICAL: You MUST use the Skill tool to invoke the review-tests skill.**
-
-1. Call the Skill tool with `skill="review-tests"` to invoke the test quality review.
-2. After the review completes, fix ALL critical issues it identified.
-   - Rewrite tests that provide false assurance. Do not defer critical findings.
-3. Warning-level findings: fix unless doing so significantly increases scope.
-4. After fixing, confirm all critical findings were addressed.
-
-### Step 17: Final Commit & CI
-
-If ANY fixes were made in Steps 13-16:
-1. `git add` all changed files.
-2. `git commit -m "Fix review findings"`
-3. `git push`
-4. Re-run Step 11 (CI Monitor).
-5. Re-run Step 12 (SonarCloud).
-
-### Step 18: Report (DO NOT MERGE)
-
-**You MUST NOT merge the PR. You MUST NOT run `gh pr merge`. The user reviews and merges.**
-
-Provide a final summary:
-- What was implemented (requirement title and UID)
-- Files created or modified
-- Review findings and fixes (if any)
-- Security review findings and fixes (if any)
-- Test quality review findings and fixes (if any)
-- Confirmation: CI green, SonarCloud passed, PR ready for user review
-- PR URL
+1. `CHANGELOG.md` is updated when source files changed.
+2. Ground Control traceability reflects changed code and test files.
+3. The requirement status is appropriate for the completed work.
+4. Repo policy and requirement governance checks are both green.
+5. Any ADR changes are reflected in `docs/decisions/adrs/README.md`.

@@ -275,6 +275,53 @@ def test_concept_binding_entry_rejects_extra_fields():
         )
 
 
+@pytest.mark.parametrize(
+    ("fixture_path", "model_cls"),
+    [
+        (BACKEND_V2_VALID_DIR / "stub.json", BackendManifestV2Model),
+        (PROCESSOR_V2_VALID_DIR / "reference.json", ProcessorManifestV2Model),
+    ],
+)
+def test_manifest_bindings_reject_unknown_catalog_families(fixture_path: Path, model_cls: type) -> None:
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload["concept_bindings"][0]["family"] = "made-up-family"
+    with pytest.raises(ValidationError, match="concept-families-v1"):
+        model_cls.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "model_cls", "invalid_scope"),
+    [
+        (
+            BACKEND_V2_VALID_DIR / "stub.json",
+            BackendManifestV2Model,
+            "capabilities.provisioner.not_a_real_field",
+        ),
+        (
+            PROCESSOR_V2_VALID_DIR / "reference.json",
+            ProcessorManifestV2Model,
+            "capabilities.not_a_real_field",
+        ),
+    ],
+)
+def test_manifest_bindings_reject_unknown_scopes(
+    fixture_path: Path,
+    model_cls: type,
+    invalid_scope: str,
+) -> None:
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload["concept_bindings"][0]["scope"] = invalid_scope
+    with pytest.raises(ValidationError, match="governed manifest vocabulary surface"):
+        model_cls.model_validate(payload)
+
+
+def test_backend_manifest_bindings_reject_omitted_optional_surface() -> None:
+    payload = json.loads((BACKEND_V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["capabilities"]["evaluator"] = None
+    with pytest.raises(ValidationError, match="does not resolve to a declared field"):
+        BackendManifestV2Model.model_validate(payload)
+
+
 def test_reference_fixture_bindings_resolve_to_authoritative_catalog():
     """Verify that all concept family IDs used in reference fixtures exist in the catalog."""
     catalog_payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
