@@ -1,0 +1,107 @@
+project: aces-sdl
+
+phases:
+  - id: gov-concept-authority
+    requirements:
+      - GOV-917
+      - GOV-918
+      - GOV-919
+      - GOV-920
+      - GOV-921
+      - GOV-922
+  - id: api400-core
+    requirements:
+      - API-412
+      - API-413
+    blocked_until:
+      - gov-concept-authority
+  - id: runtime-core
+    requirements:
+      - RUN-300
+    blocked_until:
+      - api400-core
+  - id: reference-implementations
+    requirements:
+      - RUN-313
+      - RUN-314
+      - RUN-315
+    blocked_until:
+      - runtime-core
+  - id: semantics-expansion
+    patterns:
+      - ^SEM-
+    blocked_until:
+      - reference-implementations
+  - id: api400-deferred
+    requirements:
+      - API-405
+      - API-406
+      - API-407
+      - API-408
+      - API-409
+      - API-410
+      - API-411
+      - API-414
+      - API-415
+      - API-416
+      - API-417
+      - API-418
+      - API-419
+      - API-420
+      - API-421
+    blocked_until:
+      - semantics-expansion
+    manual_release: true
+
+ownership:
+  gov-concept-authority:
+    - specs/concept-authority
+    - contracts/concept-authority
+    - contracts/schemas/concept-authority
+    - contracts/fixtures/concept-authority
+    - docs/explain/reference/shared-concept-model.md
+    - docs/decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline.md
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_processor
+    - implementations/python/tests/test_concept_authority.py
+    - implementations/python/tests/test_requirement_governance.py
+    - CHANGELOG.md
+  api400-core:
+    - contracts/fixtures/backend-manifest
+    - contracts/fixtures/processor-manifest
+    - contracts/schemas/backend-manifest
+    - contracts/schemas/processor-manifest
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_processor
+    - implementations/python/tests/test_backend_manifest.py
+    - implementations/python/tests/test_processor_manifest.py
+    - implementations/python/tests/test_runtime_contracts.py
+    - CHANGELOG.md
+    - tools/generate_contract_schemas.py
+  runtime-core:
+    - implementations/python/packages/aces_processor
+    - implementations/python/packages/aces_contracts
+    - implementations/python/tests
+    - contracts/schemas/control-plane
+    - contracts/fixtures/control-plane
+    - CHANGELOG.md
+  reference-implementations:
+    - implementations/python/packages
+    - implementations/python/tests
+    - contracts/fixtures
+    - CHANGELOG.md
+  semantics-expansion:
+    - implementations/python/packages/aces_processor
+    - implementations/python/packages/aces_sdl
+    - implementations/python/tests
+    - specs/formal
+    - CHANGELOG.md
+
+traceability:
+  required_code_roots:
+    - implementations/python/packages
+    - implementations/python/src
+  required_test_roots:
+    - implementations/python/tests

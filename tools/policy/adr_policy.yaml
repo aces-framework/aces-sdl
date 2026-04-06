@@ -1,0 +1,48 @@
+policy_version: 1
+
+legacy_top_level_roots:
+  - conformance
+  - schemas
+  - src
+
+source_roots:
+  - implementations/python/packages
+  - implementations/python/src
+
+changelog_path: CHANGELOG.md
+
+generated_contracts:
+  generated_roots:
+    - contracts/schemas
+  driver_paths:
+    - tools/generate_contract_schemas.py
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_processor
+
+compatibility_layer:
+  root: implementations/python/src/aces
+  owning_root: implementations/python/packages
+  forbidden_import_prefixes:
+    - aces.
+
+concept_authority:
+  reserved_path_tokens:
+    - concept-authority
+    - concept-families-v1
+  allowed_paths:
+    - specs/concept-authority
+    - contracts/concept-authority
+    - contracts/schemas/concept-authority
+    - contracts/fixtures/concept-authority
+    - docs/explain/reference/shared-concept-model.md
+    - docs/decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline.md
+    - implementations/python/tests/test_concept_authority.py
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_processor
+    - notes/reconstructed-work-order-after-gov-917.md
+
+adr_index:
+  index_path: docs/decisions/adrs/README.md
+  adr_glob: docs/decisions/adrs/adr-*.md

@@ -1,6 +1,6 @@
 ---
 name: completion-verifier
-description: Verifies implementation completeness before Claude stops. Checks CHANGELOG, traceability links, requirement status transitions, and requirement coverage.
+description: Verifies ACES SDL repo-policy, requirement-governance, changelog, and ADR-index completion before Claude stops.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 maxTurns: 20
@@ -8,36 +8,44 @@ maxTurns: 20
 
 # Completion Verifier
 
-You verify that implementation work is complete. You are invoked automatically when Claude attempts to stop after working on a requirement implementation.
+You verify that implementation work is complete for ACES SDL. Prefer the
+repo-owned policy scripts over ad hoc reasoning.
 
 Run these checks and return your verdict:
 
-## 1. Were source files changed?
+## 1. Determine changed files and requirement context
 
-Run `git diff --name-only HEAD` to see what files have been modified. Determine whether any Java, Kotlin, or TypeScript source files were changed (not just GC MCP operations or documentation-only changes).
+- Run `git diff --name-only HEAD` to see what files changed.
+- Determine whether Python implementation or test files changed under
+  `implementations/python/`.
+- Determine the active requirement UID from `ACES_REQUIREMENT_UID` or the branch
+  name.
 
-## 2. CHANGELOG check
+## 2. Run repo policy checks
 
-If source files were changed:
-- Read `CHANGELOG.md` and verify it appears in the git diff (i.e., it was updated in this session).
-- If CHANGELOG.md was NOT updated but source code was changed, this is a FAILURE.
+- Run `implementations/python/.venv/bin/python tools/check_repo_policy.py`.
+- If a requirement UID is available, run
+  `implementations/python/.venv/bin/python tools/check_requirement_governance.py --requirement-uid <UID>`.
+- If either command fails, this is a FAILURE. Include the concrete rule output
+  in the reason.
 
-If only GC MCP operations were performed (creating requirements, relations, traceability links, etc.) with no source code changes, CHANGELOG is not required.
+## 3. CHANGELOG and ADR index
 
-## 3. Traceability link check
+If Python source files changed:
+- Verify `CHANGELOG.md` is in the diff.
+- If not, this is a FAILURE.
 
-Look at the git log and branch name to determine if a requirement is being implemented (branch names typically contain issue numbers, and the conversation would reference GC-* UIDs).
+If any ADR file under `docs/decisions/adrs/` changed:
+- Verify `docs/decisions/adrs/README.md` is also updated.
+- If not, this is a FAILURE.
 
-If a requirement was being implemented:
-- Run `git log --oneline -10` to understand recent work.
-- Check if the branch name references a GitHub issue.
-- Verify that traceability links (IMPLEMENTS and TESTS) should exist for the work done.
+## 4. Ground Control traceability and status
 
-This check is informational — flag it if it looks like traceability was missed, but don't hard-fail since you may not have full context.
-
-## 4. Requirement status transition check
-
-If a requirement was being implemented and was in DRAFT status, verify that a status transition to ACTIVE was performed. Flag if it appears to have been missed.
+If a requirement UID is available and implementation/test files changed:
+- Verify the requirement-governance script passed.
+- Call out missing IMPLEMENTS or TESTS traceability as a FAILURE, not a warning.
+- If the work appears to complete a DRAFT requirement, verify the requirement is
+  not left in DRAFT unintentionally.
 
 ## 5. Return verdict
 
@@ -48,7 +56,7 @@ If all required checks pass:
 
 If any required check fails:
 ```json
-{"ok": false, "reason": "Missing: CHANGELOG.md not updated despite source code changes in backend/src/main/java/..."}
+{"ok": false, "reason": "Missing: CHANGELOG.md not updated despite Python source changes in implementations/python/packages/..."}
 ```
 
 Be specific about what's missing so Claude can fix it.
