@@ -81,6 +81,23 @@ ecosystem-specific concerns.
 | `provenance-and-evidence` | Run provenance records, evidence expectations, and audit artifacts. |
 | `time-and-apparatus` | Clocks, timing constraints, and apparatus-level concerns. |
 
+## Extension Discipline
+
+ACES-native families must be explicit extensions over the shared concept
+authority, not implicit forks of adopted or adapted cyber-domain meaning.
+
+Each `native` family must declare:
+
+- `extension_scope`: the ACES-specific concern covered by the family
+- `relation_rules`: how the native concept may relate to adopted, adapted, or
+  other native families
+- `non_ambiguity_constraints`: constraints that prevent the native concept
+  from duplicating or shadowing shared cyber-domain concepts
+
+Native families must use these fields to state when an artifact should bind to
+the native family and when it should instead bind to a narrower adopted or
+adapted family from the shared authority.
+
 ## Machine-Readable Catalog
 
 The authoritative concept family catalog is published at:
@@ -100,6 +117,8 @@ The machine-readable catalog also makes the provenance rules normative:
 - `adopted` and `adapted` families must declare both `authority` and
   `authority_reference`
 - `native` families must not declare either authority field
+- `native` families must declare non-empty `extension_scope`,
+  `relation_rules`, and `non_ambiguity_constraints`
 
 The JSON Schema for the catalog format is published at:
 

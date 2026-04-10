@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-04-10
+
+### Fixed
+
+- CI workflow now triggers on pull requests targeting `dev` branch, not just `main`.
+- Rename `UID` variable to `REQ_UID` in CI policy job to avoid collision with
+  the readonly shell builtin.
+- Add `fetch-depth: 0` to policy job checkout so the PR base SHA is available
+  for `git diff`.
+- Pass branch name via `env:` in CI UID-extraction step instead of relying on
+  shell variable expansion of `GITHUB_HEAD_REF`.
+- `current_branch()` in `check_requirement_governance.py` now falls back to
+  `GITHUB_HEAD_REF` when `git branch --show-current` returns empty (detached
+  HEAD in CI PR checkouts).
+- Requirement governance check now warns and exits 0 when Ground Control is
+  unreachable, instead of failing the build.
+
 ## [0.3.0] - 2026-04-05
 
 ### Added
@@ -29,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contract-level validation ensuring `concept_bindings` resolve to the
   authoritative concept-families-v1 catalog and to governed manifest
   vocabulary surfaces.
+- GOV-919 native extension discipline metadata in the concept-family catalog,
+  including extension scope, relation rules, and non-ambiguity constraints.
+- Invalid fixtures covering native concept families that omit extension
+  discipline fields.
 
 ### Changed
 
@@ -40,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated all v2 manifest fixtures with concept binding declarations.
 - Updated all v2 invalid fixtures to include concept bindings for single-concern testing.
 - Regenerated backend-manifest-v2 and processor-manifest-v2 JSON Schemas.
+- `ConceptFamilyDefinitionModel` and the `concept-families-v1` schema now
+  reject native families that do not declare GOV-919 extension discipline.
 
 ## [0.2.0] - 2026-04-04
 
@@ -73,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial ACES SDL ecosystem extraction from APTL with SDL authoring layer,
   processor layer, backend protocols, conformance infrastructure, and CLI.
 
+[0.3.1]: https://github.com/aces-framework/aces-sdl/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/aces-framework/aces-sdl/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/aces-framework/aces-sdl/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/aces-framework/aces-sdl/releases/tag/v0.1.0

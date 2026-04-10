@@ -542,6 +542,9 @@ class ConceptFamilyDefinitionModel(ContractModel):
     provenance: ConceptProvenanceCategory
     authority: str | None = Field(default=None, min_length=1)
     authority_reference: str | None = Field(default=None, min_length=1)
+    extension_scope: str | None = Field(default=None, min_length=1)
+    relation_rules: list[NonEmptyString] = Field(default_factory=list, min_length=1)
+    non_ambiguity_constraints: list[NonEmptyString] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
     def _validate_provenance_rules(self) -> ConceptFamilyDefinitionModel:
@@ -552,6 +555,13 @@ class ConceptFamilyDefinitionModel(ContractModel):
             self.authority is not None or self.authority_reference is not None
         ):
             raise ValueError("native concept families must not declare authority metadata")
+        if self.provenance == ConceptProvenanceCategory.NATIVE:
+            if self.extension_scope is None:
+                raise ValueError("native concept families require extension_scope")
+            if not self.relation_rules:
+                raise ValueError("native concept families require relation_rules")
+            if not self.non_ambiguity_constraints:
+                raise ValueError("native concept families require non_ambiguity_constraints")
         return self
 
     @classmethod
@@ -569,14 +579,26 @@ class ConceptFamilyDefinitionModel(ContractModel):
                         "properties": {"provenance": {"const": ConceptProvenanceCategory.ADOPTED.value}},
                         "required": ["provenance"],
                     },
-                    "then": {"required": ["authority", "authority_reference"]},
+                    "then": {
+                        "required": ["authority", "authority_reference"],
+                        "properties": {
+                            "authority": {"type": "string", "minLength": 1},
+                            "authority_reference": {"type": "string", "minLength": 1},
+                        },
+                    },
                 },
                 {
                     "if": {
                         "properties": {"provenance": {"const": ConceptProvenanceCategory.ADAPTED.value}},
                         "required": ["provenance"],
                     },
-                    "then": {"required": ["authority", "authority_reference"]},
+                    "then": {
+                        "required": ["authority", "authority_reference"],
+                        "properties": {
+                            "authority": {"type": "string", "minLength": 1},
+                            "authority_reference": {"type": "string", "minLength": 1},
+                        },
+                    },
                 },
                 {
                     "if": {
@@ -584,12 +606,18 @@ class ConceptFamilyDefinitionModel(ContractModel):
                         "required": ["provenance"],
                     },
                     "then": {
+                        "required": ["extension_scope", "relation_rules", "non_ambiguity_constraints"],
+                        "properties": {
+                            "extension_scope": {"type": "string", "minLength": 1},
+                            "relation_rules": {"type": "array", "minItems": 1},
+                            "non_ambiguity_constraints": {"type": "array", "minItems": 1},
+                        },
                         "not": {
                             "anyOf": [
                                 {"required": ["authority"]},
                                 {"required": ["authority_reference"]},
                             ]
-                        }
+                        },
                     },
                 },
             ]

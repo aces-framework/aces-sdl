@@ -5,7 +5,7 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
@@ -42,10 +44,12 @@ jobs:
           fi
       - name: Resolve requirement UID from branch
         id: requirement
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
-          echo "uid=$UID" >> "$GITHUB_OUTPUT"
+          REQ_UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
+          echo "Resolved branch='$BRANCH' uid='$REQ_UID'"
+          echo "uid=$REQ_UID" >> "$GITHUB_OUTPUT"
       - name: Check repo ADR policy
         run: uv run python ../../tools/check_repo_policy.py --base-rev "${{ steps.base.outputs.base_rev }}"
       - name: Check requirement governance
