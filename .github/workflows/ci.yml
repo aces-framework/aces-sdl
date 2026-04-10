@@ -44,9 +44,11 @@ jobs:
           fi
       - name: Resolve requirement UID from branch
         id: requirement
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           REQ_UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
+          echo "Resolved branch='$BRANCH' uid='$REQ_UID'"
           echo "uid=$REQ_UID" >> "$GITHUB_OUTPUT"
       - name: Check repo ADR policy
         run: uv run python ../../tools/check_repo_policy.py --base-rev "${{ steps.base.outputs.base_rev }}"
