@@ -15,6 +15,16 @@
             ]
           },
           "then": {
+            "properties": {
+              "authority": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "authority_reference": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
             "required": [
               "authority",
               "authority_reference"
@@ -33,6 +43,16 @@
             ]
           },
           "then": {
+            "properties": {
+              "authority": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "authority_reference": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
             "required": [
               "authority",
               "authority_reference"
@@ -64,7 +84,26 @@
                   ]
                 }
               ]
-            }
+            },
+            "properties": {
+              "extension_scope": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "non_ambiguity_constraints": {
+                "minItems": 1,
+                "type": "array"
+              },
+              "relation_rules": {
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "extension_scope",
+              "relation_rules",
+              "non_ambiguity_constraints"
+            ]
           }
         }
       ],
@@ -100,8 +139,39 @@
           "title": "Description",
           "type": "string"
         },
+        "extension_scope": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extension Scope"
+        },
+        "non_ambiguity_constraints": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Non Ambiguity Constraints",
+          "type": "array"
+        },
         "provenance": {
           "$ref": "#/$defs/ConceptProvenanceCategory"
+        },
+        "relation_rules": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Relation Rules",
+          "type": "array"
         },
         "title": {
           "minLength": 1,
