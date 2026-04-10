@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the readonly shell builtin.
 - Add `fetch-depth: 0` to policy job checkout so the PR base SHA is available
   for `git diff`.
+- Pass branch name via `env:` in CI UID-extraction step instead of relying on
+  shell variable expansion of `GITHUB_HEAD_REF`.
+- `current_branch()` in `check_requirement_governance.py` now falls back to
+  `GITHUB_HEAD_REF` when `git branch --show-current` returns empty (detached
+  HEAD in CI PR checkouts).
 
 ## [0.3.0] - 2026-04-05
 
