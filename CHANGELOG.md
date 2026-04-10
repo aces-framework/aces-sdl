@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI workflow now triggers on pull requests targeting `dev` branch, not just `main`.
 - Rename `UID` variable to `REQ_UID` in CI policy job to avoid collision with
   the readonly shell builtin.
+- Add `fetch-depth: 0` to policy job checkout so the PR base SHA is available
+  for `git diff`.
 
 ## [0.3.0] - 2026-04-05
 
