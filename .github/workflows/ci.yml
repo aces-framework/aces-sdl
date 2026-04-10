@@ -44,8 +44,8 @@ jobs:
         id: requirement
         run: |
           BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
-          echo "uid=$UID" >> "$GITHUB_OUTPUT"
+          REQ_UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
+          echo "uid=$REQ_UID" >> "$GITHUB_OUTPUT"
       - name: Check repo ADR policy
         run: uv run python ../../tools/check_repo_policy.py --base-rev "${{ steps.base.outputs.base_rev }}"
       - name: Check requirement governance
