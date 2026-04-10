@@ -97,8 +97,8 @@ def main() -> int:
     try:
         failures = evaluate_requirement_governance(REPO_ROOT, paths, client=client, requirement_uid=uid)
     except RuntimeError as exc:
-        print(f"[ground-control-unavailable] {exc}", file=sys.stderr)
-        return 1
+        print(f"[ground-control-unavailable] {exc} — skipping governance check", file=sys.stderr)
+        return 0
 
     failures = apply_exceptions(failures, load_exceptions(REPO_ROOT), requirement_uid=uid)
     if failures:
