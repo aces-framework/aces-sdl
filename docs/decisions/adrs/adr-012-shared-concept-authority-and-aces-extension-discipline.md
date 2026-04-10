@@ -83,6 +83,18 @@ areas such as:
 
 These extensions must be explicit rather than implicit shadow vocabularies.
 
+ACES-native concept families must also carry explicit extension discipline in
+the concept-family catalog:
+
+- the ACES-specific extension scope
+- relation rules to adopted, adapted, or other native families
+- non-ambiguity constraints that prevent the native family from shadowing
+  shared cyber-domain concepts
+
+This is intentionally stricter than the earlier loose native-family shape. The
+project chose to tighten the catalog now because no deployed `v1` consumer
+depends on native families being metadata-free labels.
+
 ### 4. Bind artifacts to concepts instead of reusing labels loosely
 
 SDL, manifests, contracts, provenance, and reports should bind to canonical

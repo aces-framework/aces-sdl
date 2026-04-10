@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contract-level validation ensuring `concept_bindings` resolve to the
   authoritative concept-families-v1 catalog and to governed manifest
   vocabulary surfaces.
+- GOV-919 native extension discipline metadata in the concept-family catalog,
+  including extension scope, relation rules, and non-ambiguity constraints.
+- Invalid fixtures covering native concept families that omit extension
+  discipline fields.
 
 ### Changed
 
@@ -40,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated all v2 manifest fixtures with concept binding declarations.
 - Updated all v2 invalid fixtures to include concept bindings for single-concern testing.
 - Regenerated backend-manifest-v2 and processor-manifest-v2 JSON Schemas.
+- `ConceptFamilyDefinitionModel` and the `concept-families-v1` schema now
+  reject native families that do not declare GOV-919 extension discipline.
 
 ## [0.2.0] - 2026-04-04
 

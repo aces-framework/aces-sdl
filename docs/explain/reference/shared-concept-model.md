@@ -169,6 +169,26 @@ against the authoritative catalog at model time, and scope paths must resolve
 to governed manifest vocabulary surfaces that are actually declared in the
 artifact.
 
+## ACES Extension Discipline (GOV-919)
+
+`GOV-919` implements the ACES concept layer by making native extension metadata
+normative in the concept-family catalog.
+
+Every `native` concept family now declares:
+
+- `extension_scope`, describing the ACES-specific concern covered by the family
+- `relation_rules`, describing how the native family may relate to adopted,
+  adapted, or other native families
+- `non_ambiguity_constraints`, describing how the family avoids shadowing
+  shared cyber-domain concepts
+
+This is intentionally stricter than treating native families as loose labels.
+If a field denotes a cyber-domain asset, identity, observable, relationship,
+action, event, tool, or artifact directly, it should bind to the adopted or
+adapted family. Native families are for ACES experiment, runtime, apparatus,
+provenance, and governance concerns that the shared authority does not
+naturally cover.
+
 ## Relationship To Other Requirements
 
 `GOV-917` is the concept-authority decision surface.
@@ -178,7 +198,7 @@ The related requirements split the rest of the problem:
 - `GOV-918`
   Cross-artifact concept binding (implemented)
 - `GOV-919`
-  ACES extension discipline over the shared authority
+  ACES extension discipline over the shared authority (implemented)
 - `GOV-920`
   shared semantic profiles
 - `GOV-921`

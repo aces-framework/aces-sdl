@@ -25,6 +25,17 @@ VALID_DIR = FIXTURES_ROOT / "concept-authority" / "concept-families-v1" / "valid
 INVALID_DIR = FIXTURES_ROOT / "concept-authority" / "concept-families-v1" / "invalid"
 
 
+def _native_family_payload() -> dict[str, object]:
+    return {
+        "title": "Scenarios",
+        "description": "SDL scenarios.",
+        "provenance": "native",
+        "extension_scope": "SDL-native scenario authoring constructs.",
+        "relation_rules": ["Must remain the scenario authoring layer."],
+        "non_ambiguity_constraints": ["Must not redefine adopted cyber-domain families."],
+    }
+
+
 def test_provenance_category_values():
     assert {c.value for c in ConceptProvenanceCategory} == {"adopted", "adapted", "native"}
 
@@ -46,19 +57,22 @@ def test_concept_family_definition_defaults():
         title="Scenarios",
         description="SDL scenarios.",
         provenance=ConceptProvenanceCategory.NATIVE,
+        extension_scope="SDL-native scenario authoring constructs.",
+        relation_rules=["Must remain the scenario authoring layer."],
+        non_ambiguity_constraints=["Must not redefine adopted cyber-domain families."],
     )
     assert family.authority is None
     assert family.authority_reference is None
+    assert family.extension_scope == "SDL-native scenario authoring constructs."
+    assert family.relation_rules == ["Must remain the scenario authoring layer."]
+    assert family.non_ambiguity_constraints == ["Must not redefine adopted cyber-domain families."]
 
 
 def test_concept_family_definition_rejects_extra_fields():
+    payload = _native_family_payload()
+    payload["unknown_field"] = True
     with pytest.raises(ValidationError):
-        ConceptFamilyDefinitionModel(
-            title="Bad",
-            description="Bad.",
-            provenance="native",
-            unknown_field=True,
-        )
+        ConceptFamilyDefinitionModel.model_validate(payload)
 
 
 def test_adopted_family_requires_authority():
@@ -99,7 +113,45 @@ def test_native_family_rejects_authority_metadata():
             provenance=ConceptProvenanceCategory.NATIVE,
             authority="ACES",
             authority_reference="https://aces-framework.org/concepts",
+            extension_scope="SDL-native scenario authoring constructs.",
+            relation_rules=["Must remain the scenario authoring layer."],
+            non_ambiguity_constraints=["Must not redefine adopted cyber-domain families."],
         )
+
+
+@pytest.mark.parametrize(
+    ("missing_field", "expected_message"),
+    [
+        ("extension_scope", "extension_scope"),
+        ("relation_rules", "relation_rules"),
+        ("non_ambiguity_constraints", "non_ambiguity_constraints"),
+    ],
+)
+def test_native_family_requires_extension_discipline_fields(missing_field: str, expected_message: str):
+    payload = _native_family_payload()
+    payload.pop(missing_field)
+    with pytest.raises(ValidationError, match=expected_message):
+        ConceptFamilyDefinitionModel.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    "invalid_update",
+    [
+        {"extension_scope": None},
+        {"extension_scope": ""},
+        {"relation_rules": None},
+        {"relation_rules": []},
+        {"relation_rules": [""]},
+        {"non_ambiguity_constraints": None},
+        {"non_ambiguity_constraints": []},
+        {"non_ambiguity_constraints": [""]},
+    ],
+)
+def test_native_family_rejects_empty_extension_discipline_fields(invalid_update: dict[str, object]):
+    payload = _native_family_payload()
+    payload.update(invalid_update)
+    with pytest.raises(ValidationError):
+        ConceptFamilyDefinitionModel.model_validate(payload)
 
 
 def test_catalog_model_roundtrip():
@@ -113,11 +165,7 @@ def test_catalog_model_roundtrip():
                 "authority": "UCO",
                 "authority_reference": "https://github.com/ucoProject/UCO",
             },
-            "scenarios": {
-                "title": "Scenarios",
-                "description": "SDL scenarios.",
-                "provenance": "native",
-            },
+            "scenarios": _native_family_payload(),
         },
     }
     model = ConceptFamilyCatalogModel.model_validate(payload)
@@ -127,12 +175,10 @@ def test_catalog_model_roundtrip():
 
 
 def test_concept_family_definition_rejects_empty_title():
+    payload = _native_family_payload()
+    payload["title"] = ""
     with pytest.raises(ValidationError):
-        ConceptFamilyDefinitionModel(
-            title="",
-            description="SDL scenarios.",
-            provenance=ConceptProvenanceCategory.NATIVE,
-        )
+        ConceptFamilyDefinitionModel.model_validate(payload)
 
 
 def test_catalog_model_rejects_extra_fields():
@@ -166,11 +212,7 @@ def test_catalog_rejects_empty_family_identifier():
             {
                 "schema_version": "concept-families/v1",
                 "families": {
-                    "": {
-                        "title": "Bad",
-                        "description": "Empty id.",
-                        "provenance": "native",
-                    }
+                    "": _native_family_payload(),
                 },
             }
         )
@@ -217,6 +259,11 @@ def test_authoritative_catalog_native_families_have_no_authority_metadata():
         if family.provenance == ConceptProvenanceCategory.NATIVE:
             assert family.authority is None, f"Native family '{family_id}' should not have an authority"
             assert family.authority_reference is None, f"Native family '{family_id}' should not have an authority ref"
+            assert family.extension_scope is not None, f"Native family '{family_id}' should declare extension scope"
+            assert family.relation_rules, f"Native family '{family_id}' should declare relation rules"
+            assert family.non_ambiguity_constraints, (
+                f"Native family '{family_id}' should declare non-ambiguity constraints"
+            )
 
 
 def test_valid_fixture_passes_validation():

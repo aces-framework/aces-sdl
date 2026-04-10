@@ -195,7 +195,22 @@ def test_concept_authority_schema_enforces_keyed_catalog_and_provenance_rules():
     assert family_definition["properties"]["title"]["minLength"] == 1
     assert family_definition["properties"]["description"]["minLength"] == 1
     assert provenance_rules["adopted"]["required"] == ["authority", "authority_reference"]
+    assert provenance_rules["adopted"]["properties"]["authority"] == {"type": "string", "minLength": 1}
+    assert provenance_rules["adopted"]["properties"]["authority_reference"] == {"type": "string", "minLength": 1}
     assert provenance_rules["adapted"]["required"] == ["authority", "authority_reference"]
+    assert provenance_rules["adapted"]["properties"]["authority"] == {"type": "string", "minLength": 1}
+    assert provenance_rules["adapted"]["properties"]["authority_reference"] == {"type": "string", "minLength": 1}
+    assert provenance_rules["native"]["required"] == [
+        "extension_scope",
+        "relation_rules",
+        "non_ambiguity_constraints",
+    ]
+    assert provenance_rules["native"]["properties"]["extension_scope"] == {"type": "string", "minLength": 1}
+    assert provenance_rules["native"]["properties"]["relation_rules"] == {"type": "array", "minItems": 1}
+    assert provenance_rules["native"]["properties"]["non_ambiguity_constraints"] == {
+        "type": "array",
+        "minItems": 1,
+    }
     assert provenance_rules["native"]["not"]["anyOf"] == [
         {"required": ["authority"]},
         {"required": ["authority_reference"]},
