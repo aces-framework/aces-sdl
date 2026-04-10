@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `current_branch()` in `check_requirement_governance.py` now falls back to
   `GITHUB_HEAD_REF` when `git branch --show-current` returns empty (detached
   HEAD in CI PR checkouts).
+- Requirement governance check now warns and exits 0 when Ground Control is
+  unreachable, instead of failing the build.
 
 ## [0.3.0] - 2026-04-05
 
