@@ -49,6 +49,19 @@ particular:
 schema artifacts. The reference stack, contract tests, and conformance profiles
 use `v2`.
 
+## Concept Authority Catalog
+
+The `concept-families-v1` schema publishes the machine-readable shared concept
+authority catalog. Catalog entries distinguish adopted, adapted, and
+ACES-native concept families.
+
+Adopted and adapted families must declare `authority` and
+`authority_reference`. Native families must not declare those authority fields;
+instead they must declare non-empty `extension_scope`, `relation_rules`, and
+`non_ambiguity_constraints`. This keeps ACES experiment, runtime, apparatus,
+provenance, and governance concepts explicit without letting them silently fork
+shared cyber-domain concepts.
+
 ## Cross-Artifact Concept Binding
 
 Apparatus manifests (`v2`) require a `concept_bindings` section that binds

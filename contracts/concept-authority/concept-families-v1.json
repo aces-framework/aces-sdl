@@ -46,32 +46,86 @@
     "scenarios": {
       "title": "Scenarios",
       "description": "SDL scenarios, compositions, modules, and authoring constructs.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "SDL-native scenario authoring constructs, compositions, modules, and scenario-bound declarations that are not UCO cyber object definitions.",
+      "relation_rules": [
+        "May bind to adopted cyber-domain families only when the scenario construct denotes a cyber object, observable, action, relationship, identity, or artifact.",
+        "Must remain the container and authoring-intent layer rather than redefining adopted cyber-domain families."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not be used as a synonym for assets, identities, relationships, observables, actions-and-events, or tools-and-artifacts.",
+        "Artifact bindings must choose the narrower adopted or adapted family when a field denotes that cyber-domain meaning directly."
+      ]
     },
     "tasks-runs-studies": {
       "title": "Tasks, Runs, and Studies",
       "description": "Execution lifecycle, run records, and study organization.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "ACES experiment workflow concepts for task framing, run lifecycle, study grouping, and analysis organization.",
+      "relation_rules": [
+        "May reference scenarios as the authoring input under evaluation and provenance-and-evidence concepts as recorded outputs.",
+        "Must describe experiment organization and lifecycle rather than the cyber-domain assets or actions inside a scenario."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not duplicate scenario authoring semantics, runtime execution state, or external cyber-domain object meaning.",
+        "Run or study concepts must not be used to classify nodes, accounts, observables, tools, or events."
+      ]
     },
     "apparatus-declarations": {
       "title": "Apparatus Declarations",
       "description": "Processor, backend, and participant-implementation manifests.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "ACES apparatus identity, capability, compatibility, and declaration surfaces for processors, backends, and participant implementations.",
+      "relation_rules": [
+        "May bind declared capability vocabularies to adopted or adapted cyber-domain families through concept_bindings.",
+        "Must keep apparatus identity and compatibility separate from the cyber-domain objects that an apparatus can process or realize."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not redefine assets, identities, observables, actions, relationships, or tools as apparatus concepts.",
+        "Capability bindings must use the canonical cyber-domain family when the declaration names supported cyber-domain vocabulary."
+      ]
     },
     "realization-and-disclosure": {
       "title": "Realization and Disclosure",
       "description": "Instantiation, planning, compilation, and realization artifacts.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "ACES realization semantics for turning underspecified authoring inputs into executable, planned, or disclosed artifacts.",
+      "relation_rules": [
+        "May relate scenarios to apparatus-declarations by describing what an apparatus can realize or disclose.",
+        "Must distinguish realization support from the cyber-domain objects being realized."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not be used as a label for realized assets, identities, tools, observables, relationships, or actions themselves.",
+        "When a declaration names the kind of cyber object realized, it must bind to the corresponding cyber-domain family rather than this native family."
+      ]
     },
     "provenance-and-evidence": {
       "title": "Provenance and Evidence",
       "description": "Run provenance records, evidence expectations, and audit artifacts.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "ACES provenance, evidence expectation, evidence collection, and audit-record semantics for experiments and execution.",
+      "relation_rules": [
+        "May record observations about scenarios, tasks, runs, studies, apparatus, and cyber-domain objects without redefining those objects.",
+        "Must separate evidence/provenance records from the observed asset, identity, observable, action, relationship, or artifact."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not classify the subject of evidence as evidence itself.",
+        "Evidence bindings must choose the observed cyber-domain family when the field denotes the observed object rather than the evidence record."
+      ]
     },
     "time-and-apparatus": {
       "title": "Time and Apparatus",
       "description": "Clocks, timing constraints, and apparatus-level concerns.",
-      "provenance": "native"
+      "provenance": "native",
+      "extension_scope": "ACES timing, clock, scheduling, synchronization, and apparatus-time semantics that govern execution rather than cyber-domain object identity.",
+      "relation_rules": [
+        "May constrain scenarios, tasks, runs, realization, and apparatus behavior through time or clock declarations.",
+        "Must keep timing and clock semantics separate from the cyber-domain event or action whose occurrence is being timed."
+      ],
+      "non_ambiguity_constraints": [
+        "Must not be used as a synonym for actions-and-events or observables.",
+        "Temporal fields that describe an event meaning must bind to actions-and-events or observables; fields that describe ACES clock policy may bind here."
+      ]
     }
   }
 }
