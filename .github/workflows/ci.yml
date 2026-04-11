@@ -16,12 +16,8 @@ permissions:
   contents: read
   pull-requests: write
 
-defaults:
-  run:
-    working-directory: implementations/python
-
 jobs:
-  policy:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -32,8 +28,6 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
-      - name: Install dependencies
-        run: uv sync --all-extras
       - name: Resolve policy base revision
         id: base
         run: |
@@ -50,52 +44,14 @@ jobs:
           REQ_UID="$(printf '%s\n' "$BRANCH" | grep -oE '[A-Z]{3}-[0-9]{3}' | head -n1 || true)"
           echo "Resolved branch='$BRANCH' uid='$REQ_UID'"
           echo "uid=$REQ_UID" >> "$GITHUB_OUTPUT"
-      - name: Check repo ADR policy
-        run: uv run python ../../tools/check_repo_policy.py --base-rev "${{ steps.base.outputs.base_rev }}"
-      - name: Check requirement governance
+      - name: Run canonical verification graph
         env:
           ACES_REQUIREMENT_UID: ${{ steps.requirement.outputs.uid }}
           GC_BASE_URL: ${{ vars.GC_BASE_URL }}
-        run: uv run python ../../tools/check_requirement_governance.py --base-rev "${{ steps.base.outputs.base_rev }}"
-
-  # ---------------------------------------------------------------------------
-  # Lint — fast formatting and static analysis
-  # ---------------------------------------------------------------------------
-  lint:
-    runs-on: ubuntu-latest
-    needs: [policy]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-      - name: Install ruff
-        run: pip install ruff
-      - name: Check formatting
-        run: ruff format --check .
-      - name: Lint
-        run: ruff check .
-
-  # ---------------------------------------------------------------------------
-  # Test — unit tests with coverage
-  # ---------------------------------------------------------------------------
-  test:
-    runs-on: ubuntu-latest
-    needs: [lint]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
-      - name: Install dependencies
-        run: uv sync --all-extras
-      - name: Run tests with coverage
-        run: |
-          uv run coverage run -m pytest -v
-          uv run coverage xml
-          uv run coverage report --fail-under=50
+        run: >
+          uv tool run --from 'nox[uv]==2026.4.10'
+          nox -f noxfile.py -s verify --
+          --base-rev "${{ steps.base.outputs.base_rev }}"
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -103,12 +59,8 @@ jobs:
           name: coverage-report
           path: implementations/python/coverage.xml
 
-  # ---------------------------------------------------------------------------
-  # Fuzz — property-based tests (separate from main suite)
-  # ---------------------------------------------------------------------------
   fuzz:
     runs-on: ubuntu-latest
-    needs: [lint]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -116,40 +68,12 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
-      - name: Install dependencies
-        run: uv sync --all-extras
-      - name: Run fuzz tests
-        run: uv run pytest -m fuzz -v
+      - name: Run fuzz session
+        run: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s fuzz
 
-  # ---------------------------------------------------------------------------
-  # Contracts — verify published JSON schemas match generated output
-  # ---------------------------------------------------------------------------
-  contracts:
-    runs-on: ubuntu-latest
-    needs: [lint]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
-      - name: Install dependencies
-        run: uv sync --all-extras
-      - name: Regenerate schemas and check for drift
-        run: |
-          uv run python ../../tools/generate_contract_schemas.py
-          git diff --exit-code ../../contracts/schemas/ || {
-            echo "Published JSON schemas are out of date. Run: python tools/generate_contract_schemas.py"
-            exit 1
-          }
-
-  # ---------------------------------------------------------------------------
-  # SonarCloud — runs after test for coverage data
-  # ---------------------------------------------------------------------------
   sonar:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [verify]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

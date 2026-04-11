@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
-from pathlib import Path
 import fnmatch
 import json
 import subprocess
-from typing import Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
 
 import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -121,10 +120,7 @@ def apply_exceptions(
 
 def failures_to_json(failures: list[PolicyFailure]) -> str:
     return json.dumps(
-        [
-            {"rule_id": failure.rule_id, "message": failure.message, "path": failure.path}
-            for failure in failures
-        ],
+        [{"rule_id": failure.rule_id, "message": failure.message, "path": failure.path} for failure in failures],
         indent=2,
         sort_keys=True,
     )

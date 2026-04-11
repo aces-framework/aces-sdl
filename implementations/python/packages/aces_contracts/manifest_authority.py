@@ -11,7 +11,6 @@ PROCESSOR_SUPPORTED_SDL_VERSION_IDS = ("sdl-authoring-input-v1",)
 # profiles, backend manifests, and authoring-side request artifacts are
 # separate authority surfaces and do not belong in this declaration field.
 PROCESSOR_SUPPORTED_CONTRACT_IDS = (
-    "processor-manifest-v1",
     "processor-manifest-v2",
     "provisioning-plan-v1",
     "orchestration-plan-v1",

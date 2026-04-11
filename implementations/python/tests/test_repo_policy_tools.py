@@ -8,6 +8,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from tools.check_json_artifacts import collect_validation_targets, should_run_full_validation
+from tools.policy.common import PolicyFailure
 from tools.policy.repo_policy import evaluate_repo_policy
 
 
@@ -36,32 +38,28 @@ def setup_policy_repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def test_generated_schema_direct_edits_require_driver_changes(tmp_path: Path) -> None:
+def structural_runner_stub(_: dict) -> list[PolicyFailure]:
+    return []
+
+
+def test_structural_policy_runner_receives_policy_input(tmp_path: Path) -> None:
     repo_root = setup_policy_repo(tmp_path)
-    write_text(repo_root / "contracts" / "schemas" / "backend-manifest" / "schema.json", "{}\n")
+    captured: dict = {}
+
+    def runner(input_document: dict) -> list[PolicyFailure]:
+        captured.update(input_document)
+        return [PolicyFailure("structural-check", "blocked", "contracts/schemas/backend-manifest/schema.json")]
 
     failures = evaluate_repo_policy(
         repo_root,
         ["contracts/schemas/backend-manifest/schema.json"],
+        structural_runner=runner,
     )
 
-    assert [failure.rule_id for failure in failures] == ["generated-schema-direct-edit"]
-
-
-def test_generated_schema_edits_pass_when_driver_changes_are_present(tmp_path: Path) -> None:
-    repo_root = setup_policy_repo(tmp_path)
-    write_text(repo_root / "contracts" / "schemas" / "backend-manifest" / "schema.json", "{}\n")
-    write_text(repo_root / "tools" / "generate_contract_schemas.py", "print('regen')\n")
-
-    failures = evaluate_repo_policy(
-        repo_root,
-        [
-            "contracts/schemas/backend-manifest/schema.json",
-            "tools/generate_contract_schemas.py",
-        ],
-    )
-
-    assert "generated-schema-direct-edit" not in {failure.rule_id for failure in failures}
+    assert captured["changed"] == ["contracts/schemas/backend-manifest/schema.json"]
+    assert captured["check_set"] == "full"
+    assert "generated_contracts" in captured["policy"]
+    assert [failure.rule_id for failure in failures] == ["structural-check"]
 
 
 def test_package_import_direction_blocks_aces_compatibility_imports(tmp_path: Path) -> None:
@@ -75,6 +73,7 @@ def test_package_import_direction_blocks_aces_compatibility_imports(tmp_path: Pa
         repo_root,
         ["implementations/python/packages/aces_processor/planner.py"],
         check_set="file-local",
+        structural_runner=structural_runner_stub,
     )
 
     assert [failure.rule_id for failure in failures] == ["compatibility-import-direction"]
@@ -91,40 +90,10 @@ def test_compatibility_layer_rejects_non_wrapper_logic(tmp_path: Path) -> None:
         repo_root,
         ["implementations/python/src/aces/runtime.py"],
         check_set="file-local",
+        structural_runner=structural_runner_stub,
     )
 
     assert [failure.rule_id for failure in failures] == ["compatibility-wrapper-only"]
-
-
-def test_changelog_is_required_for_source_changes(tmp_path: Path) -> None:
-    repo_root = setup_policy_repo(tmp_path)
-    write_text(
-        repo_root / "implementations" / "python" / "packages" / "aces_processor" / "runtime.py",
-        "VALUE = 1\n",
-    )
-
-    failures = evaluate_repo_policy(
-        repo_root,
-        ["implementations/python/packages/aces_processor/runtime.py"],
-    )
-
-    assert [failure.rule_id for failure in failures] == ["changelog-required"]
-
-
-def test_concept_authority_tokens_are_reserved_to_allowed_surfaces(tmp_path: Path) -> None:
-    repo_root = setup_policy_repo(tmp_path)
-    write_text(
-        repo_root / "docs" / "drafts" / "concept-authority-notes.md",
-        "# stray\n",
-    )
-
-    failures = evaluate_repo_policy(
-        repo_root,
-        ["docs/drafts/concept-authority-notes.md"],
-        check_set="file-local",
-    )
-
-    assert [failure.rule_id for failure in failures] == ["concept-authority-reserved-path"]
 
 
 def test_adr_readme_must_match_adr_documents(tmp_path: Path) -> None:
@@ -139,6 +108,7 @@ def test_adr_readme_must_match_adr_documents(tmp_path: Path) -> None:
     failures = evaluate_repo_policy(
         repo_root,
         ["docs/decisions/adrs/adr-001-example.md"],
+        structural_runner=structural_runner_stub,
     )
 
     assert [failure.rule_id for failure in failures] == ["adr-index-sync"]
@@ -154,6 +124,82 @@ def test_adr_index_accepts_legacy_inline_status_and_date_fields(tmp_path: Path) 
     failures = evaluate_repo_policy(
         repo_root,
         ["docs/decisions/adrs/adr-001-example.md"],
+        structural_runner=structural_runner_stub,
     )
 
     assert failures == []
+
+
+def setup_json_validation_repo(tmp_path: Path) -> Path:
+    write_text(
+        tmp_path / "contracts" / "schemas" / "concept-authority" / "concept-families-v1.json",
+        "{}\n",
+    )
+    write_text(
+        tmp_path / "contracts" / "schemas" / "profiles" / "semantic-profile-v1.json",
+        "{}\n",
+    )
+    write_text(
+        tmp_path / "contracts" / "schemas" / "backend-manifest" / "backend-manifest-v2.json",
+        "{}\n",
+    )
+    write_text(
+        tmp_path / "contracts" / "concept-authority" / "concept-families-v1.json",
+        '{"schema_version": "concept-families-v1"}\n',
+    )
+    write_text(
+        tmp_path / "contracts" / "profiles" / "semantic" / "reference-stack-v1.json",
+        '{"schema_version": "semantic-profile-v1"}\n',
+    )
+    write_text(
+        tmp_path / "contracts" / "fixtures" / "backend-manifest" / "backend-manifest-v2" / "valid" / "stub.json",
+        "{}\n",
+    )
+    write_text(
+        tmp_path / "contracts" / "fixtures" / "backend-manifest" / "backend-manifest-v2" / "invalid" / "broken.json",
+        "{}\n",
+    )
+    return tmp_path
+
+
+def test_should_run_full_validation_for_schema_driver_paths() -> None:
+    assert should_run_full_validation(["tools/generate_contract_schemas.py"]) is True
+    assert should_run_full_validation(["implementations/python/packages/aces_contracts/contracts.py"]) is True
+    assert should_run_full_validation(["contracts/concept-authority/concept-families-v1.json"]) is False
+
+
+def test_collect_validation_targets_includes_only_schema_governed_artifacts(tmp_path: Path) -> None:
+    repo_root = setup_json_validation_repo(tmp_path)
+
+    targets = collect_validation_targets(repo_root)
+
+    observed = {(target.path, target.schema_path, target.mode) for target in targets}
+
+    assert ("contracts/schemas/backend-manifest/backend-manifest-v2.json", None, "metaschema") in observed
+    assert (
+        "contracts/concept-authority/concept-families-v1.json",
+        "contracts/schemas/concept-authority/concept-families-v1.json",
+        "schema",
+    ) in observed
+    assert (
+        "contracts/profiles/semantic/reference-stack-v1.json",
+        "contracts/schemas/profiles/semantic-profile-v1.json",
+        "schema",
+    ) in observed
+    assert (
+        "contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json",
+        "contracts/schemas/backend-manifest/backend-manifest-v2.json",
+        "schema",
+    ) in observed
+    assert all("/invalid/" not in target.path for target in targets)
+
+
+def test_collect_validation_targets_runs_full_scan_when_schema_drivers_change(tmp_path: Path) -> None:
+    repo_root = setup_json_validation_repo(tmp_path)
+
+    targets = collect_validation_targets(
+        repo_root,
+        paths=["implementations/python/packages/aces_contracts/contracts.py"],
+    )
+
+    assert any(target.path == "contracts/concept-authority/concept-families-v1.json" for target in targets)

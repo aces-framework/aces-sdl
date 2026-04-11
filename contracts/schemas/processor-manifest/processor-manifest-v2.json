@@ -146,7 +146,6 @@
     "supported_contract_versions": {
       "items": {
         "enum": [
-          "processor-manifest-v1",
           "processor-manifest-v2",
           "provisioning-plan-v1",
           "orchestration-plan-v1",

@@ -26,7 +26,6 @@ from .versions import (
     CONTROLLED_VOCABULARIES_SCHEMA_VERSION,
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
-    PROCESSOR_MANIFEST_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_V2_SCHEMA_VERSION,
     REFERENCE_MODELS_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
@@ -420,37 +419,6 @@ class BackendManifestModel(ContractModel):
     provisioner: ProvisionerCapabilitiesModel
     orchestrator: OrchestratorCapabilitiesModel | None = None
     evaluator: EvaluatorCapabilitiesModel | None = None
-
-
-class ProcessorManifestModel(ContractModel):
-    schema_version: Literal[PROCESSOR_MANIFEST_SCHEMA_VERSION] = PROCESSOR_MANIFEST_SCHEMA_VERSION
-    name: NonEmptyString
-    version: NonEmptyString
-    supported_sdl_versions: list[NonEmptyString] = Field(min_length=1)
-    supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    supported_features: list[ProcessorFeature] = Field(min_length=1)
-    compatible_backends: list[NonEmptyString] = Field(min_length=1)
-    constraints: dict[str, str] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def _validate_declared_authority(self) -> ProcessorManifestModel:
-        validate_processor_supported_sdl_versions(self.supported_sdl_versions)
-        validate_processor_supported_contract_versions(self.supported_contract_versions)
-        return self
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        json_schema = handler(core_schema)
-        json_schema = handler.resolve_ref_schema(json_schema)
-        json_schema["properties"]["supported_sdl_versions"]["items"]["enum"] = list(PROCESSOR_SUPPORTED_SDL_VERSION_IDS)
-        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(
-            PROCESSOR_SUPPORTED_CONTRACT_IDS
-        )
-        return json_schema
 
 
 class ApparatusIdentityModel(ContractModel):
@@ -1158,7 +1126,6 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
         "backend-manifest-v1": BackendManifestModel.model_json_schema(),
         "backend-manifest-v2": BackendManifestV2Model.model_json_schema(),
-        "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
         "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
         "reference-models-v1": ReferenceModelCatalogModel.model_json_schema(),
@@ -1221,9 +1188,7 @@ __all__ = [
     "OrchestratorCapabilitiesModel",
     "PlanOperationModel",
     "ProcessorFeature",
-    "PROCESSOR_MANIFEST_SCHEMA_VERSION",
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",
-    "ProcessorManifestModel",
     "ProcessorManifestV2Model",
     "ProcessorCompatibilityModel",
     "ProcessorCapabilitiesV2Model",
