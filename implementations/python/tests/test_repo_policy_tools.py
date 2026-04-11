@@ -9,6 +9,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.check_json_artifacts import collect_validation_targets, should_run_full_validation
+from tools.gitleaks_tool import _checksums_asset_name, _release_asset_name, gitleaks_binary_path
 from tools.policy.common import PolicyFailure
 from tools.policy.repo_policy import evaluate_repo_policy
 
@@ -203,3 +204,17 @@ def test_collect_validation_targets_runs_full_scan_when_schema_drivers_change(tm
     )
 
     assert any(target.path == "contracts/concept-authority/concept-families-v1.json" for target in targets)
+
+
+def test_gitleaks_release_asset_names_match_platform_conventions(monkeypatch) -> None:
+    monkeypatch.setattr("platform.system", lambda: "Linux")
+    monkeypatch.setattr("platform.machine", lambda: "x86_64")
+
+    assert _release_asset_name("8.30.1") == "gitleaks_8.30.1_linux_x64.tar.gz"
+    assert _checksums_asset_name("8.30.1") == "gitleaks_8.30.1_checksums.txt"
+
+
+def test_gitleaks_binary_path_uses_repo_local_cache(tmp_path: Path) -> None:
+    assert gitleaks_binary_path(tmp_path, version="8.30.1") == (
+        tmp_path / ".cache" / "aces-sdl" / "tooling" / "gitleaks" / "8.30.1" / "gitleaks"
+    )

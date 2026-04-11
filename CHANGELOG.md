@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standard-tooling enforcement for repo structure and JSON contracts through
   Conftest/OPA and `check-jsonschema`, plus repo-local bootstrap helpers for
   those tools so the policy and contract gates fail locally before CI.
+- Repo-local `gitleaks` bootstrap and `nox` hygiene session covering generic
+  file/security checks inside the same canonical verification graph as lint,
+  policy, contracts, and tests.
 
 ### Changed
 
@@ -23,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local pre-commit and pre-push hooks now use the canonical verification graph,
   with commit-time policy/lint/contract/test gating and push-time full verify
   plus fuzz coverage to match CI semantics.
+- `nox` now emits explicit start/pass/fail/skip status for each check stage and
+  each session summary, while `.pre-commit-config.yaml` is now a thin trigger
+  layer instead of a second source of substantive check logic.
 
 ### Fixed
 
