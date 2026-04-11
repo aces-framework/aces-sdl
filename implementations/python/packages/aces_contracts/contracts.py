@@ -20,6 +20,7 @@ from .versions import (
     OPERATION_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_V2_SCHEMA_VERSION,
+    REFERENCE_MODELS_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION,
     SEMANTIC_PROFILE_SCHEMA_VERSION,
@@ -45,6 +46,9 @@ class ContractModel(BaseModel):
 NonEmptyString = Annotated[str, Field(min_length=1)]
 SemanticProfileId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*-v[0-9]+$")]
 SemanticAssumptionId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+ReferenceModelId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")]
+JsonPointerString = Annotated[str, Field(pattern=r"^#(?:/[A-Za-z0-9_.$~-]+)+$")]
+InstancePath = Annotated[str, Field(pattern=r"^[a-z_][a-z0-9_]*(?:\.(?:[a-z_][a-z0-9_]*|\*))*$")]
 
 _BACKEND_CONCEPT_BINDING_SCOPES = frozenset(
     {
@@ -659,6 +663,95 @@ class ConceptFamilyCatalogModel(ContractModel):
         return json_schema
 
 
+class ReferenceModelSchemaBindingModel(ContractModel):
+    contract_id: NonEmptyString
+    schema_pointer: JsonPointerString
+    instance_path: InstancePath
+
+
+class ReferenceModelDefinitionModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+    concept_family: ConceptFamilyId
+    authoritative_schema: ReferenceModelSchemaBindingModel
+    reused_schemas: list[ReferenceModelSchemaBindingModel] = Field(default_factory=list)
+    key_fields: list[NonEmptyString] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_reference_model_definition(self) -> ReferenceModelDefinitionModel:
+        if len(self.key_fields) != len(set(self.key_fields)):
+            raise ValueError("reference model key_fields must not contain duplicates")
+
+        authoritative_key = (
+            self.authoritative_schema.contract_id,
+            self.authoritative_schema.schema_pointer,
+            self.authoritative_schema.instance_path,
+        )
+        reused_keys = [
+            (binding.contract_id, binding.schema_pointer, binding.instance_path) for binding in self.reused_schemas
+        ]
+        if len(reused_keys) != len(set(reused_keys)):
+            raise ValueError("reference model reused_schemas must not contain duplicate schema bindings")
+        if authoritative_key in set(reused_keys):
+            raise ValueError("reference model reused_schemas must not repeat authoritative_schema")
+        return self
+
+
+class ReferenceModelCatalogModel(ContractModel):
+    schema_version: Literal[REFERENCE_MODELS_SCHEMA_VERSION] = REFERENCE_MODELS_SCHEMA_VERSION
+    models: dict[NonEmptyString, ReferenceModelDefinitionModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_reference_models(self) -> ReferenceModelCatalogModel:
+        known_families = _authoritative_concept_family_ids()
+        unknown_families = {
+            model.concept_family for model in self.models.values() if model.concept_family not in known_families
+        }
+        if unknown_families:
+            unknown = ", ".join(sorted(unknown_families))
+            raise ValueError(f"reference models include unknown concept families: {unknown}")
+
+        known_contracts = _known_contract_ids()
+        unknown_contracts = {
+            binding.contract_id
+            for model in self.models.values()
+            for binding in (model.authoritative_schema, *model.reused_schemas)
+            if binding.contract_id not in known_contracts
+        }
+        if unknown_contracts:
+            unknown = ", ".join(sorted(unknown_contracts))
+            raise ValueError(f"reference models include unknown contract ids: {unknown}")
+
+        for model_id, model in self.models.items():
+            _validate_reference_model_schema_binding(
+                model_id=model_id,
+                binding_label="authoritative_schema",
+                binding=model.authoritative_schema,
+                key_fields=model.key_fields,
+            )
+            for index, binding in enumerate(model.reused_schemas):
+                _validate_reference_model_schema_binding(
+                    model_id=model_id,
+                    binding_label=f"reused_schemas[{index}]",
+                    binding=binding,
+                    key_fields=model.key_fields,
+                )
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        models_schema = json_schema.get("properties", {}).get("models")
+        if isinstance(models_schema, dict):
+            models_schema.setdefault("propertyNames", {"minLength": 1})
+        return json_schema
+
+
 class SemanticBehaviorAssumptionModel(ContractModel):
     id: SemanticAssumptionId
     statement: NonEmptyString
@@ -756,6 +849,100 @@ def _known_contract_ids() -> frozenset[str]:
     return frozenset(schema_bundle())
 
 
+def _decode_json_pointer_segment(segment: str) -> str:
+    return segment.replace("~1", "/").replace("~0", "~")
+
+
+def _resolve_schema_pointer(schema_root: dict[str, Any], pointer: str) -> dict[str, Any]:
+    if not pointer.startswith("#/"):
+        raise KeyError(pointer)
+
+    current: Any = schema_root
+    for raw_segment in pointer[2:].split("/"):
+        segment = _decode_json_pointer_segment(raw_segment)
+        if not isinstance(current, dict) or segment not in current:
+            raise KeyError(pointer)
+        current = current[segment]
+
+    if not isinstance(current, dict):
+        raise KeyError(pointer)
+    return current
+
+
+def _resolve_ref_schema(schema_root: dict[str, Any], schema_node: dict[str, Any]) -> dict[str, Any]:
+    current = schema_node
+    while "$ref" in current:
+        ref = current["$ref"]
+        if not isinstance(ref, str):
+            raise KeyError(ref)
+        current = _resolve_schema_pointer(schema_root, ref)
+    return current
+
+
+def _resolve_instance_path_schema(schema_root: dict[str, Any], instance_path: str) -> dict[str, Any]:
+    current = schema_root
+    for segment in instance_path.split("."):
+        current = _resolve_ref_schema(schema_root, current)
+        if segment == "*":
+            additional_properties = current.get("additionalProperties")
+            if not isinstance(additional_properties, dict):
+                raise KeyError(instance_path)
+            current = additional_properties
+            continue
+
+        properties = current.get("properties")
+        if not isinstance(properties, dict) or segment not in properties or not isinstance(properties[segment], dict):
+            raise KeyError(instance_path)
+        current = properties[segment]
+    return _resolve_ref_schema(schema_root, current)
+
+
+def _validate_reference_model_schema_binding(
+    *,
+    model_id: str,
+    binding_label: str,
+    binding: ReferenceModelSchemaBindingModel,
+    key_fields: list[str],
+) -> None:
+    schema_root = schema_bundle()[binding.contract_id]
+    try:
+        pointer_schema = _resolve_ref_schema(schema_root, _resolve_schema_pointer(schema_root, binding.schema_pointer))
+    except KeyError as exc:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} schema_pointer '{binding.schema_pointer}' "
+            f"does not resolve within contract '{binding.contract_id}'"
+        ) from exc
+
+    try:
+        instance_schema = _resolve_instance_path_schema(schema_root, binding.instance_path)
+    except KeyError as exc:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} instance_path '{binding.instance_path}' "
+            f"does not resolve within contract '{binding.contract_id}'"
+        ) from exc
+
+    if pointer_schema != instance_schema:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} instance_path '{binding.instance_path}' "
+            f"does not resolve to schema_pointer '{binding.schema_pointer}' in contract '{binding.contract_id}'"
+        )
+
+    properties = pointer_schema.get("properties")
+    if not isinstance(properties, dict):
+        raise ValueError(
+            f"reference model {model_id} {binding_label} schema_pointer '{binding.schema_pointer}' "
+            "must resolve to an object schema with properties"
+        )
+
+    missing_key_fields = [field for field in key_fields if field not in properties]
+    if missing_key_fields:
+        missing = ", ".join(sorted(missing_key_fields))
+        raise ValueError(
+            f"reference model {model_id} key_fields are not declared by schema_pointer "
+            f"'{binding.schema_pointer}' in contract '{binding.contract_id}': {missing}"
+        )
+
+
 def _scope_is_present(model: ContractModel, scope: str) -> bool:
     current: Any = model
     for segment in scope.split("."):
@@ -798,6 +985,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
         "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
+        "reference-models-v1": ReferenceModelCatalogModel.model_json_schema(),
         "semantic-profile-v1": SemanticProfileModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
@@ -860,6 +1048,10 @@ __all__ = [
     "ProvisioningPlanModel",
     "RealizationSupportDeclarationModel",
     "RealizationSupportMode",
+    "ReferenceModelCatalogModel",
+    "ReferenceModelDefinitionModel",
+    "ReferenceModelSchemaBindingModel",
+    "REFERENCE_MODELS_SCHEMA_VERSION",
     "RUNTIME_SNAPSHOT_SCHEMA_VERSION",
     "RuntimeSnapshotEnvelopeModel",
     "SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION",
