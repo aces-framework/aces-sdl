@@ -133,10 +133,8 @@ It should make it possible for ACES artifacts to state:
 
 The authoritative concept-family catalog is keyed by canonical family
 identifier. That keeps the concept identifier authoritative at one boundary
-instead of repeating it as an artifact-local field that can drift.
-
-while still allowing each artifact family to keep its own fit-for-purpose
-shape.
+instead of repeating it as an artifact-local field that can drift, while
+still allowing each artifact family to keep its own fit-for-purpose shape.
 
 ## Cross-Artifact Concept Binding (GOV-918)
 
