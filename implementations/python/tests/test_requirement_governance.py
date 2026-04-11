@@ -8,7 +8,11 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.policy.requirement_governance import detect_requirement_uid, evaluate_requirement_governance
+from tools.check_requirement_governance import governed_requirement_paths
+from tools.policy.requirement_governance import (
+    detect_requirement_uid,
+    evaluate_requirement_governance,
+)
 
 
 class FakeClient:
@@ -76,6 +80,17 @@ def test_detect_requirement_uid_from_branch_name() -> None:
     assert detect_requirement_uid("feature/GOV-918-cross-artifact-binding") == "GOV-918"
     assert detect_requirement_uid("15-gov-918-cross-artifact-concept-binding") == "GOV-918"
     assert detect_requirement_uid("feature/no-uid-here") is None
+
+
+def test_governed_requirement_paths_excludes_exempt_tooling_files() -> None:
+    assert governed_requirement_paths(
+        [
+            "implementations/python/packages/aces_processor/manifest.py",
+            "implementations/python/tests/test_repo_policy_tools.py",
+            ".pre-commit-config.yaml",
+            "tools/check_json_artifacts.py",
+        ]
+    ) == ["implementations/python/packages/aces_processor/manifest.py"]
 
 
 def test_archived_requirements_are_rejected(tmp_path: Path) -> None:

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from aces_cli.main import app
 from aces_contracts.apparatus import ConceptBinding
-from aces_contracts.contracts import ProcessorManifestModel, ProcessorManifestV2Model
+from aces_contracts.contracts import ProcessorManifestV2Model
 from aces_contracts.manifest_authority import (
     PROCESSOR_SUPPORTED_CONTRACT_IDS,
     PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
@@ -23,20 +23,8 @@ from pydantic import ValidationError
 from typer.testing import CliRunner
 
 FIXTURES_ROOT = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
-V1_VALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v1" / "valid"
-V1_INVALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v1" / "invalid"
 V2_VALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v2" / "valid"
 V2_INVALID_DIR = FIXTURES_ROOT / "processor-manifest" / "processor-manifest-v2" / "invalid"
-EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V1 = [
-    "processor-manifest-v1",
-    "provisioning-plan-v1",
-    "orchestration-plan-v1",
-    "evaluation-plan-v1",
-    "workflow-cancellation-request-v1",
-    "operation-receipt-v1",
-    "operation-status-v1",
-    "runtime-snapshot-v1",
-]
 EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V2 = [
     "processor-manifest-v2",
     "provisioning-plan-v1",
@@ -125,32 +113,6 @@ def test_processor_manifest_with_features():
     assert len(manifest.supported_features) == 2
 
 
-def test_processor_manifest_v1_model_roundtrip():
-    payload = {
-        "schema_version": "processor-manifest/v1",
-        "name": "test-processor",
-        "version": "0.1.0",
-        "supported_sdl_versions": ["sdl-authoring-input-v1"],
-        "supported_contract_versions": ["processor-manifest-v1"],
-        "supported_features": ["compilation", "planning"],
-        "compatible_backends": ["stub"],
-        "constraints": {"max_nodes": "64"},
-    }
-    model = ProcessorManifestModel.model_validate(payload)
-    assert model.name == "test-processor"
-    assert model.version == "0.1.0"
-    assert model.supported_features == [
-        ProcessorFeature.COMPILATION,
-        ProcessorFeature.PLANNING,
-    ]
-    assert model.model_dump(mode="json") == payload
-
-
-def test_processor_manifest_v1_model_defaults():
-    with pytest.raises(ValidationError):
-        ProcessorManifestModel(name="minimal", version="0.0.1")
-
-
 def test_processor_manifest_v2_model_roundtrip():
     payload = {
         "schema_version": "processor-manifest/v2",
@@ -192,15 +154,6 @@ def test_processor_manifest_v2_model_requires_manifest_sections():
         )
 
 
-def test_processor_manifest_v1_model_rejects_extra_fields():
-    with pytest.raises(ValidationError):
-        ProcessorManifestModel(
-            name="bad",
-            version="0.0.1",
-            unknown_extra_field=True,
-        )
-
-
 def test_processor_manifest_v2_model_rejects_extra_fields():
     with pytest.raises(ValidationError):
         ProcessorManifestV2Model(
@@ -211,12 +164,6 @@ def test_processor_manifest_v2_model_rejects_extra_fields():
 
 
 def test_processor_manifest_models_reject_unknown_feature():
-    with pytest.raises(ValidationError):
-        ProcessorManifestModel(
-            name="bad",
-            version="0.0.1",
-            supported_features=["definitely-not-a-real-feature"],
-        )
     with pytest.raises(ValidationError):
         ProcessorManifestV2Model(
             identity={"name": "bad", "version": "0.0.1"},
@@ -355,30 +302,12 @@ def test_reference_processor_manifest_v2_matches_contract_payload():
     assert "scenario-instantiation-request-v1" not in payload["supported_contract_versions"]
 
 
-def test_reference_processor_manifest_v1_remains_available_for_compatibility():
-    payload = reference_processor_manifest_payload(version="0.2.0", schema_version="v1")
-
-    assert payload["schema_version"] == "processor-manifest/v1"
-    assert payload["supported_contract_versions"] == EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V1
-    assert payload["compatible_backends"] == ["stub"]
-
-
-def test_reference_processor_v1_fixture_matches_reference_manifest():
-    payload = json.loads((V1_VALID_DIR / "reference.json").read_text(encoding="utf-8"))
-    assert payload == reference_processor_manifest_payload(version=payload["version"], schema_version="v1")
-
-
 def test_reference_processor_v2_fixture_matches_reference_manifest():
     payload = json.loads((V2_VALID_DIR / "reference.json").read_text(encoding="utf-8"))
     assert payload == reference_processor_manifest_payload(version=payload["identity"]["version"])
 
 
 def test_processor_manifest_valid_fixtures_pass_validation():
-    for path in sorted(V1_VALID_DIR.glob("*.json")):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        model = ProcessorManifestModel.model_validate(payload)
-        assert model.name, f"Valid v1 fixture {path.name} should have a name"
-
     for path in sorted(V2_VALID_DIR.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         model = ProcessorManifestV2Model.model_validate(payload)
@@ -386,11 +315,6 @@ def test_processor_manifest_valid_fixtures_pass_validation():
 
 
 def test_processor_manifest_invalid_fixtures_fail_validation():
-    for path in sorted(V1_INVALID_DIR.glob("*.json")):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        with pytest.raises(ValidationError):
-            ProcessorManifestModel.model_validate(payload)
-
     for path in sorted(V2_INVALID_DIR.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         with pytest.raises(ValidationError):

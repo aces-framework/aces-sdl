@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as distribution_version
-from typing import Any, Literal
+from typing import Any
 
 from aces_contracts.apparatus import ConceptBinding
 from aces_contracts.contracts import (
@@ -12,7 +12,6 @@ from aces_contracts.contracts import (
     ConceptBindingEntryModel,
     ProcessorCapabilitiesV2Model,
     ProcessorCompatibilityModel,
-    ProcessorManifestModel,
     ProcessorManifestV2Model,
 )
 from aces_contracts.vocabulary import ProcessorFeature
@@ -20,16 +19,6 @@ from aces_contracts.vocabulary import ProcessorFeature
 from aces_processor.capabilities import ProcessorCapabilitySet, ProcessorManifest
 
 REFERENCE_PROCESSOR_NAME = "aces-reference-processor"
-REFERENCE_SUPPORTED_CONTRACT_VERSIONS_V1 = (
-    "processor-manifest-v1",
-    "provisioning-plan-v1",
-    "orchestration-plan-v1",
-    "evaluation-plan-v1",
-    "workflow-cancellation-request-v1",
-    "operation-receipt-v1",
-    "operation-status-v1",
-    "runtime-snapshot-v1",
-)
 REFERENCE_SUPPORTED_CONTRACT_VERSIONS_V2 = (
     "processor-manifest-v2",
     "provisioning-plan-v1",
@@ -73,24 +62,6 @@ def create_reference_processor_manifest(
     )
 
 
-def reference_processor_manifest_v1_model(
-    *,
-    version: str | None = None,
-) -> ProcessorManifestModel:
-    """Return the reference processor manifest as the legacy v1 contract model."""
-
-    manifest = create_reference_processor_manifest(version=version)
-    return ProcessorManifestModel(
-        name=manifest.name,
-        version=manifest.version,
-        supported_sdl_versions=["sdl-authoring-input-v1"],
-        supported_contract_versions=list(REFERENCE_SUPPORTED_CONTRACT_VERSIONS_V1),
-        supported_features=[feature for feature in ProcessorFeature if feature in manifest.supported_features],
-        compatible_backends=sorted(manifest.compatible_backends),
-        constraints=dict(manifest.constraints),
-    )
-
-
 def reference_processor_manifest_v2_model(
     *,
     version: str | None = None,
@@ -128,10 +99,7 @@ def reference_processor_manifest_model(
 def reference_processor_manifest_payload(
     *,
     version: str | None = None,
-    schema_version: Literal["v1", "v2"] = "v2",
 ) -> dict[str, Any]:
     """Return the reference processor manifest as JSON-ready data."""
 
-    if schema_version == "v1":
-        return reference_processor_manifest_v1_model(version=version).model_dump(mode="json")
     return reference_processor_manifest_v2_model(version=version).model_dump(mode="json")

@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 
 def _schema_output_path(schemas_dir: Path, name: str) -> Path:
