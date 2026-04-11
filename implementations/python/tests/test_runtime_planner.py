@@ -1033,15 +1033,6 @@ nodes:
         assert execution_plan.is_valid
 
     def test_variable_backed_os_defaults_must_be_valid_for_nodes_os(self):
-        manifest = _limited_backend_manifest(
-            name="limited",
-            provisioner=ProvisionerCapabilities(
-                name="limited-provisioner",
-                supported_node_types=frozenset({"vm"}),
-                supported_os_families=frozenset({"banana"}),
-            ),
-        )
-
         with pytest.raises(SDLInstantiationError) as exc:
             compile_runtime_model(
                 _scenario("""

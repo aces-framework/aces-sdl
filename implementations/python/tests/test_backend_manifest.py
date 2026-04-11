@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from aces_backend_protocols.capabilities import BackendManifest, ProvisionerCapabilities
+from aces_backend_protocols.capabilities import BackendManifest, OrchestratorCapabilities, ProvisionerCapabilities
 from aces_backend_protocols.manifest import backend_manifest_payload
 from aces_backend_stubs.stubs import create_stub_manifest
 from aces_contracts.contracts import BackendManifestModel, BackendManifestV2Model
@@ -258,6 +258,51 @@ def test_backend_manifest_v2_rejects_empty_concept_bindings():
     payload["concept_bindings"] = []
     with pytest.raises(ValidationError):
         BackendManifestV2Model.model_validate(payload)
+
+
+def test_backend_manifest_accepts_governed_extension_vocabulary_values():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["capabilities"]["provisioner"]["supported_node_types"].append("x-acme:bare-metal")
+    payload["capabilities"]["orchestrator"]["supported_sections"].append("x-acme:custom-stage")
+
+    model = BackendManifestV2Model.model_validate(payload)
+
+    assert "x-acme:bare-metal" in model.capabilities.provisioner.supported_node_types
+    assert "x-acme:custom-stage" in model.capabilities.orchestrator.supported_sections
+
+
+def test_backend_manifest_rejects_unguarded_vocabulary_values():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["capabilities"]["provisioner"]["supported_node_types"].append("bare-metal")
+
+    with pytest.raises(ValidationError, match="provisioner-node-types"):
+        BackendManifestV2Model.model_validate(payload)
+
+
+def test_runtime_capabilities_accept_governed_extension_vocabulary_values():
+    provisioner = ProvisionerCapabilities(
+        name="stub-provisioner",
+        supported_node_types=frozenset({"vm", "x-acme:bare-metal"}),
+        supported_os_families=frozenset({"linux"}),
+    )
+    orchestrator = OrchestratorCapabilities(
+        name="stub-orchestrator",
+        supported_sections=frozenset({"events", "scripts", "workflows", "x-acme:custom-stage"}),
+        supports_workflows=True,
+        supported_workflow_features=frozenset({WorkflowFeature.DECISION}),
+    )
+
+    assert "x-acme:bare-metal" in provisioner.supported_node_types
+    assert "x-acme:custom-stage" in orchestrator.supported_sections
+
+
+def test_runtime_capabilities_reject_unguarded_vocabulary_values():
+    with pytest.raises(ValueError, match="provisioner-node-types"):
+        ProvisionerCapabilities(
+            name="stub-provisioner",
+            supported_node_types=frozenset({"vm", "bare-metal"}),
+            supported_os_families=frozenset({"linux"}),
+        )
 
 
 def test_backend_manifest_v2_rejects_duplicate_binding_scopes():
