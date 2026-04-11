@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   including extension scope, relation rules, and non-ambiguity constraints.
 - Invalid fixtures covering native concept families that omit extension
   discipline fields.
+- GOV-920 semantic profile contract, schema, fixtures, and the initial
+  `reference-stack-v1` shared semantic profile.
 
 ### Changed
 
@@ -63,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regenerated backend-manifest-v2 and processor-manifest-v2 JSON Schemas.
 - `ConceptFamilyDefinitionModel` and the `concept-families-v1` schema now
   reject native families that do not declare GOV-919 extension discipline.
+- Documented and validated shared semantic assumptions for authoring, exchange,
+  processing, and execution through the new semantic profile surface.
 
 ## [0.2.0] - 2026-04-04
 

@@ -61,9 +61,11 @@ ownership:
     - contracts/schemas/README.md
     - contracts/schemas/backend-manifest
     - contracts/schemas/processor-manifest
+    - contracts/schemas/profiles
     - contracts/fixtures/concept-authority
     - contracts/fixtures/backend-manifest
     - contracts/fixtures/processor-manifest
+    - contracts/fixtures/semantic-profile
     - contracts/profiles
     - docs/explain/reference
     - docs/explain/sdl

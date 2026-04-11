@@ -13,6 +13,7 @@ Current published schemas cover:
 - backend manifests (`v1` legacy plus shared-apparatus `v2`)
 - processor manifests (`v1` legacy plus shared-apparatus `v2`)
 - concept-authority catalogs
+- semantic profiles
 - live-execution snapshots
 - workflow result envelopes
 - workflow history streams
@@ -61,6 +62,17 @@ instead they must declare non-empty `extension_scope`, `relation_rules`, and
 `non_ambiguity_constraints`. This keeps ACES experiment, runtime, apparatus,
 provenance, and governance concepts explicit without letting them silently fork
 shared cyber-domain concepts.
+
+## Semantic Profiles
+
+The `semantic-profile-v1` schema publishes shared semantic profile documents.
+Each profile declares the compatible concept, contract, and behavior
+assumptions required across authoring, exchange, processing, and execution
+phases.
+
+The initial profile lives at `contracts/profiles/semantic/reference-stack-v1.json`.
+Its processing and execution phases also declare required concept bindings for
+the governed apparatus-manifest vocabulary surfaces introduced by GOV-918.
 
 ## Cross-Artifact Concept Binding
 
