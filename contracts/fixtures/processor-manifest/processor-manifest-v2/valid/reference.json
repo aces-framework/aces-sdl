@@ -15,20 +15,8 @@
     "runtime-snapshot-v1"
   ],
   "compatibility": {
-    "processors": [],
-    "backends": ["stub"],
-    "participant_implementations": []
+    "backends": ["stub"]
   },
-  "realization_support": [
-    {
-      "domain": "instantiation",
-      "support_mode": "constrained",
-      "supported_constraint_kinds": ["module-selection", "parameter-values"],
-      "supported_exact_requirement_kinds": ["declared-parameter-values"],
-      "disclosure_kinds": ["module-composition", "parameter-instantiation"],
-      "constraints": {}
-    }
-  ],
   "concept_bindings": [
     {"scope": "capabilities.supported_sdl_versions", "family": "scenarios"},
     {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}

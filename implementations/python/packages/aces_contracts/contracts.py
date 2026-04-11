@@ -13,6 +13,12 @@ from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler, model_v
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from .manifest_authority import (
+    PROCESSOR_SUPPORTED_CONTRACT_IDS,
+    PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
+    validate_processor_supported_contract_versions,
+    validate_processor_supported_sdl_versions,
+)
 from .versions import (
     BACKEND_MANIFEST_SCHEMA_VERSION,
     BACKEND_MANIFEST_V2_SCHEMA_VERSION,
@@ -426,6 +432,26 @@ class ProcessorManifestModel(ContractModel):
     compatible_backends: list[NonEmptyString] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def _validate_declared_authority(self) -> ProcessorManifestModel:
+        validate_processor_supported_sdl_versions(self.supported_sdl_versions)
+        validate_processor_supported_contract_versions(self.supported_contract_versions)
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_sdl_versions"]["items"]["enum"] = list(PROCESSOR_SUPPORTED_SDL_VERSION_IDS)
+        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(
+            PROCESSOR_SUPPORTED_CONTRACT_IDS
+        )
+        return json_schema
+
 
 class ApparatusIdentityModel(ContractModel):
     name: NonEmptyString
@@ -466,6 +492,10 @@ class ApparatusCompatibilityModel(ContractModel):
             }
         )
         return json_schema
+
+
+class ProcessorCompatibilityModel(ContractModel):
+    backends: list[NonEmptyString] = Field(min_length=1)
 
 
 class RealizationSupportDeclarationModel(ContractModel):
@@ -541,6 +571,22 @@ class ProcessorCapabilitiesV2Model(ContractModel):
     supported_sdl_versions: list[NonEmptyString] = Field(min_length=1)
     supported_features: list[ProcessorFeature] = Field(min_length=1)
 
+    @model_validator(mode="after")
+    def _validate_declared_authority(self) -> ProcessorCapabilitiesV2Model:
+        validate_processor_supported_sdl_versions(self.supported_sdl_versions)
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_sdl_versions"]["items"]["enum"] = list(PROCESSOR_SUPPORTED_SDL_VERSION_IDS)
+        return json_schema
+
 
 class BackendCapabilitiesV2Model(ContractModel):
     provisioner: ProvisionerCapabilitiesModel
@@ -552,19 +598,32 @@ class ProcessorManifestV2Model(ContractModel):
     schema_version: Literal[PROCESSOR_MANIFEST_V2_SCHEMA_VERSION] = PROCESSOR_MANIFEST_V2_SCHEMA_VERSION
     identity: ApparatusIdentityModel
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    compatibility: ApparatusCompatibilityModel
-    realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
+    compatibility: ProcessorCompatibilityModel
     concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
     capabilities: ProcessorCapabilitiesV2Model
 
     @model_validator(mode="after")
     def _validate_unique_binding_scopes(self) -> ProcessorManifestV2Model:
+        validate_processor_supported_contract_versions(self.supported_contract_versions)
         scopes = [binding.scope for binding in self.concept_bindings]
         if len(scopes) != len(set(scopes)):
             raise ValueError("concept_bindings must not contain duplicate scopes")
         _validate_canonical_concept_bindings(self, allowed_scopes=_PROCESSOR_CONCEPT_BINDING_SCOPES)
         return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(
+            PROCESSOR_SUPPORTED_CONTRACT_IDS
+        )
+        return json_schema
 
 
 class BackendManifestV2Model(ContractModel):
@@ -1166,6 +1225,7 @@ __all__ = [
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",
     "ProcessorManifestModel",
     "ProcessorManifestV2Model",
+    "ProcessorCompatibilityModel",
     "ProcessorCapabilitiesV2Model",
     "ProvisionerCapabilitiesModel",
     "ProvisioningPlanModel",
