@@ -238,6 +238,66 @@ The initial machine-readable profile is
 - execution assumptions for the reference backend contract and binding
   surfaces
 
+## Shared Reference Models (GOV-921)
+
+`GOV-921` implements the reusable structure-authority layer for recurrent
+federation-relevant objects.
+
+For this repo, that means:
+
+- shared reference models are not concept families. Families still answer what
+  a declared thing means; reference models answer which published structure
+  definitions are the repo-owned reusable shapes for recurrent objects.
+- shared reference models are not semantic profiles. Profiles may select or
+  compose reference models, but they do not replace them.
+- shared reference models must anchor to existing published contract schema
+  definitions and governed instance collections instead of restating object
+  fields inline.
+- the initial catalog belongs with the concept-authority artifacts under
+  `contracts/concept-authority/`, with generated schema and fixture support
+  under the matching concept-authority schema and fixture trees.
+
+The initial machine-readable catalog is
+`contracts/concept-authority/reference-models-v1.json`. It publishes the
+current recurrent SDL object slice for assets, identities, relationships,
+observables, actions-and-events, and tools-and-artifacts.
+
+## Shared Reference Models (GOV-921)
+
+`GOV-921` should introduce reusable structural models for recurrent
+federation-relevant objects without reopening the already-settled authority
+boundaries.
+
+For this repo, that means:
+
+- a reference model is not a concept family. Concept families govern what a
+  thing means; a reference model governs the reusable shape and invariants of
+  an exchanged or reasoned-about object.
+- a reference model is not a semantic profile. Profiles select compatible
+  contracts, concept families, reference models, and behavior assumptions;
+  they must not become a second place where object structure is restated.
+- a reference model is not a controlled vocabulary. Enumerations may constrain
+  fields inside a reference model, but they do not replace the model.
+- reference models must stay narrower than "all of SDL" or "all apparatus
+  declarations". Only recurrent object shapes that need cross-artifact reuse
+  should become reference models.
+- if machine-readable reference models are introduced, they should follow the
+  existing repo contract pattern: authoritative language-neutral artifacts
+  under `contracts/`, closed-world contract models under
+  `implementations/python/packages/aces_contracts`, generated schemas under
+  `contracts/schemas/`, and valid/invalid fixture corpora under
+  `contracts/fixtures/`.
+- validation should reuse the existing repo split: contract-model validation
+  for closed-world shape and local invariants, then repo-owned semantic
+  validation for cross-artifact rules. Do not introduce a reference-model-only
+  schema DSL, validator stack, or exception hierarchy.
+- reference models may reuse existing concept families and later controlled
+  vocabularies, but they must not duplicate concept-family definitions,
+  semantic-profile assumptions, or artifact-local binding scopes.
+- owning contracts, manifests, and reports should compose or reference shared
+  models explicitly instead of copying field groups into new local payload
+  shapes with slightly different names.
+
 ## Relationship To Other Requirements
 
 `GOV-917` is the concept-authority decision surface.
@@ -251,7 +311,7 @@ The related requirements split the rest of the problem:
 - `GOV-920`
   shared semantic profiles (implemented)
 - `GOV-921`
-  shared reference models
+  shared reference models (implemented)
 - `GOV-922`
   controlled vocabularies and enumerations
 
@@ -264,7 +324,11 @@ The first pass should not attempt to:
 
 - replace SDL with ontology syntax
 - make every contract structurally identical to the ontology
+- define one universal super-model for every asset, identity, observable,
+  action, event, relationship, and artifact occurrence in the ecosystem
 - model all ACES concepts at once
+- turn every repeated field group into a portable reference model without
+  evidence that it is reused across artifact families
 - solve all participant, provenance, evidence, and time/apparatus semantics in
   one step
 - standardize every local implementation detail as a portable vocabulary term
