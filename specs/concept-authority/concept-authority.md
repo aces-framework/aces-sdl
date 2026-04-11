@@ -135,6 +135,6 @@ and where their meaning comes from.
 - GOV-917: This specification (concept authority definition).
 - GOV-918: Cross-artifact concept binding (how artifacts reference concepts).
 - GOV-919: Extension discipline (rules for adding new concepts).
-- GOV-920: Shared semantic profiles.
+- GOV-920: Shared semantic profiles ([semantic-profiles.md](./semantic-profiles.md)).
 - GOV-921: Shared reference models.
 - GOV-922: Controlled vocabularies and enumerations.
