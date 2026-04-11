@@ -24,3 +24,10 @@ such as `GOV-918`.
 - Keep concept-authority artifacts in the approved concept-authority surfaces.
 - Keep IMPLEMENTS and TESTS traceability in Ground Control aligned with changed
   code and tests.
+
+## Ground Control Context
+
+```yaml
+ground_control:
+  project: aces-sdl
+```

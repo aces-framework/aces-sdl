@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "ConceptBindingEntryModel": {
+      "additionalProperties": false,
+      "description": "Binds a vocabulary surface in an artifact to a canonical concept family.",
+      "properties": {
+        "family": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "title": "Family",
+          "type": "string"
+        },
+        "scope": {
+          "minLength": 1,
+          "pattern": "^[a-z_][a-z0-9_.]*[a-z0-9_]$",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope",
+        "family"
+      ],
+      "title": "ConceptBindingEntryModel",
+      "type": "object"
+    },
+    "SemanticBehaviorAssumptionModel": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "statement"
+      ],
+      "title": "SemanticBehaviorAssumptionModel",
+      "type": "object"
+    },
+    "SemanticProfilePhaseModel": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior_assumptions": {
+          "items": {
+            "$ref": "#/$defs/SemanticBehaviorAssumptionModel"
+          },
+          "minItems": 1,
+          "title": "Behavior Assumptions",
+          "type": "array"
+        },
+        "required_bindings": {
+          "items": {
+            "$ref": "#/$defs/ConceptBindingEntryModel"
+          },
+          "title": "Required Bindings",
+          "type": "array"
+        },
+        "required_concept_families": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Concept Families",
+          "type": "array"
+        },
+        "required_contracts": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Contracts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "required_contracts",
+        "required_concept_families",
+        "behavior_assumptions"
+      ],
+      "title": "SemanticProfilePhaseModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authoring": {
+      "$ref": "#/$defs/SemanticProfilePhaseModel"
+    },
+    "concept_catalog_version": {
+      "const": "concept-families/v1",
+      "title": "Concept Catalog Version",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "exchange": {
+      "$ref": "#/$defs/SemanticProfilePhaseModel"
+    },
+    "execution": {
+      "$ref": "#/$defs/SemanticProfilePhaseModel"
+    },
+    "processing": {
+      "$ref": "#/$defs/SemanticProfilePhaseModel"
+    },
+    "profile_id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*-v[0-9]+$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "semantic-profile/v1",
+      "default": "semantic-profile/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "profile_id",
+    "title",
+    "description",
+    "concept_catalog_version",
+    "authoring",
+    "exchange",
+    "processing",
+    "execution"
+  ],
+  "title": "SemanticProfileModel",
+  "type": "object"
+}

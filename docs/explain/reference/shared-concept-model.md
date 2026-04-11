@@ -189,6 +189,55 @@ adapted family. Native families are for ACES experiment, runtime, apparatus,
 provenance, and governance concerns that the shared authority does not
 naturally cover.
 
+## Shared Semantic Profiles (GOV-920)
+
+`GOV-920` implements the composition layer above concept families, bindings,
+reference models, and vocabularies. It does not redefine any of those
+authority surfaces.
+
+A shared semantic profile is a named interoperability declaration that says
+which existing assumptions must hold together across authoring, exchange,
+processing, and execution.
+
+For this repo, that means:
+
+- semantic profiles are not backend capability profiles. The checked-in
+  `contracts/profiles/backend/*.json` artifacts remain apparatus capability
+  declarations about required runtime contract surfaces. A semantic profile may
+  reference or compose them, but it must not duplicate or replace them.
+- semantic profiles are not concept families, reference models, or controlled
+  vocabularies. Those remain separate authority surfaces; a profile only
+  selects, constrains, or composes them.
+- semantic profiles must resolve to existing normative artifacts instead of
+  restating concept definitions, enum members, schema fragments, or behavior
+  rules inline.
+- if machine-readable semantic profile artifacts are introduced, they belong
+  under `contracts/profiles/` with the repo's other normative profile
+  declarations, not as implementation-only constants or ad hoc docs.
+- the existing `scenario-instantiation-request-v1.profile` field is only a
+  selector today. Do not let it become a second implicit authority surface
+  with undocumented local-only behavior.
+- validation should reuse the existing repo pattern: closed-world contract
+  models for external shape, followed by repo-owned semantic validation for
+  cross-artifact rules. Do not introduce a separate profile-specific exception
+  hierarchy, schema DSL, or validator stack.
+- required binding scopes remain governed by the artifact family that owns
+  them. For the initial slice, semantic profiles may declare required
+  bindings only for processor `v2` processing surfaces and backend `v2`
+  execution surfaces. `authoring` and `exchange` stay binding-free until the
+  repo defines governed vocabulary surfaces for those phases.
+
+The initial machine-readable profile is
+`contracts/profiles/semantic/reference-stack-v1.json`. It declares:
+
+- authoring assumptions for SDL authoring and instantiation
+- exchange assumptions for shared apparatus manifests and typed runtime
+  envelopes
+- processing assumptions for the reference processor contract and binding
+  surfaces
+- execution assumptions for the reference backend contract and binding
+  surfaces
+
 ## Relationship To Other Requirements
 
 `GOV-917` is the concept-authority decision surface.
@@ -200,7 +249,7 @@ The related requirements split the rest of the problem:
 - `GOV-919`
   ACES extension discipline over the shared authority (implemented)
 - `GOV-920`
-  shared semantic profiles
+  shared semantic profiles (implemented)
 - `GOV-921`
   shared reference models
 - `GOV-922`
