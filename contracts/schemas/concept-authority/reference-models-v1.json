@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "ReferenceModelDefinitionModel": {
+      "additionalProperties": false,
+      "properties": {
+        "authoritative_schema": {
+          "$ref": "#/$defs/ReferenceModelSchemaBindingModel"
+        },
+        "concept_family": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "title": "Concept Family",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "key_fields": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Key Fields",
+          "type": "array"
+        },
+        "reused_schemas": {
+          "items": {
+            "$ref": "#/$defs/ReferenceModelSchemaBindingModel"
+          },
+          "title": "Reused Schemas",
+          "type": "array"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "concept_family",
+        "authoritative_schema",
+        "key_fields"
+      ],
+      "title": "ReferenceModelDefinitionModel",
+      "type": "object"
+    },
+    "ReferenceModelSchemaBindingModel": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_id": {
+          "minLength": 1,
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "instance_path": {
+          "pattern": "^[a-z_][a-z0-9_]*(?:\\.(?:[a-z_][a-z0-9_]*|\\*))*$",
+          "title": "Instance Path",
+          "type": "string"
+        },
+        "schema_pointer": {
+          "pattern": "^#(?:/[A-Za-z0-9_.$~-]+)+$",
+          "title": "Schema Pointer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_id",
+        "schema_pointer",
+        "instance_path"
+      ],
+      "title": "ReferenceModelSchemaBindingModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "models": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ReferenceModelDefinitionModel"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Models",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "reference-models/v1",
+      "default": "reference-models/v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "models"
+  ],
+  "title": "ReferenceModelCatalogModel",
+  "type": "object"
+}
