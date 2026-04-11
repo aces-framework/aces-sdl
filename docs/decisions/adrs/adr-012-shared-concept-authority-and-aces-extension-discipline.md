@@ -102,6 +102,10 @@ concepts rather than merely repeating the same text labels.
 
 The goal is shared meaning across artifacts, not merely consistent spelling.
 
+Shared semantic profiles may then bundle compatible concept, contract, and
+behavior assumptions for specific interoperable stacks without changing the
+underlying concept authority or artifact schemas themselves.
+
 ### 5. Keep concept authority separate from structure authority
 
 Shared concept authority does not imply that every artifact must expose the

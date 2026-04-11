@@ -48,6 +48,7 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["processor-manifest-v1"]["additionalProperties"] is False
     assert generated["processor-manifest-v2"]["additionalProperties"] is False
     assert generated["concept-families-v1"]["additionalProperties"] is False
+    assert generated["semantic-profile-v1"]["additionalProperties"] is False
 
 
 def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_shapes():
@@ -215,3 +216,29 @@ def test_concept_authority_schema_enforces_keyed_catalog_and_provenance_rules():
         {"required": ["authority"]},
         {"required": ["authority_reference"]},
     ]
+
+
+def test_semantic_profile_schema_publishes_phase_assumptions():
+    generated = schema_bundle()
+    semantic_profile = generated["semantic-profile-v1"]
+    phase_definition = semantic_profile["$defs"]["SemanticProfilePhaseModel"]
+    assumption_definition = semantic_profile["$defs"]["SemanticBehaviorAssumptionModel"]
+
+    assert semantic_profile["properties"]["profile_id"]["pattern"]
+    assert semantic_profile["properties"]["concept_catalog_version"]["const"] == "concept-families/v1"
+    assert semantic_profile["required"] == [
+        "profile_id",
+        "title",
+        "description",
+        "concept_catalog_version",
+        "authoring",
+        "exchange",
+        "processing",
+        "execution",
+    ]
+    assert phase_definition["properties"]["required_contracts"]["minItems"] == 1
+    assert phase_definition["properties"]["required_concept_families"]["minItems"] == 1
+    assert phase_definition["properties"]["required_bindings"]["type"] == "array"
+    assert phase_definition["properties"]["behavior_assumptions"]["minItems"] == 1
+    assert assumption_definition["properties"]["id"]["pattern"]
+    assert assumption_definition["properties"]["statement"]["minLength"] == 1
