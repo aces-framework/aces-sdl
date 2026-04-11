@@ -48,6 +48,7 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["processor-manifest-v1"]["additionalProperties"] is False
     assert generated["processor-manifest-v2"]["additionalProperties"] is False
     assert generated["concept-families-v1"]["additionalProperties"] is False
+    assert generated["reference-models-v1"]["additionalProperties"] is False
     assert generated["semantic-profile-v1"]["additionalProperties"] is False
 
 
@@ -242,3 +243,29 @@ def test_semantic_profile_schema_publishes_phase_assumptions():
     assert phase_definition["properties"]["behavior_assumptions"]["minItems"] == 1
     assert assumption_definition["properties"]["id"]["pattern"]
     assert assumption_definition["properties"]["statement"]["minLength"] == 1
+
+
+def test_reference_model_schema_publishes_catalog():
+    generated = schema_bundle()
+    reference_models = generated["reference-models-v1"]
+    model_definition = reference_models["$defs"]["ReferenceModelDefinitionModel"]
+    schema_binding_definition = reference_models["$defs"]["ReferenceModelSchemaBindingModel"]
+
+    assert reference_models["properties"]["models"]["type"] == "object"
+    assert reference_models["properties"]["models"]["minProperties"] == 1
+    assert reference_models["properties"]["models"]["propertyNames"] == {"minLength": 1}
+    assert reference_models["properties"]["models"]["additionalProperties"]["$ref"] == (
+        "#/$defs/ReferenceModelDefinitionModel"
+    )
+    assert reference_models["required"] == ["models"]
+    assert model_definition["required"] == [
+        "title",
+        "description",
+        "concept_family",
+        "authoritative_schema",
+        "key_fields",
+    ]
+    assert model_definition["properties"]["key_fields"]["minItems"] == 1
+    assert schema_binding_definition["required"] == ["contract_id", "schema_pointer", "instance_path"]
+    assert schema_binding_definition["properties"]["schema_pointer"]["pattern"]
+    assert schema_binding_definition["properties"]["instance_path"]["pattern"]

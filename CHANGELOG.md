@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   discipline fields.
 - GOV-920 semantic profile contract, schema, fixtures, and the initial
   `reference-stack-v1` shared semantic profile.
+- GOV-921 shared reference model catalog, schema, fixtures, and initial
+  recurrent SDL reference models for nodes, accounts, relationships,
+  conditions, events, and content.
 
 ### Changed
 
@@ -67,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reject native families that do not declare GOV-919 extension discipline.
 - Documented and validated shared semantic assumptions for authoring, exchange,
   processing, and execution through the new semantic profile surface.
+- Documented and validated shared reusable structure anchors for recurrent
+  federation-relevant objects through the new reference-model catalog surface.
 
 ## [0.2.0] - 2026-04-04
 

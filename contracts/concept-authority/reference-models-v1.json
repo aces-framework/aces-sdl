@@ -1,0 +1,147 @@
+{
+  "schema_version": "reference-models/v1",
+  "models": {
+    "scenario-node": {
+      "title": "Scenario Node",
+      "description": "Shared reference model for asset-bearing scenario nodes.",
+      "concept_family": "assets",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Node",
+        "instance_path": "nodes.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Node",
+          "instance_path": "nodes.*"
+        }
+      ],
+      "key_fields": [
+        "type",
+        "source",
+        "resources",
+        "os",
+        "services"
+      ]
+    },
+    "scenario-account": {
+      "title": "Scenario Account",
+      "description": "Shared reference model for identity-bearing scenario accounts.",
+      "concept_family": "identities",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Account",
+        "instance_path": "accounts.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Account",
+          "instance_path": "accounts.*"
+        }
+      ],
+      "key_fields": [
+        "username",
+        "node",
+        "groups",
+        "auth_method",
+        "disabled"
+      ]
+    },
+    "scenario-relationship": {
+      "title": "Scenario Relationship",
+      "description": "Shared reference model for typed directed relationships between scenario elements.",
+      "concept_family": "relationships",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Relationship",
+        "instance_path": "relationships.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Relationship",
+          "instance_path": "relationships.*"
+        }
+      ],
+      "key_fields": [
+        "type",
+        "source",
+        "target",
+        "properties"
+      ]
+    },
+    "scenario-condition": {
+      "title": "Scenario Condition",
+      "description": "Shared reference model for observable condition declarations.",
+      "concept_family": "observables",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Condition",
+        "instance_path": "conditions.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Condition",
+          "instance_path": "conditions.*"
+        }
+      ],
+      "key_fields": [
+        "command",
+        "interval",
+        "source",
+        "environment"
+      ]
+    },
+    "scenario-event": {
+      "title": "Scenario Event",
+      "description": "Shared reference model for action and event coordination declarations.",
+      "concept_family": "actions-and-events",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Event",
+        "instance_path": "events.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Event",
+          "instance_path": "events.*"
+        }
+      ],
+      "key_fields": [
+        "name",
+        "source",
+        "conditions",
+        "injects"
+      ]
+    },
+    "scenario-content": {
+      "title": "Scenario Content",
+      "description": "Shared reference model for tool and artifact content declarations.",
+      "concept_family": "tools-and-artifacts",
+      "authoritative_schema": {
+        "contract_id": "sdl-authoring-input-v1",
+        "schema_pointer": "#/$defs/Content",
+        "instance_path": "content.*"
+      },
+      "reused_schemas": [
+        {
+          "contract_id": "instantiated-scenario-v1",
+          "schema_pointer": "#/$defs/Content",
+          "instance_path": "content.*"
+        }
+      ],
+      "key_fields": [
+        "type",
+        "target",
+        "path",
+        "destination",
+        "source",
+        "items"
+      ]
+    }
+  }
+}

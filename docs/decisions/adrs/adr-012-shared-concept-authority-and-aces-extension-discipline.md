@@ -115,6 +115,10 @@ Normative prose, schemas, manifests, and reports remain responsible for their
 own artifact-level structure, while concept authority governs what declared
 terms mean.
 
+Shared reference models may then identify the repo-owned reusable structures
+for recurrent objects by anchoring them to published contract definitions
+without collapsing concept authority into artifact-local schema layout.
+
 ### 6. Start narrow and representative
 
 The initial concept-model slice should be narrow enough to validate the method

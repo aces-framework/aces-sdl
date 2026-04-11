@@ -13,6 +13,7 @@ Current published schemas cover:
 - backend manifests (`v1` legacy plus shared-apparatus `v2`)
 - processor manifests (`v1` legacy plus shared-apparatus `v2`)
 - concept-authority catalogs
+- reference model catalogs
 - semantic profiles
 - live-execution snapshots
 - workflow result envelopes
@@ -73,6 +74,18 @@ phases.
 The initial profile lives at `contracts/profiles/semantic/reference-stack-v1.json`.
 Its processing and execution phases also declare required concept bindings for
 the governed apparatus-manifest vocabulary surfaces introduced by GOV-918.
+
+## Shared Reference Models
+
+The `reference-models-v1` schema publishes shared reference model catalogs.
+Each catalog entry binds a recurrent object model to an authoritative concept
+family and to published contract schema definitions plus governed instance
+paths.
+
+The initial catalog lives at
+`contracts/concept-authority/reference-models-v1.json`. It anchors the current
+recurrent SDL object slice for nodes, accounts, relationships, conditions,
+events, and content to the shared concept-authority layer.
 
 ## Cross-Artifact Concept Binding
 
