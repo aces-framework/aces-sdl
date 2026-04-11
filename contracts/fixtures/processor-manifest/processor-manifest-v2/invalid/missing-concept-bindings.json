@@ -3,14 +3,6 @@
   "identity": {"name": "bad", "version": "0.0.1"},
   "supported_contract_versions": ["processor-manifest-v2"],
   "compatibility": {"backends": ["stub"]},
-  "realization_support": [
-    {
-      "domain": "instantiation",
-      "support_mode": "constrained",
-      "supported_constraint_kinds": ["parameter-values"],
-      "disclosure_kinds": ["parameter-instantiation"]
-    }
-  ],
   "constraints": {},
   "capabilities": {
     "supported_sdl_versions": ["sdl-authoring-input-v1"],

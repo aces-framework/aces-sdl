@@ -1,0 +1,10 @@
+{
+  "schema_version": "processor-manifest/v1",
+  "name": "bad",
+  "version": "0.0.1",
+  "supported_sdl_versions": ["sdl-authoring-input-v9"],
+  "supported_contract_versions": ["processor-manifest-v1"],
+  "supported_features": ["compilation"],
+  "compatible_backends": ["stub"],
+  "constraints": {}
+}

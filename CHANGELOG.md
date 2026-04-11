@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- API-412 processor manifests now keep `v2` focused on processor identity,
+  contract support, backend compatibility, processor capabilities, and concept
+  bindings. `realization_support` is no longer part of the processor manifest
+  contract surface, and processor `compatibility` is now backend-only instead
+  of the generic apparatus compatibility shape. Declared SDL versions and
+  supported contract versions are now validated against the repo-published
+  processor/runtime contract ids instead of remaining open string fields.
 - Backend capability declarations now validate governed vocabulary values on
   both the contract-model path and the runtime dataclass path.
 
