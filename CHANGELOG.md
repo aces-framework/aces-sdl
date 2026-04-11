@@ -5,7 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2026-04-11
+
+### Added
+
+- Canonical `nox` verification graph for repo policy, lint, contract/schema
+  validation, tests, and fuzz checks, with local hooks and CI calling the same
+  sessions instead of maintaining separate command lists.
+- Standard-tooling enforcement for repo structure and JSON contracts through
+  Conftest/OPA and `check-jsonschema`, plus repo-local bootstrap helpers for
+  those tools so the policy and contract gates fail locally before CI.
+- Repo-local `gitleaks` bootstrap and `nox` hygiene session covering generic
+  file/security checks inside the same canonical verification graph as lint,
+  policy, contracts, and tests.
+
+### Changed
+
+- API-412 no longer publishes, generates, or tests a `processor-manifest-v1`
+  compatibility surface. The processor manifest authority is now `v2` only.
+- Local pre-commit and pre-push hooks now use the canonical verification graph,
+  with commit-time policy/lint/contract/test gating and push-time full verify
+  plus fuzz coverage to match CI semantics.
+- `nox` now emits explicit start/pass/fail/skip status for each check stage and
+  each session summary, while `.pre-commit-config.yaml` is now a thin trigger
+  layer instead of a second source of substantive check logic.
+
+### Fixed
+
+- Fix `_run_changed_lint` in noxfile crashing on repo-relative paths passed to
+  `Path.relative_to()` with an absolute `PROJECT_ROOT`.
+
+## [0.5.0] - 2026-04-10
+
+### Changed
+
+- API-412 processor manifests now keep `v2` focused on processor identity,
+  contract support, backend compatibility, processor capabilities, and concept
+  bindings. `realization_support` is no longer part of the processor manifest
+  contract surface, and processor `compatibility` is now backend-only instead
+  of the generic apparatus compatibility shape. Declared SDL versions and
+  supported contract versions are now validated against the repo-published
+  processor/runtime contract ids instead of remaining open string fields.
+
+## [0.4.0] - 2026-04-10
 
 ### Added
 
@@ -117,6 +159,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial ACES SDL ecosystem extraction from APTL with SDL authoring layer,
   processor layer, backend protocols, conformance infrastructure, and CLI.
 
+[0.6.0]: https://github.com/aces-framework/aces-sdl/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/aces-framework/aces-sdl/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/aces-framework/aces-sdl/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/aces-framework/aces-sdl/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/aces-framework/aces-sdl/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/aces-framework/aces-sdl/compare/v0.1.0...v0.2.0

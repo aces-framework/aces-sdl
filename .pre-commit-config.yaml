@@ -1,67 +1,18 @@
 fail_fast: true
-
-# Exclude third-party reference ecosystem code from all hooks
-exclude: ^research/
+default_install_hook_types: [pre-commit, pre-push]
 
 repos:
-  # =============================================================================
-  # STAGE 1: Fast checks (linting, formatting, syntax)
-  # =============================================================================
-
-  # General file checks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-        args: [--unsafe]
-      - id: check-json
-      - id: check-added-large-files
-        args: [--maxkb=500]
-      - id: check-merge-conflict
-      - id: detect-private-key
-        exclude: ^implementations/python/tests/
-
-  # Python formatting and linting (Ruff — replaces black + isort + flake8)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
-    hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-        files: ^implementations/python/
-      - id: ruff-format
-        files: ^implementations/python/
-
-  # =============================================================================
-  # STAGE 2: Security
-  # =============================================================================
-
-  # Secrets detection
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.1
-    hooks:
-      - id: gitleaks
-
-  # =============================================================================
-  # STAGE 3: Full verification (CI-equivalent)
-  # =============================================================================
-
   - repo: local
     hooks:
-      - id: adr-policy
-        name: adr policy
-        entry: bash -c 'implementations/python/.venv/bin/python tools/check_repo_policy.py --staged'
+      - id: nox-pre-commit
+        name: nox pre-commit gate
+        entry: bash -c 'uv tool run --from "nox[uv]==2026.4.10" nox -f noxfile.py -s hook-pre-commit -- "$@"' --
+        language: system
+        pass_filenames: true
+        stages: [pre-commit]
+      - id: nox-pre-push
+        name: nox pre-push verify
+        entry: bash -c 'uv tool run --from "nox[uv]==2026.4.10" nox -f noxfile.py -s hook-pre-push'
         language: system
         pass_filenames: false
-      - id: requirement-governance
-        name: requirement governance
-        entry: bash -c 'implementations/python/.venv/bin/python tools/check_requirement_governance.py --staged'
-        language: system
-        pass_filenames: false
-      - id: pytest
-        name: pytest (unit tests)
-        entry: bash -c 'cd implementations/python && .venv/bin/python -m pytest -x -q'
-        language: system
-        files: ^implementations/python/
-        pass_filenames: false
+        stages: [pre-push]

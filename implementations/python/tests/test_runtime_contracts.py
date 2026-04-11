@@ -7,9 +7,12 @@ from pathlib import Path
 
 from aces_contracts.contracts import (
     BackendManifestV2Model,
-    ProcessorManifestModel,
     ProcessorManifestV2Model,
     schema_bundle,
+)
+from aces_contracts.manifest_authority import (
+    PROCESSOR_SUPPORTED_CONTRACT_IDS,
+    PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
 )
 from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
@@ -29,7 +32,6 @@ def test_published_contract_schemas_exist_and_match_bundle():
 
 
 def test_compat_contract_imports_reexport_neutral_contracts():
-    assert compat_runtime_contracts.ProcessorManifestModel is ProcessorManifestModel
     assert compat_runtime_contracts.ProcessorManifestV2Model is ProcessorManifestV2Model
     assert compat_runtime_contracts.BackendManifestV2Model is BackendManifestV2Model
     assert compat_runtime_contracts.schema_bundle() == schema_bundle()
@@ -45,7 +47,6 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["runtime-snapshot-v1"]["additionalProperties"] is False
     assert generated["backend-manifest-v1"]["additionalProperties"] is False
     assert generated["backend-manifest-v2"]["additionalProperties"] is False
-    assert generated["processor-manifest-v1"]["additionalProperties"] is False
     assert generated["processor-manifest-v2"]["additionalProperties"] is False
     assert generated["concept-families-v1"]["additionalProperties"] is False
     assert generated["reference-models-v1"]["additionalProperties"] is False
@@ -59,7 +60,7 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
     backend_v1_provisioner = generated["backend-manifest-v1"]["$defs"]["ProvisionerCapabilitiesModel"]
     backend_v2_compatibility = generated["backend-manifest-v2"]["$defs"]["ApparatusCompatibilityModel"]
     backend_v2_realization = generated["backend-manifest-v2"]["$defs"]["RealizationSupportDeclarationModel"]
-    processor_v1 = generated["processor-manifest-v1"]
+    processor_v2_compatibility = generated["processor-manifest-v2"]["$defs"]["ProcessorCompatibilityModel"]
     processor_v2_caps = generated["processor-manifest-v2"]["$defs"]["ProcessorCapabilitiesV2Model"]
 
     assert backend_v1_orchestrator["properties"]["supported_workflow_features"]["items"]["$ref"] == (
@@ -134,29 +135,32 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
         "capabilities",
     ]
     assert generated["processor-manifest-v2"]["properties"]["identity"]["$ref"] == "#/$defs/ApparatusIdentityModel"
-    assert generated["processor-manifest-v2"]["properties"]["compatibility"]["$ref"] == (
-        "#/$defs/ApparatusCompatibilityModel"
-    )
-    assert generated["processor-manifest-v2"]["properties"]["realization_support"]["items"]["$ref"] == (
-        "#/$defs/RealizationSupportDeclarationModel"
+    assert (
+        generated["processor-manifest-v2"]["properties"]["compatibility"]["$ref"]
+        == "#/$defs/ProcessorCompatibilityModel"
     )
     assert generated["processor-manifest-v2"]["properties"]["supported_contract_versions"]["minItems"] == 1
-    assert generated["processor-manifest-v2"]["properties"]["realization_support"]["minItems"] == 1
+    assert generated["processor-manifest-v2"]["properties"]["supported_contract_versions"]["items"]["enum"] == list(
+        PROCESSOR_SUPPORTED_CONTRACT_IDS
+    )
+    assert "realization_support" not in generated["processor-manifest-v2"]["properties"]
+    assert processor_v2_compatibility["properties"]["backends"]["minItems"] == 1
+    assert processor_v2_compatibility["required"] == ["backends"]
+    assert "processors" not in processor_v2_compatibility["properties"]
+    assert "participant_implementations" not in processor_v2_compatibility["properties"]
     assert processor_v2_caps["properties"]["supported_sdl_versions"]["minItems"] == 1
+    assert processor_v2_caps["properties"]["supported_sdl_versions"]["items"]["enum"] == list(
+        PROCESSOR_SUPPORTED_SDL_VERSION_IDS
+    )
     assert processor_v2_caps["properties"]["supported_features"]["minItems"] == 1
     assert processor_v2_caps["required"] == ["supported_sdl_versions", "supported_features"]
     assert generated["processor-manifest-v2"]["required"] == [
         "identity",
         "supported_contract_versions",
         "compatibility",
-        "realization_support",
         "concept_bindings",
         "capabilities",
     ]
-    assert processor_v1["properties"]["supported_sdl_versions"]["minItems"] == 1
-    assert processor_v1["properties"]["supported_contract_versions"]["minItems"] == 1
-    assert processor_v1["properties"]["supported_features"]["minItems"] == 1
-    assert processor_v1["properties"]["compatible_backends"]["minItems"] == 1
 
 
 def test_concept_binding_schema_in_v2_manifests():
