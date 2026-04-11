@@ -119,16 +119,32 @@ Shared reference models may then identify the repo-owned reusable structures
 for recurrent objects by anchoring them to published contract definitions
 without collapsing concept authority into artifact-local schema layout.
 
-### 6. Start narrow and representative
+### 6. Use controlled vocabularies where portable value comparison matters
+
+When cross-artifact comparison depends on stable portable values, ACES shall
+publish a controlled-vocabulary authority surface instead of relying on
+artifact-local free strings.
+
+That surface must distinguish between:
+
+- closed enumerations for mature portable terms
+- governed-extension vocabularies for surfaces that still need disciplined
+  local extension space
+
+Governed extensions must remain explicit and machine-checkable rather than
+silently accepting arbitrary local strings.
+
+### 7. Start narrow and representative
 
 The initial concept-model slice should be narrow enough to validate the method
 without ontology-izing the entire ecosystem prematurely.
 
-The first slice should focus on the cyber-domain concept families listed above
-and the artifact-binding rules needed to carry those concepts across SDL,
-manifests, provenance, and reporting.
+The first slice should focus on the cyber-domain concept families listed above,
+the artifact-binding rules needed to carry those concepts across SDL,
+manifests, provenance, and reporting, and the smallest controlled-vocabulary
+surfaces where stable portable comparison already matters.
 
-### 7. Tighten v2 semantics instead of preserving v1 looseness
+### 8. Tighten v2 semantics instead of preserving v1 looseness
 
 The first apparatus-manifest implementation should tighten the `v2` semantics
 instead of preserving any looser `v1` behavior for compatibility.
@@ -154,6 +170,9 @@ not a constraint on how precisely the `v2` concept-binding layer is enforced.
   ecosystem identity.
 - Future manifest, reporting, and interoperability work has a cleaner basis
   for shared meaning.
+- Portable enumerations and governed vocabularies can be published without
+  turning every local implementation detail into a prematurely standardized
+  term set.
 
 ### Negative
 

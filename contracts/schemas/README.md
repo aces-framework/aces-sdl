@@ -14,6 +14,7 @@ Current published schemas cover:
 - processor manifests (`v1` legacy plus shared-apparatus `v2`)
 - concept-authority catalogs
 - reference model catalogs
+- controlled vocabulary catalogs
 - semantic profiles
 - live-execution snapshots
 - workflow result envelopes
@@ -86,6 +87,25 @@ The initial catalog lives at
 `contracts/concept-authority/reference-models-v1.json`. It anchors the current
 recurrent SDL object slice for nodes, accounts, relationships, conditions,
 events, and content to the shared concept-authority layer.
+
+## Controlled Vocabularies And Enumerations
+
+The `controlled-vocabularies-v1` schema publishes controlled-vocabulary
+catalogs for stable portable term sets.
+
+The initial catalog lives at
+`contracts/concept-authority/controlled-vocabularies-v1.json`. It defines:
+
+- closed portable enumerations for processor features, workflow features,
+  workflow state-predicate features, realization support modes, and concept
+  provenance categories
+- governed-extension vocabularies for apparatus-manifest capability surfaces
+  that need stable shared base terms plus disciplined extension space
+
+For governed apparatus-manifest capability fields, contract validation and
+runtime validation both treat the catalog as normative. Values must either be
+declared terms or valid governed extensions; closed enumerations reject
+extensions.
 
 ## Cross-Artifact Concept Binding
 

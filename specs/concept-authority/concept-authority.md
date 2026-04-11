@@ -137,4 +137,4 @@ and where their meaning comes from.
 - GOV-919: Extension discipline (rules for adding new concepts).
 - GOV-920: Shared semantic profiles ([semantic-profiles.md](./semantic-profiles.md)).
 - GOV-921: Shared reference models ([reference-models.md](./reference-models.md)).
-- GOV-922: Controlled vocabularies and enumerations.
+- GOV-922: Controlled vocabularies and enumerations ([controlled-vocabularies.md](./controlled-vocabularies.md)).

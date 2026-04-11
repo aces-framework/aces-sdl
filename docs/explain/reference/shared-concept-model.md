@@ -262,41 +262,51 @@ The initial machine-readable catalog is
 current recurrent SDL object slice for assets, identities, relationships,
 observables, actions-and-events, and tools-and-artifacts.
 
-## Shared Reference Models (GOV-921)
+## Controlled Vocabularies And Enumerations (GOV-922)
 
-`GOV-921` should introduce reusable structural models for recurrent
-federation-relevant objects without reopening the already-settled authority
-boundaries.
+`GOV-922` implements the portable term-authority layer for fields where
+cross-artifact comparison depends on stable shared values.
 
 For this repo, that means:
 
-- a reference model is not a concept family. Concept families govern what a
-  thing means; a reference model governs the reusable shape and invariants of
-  an exchanged or reasoned-about object.
-- a reference model is not a semantic profile. Profiles select compatible
-  contracts, concept families, reference models, and behavior assumptions;
-  they must not become a second place where object structure is restated.
-- a reference model is not a controlled vocabulary. Enumerations may constrain
-  fields inside a reference model, but they do not replace the model.
-- reference models must stay narrower than "all of SDL" or "all apparatus
-  declarations". Only recurrent object shapes that need cross-artifact reuse
-  should become reference models.
-- if machine-readable reference models are introduced, they should follow the
-  existing repo contract pattern: authoritative language-neutral artifacts
-  under `contracts/`, closed-world contract models under
-  `implementations/python/packages/aces_contracts`, generated schemas under
-  `contracts/schemas/`, and valid/invalid fixture corpora under
-  `contracts/fixtures/`.
-- validation should reuse the existing repo split: contract-model validation
-  for closed-world shape and local invariants, then repo-owned semantic
-  validation for cross-artifact rules. Do not introduce a reference-model-only
-  schema DSL, validator stack, or exception hierarchy.
-- reference models may reuse existing concept families and later controlled
-  vocabularies, but they must not duplicate concept-family definitions,
-  semantic-profile assumptions, or artifact-local binding scopes.
-- owning contracts, manifests, and reports should compose or reference shared
-  models explicitly instead of copying field groups into new local payload
-  shapes with slightly different names.
+- a controlled vocabulary is not a concept family. Concept families govern
+  what a field means; a controlled vocabulary governs which portable values
+  may appear in that field.
+- a controlled vocabulary is not a reference model. A reference model governs
+  reusable structure; a controlled vocabulary governs term membership inside a
+  field surface.
+- not every repeated string field should become a portable controlled
+  vocabulary. Only surfaces that need stable cross-artifact comparison should
+  become governed vocabularies.
+- the authority surface should distinguish between truly closed portable
+  enumerations and governed-extension vocabularies. Some terms are mature
+  enough to close; others need disciplined extension space rather than
+  unconstrained local strings.
+- governed extensions must be explicit and machine-checkable. For the initial
+  slice, extension values use a namespaced `x-...:...` pattern instead of
+  implicit ad hoc strings.
+- the repo should preserve already-authoritative portable identifiers unless
+  there is a deliberate migration. GOV-922 is about governing portable terms,
+  not renaming them cosmetically while they are already wired into published
+  artifacts.
+
+The initial machine-readable catalog is
+`contracts/concept-authority/controlled-vocabularies-v1.json`. It defines:
+
+- closed portable enumerations for processor features, workflow features,
+  workflow state-predicate features, realization support modes, and concept
+  provenance categories
+- governed-extension vocabularies for apparatus-manifest capability surfaces
+  that still need controlled local extension space:
+  `capabilities.provisioner.supported_node_types`,
+  `capabilities.provisioner.supported_os_families`,
+  `capabilities.provisioner.supported_content_types`,
+  `capabilities.provisioner.supported_account_features`,
+  `capabilities.orchestrator.supported_sections`, and
+  `capabilities.evaluator.supported_sections`
+
+Validation now treats that catalog as normative for both contract-model
+validation and runtime capability declarations.
 
 ## Relationship To Other Requirements
 
@@ -313,7 +323,7 @@ The related requirements split the rest of the problem:
 - `GOV-921`
   shared reference models (implemented)
 - `GOV-922`
-  controlled vocabularies and enumerations
+  controlled vocabularies and enumerations (implemented)
 
 The point is to avoid solving all of those implicitly and inconsistently inside
 one implementation pass.

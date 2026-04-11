@@ -10,6 +10,7 @@ from aces_contracts.apparatus import (
     ConceptBinding,
     RealizationSupportDeclaration,
 )
+from aces_contracts.controlled_vocabularies import validate_controlled_vocabulary_scope_values
 from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
 
@@ -42,6 +43,22 @@ class ProvisionerCapabilities:
             raise ValueError("ProvisionerCapabilities.supported_content_types must not contain empty strings")
         if any(not feature.strip() for feature in self.supported_account_features):
             raise ValueError("ProvisionerCapabilities.supported_account_features must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_node_types",
+            self.supported_node_types,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_os_families",
+            self.supported_os_families,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_content_types",
+            self.supported_content_types,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_account_features",
+            self.supported_account_features,
+        )
         if self.max_total_nodes is not None and self.max_total_nodes < 1:
             raise ValueError("ProvisionerCapabilities.max_total_nodes must be positive when provided")
         if self.supports_accounts and not self.supported_account_features:
@@ -70,6 +87,10 @@ class OrchestratorCapabilities:
             raise ValueError("OrchestratorCapabilities.supported_sections must not be empty")
         if any(not section.strip() for section in self.supported_sections):
             raise ValueError("OrchestratorCapabilities.supported_sections must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.orchestrator.supported_sections",
+            self.supported_sections,
+        )
         if self.supports_workflows:
             if "workflows" not in self.supported_sections:
                 raise ValueError(
@@ -105,6 +126,10 @@ class EvaluatorCapabilities:
             raise ValueError("EvaluatorCapabilities.supported_sections must not be empty")
         if any(not section.strip() for section in self.supported_sections):
             raise ValueError("EvaluatorCapabilities.supported_sections must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.evaluator.supported_sections",
+            self.supported_sections,
+        )
         if not self.supports_scoring and not self.supports_objectives:
             raise ValueError("EvaluatorCapabilities must support scoring, objectives, or both")
 
