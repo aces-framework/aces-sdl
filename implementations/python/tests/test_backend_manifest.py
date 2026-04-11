@@ -9,28 +9,15 @@ import pytest
 from aces_backend_protocols.capabilities import BackendManifest, OrchestratorCapabilities, ProvisionerCapabilities
 from aces_backend_protocols.manifest import backend_manifest_payload
 from aces_backend_stubs.stubs import create_stub_manifest
-from aces_contracts.contracts import BackendManifestModel, BackendManifestV2Model
+from aces_contracts.contracts import BackendManifestV2Model
+from aces_contracts.manifest_authority import BACKEND_SUPPORTED_CONTRACT_IDS
 from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 from pydantic import ValidationError
 
 FIXTURES_ROOT = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
-V1_VALID_DIR = FIXTURES_ROOT / "backend-manifest" / "backend-manifest-v1" / "valid"
-V1_INVALID_DIR = FIXTURES_ROOT / "backend-manifest" / "backend-manifest-v1" / "invalid"
 V2_VALID_DIR = FIXTURES_ROOT / "backend-manifest" / "backend-manifest-v2" / "valid"
 V2_INVALID_DIR = FIXTURES_ROOT / "backend-manifest" / "backend-manifest-v2" / "invalid"
-EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V2 = [
-    "backend-manifest-v2",
-    "evaluation-history-event-stream-v1",
-    "evaluation-plan-v1",
-    "evaluation-result-envelope-v1",
-    "operation-receipt-v1",
-    "operation-status-v1",
-    "orchestration-plan-v1",
-    "provisioning-plan-v1",
-    "runtime-snapshot-v1",
-    "workflow-history-event-stream-v1",
-    "workflow-result-envelope-v1",
-]
+EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V2 = list(BACKEND_SUPPORTED_CONTRACT_IDS)
 
 
 def test_backend_workflow_vocab_enum_values():
@@ -72,39 +59,15 @@ def test_provisioner_capabilities_reject_hollow_declaration():
         )
 
 
-def test_backend_manifest_v1_roundtrip_from_stub_manifest():
-    payload = backend_manifest_payload(create_stub_manifest(), version="v1")
-    model = BackendManifestModel.model_validate(payload)
-
-    assert model.schema_version == "backend-manifest/v1"
-    assert model.name == "stub"
-    assert model.orchestrator is not None
-    assert model.orchestrator.supported_workflow_features == [
-        WorkflowFeature.CALL,
-        WorkflowFeature.CANCELLATION,
-        WorkflowFeature.COMPENSATION,
-        WorkflowFeature.DECISION,
-        WorkflowFeature.FAILURE_TRANSITIONS,
-        WorkflowFeature.PARALLEL_BARRIER,
-        WorkflowFeature.RETRY,
-        WorkflowFeature.SWITCH,
-        WorkflowFeature.TIMEOUTS,
-    ]
-    assert model.orchestrator.supported_workflow_state_predicates == [
-        WorkflowStatePredicateFeature.ATTEMPT_COUNTS,
-        WorkflowStatePredicateFeature.OUTCOME_MATCHING,
-    ]
-    assert model.model_dump(mode="json") == payload
-
-
 def test_backend_manifest_v2_roundtrip_from_stub_manifest():
-    payload = backend_manifest_payload(create_stub_manifest(), version="v2")
+    payload = backend_manifest_payload(create_stub_manifest())
     model = BackendManifestV2Model.model_validate(payload)
 
     assert model.schema_version == "backend-manifest/v2"
     assert model.identity.name == "stub"
     assert model.identity.version
     assert model.compatibility.processors == ["aces-reference-processor"]
+    assert model.compatibility.model_dump(mode="json") == {"processors": ["aces-reference-processor"]}
     assert model.supported_contract_versions == EXPECTED_SUPPORTED_CONTRACT_VERSIONS_V2
     assert model.capabilities.orchestrator is not None
     assert model.capabilities.orchestrator.supported_workflow_features == [
@@ -134,6 +97,23 @@ def test_backend_manifest_v2_requires_manifest_sections():
         )
 
 
+def test_backend_manifest_runtime_rejects_unknown_supported_contract_versions():
+    with pytest.raises(ValueError, match="supported_contract_versions"):
+        BackendManifest(
+            name="bad",
+            version="0.0.1",
+            supported_contract_versions=frozenset({"semantic-profile-v1"}),
+            compatible_processors=frozenset({"aces-reference-processor"}),
+            realization_support=create_stub_manifest().realization_support,
+            concept_bindings=create_stub_manifest().concept_bindings,
+            provisioner=ProvisionerCapabilities(
+                name="stub-provisioner",
+                supported_node_types=frozenset({"vm"}),
+                supported_os_families=frozenset({"linux"}),
+            ),
+        )
+
+
 def test_backend_manifest_v2_rejects_empty_compatibility():
     with pytest.raises(ValidationError):
         BackendManifestV2Model.model_validate(
@@ -159,6 +139,25 @@ def test_backend_manifest_v2_rejects_empty_compatibility():
                 },
             }
         )
+
+
+def test_backend_manifest_v2_rejects_non_processor_compatibility_surfaces():
+    payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
+    payload["compatibility"] = {
+        "processors": ["aces-reference-processor"],
+        "backends": ["peer-backend"],
+    }
+
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(payload)
+
+    payload["compatibility"] = {
+        "processors": ["aces-reference-processor"],
+        "participant_implementations": ["participant-impl"],
+    }
+
+    with pytest.raises(ValidationError):
+        BackendManifestV2Model.model_validate(payload)
 
 
 def test_backend_manifest_v2_rejects_hollow_realization_support():
@@ -212,22 +211,12 @@ def test_backend_manifest_v2_rejects_hollow_capability_blocks():
         )
 
 
-def test_reference_backend_v1_fixture_matches_emitted_manifest():
-    payload = json.loads((V1_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
-    assert payload == backend_manifest_payload(create_stub_manifest(), version="v1")
-
-
 def test_reference_backend_v2_fixture_matches_emitted_manifest():
     payload = json.loads((V2_VALID_DIR / "stub.json").read_text(encoding="utf-8"))
-    assert payload == backend_manifest_payload(create_stub_manifest(), version="v2")
+    assert payload == backend_manifest_payload(create_stub_manifest())
 
 
 def test_backend_manifest_valid_fixtures_pass_validation():
-    for path in sorted(V1_VALID_DIR.glob("*.json")):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        model = BackendManifestModel.model_validate(payload)
-        assert model.name, f"Valid v1 fixture {path.name} should have a name"
-
     for path in sorted(V2_VALID_DIR.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         model = BackendManifestV2Model.model_validate(payload)
@@ -235,11 +224,6 @@ def test_backend_manifest_valid_fixtures_pass_validation():
 
 
 def test_backend_manifest_invalid_fixtures_fail_validation():
-    for path in sorted(V1_INVALID_DIR.glob("*.json")):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        with pytest.raises(ValidationError):
-            BackendManifestModel.model_validate(payload)
-
     for path in sorted(V2_INVALID_DIR.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         with pytest.raises(ValidationError):

@@ -12,7 +12,6 @@ from typing import Any
 from aces_backend_protocols.capabilities import BackendManifest
 from aces_backend_protocols.manifest import backend_manifest_payload
 from aces_contracts.contracts import (
-    BackendManifestModel,
     BackendManifestV2Model,
     EvaluationHistoryEventModel,
     EvaluationPlanModel,
@@ -129,7 +128,6 @@ _PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
 
 
 _MODEL_VALIDATORS = {
-    "backend-manifest-v1": BackendManifestModel.model_validate,
     "backend-manifest-v2": BackendManifestV2Model.model_validate,
     "provisioning-plan-v1": ProvisioningPlanModel.model_validate,
     "orchestration-plan-v1": OrchestrationPlanModel.model_validate,
@@ -461,7 +459,7 @@ def _live_target_cases(
     profile: BackendCapabilityProfile,
 ) -> tuple[ConformanceCaseResult, ...]:
     cases: list[ConformanceCaseResult] = []
-    manifest_payload = backend_manifest_payload(target.manifest, version="v2")
+    manifest_payload = backend_manifest_payload(target.manifest)
     manifest_diags = _validate_payload("backend-manifest-v2", manifest_payload)
     cases.append(
         ConformanceCaseResult(

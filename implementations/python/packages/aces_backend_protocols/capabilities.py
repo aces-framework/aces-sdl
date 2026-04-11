@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from aces_contracts.apparatus import (
-    ApparatusCompatibility,
     ApparatusIdentity,
     ConceptBinding,
     RealizationSupportDeclaration,
 )
 from aces_contracts.controlled_vocabularies import validate_controlled_vocabulary_scope_values
+from aces_contracts.manifest_authority import validate_backend_supported_contract_versions
 from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
 
@@ -143,13 +143,26 @@ class BackendCapabilitySet:
     evaluator: EvaluatorCapabilities | None = None
 
 
+@dataclass(frozen=True)
+class BackendCompatibility:
+    """Backend compatibility claims against processor surfaces."""
+
+    processors: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        if not self.processors:
+            raise ValueError("BackendCompatibility.processors must not be empty")
+        if any(not processor.strip() for processor in self.processors):
+            raise ValueError("BackendCompatibility.processors must not contain empty strings")
+
+
 @dataclass(frozen=True, init=False)
 class BackendManifest:
     """Complete runtime target capability declaration."""
 
     identity: ApparatusIdentity
     supported_contract_versions: frozenset[str]
-    compatibility: ApparatusCompatibility
+    compatibility: BackendCompatibility
     realization_support: tuple[RealizationSupportDeclaration, ...]
     concept_bindings: tuple[ConceptBinding, ...]
     constraints: dict[str, str]
@@ -160,7 +173,7 @@ class BackendManifest:
         *,
         identity: ApparatusIdentity | None = None,
         supported_contract_versions: frozenset[str] = frozenset(),
-        compatibility: ApparatusCompatibility | None = None,
+        compatibility: BackendCompatibility | None = None,
         realization_support: tuple[RealizationSupportDeclaration, ...] = (),
         concept_bindings: tuple[ConceptBinding, ...] = (),
         constraints: dict[str, str] | None = None,
@@ -168,8 +181,6 @@ class BackendManifest:
         name: str | None = None,
         version: str = "0.0.0+unknown",
         compatible_processors: frozenset[str] = frozenset(),
-        compatible_backends: frozenset[str] = frozenset(),
-        compatible_participant_implementations: frozenset[str] = frozenset(),
         provisioner: ProvisionerCapabilities | None = None,
         orchestrator: OrchestratorCapabilities | None = None,
         evaluator: EvaluatorCapabilities | None = None,
@@ -179,11 +190,7 @@ class BackendManifest:
                 raise ValueError("BackendManifest requires either identity or name.")
             identity = ApparatusIdentity(name=name, version=version)
         if compatibility is None:
-            compatibility = ApparatusCompatibility(
-                processors=frozenset(compatible_processors),
-                backends=frozenset(compatible_backends),
-                participant_implementations=frozenset(compatible_participant_implementations),
-            )
+            compatibility = BackendCompatibility(processors=frozenset(compatible_processors))
         if capabilities is None:
             if provisioner is None:
                 raise ValueError("BackendManifest requires either capabilities or provisioner.")
@@ -197,6 +204,7 @@ class BackendManifest:
             raise ValueError("BackendManifest.supported_contract_versions must not be empty")
         if any(not version.strip() for version in supported_contract_versions):
             raise ValueError("BackendManifest.supported_contract_versions must not contain empty strings")
+        validate_backend_supported_contract_versions(supported_contract_versions)
         realization_support = tuple(realization_support)
         if not realization_support:
             raise ValueError("BackendManifest.realization_support must not be empty")
@@ -222,14 +230,6 @@ class BackendManifest:
     @property
     def compatible_processors(self) -> frozenset[str]:
         return self.compatibility.processors
-
-    @property
-    def compatible_backends(self) -> frozenset[str]:
-        return self.compatibility.backends
-
-    @property
-    def compatible_participant_implementations(self) -> frozenset[str]:
-        return self.compatibility.participant_implementations
 
     @property
     def provisioner(self) -> ProvisionerCapabilities:

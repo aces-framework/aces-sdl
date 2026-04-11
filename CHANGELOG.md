@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-04-11
+
+### Changed
+
+- API-413 no longer publishes, generates, or tests a `backend-manifest-v1`
+  compatibility surface. The backend manifest authority is now `v2` only.
+- Backend `v2` manifests now use a backend-specific compatibility surface that
+  declares compatible processors only, and they validate declared supported
+  contract ids against the shared backend manifest authority set on both the
+  contract-model path and the runtime dataclass path.
+- The reference backend stub and backend conformance path now consume the
+  shared backend manifest authority directly, reducing drift between authority
+  sets, emitted manifests, fixtures, and conformance validation.
+
 ## [0.6.0] - 2026-04-11
 
 ### Added
@@ -20,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy, contracts, and tests.
 
 ### Changed
-
 - API-412 no longer publishes, generates, or tests a `processor-manifest-v1`
   compatibility surface. The processor manifest authority is now `v2` only.
 - Local pre-commit and pre-push hooks now use the canonical verification graph,
