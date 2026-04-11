@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -16,6 +17,7 @@ from .versions import (
     BACKEND_MANIFEST_SCHEMA_VERSION,
     BACKEND_MANIFEST_V2_SCHEMA_VERSION,
     CONCEPT_FAMILIES_SCHEMA_VERSION,
+    CONTROLLED_VOCABULARIES_SCHEMA_VERSION,
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_SCHEMA_VERSION,
@@ -49,6 +51,7 @@ SemanticAssumptionId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$
 ReferenceModelId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")]
 JsonPointerString = Annotated[str, Field(pattern=r"^#(?:/[A-Za-z0-9_.$~-]+)+$")]
 InstancePath = Annotated[str, Field(pattern=r"^[a-z_][a-z0-9_]*(?:\.(?:[a-z_][a-z0-9_]*|\*))*$")]
+ControlledVocabularyTermId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")]
 
 _BACKEND_CONCEPT_BINDING_SCOPES = frozenset(
     {
@@ -65,6 +68,15 @@ _PROCESSOR_CONCEPT_BINDING_SCOPES = frozenset(
     {
         "capabilities.supported_sdl_versions",
         "capabilities.supported_features",
+    }
+)
+
+_CONTROLLED_VOCABULARY_GOVERNED_SCOPES = frozenset(
+    {
+        "capabilities.supported_features",
+        "capabilities.orchestrator.supported_workflow_features",
+        "capabilities.orchestrator.supported_workflow_state_predicates",
+        *_BACKEND_CONCEPT_BINDING_SCOPES,
     }
 )
 
@@ -225,6 +237,22 @@ class ProvisionerCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_account_support(self) -> ProvisionerCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_node_types",
+            self.supported_node_types,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_os_families",
+            self.supported_os_families,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_content_types",
+            self.supported_content_types,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_account_features",
+            self.supported_account_features,
+        )
         if self.supports_accounts and not self.supported_account_features:
             raise ValueError("provisioners that support accounts must declare supported_account_features")
         if not self.supports_accounts and self.supported_account_features:
@@ -277,6 +305,10 @@ class OrchestratorCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_workflow_support(self) -> OrchestratorCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.orchestrator.supported_sections",
+            self.supported_sections,
+        )
         if self.supports_workflows:
             if "workflows" not in self.supported_sections:
                 raise ValueError("orchestrators that support workflows must include 'workflows' in supported_sections")
@@ -341,6 +373,10 @@ class EvaluatorCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_evaluator_support(self) -> EvaluatorCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.evaluator.supported_sections",
+            self.supported_sections,
+        )
         if not self.supports_scoring and not self.supports_objectives:
             raise ValueError("evaluators must support scoring, objectives, or both")
         return self
@@ -752,6 +788,79 @@ class ReferenceModelCatalogModel(ContractModel):
         return json_schema
 
 
+class ControlledVocabularyTermModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+
+
+class ControlledVocabularyDefinitionModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+    kind: Literal["enumeration", "vocabulary"]
+    governed_scopes: list[NonEmptyString] = Field(default_factory=list)
+    extension_policy: Literal["closed", "governed-extension"]
+    extension_pattern: NonEmptyString | None = None
+    terms: dict[ControlledVocabularyTermId, ControlledVocabularyTermModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_vocabulary_definition(self) -> ControlledVocabularyDefinitionModel:
+        unknown_scopes = set(self.governed_scopes) - _CONTROLLED_VOCABULARY_GOVERNED_SCOPES
+        if unknown_scopes:
+            unknown = ", ".join(sorted(unknown_scopes))
+            raise ValueError(f"controlled vocabulary includes unknown governed scopes: {unknown}")
+
+        if len(self.governed_scopes) != len(set(self.governed_scopes)):
+            raise ValueError("controlled vocabulary governed_scopes must not contain duplicates")
+
+        if self.kind == "enumeration" and self.extension_policy != "closed":
+            raise ValueError("enumeration controlled vocabularies must use extension_policy='closed'")
+
+        if self.extension_policy == "closed":
+            if self.extension_pattern is not None:
+                raise ValueError("closed controlled vocabularies must not declare extension_pattern")
+            return self
+
+        if not self.governed_scopes:
+            raise ValueError("governed-extension controlled vocabularies must declare governed_scopes")
+        if self.extension_pattern is None:
+            raise ValueError("governed-extension controlled vocabularies must declare extension_pattern")
+        try:
+            re.compile(self.extension_pattern)
+        except re.error as exc:
+            raise ValueError("controlled vocabulary extension_pattern must be a valid regex") from exc
+        return self
+
+
+class ControlledVocabularyCatalogModel(ContractModel):
+    schema_version: Literal[CONTROLLED_VOCABULARIES_SCHEMA_VERSION] = CONTROLLED_VOCABULARIES_SCHEMA_VERSION
+    vocabularies: dict[NonEmptyString, ControlledVocabularyDefinitionModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_vocabulary_catalog(self) -> ControlledVocabularyCatalogModel:
+        scope_to_vocabulary: dict[str, str] = {}
+        for vocabulary_id, definition in self.vocabularies.items():
+            for scope in definition.governed_scopes:
+                previous = scope_to_vocabulary.setdefault(scope, vocabulary_id)
+                if previous != vocabulary_id:
+                    raise ValueError(
+                        f"governed scope '{scope}' is declared by multiple vocabularies: {previous}, {vocabulary_id}"
+                    )
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        vocabularies_schema = json_schema.get("properties", {}).get("vocabularies")
+        if isinstance(vocabularies_schema, dict):
+            vocabularies_schema.setdefault("propertyNames", {"minLength": 1})
+        return json_schema
+
+
 class SemanticBehaviorAssumptionModel(ContractModel):
     id: SemanticAssumptionId
     statement: NonEmptyString
@@ -956,6 +1065,14 @@ def _scope_is_present(model: ContractModel, scope: str) -> bool:
     return True
 
 
+def _validate_controlled_vocabulary_terms(scope: str, values: list[str]) -> None:
+    if not values:
+        return
+    from .controlled_vocabularies import validate_controlled_vocabulary_scope_values
+
+    validate_controlled_vocabulary_scope_values(scope, values)
+
+
 def _validate_canonical_concept_bindings(model: ContractModel, *, allowed_scopes: frozenset[str]) -> None:
     family_ids = _authoritative_concept_family_ids()
     for binding in getattr(model, "concept_bindings", ()):
@@ -986,6 +1103,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
         "reference-models-v1": ReferenceModelCatalogModel.model_json_schema(),
+        "controlled-vocabularies-v1": ControlledVocabularyCatalogModel.model_json_schema(),
         "semantic-profile-v1": SemanticProfileModel.model_json_schema(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
@@ -1025,6 +1143,11 @@ __all__ = [
     "ConceptFamilyDefinitionModel",
     "ConceptFamilyId",
     "ConceptProvenanceCategory",
+    "CONTROLLED_VOCABULARIES_SCHEMA_VERSION",
+    "ControlledVocabularyCatalogModel",
+    "ControlledVocabularyDefinitionModel",
+    "ControlledVocabularyTermId",
+    "ControlledVocabularyTermModel",
     "ContractModel",
     "EvaluationHistoryEventModel",
     "EvaluationPlanModel",

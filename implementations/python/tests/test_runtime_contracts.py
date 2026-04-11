@@ -49,6 +49,7 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["processor-manifest-v2"]["additionalProperties"] is False
     assert generated["concept-families-v1"]["additionalProperties"] is False
     assert generated["reference-models-v1"]["additionalProperties"] is False
+    assert generated["controlled-vocabularies-v1"]["additionalProperties"] is False
     assert generated["semantic-profile-v1"]["additionalProperties"] is False
 
 
@@ -269,3 +270,28 @@ def test_reference_model_schema_publishes_catalog():
     assert schema_binding_definition["required"] == ["contract_id", "schema_pointer", "instance_path"]
     assert schema_binding_definition["properties"]["schema_pointer"]["pattern"]
     assert schema_binding_definition["properties"]["instance_path"]["pattern"]
+
+
+def test_controlled_vocabulary_schema_publishes_catalog():
+    generated = schema_bundle()
+    controlled_vocabularies = generated["controlled-vocabularies-v1"]
+    vocabulary_definition = controlled_vocabularies["$defs"]["ControlledVocabularyDefinitionModel"]
+    term_definition = controlled_vocabularies["$defs"]["ControlledVocabularyTermModel"]
+
+    assert controlled_vocabularies["properties"]["vocabularies"]["type"] == "object"
+    assert controlled_vocabularies["properties"]["vocabularies"]["minProperties"] == 1
+    assert controlled_vocabularies["properties"]["vocabularies"]["propertyNames"] == {"minLength": 1}
+    assert controlled_vocabularies["properties"]["vocabularies"]["additionalProperties"]["$ref"] == (
+        "#/$defs/ControlledVocabularyDefinitionModel"
+    )
+    assert controlled_vocabularies["required"] == ["vocabularies"]
+    assert vocabulary_definition["required"] == [
+        "title",
+        "description",
+        "kind",
+        "extension_policy",
+        "terms",
+    ]
+    assert vocabulary_definition["properties"]["governed_scopes"]["type"] == "array"
+    assert vocabulary_definition["properties"]["terms"]["minProperties"] == 1
+    assert term_definition["required"] == ["title", "description"]
