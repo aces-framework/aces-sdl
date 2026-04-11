@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402, I001
 from __future__ import annotations
 
 import argparse
@@ -8,8 +9,12 @@ from pathlib import Path
 import subprocess
 import sys
 
-from policy.common import REPO_ROOT, apply_exceptions, changed_paths, failures_to_json, load_exceptions
-from policy.requirement_governance import (
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tools.policy.common import apply_exceptions, changed_paths, failures_to_json, load_exceptions
+from tools.policy.requirement_governance import (
     GroundControlHttpClient,
     evaluate_requirement_governance,
     requirement_uid_from_context,
@@ -73,11 +78,27 @@ def requires_requirement_context(paths: list[str]) -> bool:
     return False
 
 
+def governed_requirement_paths(paths: list[str]) -> list[str]:
+    filtered: list[str] = []
+    for path in paths:
+        if path in REQUIREMENT_CONTEXT_EXEMPT_PATHS:
+            continue
+        if path.startswith(REQUIREMENT_CONTEXT_EXEMPT_PREFIXES):
+            continue
+        filtered.append(path)
+    return filtered
+
+
 def main() -> int:
     args = parse_args()
-    paths = [Path(path).as_posix() for path in args.paths] if args.paths else changed_paths(REPO_ROOT, staged=args.staged, base_rev=args.base_rev)
+    paths = (
+        [Path(path).as_posix() for path in args.paths]
+        if args.paths
+        else changed_paths(REPO_ROOT, staged=args.staged, base_rev=args.base_rev)
+    )
+    effective_paths = governed_requirement_paths(paths)
     uid = requirement_uid_from_context(current_branch(REPO_ROOT), args.requirement_uid)
-    if not requires_requirement_context(paths):
+    if not requires_requirement_context(effective_paths):
         return 0
     if not uid:
         failure = [
@@ -90,12 +111,15 @@ def main() -> int:
         if args.json:
             print(json.dumps(failure, indent=2))
         else:
-            print("[requirement-context-missing] requirement UID is missing; set ACES_REQUIREMENT_UID or include a UID like GOV-918 in the branch name", file=sys.stderr)
+            print(
+                "[requirement-context-missing] requirement UID is missing; set ACES_REQUIREMENT_UID or include a UID like GOV-918 in the branch name",
+                file=sys.stderr,
+            )
         return 1
 
     client = GroundControlHttpClient(base_url=(os.environ.get("GC_BASE_URL") or "http://gc-dev:8000"))
     try:
-        failures = evaluate_requirement_governance(REPO_ROOT, paths, client=client, requirement_uid=uid)
+        failures = evaluate_requirement_governance(REPO_ROOT, effective_paths, client=client, requirement_uid=uid)
     except RuntimeError as exc:
         print(f"[ground-control-unavailable] {exc} — skipping governance check", file=sys.stderr)
         return 0

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Callable
 from pathlib import Path
 
-from .common import PolicyFailure, load_yaml, path_matches_any, path_matches_prefix
+from .common import PolicyFailure, load_yaml, path_matches_prefix
+from .conftest_tool import run_conftest_policy
+
+StructuralPolicyRunner = Callable[[dict], list[PolicyFailure]]
 
 
 def load_policy(repo_root: Path) -> dict:
@@ -16,6 +20,7 @@ def evaluate_repo_policy(
     changed: list[str],
     *,
     check_set: str = "full",
+    structural_runner: StructuralPolicyRunner | None = None,
 ) -> list[PolicyFailure]:
     policy = load_policy(repo_root)
     failures: list[PolicyFailure] = []
@@ -23,51 +28,30 @@ def evaluate_repo_policy(
     if not changed:
         return failures
 
-    failures.extend(_check_legacy_roots(policy, changed))
-    failures.extend(_check_generated_schema_edits(policy, changed))
+    if structural_runner is None:
+
+        def structural_runner(input_document: dict) -> list[PolicyFailure]:
+            return run_conftest_policy(input_document, repo_root=repo_root)
+
+    failures.extend(
+        structural_runner(
+            {
+                "changed": changed,
+                "check_set": check_set,
+                "policy": policy,
+            }
+        )
+    )
     failures.extend(_check_package_import_direction(repo_root, policy, changed))
     failures.extend(_check_compatibility_wrappers(repo_root, policy, changed))
-    failures.extend(_check_concept_authority_reservations(policy, changed))
 
     if check_set == "full":
-        failures.extend(_check_changelog(policy, changed))
         failures.extend(_check_adr_index(repo_root, policy, changed))
 
+    if "CHANGELOG.md" in changed:
+        failures.extend(_check_changelog_versioned(repo_root))
+
     return failures
-
-
-def _check_legacy_roots(policy: dict, changed: list[str]) -> list[PolicyFailure]:
-    failures: list[PolicyFailure] = []
-    forbidden = policy.get("legacy_top_level_roots", [])
-    for path in changed:
-        top = path.split("/", 1)[0]
-        if top in forbidden:
-            failures.append(
-                PolicyFailure(
-                    "legacy-top-level-root",
-                    "legacy top-level roots are not authoritative; place the artifact under specs/, contracts/, docs/, or implementations/",
-                    path,
-                )
-            )
-    return failures
-
-
-def _check_generated_schema_edits(policy: dict, changed: list[str]) -> list[PolicyFailure]:
-    generated_roots = policy["generated_contracts"]["generated_roots"]
-    drivers = policy["generated_contracts"]["driver_paths"]
-    touched_generated = [path for path in changed if path_matches_any(path, generated_roots)]
-    if not touched_generated:
-        return []
-    if any(path_matches_any(path, drivers) for path in changed):
-        return []
-    return [
-        PolicyFailure(
-            "generated-schema-direct-edit",
-            "published schemas are generated artifacts; update the generator inputs and regenerate instead of editing schemas directly",
-            path,
-        )
-        for path in touched_generated
-    ]
 
 
 def _check_package_import_direction(repo_root: Path, policy: dict, changed: list[str]) -> list[PolicyFailure]:
@@ -75,7 +59,9 @@ def _check_package_import_direction(repo_root: Path, policy: dict, changed: list
     package_root = repo_root / policy["compatibility_layer"]["owning_root"]
     prefixes = tuple(policy["compatibility_layer"]["forbidden_import_prefixes"])
     for rel_path in changed:
-        if not rel_path.endswith(".py") or not path_matches_prefix(rel_path, package_root.relative_to(repo_root).as_posix()):
+        if not rel_path.endswith(".py") or not path_matches_prefix(
+            rel_path, package_root.relative_to(repo_root).as_posix()
+        ):
             continue
         path = repo_root / rel_path
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=rel_path)
@@ -152,34 +138,29 @@ def _is_wrapper_module(tree: ast.Module) -> bool:
     return True
 
 
-def _check_concept_authority_reservations(policy: dict, changed: list[str]) -> list[PolicyFailure]:
-    failures: list[PolicyFailure] = []
-    tokens = policy["concept_authority"]["reserved_path_tokens"]
-    allowed = policy["concept_authority"]["allowed_paths"]
-    for path in changed:
-        if any(token in path for token in tokens) and not path_matches_any(path, allowed):
-            failures.append(
-                PolicyFailure(
-                    "concept-authority-reserved-path",
-                    "concept-authority artifacts must stay in the approved authority surfaces",
-                    path,
-                )
-            )
-    return failures
+CHANGELOG_HEADING_RE = re.compile(r"^## \[(.+?)\]", re.MULTILINE)
+SECTION_CONTENT_RE = re.compile(r"^###\s", re.MULTILINE)
 
 
-def _check_changelog(policy: dict, changed: list[str]) -> list[PolicyFailure]:
-    changelog_path = policy["changelog_path"]
-    source_roots = policy["source_roots"]
-    source_changed = any(path_matches_any(path, source_roots) and path.endswith(".py") for path in changed)
-    if source_changed and changelog_path not in changed:
-        return [
-            PolicyFailure(
-                "changelog-required",
-                "source changes require a CHANGELOG.md update",
-                changelog_path,
-            )
-        ]
+def _check_changelog_versioned(repo_root: Path) -> list[PolicyFailure]:
+    changelog = repo_root / "CHANGELOG.md"
+    if not changelog.exists():
+        return []
+    text = changelog.read_text(encoding="utf-8")
+    for match in CHANGELOG_HEADING_RE.finditer(text):
+        label = match.group(1)
+        if label.lower() == "unreleased":
+            heading_end = match.end()
+            next_heading = CHANGELOG_HEADING_RE.search(text, heading_end)
+            section_text = text[heading_end : next_heading.start()] if next_heading else text[heading_end:]
+            if SECTION_CONTENT_RE.search(section_text):
+                return [
+                    PolicyFailure(
+                        "changelog-unreleased-content",
+                        "CHANGELOG.md has content under [Unreleased]; assign a version number and date",
+                        "CHANGELOG.md",
+                    )
+                ]
     return []
 
 
@@ -232,11 +213,7 @@ def _check_adr_index(repo_root: Path, policy: dict, changed: list[str]) -> list[
         return []
 
     adr_dir = repo_root / "docs" / "decisions" / "adrs"
-    adr_files = sorted(
-        path
-        for path in adr_dir.glob("adr-*.md")
-        if path.name != "README.md"
-    )
+    adr_files = sorted(path for path in adr_dir.glob("adr-*.md") if path.name != "README.md")
     expected: dict[str, tuple[str, str, str, str]] = {}
     for adr_file in adr_files:
         number, title, status, date_value = _parse_adr_file(adr_file)

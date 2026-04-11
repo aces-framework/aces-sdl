@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from aces_contracts.apparatus import (
-    ApparatusCompatibility,
-    ApparatusIdentity,
-    ConceptBinding,
-    RealizationSupportDeclaration,
+from aces_contracts.apparatus import ApparatusIdentity, ConceptBinding
+from aces_contracts.manifest_authority import (
+    validate_processor_supported_contract_versions,
+    validate_processor_supported_sdl_versions,
 )
 from aces_contracts.vocabulary import ProcessorFeature
 
@@ -25,8 +24,22 @@ class ProcessorCapabilitySet:
             raise ValueError("ProcessorCapabilitySet.supported_sdl_versions must not be empty")
         if any(not version.strip() for version in self.supported_sdl_versions):
             raise ValueError("ProcessorCapabilitySet.supported_sdl_versions must not contain empty strings")
+        validate_processor_supported_sdl_versions(self.supported_sdl_versions)
         if not self.supported_features:
             raise ValueError("ProcessorCapabilitySet.supported_features must not be empty")
+
+
+@dataclass(frozen=True)
+class ProcessorCompatibility:
+    """Processor compatibility claims against backend surfaces."""
+
+    backends: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        if not self.backends:
+            raise ValueError("ProcessorCompatibility.backends must not be empty")
+        if any(not backend.strip() for backend in self.backends):
+            raise ValueError("ProcessorCompatibility.backends must not contain empty strings")
 
 
 @dataclass(frozen=True, init=False)
@@ -35,8 +48,7 @@ class ProcessorManifest:
 
     identity: ApparatusIdentity
     supported_contract_versions: frozenset[str]
-    compatibility: ApparatusCompatibility
-    realization_support: tuple[RealizationSupportDeclaration, ...]
+    compatibility: ProcessorCompatibility
     concept_bindings: tuple[ConceptBinding, ...]
     constraints: dict[str, str]
     capabilities: ProcessorCapabilitySet
@@ -46,8 +58,7 @@ class ProcessorManifest:
         *,
         identity: ApparatusIdentity | None = None,
         supported_contract_versions: frozenset[str] = frozenset(),
-        compatibility: ApparatusCompatibility | None = None,
-        realization_support: tuple[RealizationSupportDeclaration, ...] = (),
+        compatibility: ProcessorCompatibility | None = None,
         concept_bindings: tuple[ConceptBinding, ...] = (),
         constraints: dict[str, str] | None = None,
         capabilities: ProcessorCapabilitySet | None = None,
@@ -62,7 +73,7 @@ class ProcessorManifest:
                 raise ValueError("ProcessorManifest requires either identity or name.")
             identity = ApparatusIdentity(name=name, version=version)
         if compatibility is None:
-            compatibility = ApparatusCompatibility(backends=frozenset(compatible_backends))
+            compatibility = ProcessorCompatibility(backends=frozenset(compatible_backends))
         if capabilities is None:
             capabilities = ProcessorCapabilitySet(
                 supported_sdl_versions=frozenset(supported_sdl_versions),
@@ -73,16 +84,13 @@ class ProcessorManifest:
             raise ValueError("ProcessorManifest.supported_contract_versions must not be empty")
         if any(not version.strip() for version in supported_contract_versions):
             raise ValueError("ProcessorManifest.supported_contract_versions must not contain empty strings")
-        realization_support = tuple(realization_support)
-        if not realization_support:
-            raise ValueError("ProcessorManifest.realization_support must not be empty")
+        validate_processor_supported_contract_versions(supported_contract_versions)
         concept_bindings = tuple(concept_bindings)
         if not concept_bindings:
             raise ValueError("ProcessorManifest.concept_bindings must not be empty")
         object.__setattr__(self, "identity", identity)
         object.__setattr__(self, "supported_contract_versions", supported_contract_versions)
         object.__setattr__(self, "compatibility", compatibility)
-        object.__setattr__(self, "realization_support", realization_support)
         object.__setattr__(self, "concept_bindings", concept_bindings)
         object.__setattr__(self, "constraints", {} if constraints is None else dict(constraints))
         object.__setattr__(self, "capabilities", capabilities)

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
+import json
 import os
 import re
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-import json
 
 from .common import PolicyFailure, load_yaml, path_matches_any
-
 
 UID_RE = re.compile(r"\b([A-Z]{3}-\d{3})\b", re.IGNORECASE)
 
@@ -34,9 +33,9 @@ class GroundControlHttpClient:
         url = f"{self.base_url}{path}"
         if params:
             url = f"{url}?{urlencode(params)}"
-        request = Request(url, headers={"X-Actor": "repo-policy"})
+        request = Request(url, headers={"X-Actor": "repo-policy"})  # noqa: S310 - explicit GC HTTP endpoint
         try:
-            with urlopen(request) as response:
+            with urlopen(request) as response:  # noqa: S310 - explicit GC HTTP endpoint
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
