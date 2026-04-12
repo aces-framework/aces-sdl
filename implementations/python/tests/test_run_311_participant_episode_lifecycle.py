@@ -873,6 +873,299 @@ class TestRun311ParticipantEpisodeLifecycle:
         assert any(f"{EP1!r} -> {EP2!r}" in msg for msg in mismatch_messages)
         assert any(f"{EP2!r} -> {EP3!r}" in msg for msg in mismatch_messages)
 
+    def test_runtime_apply_path_rejects_stale_result_not_matching_history_head(self):
+        """Cross-check invariant — when both a result and a non-empty history
+        exist for the same participant, the result must be the head of the
+        history chain. Reproduces the reviewer's exact scenario: the result
+        still points at terminated episode ``ep-0001`` / sequence ``0`` while
+        the history already shows a restart into running episode ``ep-0002``
+        / sequence ``1``. Prior to this check the validator returned zero
+        diagnostics for that snapshot.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "terminated",
+                    "terminal_reason": "completed",
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": T1,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_completed",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": "completed",
+                        "control_action": None,
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_restarted",
+                        "timestamp": T2,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": "restart",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T3,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics, (
+            "apply path must reject a stale result that does not match the "
+            "head of the history chain (reviewer finding 2)"
+        )
+        assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
+        assert any("does not match head of history chain" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_terminated_result_with_non_terminal_history_head(self):
+        """Cross-check invariant — a result claiming ``status=terminated`` must
+        be accompanied by a terminal history event. A running result claiming
+        termination without matching terminal history is inconsistent.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "terminated",
+                    "terminal_reason": "completed",
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": T1,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("terminated" in diag.message and "not a terminal event" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_terminal_reason_mismatch_with_history_head(self):
+        """Cross-check invariant — when result and history agree on episode
+        identity, their terminal reasons must also agree. A result with
+        ``terminal_reason=completed`` pointing at a history head whose
+        ``terminal_reason=timed_out`` is semantically inconsistent.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "terminated",
+                    "terminal_reason": "completed",
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": T1,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_timed_out",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": "timed_out",
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("terminal_reason" in diag.message and "does not match" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_running_result_with_terminal_history_head(self):
+        """Cross-check invariant — a non-terminal result cannot coexist with a
+        terminal head event. The reviewer's scenario generalized: the head
+        is ahead of the result rather than behind.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "running",
+                    "terminal_reason": None,
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": None,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_completed",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": "completed",
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("running" in diag.message and "terminal" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_accepts_result_matching_history_head(self):
+        """Cross-check invariant — the positive counterpart: a result whose
+        identity and status match the head of the history chain must pass
+        cleanly.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP2,
+                    "sequence_number": 1,
+                    "status": "running",
+                    "terminal_reason": None,
+                    "initialized_at": T0,
+                    "updated_at": T3,
+                    "terminated_at": None,
+                    "last_control_action": "restart",
+                    "previous_episode_id": EP1,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_completed",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": "completed",
+                        "control_action": None,
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_restarted",
+                        "timestamp": T2,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": "restart",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T3,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics == []
+
     def test_runtime_apply_path_accepts_valid_participant_episode_snapshot(self):
         """Runtime integration — a snapshot that contains only valid RUN-311
         data must pass the apply-path diagnostic helper cleanly. This is the

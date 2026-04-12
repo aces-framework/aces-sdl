@@ -31,11 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR-013 ("Participant Episode Lifecycle Boundaries") in
   `docs/decisions/adrs/` defining the contract-surface boundary
   discipline that drives this work.
-- End-to-end coverage in
+- Contract-surface coverage in
   `implementations/python/tests/test_run_311_participant_episode_lifecycle.py`
-  satisfying every clause of the requirement (initialization, reset,
-  completion, timeout, truncation, interruption, restart) while
-  preserving stable participant identity across resets and restarts.
+  exercising every clause of the requirement (initialization, reset,
+  completion, timeout, truncation, interruption, restart) at the
+  ``ParticipantEpisodeExecutionState`` /
+  ``ParticipantEpisodeHistoryEvent`` boundary, plus the per-clause
+  invariants on stable participant identity across resets/restarts.
+  End-to-end coverage of the runtime + HTTP control surfaces lives
+  alongside the participant runtime added under finding 1 below
+  (``test_runtime_control_plane.py::TestParticipantEpisodeControlPlane``
+  and
+  ``test_runtime_control_plane_api.py::TestParticipantEpisodeHttpRoutes``).
 - `RuntimeSnapshot` and `RuntimeSnapshotEnvelopeModel` now carry
   `participant_episode_results` and `participant_episode_history`
   alongside the existing `orchestration_*` and `evaluation_*` surfaces.
@@ -61,9 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json`
   is updated to match the widened authority list.
 - `_live_target_cases()` live conformance probe now serializes
-  `participant_episode_results` / `participant_episode_history` so a
-  backend advertising the full-remote profile cannot pass conformance
-  with malformed RUN-311 data.
+  `participant_episode_results` / `participant_episode_history` from
+  the live ``RuntimeControlPlane.snapshot``. Note: the original drop
+  of this entry overstated coverage by implying serialization alone
+  rejected malformed data; the *active* lifecycle drive that actually
+  produces and validates participant data lives under finding 4 below.
 - Shared snapshot invariant iterator
   `aces_processor.models.iter_participant_episode_snapshot_violations`,
   consumed by both the runtime-manager apply path
@@ -79,6 +88,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Production-readiness review finding 5: tighten the original 0.10.0
+  release notes that overstated RUN-311 completeness relative to the
+  contract-only code that initially landed. The
+  ``test_run_311_participant_episode_lifecycle.py`` entry is now
+  scoped to "contract-surface coverage" with an explicit pointer to
+  the runtime/HTTP test classes added under finding 1, and the
+  ``_live_target_cases`` entry now distinguishes the original
+  serialization-only behavior from the active lifecycle drive added
+  under finding 4. Findings 1-4 below independently document the
+  runtime, conformance, and validation gaps the original wording
+  understated; this entry exists so the historical Added section
+  describes only what shipped at each point in time.
+- Production-readiness review finding 4: ``aces_conformance.conformance``
+  now actively drives a full participant episode lifecycle whenever the
+  target advertises a participant runtime. ``_live_target_cases`` calls
+  the new ``_drive_participant_episode_probe`` which submits
+  ``initialize`` / ``reset`` / ``terminate`` / ``restart`` through the
+  control plane, then adds a ``participant-snapshot-consistent``
+  conformance case that fails when ``participant_episode_results`` or
+  ``participant_episode_history`` is empty after the lifecycle, or when
+  the resulting snapshot violates ``iter_participant_episode_snapshot_violations``.
+  Backends that register a participant runtime but never publish
+  state/history through the snapshot now fail conformance instead of
+  silently certifying clean. Regression coverage in
+  ``test_live_probe_catches_participant_runtime_that_does_not_populate_snapshot``.
+- Production-readiness review finding 3: ``profile_for_manifest`` now
+  promotes a manifest that declares orchestrator, evaluator, AND
+  participant runtime to ``BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE``
+  so the default ``run_target_conformance`` path automatically validates
+  the live target against the participant-episode contract family
+  (RUN-311) without callers having to override the profile.
+  ``_capability_gaps`` now requires a ``participant_runtime`` component
+  for that profile, and ``test_runtime_conformance`` covers both the
+  promotion path and the orchestration-evaluation fallback for backends
+  that omit the participant runtime block.
+- Production-readiness review finding 1: RUN-311 now ships an actual
+  runtime capability, not just contracts and validators. New
+  ``ParticipantRuntime`` backend protocol on
+  ``aces_backend_protocols/protocols.py`` defines ``initialize`` /
+  ``reset`` / ``restart`` / ``terminate`` plus the standard
+  ``status`` / ``results`` / ``history`` observation methods. New
+  ``ParticipantRuntimeCapabilities`` capability block on
+  ``BackendCapabilitySet`` plus a ``has_participant_runtime`` property
+  on ``BackendManifest`` let backends advertise the surface and let
+  ``RuntimeTarget`` shape validation reject targets whose component
+  presence does not match the manifest. ``RuntimeControlPlane``
+  exposes ``initialize_participant_episode``,
+  ``reset_participant_episode``, ``restart_participant_episode``, and
+  ``terminate_participant_episode``, each routing through the existing
+  idempotency / persistence / audit pipeline and emitting an
+  ``OperationReceipt`` / ``OperationStatus`` under a new
+  ``RuntimeDomain.PARTICIPANT`` domain. ``control_plane_api.py``
+  publishes the four matching POST routes under
+  ``/participants/{participant_address}/episodes/*`` with closed-world
+  request bodies. The reference stub backend gains a new
+  ``StubParticipantRuntime`` that implements every transition with
+  RUN-311-correct sequence/episode_id/previous_episode_id semantics
+  and updates the snapshot in lockstep with the published contract.
+  Tests cover the in-process control plane lifecycle, the HTTP API,
+  the rejection paths (no participant runtime, already terminated,
+  duplicate initialize, etc.), idempotency replay, and a full
+  end-to-end ``initialize → reset → terminate → restart`` chain that
+  must satisfy ``iter_participant_episode_snapshot_violations``.
+- `iter_participant_episode_snapshot_violations` now cross-checks each
+  ``participant_episode_results`` entry against the head of the
+  corresponding ``participant_episode_history`` chain. A stale result
+  that still points at an earlier episode than the history shows — the
+  specific scenario raised as production-readiness review finding 2 —
+  fails validation with ``does not match head of history chain``.
+  Identity (``episode_id`` + ``sequence_number``), status category, and
+  ``terminal_reason`` must all agree with the last valid history event
+  for the same participant. Apply-path and conformance semantic-check
+  paths both pick this up automatically via the shared helper.
 - `iter_participant_episode_snapshot_violations` no longer produces
   cascading duplicate violations when a stream-level rule fires. Both
   the sequence-transition gate and the per-sequence ``episode_id``

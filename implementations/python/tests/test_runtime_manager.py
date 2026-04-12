@@ -806,7 +806,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -824,7 +824,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=FailingStartOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -849,7 +849,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=FailingStartEvaluator(calls, "evaluator"),
@@ -867,7 +867,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -887,7 +887,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=FailingStopOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -907,7 +907,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=FailingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -926,7 +926,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=InvalidValidationProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -944,7 +944,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=InvalidApplyProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -974,7 +974,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=provisioner_cls(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -992,7 +992,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RaisingStartOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1018,7 +1018,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowResultsOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1041,7 +1041,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowSchemaVersionOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1057,7 +1057,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=MissingWorkflowFieldsOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1073,7 +1073,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowLifecycleOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1089,7 +1089,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowOutcomeOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1105,7 +1105,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowAttemptCountOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1121,7 +1121,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowPendingOutcomeOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1137,7 +1137,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=MissingObservableWorkflowStepOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1153,7 +1153,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=ResultContractOnlyOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1169,7 +1169,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowCallHistoryOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1185,7 +1185,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=InvalidWorkflowCompensationOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1201,7 +1201,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=InvalidEvaluatorSchemaVersionEvaluator(calls, "evaluator"),
@@ -1217,7 +1217,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=MissingEvaluatorFieldsEvaluator(calls, "evaluator"),
@@ -1233,7 +1233,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=InvalidEvaluatorReadyPayloadEvaluator(calls, "evaluator"),
@@ -1249,7 +1249,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=MissingEvaluatorHistoryEvaluator(calls, "evaluator"),
@@ -1264,7 +1264,7 @@ class TestRuntimeManager:
     def test_status_exposes_plain_data_workflow_results(self):
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1287,7 +1287,7 @@ class TestRuntimeManager:
     def test_status_exposes_plain_data_evaluation_results_and_history(self):
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1337,7 +1337,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1357,7 +1357,7 @@ class TestRuntimeManager:
     def test_apply_rejects_unbound_direct_plan(self):
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1375,7 +1375,7 @@ class TestRuntimeManager:
     def test_manager_plan_binds_target_name(self):
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1389,7 +1389,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1408,14 +1408,14 @@ class TestRuntimeManager:
     def test_apply_rejects_target_name_mismatch(self):
         plan_target = RuntimeTarget(
             name="plan-target",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
         )
         manager_target = RuntimeTarget(
             name="other-target",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1430,12 +1430,12 @@ class TestRuntimeManager:
     def test_apply_rejects_manifest_mismatch(self):
         plan_target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
         )
-        altered_manifest = create_stub_manifest()
+        altered_manifest = create_stub_manifest(with_participant_runtime=False)
         altered_manifest = altered_manifest.__class__(
             name="stub-alt",
             version=altered_manifest.version,
@@ -1465,7 +1465,7 @@ class TestRuntimeManager:
     def test_apply_rejects_base_snapshot_mismatch(self):
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner([]),
             orchestrator=RecordingOrchestrator([]),
             evaluator=RecordingEvaluator([], "evaluator"),
@@ -1485,7 +1485,7 @@ class TestRuntimeManager:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1519,7 +1519,7 @@ nodes:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1539,7 +1539,7 @@ nodes:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1561,7 +1561,7 @@ nodes:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),
@@ -1577,7 +1577,7 @@ nodes:
         calls: list[str] = []
         target = RuntimeTarget(
             name="recording",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=RecordingProvisioner(calls),
             orchestrator=RecordingOrchestrator(calls),
             evaluator=RecordingEvaluator(calls, "evaluator"),

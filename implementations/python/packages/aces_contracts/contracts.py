@@ -556,10 +556,26 @@ class ProcessorCapabilitiesV2Model(ContractModel):
         return json_schema
 
 
+class ParticipantRuntimeCapabilitiesModel(ContractModel):
+    """Participant-episode lifecycle capability block (RUN-311).
+
+    A backend that declares this block advertises that it implements
+    the full participant episode control surface on the
+    ``ParticipantRuntime`` protocol: ``initialize`` / ``reset`` /
+    ``restart`` / ``terminate`` plus ``status`` / ``results`` /
+    ``history``. Consumers of the manifest can infer the
+    ``FULL_REMOTE_CONTROL_PLANE`` conformance profile from this block.
+    """
+
+    name: NonEmptyString
+    constraints: dict[str, str] = Field(default_factory=dict)
+
+
 class BackendCapabilitiesV2Model(ContractModel):
     provisioner: ProvisionerCapabilitiesModel
     orchestrator: OrchestratorCapabilitiesModel | None = None
     evaluator: EvaluatorCapabilitiesModel | None = None
+    participant_runtime: ParticipantRuntimeCapabilitiesModel | None = None
 
 
 class ProcessorManifestV2Model(ContractModel):
@@ -1205,6 +1221,7 @@ __all__ = [
     "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
+    "ParticipantRuntimeCapabilitiesModel",
     "PlanOperationModel",
     "ProcessorFeature",
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",

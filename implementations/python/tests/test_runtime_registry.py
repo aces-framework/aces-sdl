@@ -185,43 +185,45 @@ class TestBackendRegistry:
         with pytest.raises(ValueError, match="registry.target-shape-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
-                provisioner=create_stub_components(manifest=create_stub_manifest()).provisioner,
+                manifest=create_stub_manifest(with_participant_runtime=False),
+                provisioner=create_stub_components(
+                    manifest=create_stub_manifest(with_participant_runtime=False)
+                ).provisioner,
                 orchestrator=None,
                 evaluator=None,
             )
 
     def test_direct_runtime_target_construction_rejects_bad_provisioner_contract(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=BadProvisioner(),
                 orchestrator=components.orchestrator,
                 evaluator=components.evaluator,
             )
 
     def test_direct_runtime_target_construction_rejects_bad_orchestrator_contract(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=components.provisioner,
                 orchestrator=BadOrchestrator(),
                 evaluator=components.evaluator,
             )
 
     def test_direct_runtime_target_construction_rejects_bad_evaluator_contract(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=components.provisioner,
                 orchestrator=components.orchestrator,
                 evaluator=BadEvaluator(),
@@ -231,11 +233,11 @@ class TestBackendRegistry:
         registry = BackendRegistry()
 
         def manifest_factory(**config):
-            return create_stub_manifest(**config)
+            return create_stub_manifest(with_participant_runtime=False, **config)
 
         def components_factory(*, manifest, **config):
             del manifest, config
-            components = create_stub_components(manifest=create_stub_manifest())
+            components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
             return RuntimeTargetComponents(
                 provisioner=BadProvisioner(),
                 orchestrator=components.orchestrator,
@@ -251,11 +253,11 @@ class TestBackendRegistry:
         registry = BackendRegistry()
 
         def manifest_factory(**config):
-            return create_stub_manifest(**config)
+            return create_stub_manifest(with_participant_runtime=False, **config)
 
         def components_factory(*, manifest, **config):
             del manifest, config
-            components = create_stub_components(manifest=create_stub_manifest())
+            components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
             return RuntimeTargetComponents(
                 provisioner=WrongSigProvisioner(),
                 orchestrator=components.orchestrator,
@@ -268,47 +270,47 @@ class TestBackendRegistry:
             registry.create("bad-signature")
 
     def test_direct_runtime_target_construction_rejects_wrong_signature_provisioner(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=WrongSigProvisioner(),
                 orchestrator=components.orchestrator,
                 evaluator=components.evaluator,
             )
 
     def test_direct_runtime_target_construction_rejects_wrong_signature_orchestrator(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=components.provisioner,
                 orchestrator=WrongSigOrchestrator(),
                 evaluator=components.evaluator,
             )
 
     def test_direct_runtime_target_construction_rejects_wrong_signature_evaluator(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         with pytest.raises(ValueError, match="registry.target-contract-mismatch"):
             RuntimeTarget(
                 name="broken",
-                manifest=create_stub_manifest(),
+                manifest=create_stub_manifest(with_participant_runtime=False),
                 provisioner=components.provisioner,
                 orchestrator=components.orchestrator,
                 evaluator=WrongSigEvaluator(),
             )
 
     def test_direct_runtime_target_construction_accepts_optional_extra_parameters(self):
-        components = create_stub_components(manifest=create_stub_manifest())
+        components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
 
         target = RuntimeTarget(
             name="optional",
-            manifest=create_stub_manifest(),
+            manifest=create_stub_manifest(with_participant_runtime=False),
             provisioner=OptionalArgProvisioner(),
             orchestrator=components.orchestrator,
             evaluator=components.evaluator,
@@ -324,7 +326,7 @@ class TestBackendRegistry:
 
         class LegacyComponents:
             def __init__(self) -> None:
-                components = create_stub_components(manifest=create_stub_manifest())
+                components = create_stub_components(manifest=create_stub_manifest(with_participant_runtime=False))
                 self.provisioner = components.provisioner
                 self.orchestrator = components.orchestrator
                 self.evaluators = (components.evaluator,)

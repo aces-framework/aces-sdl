@@ -38,6 +38,7 @@ from aces_processor.models import (
     EvaluationExecutionState,
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
+    ParticipantEpisodeTerminalReason,
     RuntimeDomain,
     RuntimeSnapshot,
     RuntimeSnapshotEnvelope,
@@ -471,8 +472,20 @@ def run_fixture_suite(
 
 
 def profile_for_manifest(manifest: BackendManifest) -> BackendCapabilityProfile:
-    """Infer the nearest conformance profile for a backend manifest."""
+    """Infer the nearest conformance profile for a backend manifest.
 
+    A backend that declares orchestrator, evaluator, AND participant
+    runtime capabilities is treated as ``FULL_REMOTE_CONTROL_PLANE``,
+    so the default ``run_target_conformance`` path automatically
+    validates the live target against the participant-episode contract
+    family (RUN-311). Backends that only declare orchestrator/evaluator
+    fall back to ``ORCHESTRATION_EVALUATION``; orchestrator-only
+    declarations fall back to ``ORCHESTRATION_CAPABLE``; provisioner-only
+    backends remain at ``PROVISIONING_ONLY``.
+    """
+
+    if manifest.has_orchestrator and manifest.has_evaluator and manifest.has_participant_runtime:
+        return BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
     if manifest.has_orchestrator and manifest.has_evaluator:
         return BackendCapabilityProfile.ORCHESTRATION_EVALUATION
     if manifest.has_orchestrator:
@@ -504,6 +517,8 @@ def _capability_gaps(
         and target.evaluator is None
     ):
         gaps.append("evaluator")
+    if profile == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE and target.participant_runtime is None:
+        gaps.append("participant_runtime")
     return tuple(gaps)
 
 
@@ -557,6 +572,133 @@ def run_target_conformance(
         unsupported_capability_gaps=gaps,
         diagnostics=tuple(diagnostics),
     )
+
+
+def _drive_participant_episode_probe(
+    control_plane: RuntimeControlPlane,
+    *,
+    participant_address: str,
+) -> list[ConformanceCaseResult]:
+    """Drive a full RUN-311 participant lifecycle via the control plane.
+
+    Each control action becomes one ``ConformanceCaseResult`` so that
+    ``run_target_conformance`` reports a separate failure for any step
+    the backend rejects, and a final case validates the resulting
+    ``participant_episode_results`` / ``participant_episode_history``
+    against the shared snapshot invariants.
+
+    A target that registers a participant runtime but never populates
+    the snapshot fields fails the snapshot-state-not-empty check, so
+    the live conformance probe cannot certify a backend whose runtime
+    accepts every action but produces no observable state.
+    """
+
+    cases: list[ConformanceCaseResult] = []
+    actions = (
+        ("participant-initialize", lambda: control_plane.initialize_participant_episode(participant_address)),
+        ("participant-reset", lambda: control_plane.reset_participant_episode(participant_address)),
+        (
+            "participant-terminate",
+            lambda: control_plane.terminate_participant_episode(
+                participant_address,
+                terminal_reason=ParticipantEpisodeTerminalReason.COMPLETED,
+            ),
+        ),
+        ("participant-restart", lambda: control_plane.restart_participant_episode(participant_address)),
+    )
+    contract_name = "participant-episode-state-envelope-v1"
+    for case_name, invoke in actions:
+        try:
+            receipt = invoke()
+        except Exception as exc:  # pragma: no cover - defensive only
+            cases.append(
+                ConformanceCaseResult(
+                    name=case_name,
+                    contract_name=contract_name,
+                    valid=True,
+                    passed=False,
+                    diagnostics=(
+                        _diagnostic(
+                            "conformance.participant-runtime-failed",
+                            f"runtime.control-plane.participant.{participant_address}",
+                            f"{case_name} raised {type(exc).__name__}: {exc}",
+                        ),
+                    ),
+                )
+            )
+            continue
+        status = control_plane.get_operation(receipt.operation_id)
+        diagnostics: list[Diagnostic] = []
+        if status is None:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.participant-runtime-missing-status",
+                    f"runtime.control-plane.participant.{participant_address}",
+                    f"{case_name} did not produce an OperationStatus record",
+                )
+            )
+        elif status.state.value not in {"succeeded"}:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.participant-runtime-failed",
+                    f"runtime.control-plane.participant.{participant_address}",
+                    (
+                        f"{case_name} returned state {status.state.value!r} with diagnostics: "
+                        + "; ".join(diag.message for diag in status.diagnostics)
+                    ),
+                )
+            )
+        cases.append(
+            ConformanceCaseResult(
+                name=case_name,
+                contract_name=contract_name,
+                valid=True,
+                passed=not diagnostics,
+                diagnostics=tuple(diagnostics),
+            )
+        )
+
+    snapshot = control_plane.snapshot
+    final_diagnostics: list[Diagnostic] = []
+    if not snapshot.participant_episode_results:
+        final_diagnostics.append(
+            _diagnostic(
+                "conformance.participant-runtime-empty",
+                f"runtime.snapshot.participant-episode-results.{participant_address}",
+                (
+                    "Participant runtime accepted every control action but the snapshot "
+                    "exposes no participant_episode_results. RUN-311 backends must publish "
+                    "live episode state through the snapshot."
+                ),
+            )
+        )
+    if not snapshot.participant_episode_history:
+        final_diagnostics.append(
+            _diagnostic(
+                "conformance.participant-runtime-empty",
+                f"runtime.snapshot.participant-episode-history.{participant_address}",
+                (
+                    "Participant runtime accepted every control action but the snapshot "
+                    "exposes no participant_episode_history. RUN-311 backends must publish "
+                    "live episode history events through the snapshot."
+                ),
+            )
+        )
+    for address, message in iter_participant_episode_snapshot_violations(
+        snapshot.participant_episode_results,
+        snapshot.participant_episode_history,
+    ):
+        final_diagnostics.append(_diagnostic("conformance.semantic-invalid", address, message))
+    cases.append(
+        ConformanceCaseResult(
+            name="participant-snapshot-consistent",
+            contract_name=contract_name,
+            valid=True,
+            passed=not final_diagnostics,
+            diagnostics=tuple(final_diagnostics),
+        )
+    )
+    return cases
 
 
 def _live_target_cases(
@@ -617,6 +759,13 @@ def _live_target_cases(
         control_plane.submit_orchestration(execution_plan.orchestration)
     if target.evaluator is not None:
         control_plane.submit_evaluation(execution_plan.evaluation)
+    if target.participant_runtime is not None:
+        cases.extend(
+            _drive_participant_episode_probe(
+                control_plane,
+                participant_address="participant.conformance",
+            )
+        )
     snapshot_payload = {
         "schema_version": RuntimeSnapshotEnvelope().schema_version,
         "entries": {
