@@ -11,7 +11,7 @@ from bound runtime instances. The planner reconciles those instances against
 the current ``RuntimeSnapshot`` and emits a composite ``ExecutionPlan``.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
@@ -185,8 +185,8 @@ class ParticipantEpisodeHistoryEventType(str, Enum):
 
 
 _PARTICIPANT_EPISODE_TERMINAL_EVENTS: dict[
-    "ParticipantEpisodeHistoryEventType",
-    "ParticipantEpisodeTerminalReason",
+    ParticipantEpisodeHistoryEventType,
+    ParticipantEpisodeTerminalReason,
 ] = {
     ParticipantEpisodeHistoryEventType.EPISODE_COMPLETED: ParticipantEpisodeTerminalReason.COMPLETED,
     ParticipantEpisodeHistoryEventType.EPISODE_TIMED_OUT: ParticipantEpisodeTerminalReason.TIMED_OUT,
@@ -196,8 +196,8 @@ _PARTICIPANT_EPISODE_TERMINAL_EVENTS: dict[
 
 
 _PARTICIPANT_EPISODE_CONTROL_EVENTS: dict[
-    "ParticipantEpisodeHistoryEventType",
-    "ParticipantEpisodeControlAction",
+    ParticipantEpisodeHistoryEventType,
+    ParticipantEpisodeControlAction,
 ] = {
     ParticipantEpisodeHistoryEventType.EPISODE_INITIALIZED: ParticipantEpisodeControlAction.INITIALIZE,
     ParticipantEpisodeHistoryEventType.EPISODE_RESET: ParticipantEpisodeControlAction.RESET,
@@ -1528,6 +1528,149 @@ class ParticipantEpisodeHistoryEvent:
             )
 
 
+def iter_participant_episode_snapshot_violations(
+    participant_episode_results: Any,
+    participant_episode_history: Any,
+) -> Iterator[tuple[str, str]]:
+    """Yield every participant-episode invariant violation in a snapshot.
+
+    Both arguments are the raw ``RuntimeSnapshot.participant_episode_results``
+    and ``RuntimeSnapshot.participant_episode_history`` maps keyed by the
+    stable ``participant_address``. The helper exists so that the runtime
+    manager apply path and the conformance semantic-check path share one
+    source of truth for RUN-311 invariants; each caller wraps the yielded
+    ``(address, message)`` tuples in its own diagnostic type.
+
+    The following invariants are checked:
+
+    - ``participant_episode_results`` / ``_history`` are mappings.
+    - Each outer key is a non-empty string.
+    - Each result value is a mapping and reconstructs through
+      ``ParticipantEpisodeExecutionState.from_payload`` (i.e. respects the
+      state-machine invariants enforced in ``__post_init__``).
+    - Each result's inner ``participant_address`` matches the outer key.
+    - Each history value is a list of mappings and every event reconstructs
+      through ``ParticipantEpisodeHistoryEvent.from_payload``.
+    - Each history event's inner ``participant_address`` matches the outer
+      key.
+    - Within one participant's history, ``sequence_number`` is monotonic
+      non-decreasing.
+    - Within one sequence number, ``episode_id`` is stable.
+    - Cross-sequence transitions are gated by an ``EPISODE_RESET`` or
+      ``EPISODE_RESTARTED`` event (the first sequence number observed in
+      a history stream is exempt because history may be truncated).
+    """
+
+    results_key = "runtime.snapshot.participant-episode-results"
+    history_key = "runtime.snapshot.participant-episode-history"
+
+    if not isinstance(participant_episode_results, Mapping):
+        yield (results_key, "participant_episode_results must be a mapping")
+    else:
+        for outer_key, result in participant_episode_results.items():
+            if not isinstance(outer_key, str) or not outer_key:
+                yield (results_key, "participant episode result keys must be non-empty strings")
+                continue
+            if not isinstance(result, Mapping):
+                yield (outer_key, "participant episode result must be a mapping")
+                continue
+            try:
+                normalized_result = ParticipantEpisodeExecutionState.from_payload(result)
+            except (TypeError, ValueError) as exc:
+                yield (outer_key, f"participant episode result is invalid: {exc}")
+                continue
+            if normalized_result.participant_address != outer_key:
+                yield (
+                    outer_key,
+                    (
+                        f"participant episode result outer key {outer_key!r} does not match "
+                        f"inner participant_address {normalized_result.participant_address!r}"
+                    ),
+                )
+
+    if not isinstance(participant_episode_history, Mapping):
+        yield (history_key, "participant_episode_history must be a mapping")
+        return
+
+    for outer_key, history in participant_episode_history.items():
+        if not isinstance(outer_key, str) or not outer_key:
+            yield (history_key, "participant episode history keys must be non-empty strings")
+            continue
+        if not isinstance(history, list):
+            yield (outer_key, "participant episode history must be a list of events")
+            continue
+        normalized_events: list[ParticipantEpisodeHistoryEvent] = []
+        per_entry_violations = False
+        for index, event in enumerate(history):
+            locator = f"{outer_key}[{index}]"
+            if not isinstance(event, Mapping):
+                yield (locator, "participant episode history event must be a mapping")
+                per_entry_violations = True
+                continue
+            try:
+                normalized_event = ParticipantEpisodeHistoryEvent.from_payload(event)
+            except (TypeError, ValueError) as exc:
+                yield (locator, f"participant episode history event is invalid: {exc}")
+                per_entry_violations = True
+                continue
+            if normalized_event.participant_address != outer_key:
+                yield (
+                    locator,
+                    (
+                        f"participant episode history event outer key {outer_key!r} does not match "
+                        f"inner participant_address {normalized_event.participant_address!r}"
+                    ),
+                )
+                per_entry_violations = True
+                continue
+            normalized_events.append(normalized_event)
+
+        if per_entry_violations:
+            continue
+
+        last_sequence = -1
+        sequence_to_episode: dict[int, str] = {}
+        for index, event in enumerate(normalized_events):
+            locator = f"{outer_key}[{index}]"
+            if event.sequence_number < last_sequence:
+                yield (
+                    locator,
+                    (
+                        f"participant episode history sequence_number went backward "
+                        f"({last_sequence} -> {event.sequence_number})"
+                    ),
+                )
+                continue
+            if event.sequence_number > last_sequence and last_sequence != -1:
+                if event.event_type not in {
+                    ParticipantEpisodeHistoryEventType.EPISODE_RESET,
+                    ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED,
+                }:
+                    yield (
+                        locator,
+                        (
+                            f"participant episode transition to sequence_number "
+                            f"{event.sequence_number} must arrive via episode_reset or "
+                            f"episode_restarted; saw {event.event_type.value}"
+                        ),
+                    )
+                    continue
+            expected_episode_id = sequence_to_episode.get(event.sequence_number)
+            if expected_episode_id is None:
+                sequence_to_episode[event.sequence_number] = event.episode_id
+            elif expected_episode_id != event.episode_id:
+                yield (
+                    locator,
+                    (
+                        f"participant episode history episode_id changed within "
+                        f"sequence_number {event.sequence_number}: "
+                        f"{expected_episode_id!r} -> {event.episode_id!r}"
+                    ),
+                )
+                continue
+            last_sequence = event.sequence_number
+
+
 def validate_evaluation_result(
     contract: EvaluationResultContract,
     state: EvaluationExecutionState,
@@ -1783,7 +1926,15 @@ class SnapshotEntry:
 
 @dataclass
 class RuntimeSnapshot:
-    """Current runtime snapshot."""
+    """Current runtime snapshot.
+
+    Participant episode surfaces (``participant_episode_results`` and
+    ``participant_episode_history``) are both keyed by the stable
+    ``participant_address``. The results map holds the *current* live
+    episode state for each participant; prior episode instances are
+    preserved only through the append-only history stream and the
+    ``previous_episode_id`` chain on each state. See ADR-013.
+    """
 
     entries: dict[str, SnapshotEntry] = field(default_factory=dict)
     orchestration_results: dict[str, dict[str, Any]] = field(default_factory=dict)

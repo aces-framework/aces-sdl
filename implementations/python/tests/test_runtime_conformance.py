@@ -94,7 +94,7 @@ def test_runtime_snapshot_semantic_diagnostics_reject_invalid_participant_episod
 
     codes = {diag.code for diag in diagnostics}
     assert "conformance.semantic-invalid" in codes
-    assert any("participant episode result semantics are invalid" in diag.message for diag in diagnostics)
+    assert any("participant episode result is invalid" in diag.message for diag in diagnostics)
 
 
 def test_runtime_snapshot_semantic_diagnostics_reject_invalid_participant_episode_history():
@@ -132,7 +132,7 @@ def test_runtime_snapshot_semantic_diagnostics_reject_invalid_participant_episod
 
     codes = {diag.code for diag in diagnostics}
     assert "conformance.semantic-invalid" in codes
-    assert any("participant episode history event semantics are invalid" in diag.message for diag in diagnostics)
+    assert any("must report sequence_number>0" in diag.message for diag in diagnostics)
 
 
 def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_requirements():

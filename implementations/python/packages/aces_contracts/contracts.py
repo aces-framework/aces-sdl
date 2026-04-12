@@ -227,6 +227,17 @@ class SnapshotEntryModel(ContractModel):
 
 
 class RuntimeSnapshotEnvelopeModel(ContractModel):
+    """Published envelope for a live runtime snapshot.
+
+    Participant episode surfaces (``participant_episode_results`` and
+    ``participant_episode_history``) are both keyed by the stable
+    ``participant_address`` of the participant the state/history belongs
+    to. The results map carries the currently-live episode state per
+    participant; prior episodes survive only through the append-only
+    history stream and the ``previous_episode_id`` chain on each state.
+    See ADR-013.
+    """
+
     schema_version: Literal[RUNTIME_SNAPSHOT_SCHEMA_VERSION] = RUNTIME_SNAPSHOT_SCHEMA_VERSION
     entries: dict[str, SnapshotEntryModel] = Field(default_factory=dict)
     orchestration_results: dict[str, WorkflowExecutionStateModel] = Field(default_factory=dict)

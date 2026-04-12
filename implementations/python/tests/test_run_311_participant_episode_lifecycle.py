@@ -590,6 +590,189 @@ class TestRun311ParticipantEpisodeLifecycle:
         assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
         assert any("must report sequence_number>0" in diag.message for diag in diagnostics)
 
+    def test_runtime_apply_path_rejects_outer_key_mismatch_on_result(self):
+        """Stream invariant — the outer ``participant_episode_results`` key must
+        equal the inner ``participant_address``. Backends that key results by
+        one address but set a different ``participant_address`` on the state
+        corrupt the participant identity and must be rejected.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.bob",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "initializing",
+                    "terminal_reason": None,
+                    "initialized_at": T0,
+                    "updated_at": T0,
+                    "terminated_at": None,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics, "apply path must reject participant episode result with outer-key mismatch"
+        assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
+        assert any("does not match inner participant_address" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_outer_key_mismatch_on_history_event(self):
+        """Stream invariant — history events must carry the same
+        ``participant_address`` as the outer key they were indexed under.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.bob",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    }
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
+        assert any("does not match inner participant_address" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_history_sequence_going_backward(self):
+        """Stream invariant — sequence_number is monotonic non-decreasing
+        within one participant's history. A backend cannot emit events for
+        older episodes after newer ones.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_reset",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": "reset",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T2,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("sequence_number went backward" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_sequence_increment_without_reset_or_restart(self):
+        """Stream invariant — a transition into a new episode sequence must
+        be gated by an ``EPISODE_RESET`` or ``EPISODE_RESTARTED`` event, not
+        a plain ``EPISODE_RUNNING`` or terminal event.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("must arrive via episode_reset or episode_restarted" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_rejects_episode_id_changing_within_sequence(self):
+        """Stream invariant — within one sequence number, every history event
+        must share the same episode_id. A sudden change would mean the same
+        ``sequence_number`` spans two distinct episode instances.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics
+        assert any("episode_id changed within sequence_number" in diag.message for diag in diagnostics)
+
     def test_runtime_apply_path_accepts_valid_participant_episode_snapshot(self):
         """Runtime integration — a snapshot that contains only valid RUN-311
         data must pass the apply-path diagnostic helper cleanly. This is the
@@ -629,6 +812,145 @@ class TestRun311ParticipantEpisodeLifecycle:
         )
 
         diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics == []
+
+    def test_runtime_snapshot_with_entries_preserves_participant_episode_surfaces(self):
+        """Snapshot integration — ``RuntimeSnapshot.with_entries`` must preserve
+        ``participant_episode_results`` and ``participant_episode_history`` when
+        they are not overridden, and must replace them when the caller passes
+        an explicit value. Both modes are exercised here.
+        """
+
+        results = {
+            "participant.alice": {
+                "state_schema_version": "participant-episode-state/v1",
+                "participant_address": "participant.alice",
+                "episode_id": EP1,
+                "sequence_number": 0,
+                "status": "running",
+                "terminal_reason": None,
+                "initialized_at": T0,
+                "updated_at": T1,
+                "terminated_at": None,
+                "last_control_action": "initialize",
+                "previous_episode_id": None,
+            }
+        }
+        history = {
+            "participant.alice": [
+                {
+                    "event_type": "episode_initialized",
+                    "timestamp": T0,
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "terminal_reason": None,
+                    "control_action": "initialize",
+                    "details": {},
+                }
+            ]
+        }
+        snapshot = RuntimeSnapshot(
+            participant_episode_results=results,
+            participant_episode_history=history,
+        )
+
+        preserved = snapshot.with_entries({})
+        assert preserved.participant_episode_results == results
+        assert preserved.participant_episode_history == history
+
+        replacement_results = {
+            "participant.bob": {
+                "state_schema_version": "participant-episode-state/v1",
+                "participant_address": "participant.bob",
+                "episode_id": "ep-bob-1",
+                "sequence_number": 0,
+                "status": "initializing",
+                "terminal_reason": None,
+                "initialized_at": T2,
+                "updated_at": T2,
+                "terminated_at": None,
+                "last_control_action": "initialize",
+                "previous_episode_id": None,
+            }
+        }
+        replaced = snapshot.with_entries(
+            {},
+            participant_episode_results=replacement_results,
+            participant_episode_history={},
+        )
+        assert replaced.participant_episode_results == replacement_results
+        assert replaced.participant_episode_history == {}
+        assert snapshot.participant_episode_results == results, (
+            "with_entries must not mutate the source snapshot's participant results"
+        )
+        assert snapshot.participant_episode_history == history, (
+            "with_entries must not mutate the source snapshot's participant history"
+        )
+
+    def test_runtime_snapshot_semantic_diagnostics_accept_valid_populated_payload(self):
+        """Conformance integration — a runtime-snapshot-v1 payload that
+        populates participant_episode_results and participant_episode_history
+        with a coherent initialize→running history must pass
+        ``_semantic_diagnostics`` cleanly. This is the positive counterpart to
+        the rejection tests in ``test_runtime_conformance.py`` and gives the
+        live probe direct coverage of the populated-payload path in
+        ``_live_target_cases``.
+        """
+
+        from aces_conformance.conformance import _semantic_diagnostics
+
+        snapshot_payload = {
+            "schema_version": "runtime-snapshot/v1",
+            "entries": {},
+            "orchestration_results": {},
+            "orchestration_history": {},
+            "evaluation_results": {},
+            "evaluation_history": {},
+            "participant_episode_results": {
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "running",
+                    "terminal_reason": None,
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": None,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            "participant_episode_history": {
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+            "metadata": {},
+        }
+
+        diagnostics = _semantic_diagnostics("runtime-snapshot-v1", snapshot_payload)
 
         assert diagnostics == []
 
