@@ -828,6 +828,51 @@ class TestRun311ParticipantEpisodeLifecycle:
             f"per event at the new sequence; got {len(gate_messages)} occurrences: {gate_messages}"
         )
 
+    def test_runtime_apply_path_episode_id_mismatch_reports_transitions_not_repeats(self):
+        """Stream invariant — an ``episode_id`` mismatch within one sequence
+        must be reported as a one-off *transition* between episode_ids, not
+        as a repeated comparison against the first-observed id. For the
+        history ``[A, B, B, C]`` at the same sequence number the validator
+        must yield exactly two mismatch errors (``A -> B`` and ``B -> C``),
+        not three (``A -> B``, ``A -> B``, ``A -> C``).
+        """
+
+        def _event(timestamp: str, episode_id: str, event_type: str, control_action: str | None):
+            return {
+                "event_type": event_type,
+                "timestamp": timestamp,
+                "participant_address": "participant.alice",
+                "episode_id": episode_id,
+                "sequence_number": 0,
+                "terminal_reason": None,
+                "control_action": control_action,
+                "details": {},
+            }
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    _event(T0, EP1, "episode_initialized", "initialize"),
+                    _event(T1, EP2, "episode_running", None),
+                    _event(T2, EP2, "episode_running", None),
+                    _event(T3, EP3, "episode_running", None),
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        mismatch_messages = [
+            diag.message for diag in diagnostics if "episode_id changed within sequence_number" in diag.message
+        ]
+        assert len(mismatch_messages) == 2, (
+            "episode_id mismatches must be reported as transitions (A->B, B->C), "
+            f"not as repeated comparisons against the first-observed id. Got "
+            f"{len(mismatch_messages)} mismatches: {mismatch_messages}"
+        )
+        assert any(f"{EP1!r} -> {EP2!r}" in msg for msg in mismatch_messages)
+        assert any(f"{EP2!r} -> {EP3!r}" in msg for msg in mismatch_messages)
+
     def test_runtime_apply_path_accepts_valid_participant_episode_snapshot(self):
         """Runtime integration — a snapshot that contains only valid RUN-311
         data must pass the apply-path diagnostic helper cleanly. This is the

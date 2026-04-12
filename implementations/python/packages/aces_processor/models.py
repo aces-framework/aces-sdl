@@ -1665,9 +1665,7 @@ def iter_participant_episode_snapshot_violations(
                     ),
                 )
             expected_episode_id = sequence_to_episode.get(event.sequence_number)
-            if expected_episode_id is None:
-                sequence_to_episode[event.sequence_number] = event.episode_id
-            elif expected_episode_id != event.episode_id:
+            if expected_episode_id is not None and expected_episode_id != event.episode_id:
                 yield (
                     locator,
                     (
@@ -1676,6 +1674,7 @@ def iter_participant_episode_snapshot_violations(
                         f"{expected_episode_id!r} -> {event.episode_id!r}"
                     ),
                 )
+            sequence_to_episode[event.sequence_number] = event.episode_id
             last_sequence = event.sequence_number
 
 

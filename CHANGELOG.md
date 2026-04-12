@@ -80,11 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `iter_participant_episode_snapshot_violations` no longer produces
-  cascading duplicate violations when a stream-level rule fires. The
-  validator now advances ``last_sequence`` and ``sequence_to_episode``
-  after every yielded violation except strict backward movement, so a
-  single ungated sequence transition reports one error instead of one
-  error per follow-up event at the new sequence number.
+  cascading duplicate violations when a stream-level rule fires. Both
+  the sequence-transition gate and the per-sequence ``episode_id``
+  stability check now advance stream state after every yielded
+  violation except strict backward movement, so an ungated sequence
+  transition reports one error per transition and an ``episode_id``
+  mismatch reports each distinct transition (e.g. ``A -> B`` then
+  ``B -> C``) instead of repeating the same comparison against the
+  first-observed id.
 
 ### Changed
 
