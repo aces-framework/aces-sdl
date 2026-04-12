@@ -11,10 +11,10 @@ from aces_contracts.contracts import (
     schema_bundle,
 )
 from aces_contracts.manifest_authority import (
+    BACKEND_SUPPORTED_CONTRACT_IDS,
     PROCESSOR_SUPPORTED_CONTRACT_IDS,
     PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
 )
-from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
 from aces.core.runtime import contracts as compat_runtime_contracts
 
@@ -26,7 +26,7 @@ def test_published_contract_schemas_exist_and_match_bundle():
 
     generated = schema_bundle()
 
-    assert set(generated) <= set(published)
+    assert set(generated) == set(published)
     for name, schema in generated.items():
         assert published[name] == schema
 
@@ -45,57 +45,38 @@ def test_closed_world_contract_models_for_runtime_envelopes():
     assert generated["operation-receipt-v1"]["additionalProperties"] is False
     assert generated["operation-status-v1"]["additionalProperties"] is False
     assert generated["runtime-snapshot-v1"]["additionalProperties"] is False
-    assert generated["backend-manifest-v1"]["additionalProperties"] is False
     assert generated["backend-manifest-v2"]["additionalProperties"] is False
     assert generated["processor-manifest-v2"]["additionalProperties"] is False
     assert generated["concept-families-v1"]["additionalProperties"] is False
     assert generated["reference-models-v1"]["additionalProperties"] is False
     assert generated["controlled-vocabularies-v1"]["additionalProperties"] is False
     assert generated["semantic-profile-v1"]["additionalProperties"] is False
+    assert "backend-manifest-v1" not in generated
 
 
-def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_shapes():
+def test_manifest_schemas_publish_backend_and_processor_v2_with_surface_specific_constraints():
     generated = schema_bundle()
-    backend_v1_orchestrator = generated["backend-manifest-v1"]["$defs"]["OrchestratorCapabilitiesModel"]
-    backend_v1_provisioner = generated["backend-manifest-v1"]["$defs"]["ProvisionerCapabilitiesModel"]
-    backend_v2_compatibility = generated["backend-manifest-v2"]["$defs"]["ApparatusCompatibilityModel"]
+    backend_v2_compatibility = generated["backend-manifest-v2"]["$defs"]["BackendCompatibilityModel"]
     backend_v2_realization = generated["backend-manifest-v2"]["$defs"]["RealizationSupportDeclarationModel"]
     processor_v2_compatibility = generated["processor-manifest-v2"]["$defs"]["ProcessorCompatibilityModel"]
     processor_v2_caps = generated["processor-manifest-v2"]["$defs"]["ProcessorCapabilitiesV2Model"]
 
-    assert backend_v1_orchestrator["properties"]["supported_workflow_features"]["items"]["$ref"] == (
-        "#/$defs/WorkflowFeature"
-    )
-    assert generated["backend-manifest-v1"]["$defs"]["WorkflowFeature"]["enum"] == [
-        feature.value for feature in WorkflowFeature
-    ]
-    assert backend_v1_orchestrator["properties"]["supported_workflow_state_predicates"]["items"]["$ref"] == (
-        "#/$defs/WorkflowStatePredicateFeature"
-    )
-    assert generated["backend-manifest-v1"]["$defs"]["WorkflowStatePredicateFeature"]["enum"] == [
-        feature.value for feature in WorkflowStatePredicateFeature
-    ]
     assert generated["backend-manifest-v2"]["properties"]["identity"]["$ref"] == "#/$defs/ApparatusIdentityModel"
-    assert generated["backend-manifest-v2"]["properties"]["compatibility"]["$ref"] == (
-        "#/$defs/ApparatusCompatibilityModel"
+    assert (
+        generated["backend-manifest-v2"]["properties"]["compatibility"]["$ref"] == "#/$defs/BackendCompatibilityModel"
     )
     assert generated["backend-manifest-v2"]["properties"]["realization_support"]["items"]["$ref"] == (
         "#/$defs/RealizationSupportDeclarationModel"
     )
     assert generated["backend-manifest-v2"]["properties"]["supported_contract_versions"]["minItems"] == 1
+    assert generated["backend-manifest-v2"]["properties"]["supported_contract_versions"]["items"]["enum"] == list(
+        BACKEND_SUPPORTED_CONTRACT_IDS
+    )
     assert generated["backend-manifest-v2"]["properties"]["realization_support"]["minItems"] == 1
-    assert backend_v2_compatibility["allOf"] == [
-        {
-            "anyOf": [
-                {"required": ["processors"], "properties": {"processors": {"minItems": 1}}},
-                {"required": ["backends"], "properties": {"backends": {"minItems": 1}}},
-                {
-                    "required": ["participant_implementations"],
-                    "properties": {"participant_implementations": {"minItems": 1}},
-                },
-            ]
-        }
-    ]
+    assert backend_v2_compatibility["required"] == ["processors"]
+    assert backend_v2_compatibility["properties"]["processors"]["minItems"] == 1
+    assert "backends" not in backend_v2_compatibility["properties"]
+    assert "participant_implementations" not in backend_v2_compatibility["properties"]
     assert backend_v2_realization["properties"]["disclosure_kinds"]["minItems"] == 1
     assert backend_v2_realization["allOf"] == [
         {
@@ -124,8 +105,6 @@ def test_manifest_schemas_publish_v1_and_v2_with_shared_and_enum_constrained_sha
             },
         },
     ]
-    assert backend_v1_provisioner["properties"]["supported_node_types"]["minItems"] == 1
-    assert backend_v1_provisioner["properties"]["supported_os_families"]["minItems"] == 1
     assert generated["backend-manifest-v2"]["required"] == [
         "identity",
         "supported_contract_versions",

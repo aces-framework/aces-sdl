@@ -14,13 +14,14 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
 from .manifest_authority import (
+    BACKEND_SUPPORTED_CONTRACT_IDS,
     PROCESSOR_SUPPORTED_CONTRACT_IDS,
     PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
+    validate_backend_supported_contract_versions,
     validate_processor_supported_contract_versions,
     validate_processor_supported_sdl_versions,
 )
 from .versions import (
-    BACKEND_MANIFEST_SCHEMA_VERSION,
     BACKEND_MANIFEST_V2_SCHEMA_VERSION,
     CONCEPT_FAMILIES_SCHEMA_VERSION,
     CONTROLLED_VOCABULARIES_SCHEMA_VERSION,
@@ -413,53 +414,13 @@ class EvaluatorCapabilitiesModel(ContractModel):
         return json_schema
 
 
-class BackendManifestModel(ContractModel):
-    schema_version: Literal[BACKEND_MANIFEST_SCHEMA_VERSION] = BACKEND_MANIFEST_SCHEMA_VERSION
-    name: NonEmptyString
-    provisioner: ProvisionerCapabilitiesModel
-    orchestrator: OrchestratorCapabilitiesModel | None = None
-    evaluator: EvaluatorCapabilitiesModel | None = None
-
-
 class ApparatusIdentityModel(ContractModel):
     name: NonEmptyString
     version: NonEmptyString
 
 
-class ApparatusCompatibilityModel(ContractModel):
-    processors: list[NonEmptyString] = Field(default_factory=list)
-    backends: list[NonEmptyString] = Field(default_factory=list)
-    participant_implementations: list[NonEmptyString] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def _validate_non_hollow_compatibility(self) -> ApparatusCompatibilityModel:
-        if not (self.processors or self.backends or self.participant_implementations):
-            raise ValueError(
-                "compatibility must declare at least one processor, backend, or participant implementation"
-            )
-        return self
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        json_schema = handler(core_schema)
-        json_schema = handler.resolve_ref_schema(json_schema)
-        json_schema.setdefault("allOf", []).append(
-            {
-                "anyOf": [
-                    {"required": ["processors"], "properties": {"processors": {"minItems": 1}}},
-                    {"required": ["backends"], "properties": {"backends": {"minItems": 1}}},
-                    {
-                        "required": ["participant_implementations"],
-                        "properties": {"participant_implementations": {"minItems": 1}},
-                    },
-                ]
-            }
-        )
-        return json_schema
+class BackendCompatibilityModel(ContractModel):
+    processors: list[NonEmptyString] = Field(min_length=1)
 
 
 class ProcessorCompatibilityModel(ContractModel):
@@ -598,7 +559,7 @@ class BackendManifestV2Model(ContractModel):
     schema_version: Literal[BACKEND_MANIFEST_V2_SCHEMA_VERSION] = BACKEND_MANIFEST_V2_SCHEMA_VERSION
     identity: ApparatusIdentityModel
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    compatibility: ApparatusCompatibilityModel
+    compatibility: BackendCompatibilityModel
     realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
     concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
@@ -606,11 +567,23 @@ class BackendManifestV2Model(ContractModel):
 
     @model_validator(mode="after")
     def _validate_unique_binding_scopes(self) -> BackendManifestV2Model:
+        validate_backend_supported_contract_versions(self.supported_contract_versions)
         scopes = [binding.scope for binding in self.concept_bindings]
         if len(scopes) != len(set(scopes)):
             raise ValueError("concept_bindings must not contain duplicate scopes")
         _validate_canonical_concept_bindings(self, allowed_scopes=_BACKEND_CONCEPT_BINDING_SCOPES)
         return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(BACKEND_SUPPORTED_CONTRACT_IDS)
+        return json_schema
 
 
 class ConceptFamilyDefinitionModel(ContractModel):
@@ -1124,7 +1097,6 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "sdl-authoring-input-v1": Scenario.model_json_schema(),
         "instantiated-scenario-v1": InstantiatedScenario.model_json_schema(),
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
-        "backend-manifest-v1": BackendManifestModel.model_json_schema(),
         "backend-manifest-v2": BackendManifestV2Model.model_json_schema(),
         "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
@@ -1156,11 +1128,9 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
 
 
 __all__ = [
-    "BACKEND_MANIFEST_SCHEMA_VERSION",
     "BACKEND_MANIFEST_V2_SCHEMA_VERSION",
-    "ApparatusCompatibilityModel",
     "ApparatusIdentityModel",
-    "BackendManifestModel",
+    "BackendCompatibilityModel",
     "BackendManifestV2Model",
     "BackendCapabilitiesV2Model",
     "CONCEPT_FAMILIES_SCHEMA_VERSION",

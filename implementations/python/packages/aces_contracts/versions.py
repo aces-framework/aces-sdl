@@ -1,7 +1,6 @@
 """Version identifiers for published external contracts."""
 
 SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION = "scenario-instantiation/v1"
-BACKEND_MANIFEST_V1_SCHEMA_VERSION = "backend-manifest/v1"
 BACKEND_MANIFEST_V2_SCHEMA_VERSION = "backend-manifest/v2"
 PROCESSOR_MANIFEST_V2_SCHEMA_VERSION = "processor-manifest/v2"
 CONCEPT_FAMILIES_SCHEMA_VERSION = "concept-families/v1"
@@ -13,6 +12,3 @@ WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION = "workflow-cancellation-request/v1
 RUNTIME_SNAPSHOT_SCHEMA_VERSION = "runtime-snapshot/v1"
 OPERATION_SCHEMA_VERSION = "runtime-operation/v1"
 EVALUATION_STATE_SCHEMA_VERSION = "evaluation-result-state/v1"
-
-# Compatibility aliases for the original v1-only names.
-BACKEND_MANIFEST_SCHEMA_VERSION = BACKEND_MANIFEST_V1_SCHEMA_VERSION
