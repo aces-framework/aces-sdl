@@ -48,6 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `sequence_number>0`. These match the existing invariants on
   `ParticipantEpisodeExecutionState` so a history stream that is valid
   per the schema can always be reconstructed into a valid state chain.
+- `participant-episode-state-envelope-v1` and
+  `participant-episode-history-event-stream-v1` are now declared in
+  `BACKEND_SUPPORTED_CONTRACT_IDS` / `PROCESSOR_SUPPORTED_CONTRACT_IDS`
+  (so backends and processors can honestly advertise the RUN-311
+  surface), registered in the conformance
+  `FULL_REMOTE_CONTROL_PLANE` profile requirements, and wired into
+  `aces_conformance.conformance._validate_payload` and
+  `_semantic_diagnostics` so schema validation, round-trip construction,
+  and runtime-snapshot semantic checks all cover participant episode
+  data instead of reporting it as an unknown contract. The reference
+  backend stub fixture at
+  `contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json`
+  is updated to match the widened authority list.
 
 ### Changed
 
