@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "items": {
+    "additionalProperties": false,
+    "properties": {
+      "control_action": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Control Action"
+      },
+      "details": {
+        "additionalProperties": true,
+        "title": "Details",
+        "type": "object"
+      },
+      "episode_id": {
+        "title": "Episode Id",
+        "type": "string"
+      },
+      "event_type": {
+        "title": "Event Type",
+        "type": "string"
+      },
+      "participant_address": {
+        "title": "Participant Address",
+        "type": "string"
+      },
+      "sequence_number": {
+        "title": "Sequence Number",
+        "type": "integer"
+      },
+      "terminal_reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Terminal Reason"
+      },
+      "timestamp": {
+        "title": "Timestamp",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_type",
+      "timestamp",
+      "participant_address",
+      "episode_id",
+      "sequence_number"
+    ],
+    "title": "ParticipantEpisodeHistoryEventModel",
+    "type": "object"
+  },
+  "title": "ParticipantEpisodeHistoryEventStream",
+  "type": "array"
+}

@@ -18,6 +18,7 @@ phases:
   - id: runtime-core
     requirements:
       - RUN-300
+      - RUN-311
     blocked_until:
       - api400-core
   - id: reference-implementations
@@ -101,6 +102,7 @@ ownership:
     - implementations/python/tests
     - contracts/schemas/control-plane
     - contracts/fixtures/control-plane
+    - docs/decisions/adrs
     - CHANGELOG.md
   reference-implementations:
     - implementations/python/packages

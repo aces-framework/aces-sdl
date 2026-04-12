@@ -42,18 +42,18 @@ be the explicit ordering from ADR-010:
    - [x] `RUN-302` Compiled Processing Representation
    - [x] `RUN-303` Planning Semantics
    - [x] `RUN-304` Live Execution State And Lifecycle
+   - [x] `API-403` Per-Target Control Plane Contract
+   - [ ] `RUN-311` Participant Episode Lifecycle And Reset
+   - [ ] `RUN-312` Budgeted Participant Execution Accounting
+   - [ ] `RUN-317` Runtime Clock And Time-Domain Handling
+   - [ ] `RUN-318` Time Advancement And Synchronization Lifecycle
+   - [ ] `RUN-316` Operational Apparatus Observability
    - [ ] `RUN-305` Participant Runtime State And History
    - [ ] `RUN-306` Participant Decision And Execution Lifecycle
    - [ ] `RUN-307` Shared Operational State Model
    - [ ] `RUN-308` Concurrent Participant Execution
    - [ ] `RUN-309` Reproducible Participant Execution Context
    - [ ] `RUN-310` Intervention, Handoff, And Supervisory Lifecycle
-   - [ ] `RUN-311` Participant Episode Lifecycle And Reset
-   - [ ] `RUN-312` Budgeted Participant Execution Accounting
-   - [ ] `RUN-316` Operational Apparatus Observability
-   - [ ] `RUN-317` Runtime Clock And Time-Domain Handling
-   - [ ] `RUN-318` Time Advancement And Synchronization Lifecycle
-   - [x] `API-403` Per-Target Control Plane Contract
 3. Reference implementations
    - [ ] `RUN-313` Reference Processor Implementation
    - [ ] `RUN-314` Reference Emulation Backend
