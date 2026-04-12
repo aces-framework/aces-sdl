@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import shutil
 import sys
+import types
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+import pytest
+import tools.check_generated_schemas as check_generated_schemas
+from tools.check_generated_schemas import _extra_published_schema_paths
 from tools.check_json_artifacts import collect_validation_targets, should_run_full_validation
 from tools.gitleaks_tool import _checksums_asset_name, _release_asset_name, gitleaks_binary_path
 from tools.policy.common import PolicyFailure
@@ -218,3 +222,42 @@ def test_gitleaks_binary_path_uses_repo_local_cache(tmp_path: Path) -> None:
     assert gitleaks_binary_path(tmp_path, version="8.30.1") == (
         tmp_path / ".cache" / "aces-sdl" / "tooling" / "gitleaks" / "8.30.1" / "gitleaks"
     )
+
+
+def test_extra_published_schema_paths_detects_stale_generated_files(tmp_path: Path) -> None:
+    schemas_root = tmp_path / "contracts" / "schemas"
+    write_text(schemas_root / "backend-manifest" / "backend-manifest-v2.json", "{}\n")
+    write_text(schemas_root / "backend-manifest" / "backend-manifest-v1.json", "{}\n")
+
+    assert _extra_published_schema_paths(
+        schemas_root,
+        expected_relative_paths={"backend-manifest/backend-manifest-v2.json"},
+    ) == ["backend-manifest/backend-manifest-v1.json"]
+
+
+def test_check_generated_schemas_main_rejects_stale_extra_schema_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root = tmp_path
+    schemas_root = repo_root / "contracts" / "schemas"
+    write_text(schemas_root / "backend-manifest" / "backend-manifest-v2.json", "{}\n")
+    write_text(schemas_root / "backend-manifest" / "backend-manifest-v1.json", "{}\n")
+
+    fake_generator = types.ModuleType("tools.generate_contract_schemas")
+    fake_generator.main = lambda: None
+    fake_generator._schema_output_path = lambda root, name: root / "backend-manifest" / f"{name}.json"
+    fake_contracts = types.ModuleType("aces_contracts.contracts")
+    fake_contracts.schema_bundle = lambda: {"backend-manifest-v2": {}}
+    fake_package = types.ModuleType("aces_contracts")
+    fake_package.contracts = fake_contracts
+
+    monkeypatch.setattr(check_generated_schemas, "REPO_ROOT", repo_root)
+    monkeypatch.setattr(check_generated_schemas, "SCHEMAS_ROOT", schemas_root)
+    monkeypatch.setattr(check_generated_schemas, "PYTHON_ROOT", repo_root / "implementations" / "python")
+    monkeypatch.setattr(sys, "argv", ["check_generated_schemas.py"])
+    monkeypatch.setitem(sys.modules, "tools.generate_contract_schemas", fake_generator)
+    monkeypatch.setitem(sys.modules, "aces_contracts", fake_package)
+    monkeypatch.setitem(sys.modules, "aces_contracts.contracts", fake_contracts)
+
+    assert check_generated_schemas.main() == 1

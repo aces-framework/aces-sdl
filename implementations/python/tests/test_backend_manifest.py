@@ -115,7 +115,7 @@ def test_backend_manifest_runtime_rejects_unknown_supported_contract_versions():
 
 
 def test_backend_manifest_v2_rejects_empty_compatibility():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as excinfo:
         BackendManifestV2Model.model_validate(
             {
                 "schema_version": "backend-manifest/v2",
@@ -130,6 +130,10 @@ def test_backend_manifest_v2_rejects_empty_compatibility():
                         "disclosure_kinds": ["runtime-snapshot-v1"],
                     }
                 ],
+                "concept_bindings": [
+                    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+                    {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
+                ],
                 "capabilities": {
                     "provisioner": {
                         "name": "stub-provisioner",
@@ -139,6 +143,7 @@ def test_backend_manifest_v2_rejects_empty_compatibility():
                 },
             }
         )
+    assert "compatibility.processors" in str(excinfo.value)
 
 
 def test_backend_manifest_v2_rejects_non_processor_compatibility_surfaces():
@@ -161,7 +166,7 @@ def test_backend_manifest_v2_rejects_non_processor_compatibility_surfaces():
 
 
 def test_backend_manifest_v2_rejects_hollow_realization_support():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as excinfo:
         BackendManifestV2Model.model_validate(
             {
                 "schema_version": "backend-manifest/v2",
@@ -172,8 +177,12 @@ def test_backend_manifest_v2_rejects_hollow_realization_support():
                     {
                         "domain": "runtime-realization",
                         "support_mode": "constrained",
-                        "disclosure_kinds": [],
+                        "disclosure_kinds": ["runtime-snapshot-v1"],
                     }
+                ],
+                "concept_bindings": [
+                    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+                    {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
                 ],
                 "capabilities": {
                     "provisioner": {
@@ -184,10 +193,11 @@ def test_backend_manifest_v2_rejects_hollow_realization_support():
                 },
             }
         )
+    assert "supported_constraint_kinds" in str(excinfo.value)
 
 
 def test_backend_manifest_v2_rejects_hollow_capability_blocks():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as excinfo:
         BackendManifestV2Model.model_validate(
             {
                 "schema_version": "backend-manifest/v2",
@@ -202,6 +212,10 @@ def test_backend_manifest_v2_rejects_hollow_capability_blocks():
                         "disclosure_kinds": ["runtime-snapshot-v1"],
                     }
                 ],
+                "concept_bindings": [
+                    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+                    {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
+                ],
                 "capabilities": {
                     "provisioner": {
                         "name": "stub-provisioner",
@@ -209,6 +223,7 @@ def test_backend_manifest_v2_rejects_hollow_capability_blocks():
                 },
             }
         )
+    assert "supported_node_types" in str(excinfo.value)
 
 
 def test_reference_backend_v2_fixture_matches_emitted_manifest():
