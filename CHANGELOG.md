@@ -79,6 +79,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Production-readiness review finding 1: RUN-311 now ships an actual
+  runtime capability, not just contracts and validators. New
+  ``ParticipantRuntime`` backend protocol on
+  ``aces_backend_protocols/protocols.py`` defines ``initialize`` /
+  ``reset`` / ``restart`` / ``terminate`` plus the standard
+  ``status`` / ``results`` / ``history`` observation methods. New
+  ``ParticipantRuntimeCapabilities`` capability block on
+  ``BackendCapabilitySet`` plus a ``has_participant_runtime`` property
+  on ``BackendManifest`` let backends advertise the surface and let
+  ``RuntimeTarget`` shape validation reject targets whose component
+  presence does not match the manifest. ``RuntimeControlPlane``
+  exposes ``initialize_participant_episode``,
+  ``reset_participant_episode``, ``restart_participant_episode``, and
+  ``terminate_participant_episode``, each routing through the existing
+  idempotency / persistence / audit pipeline and emitting an
+  ``OperationReceipt`` / ``OperationStatus`` under a new
+  ``RuntimeDomain.PARTICIPANT`` domain. ``control_plane_api.py``
+  publishes the four matching POST routes under
+  ``/participants/{participant_address}/episodes/*`` with closed-world
+  request bodies. The reference stub backend gains a new
+  ``StubParticipantRuntime`` that implements every transition with
+  RUN-311-correct sequence/episode_id/previous_episode_id semantics
+  and updates the snapshot in lockstep with the published contract.
+  Tests cover the in-process control plane lifecycle, the HTTP API,
+  the rejection paths (no participant runtime, already terminated,
+  duplicate initialize, etc.), idempotency replay, and a full
+  end-to-end ``initialize → reset → terminate → restart`` chain that
+  must satisfy ``iter_participant_episode_snapshot_violations``.
 - `iter_participant_episode_snapshot_violations` now cross-checks each
   ``participant_episode_results`` entry against the head of the
   corresponding ``participant_episode_history`` chain. A stale result

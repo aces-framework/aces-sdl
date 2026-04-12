@@ -6,7 +6,12 @@ from inspect import Signature, signature
 from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
-from aces_backend_protocols.protocols import Evaluator, Orchestrator, Provisioner
+from aces_backend_protocols.protocols import (
+    Evaluator,
+    Orchestrator,
+    ParticipantRuntime,
+    Provisioner,
+)
 
 
 def _require_invokable_method(
@@ -48,6 +53,7 @@ def _validate_runtime_target_shape(
     provisioner: Provisioner | None,
     orchestrator: Orchestrator | None,
     evaluator: Evaluator | None,
+    participant_runtime: ParticipantRuntime | None,
 ) -> None:
     if manifest is None:
         raise ValueError("RuntimeTarget requires an explicit manifest.")
@@ -57,8 +63,11 @@ def _validate_runtime_target_shape(
         raise ValueError("registry.target-shape-mismatch: orchestrator presence does not match the manifest.")
     if manifest.has_evaluator != (evaluator is not None):
         raise ValueError("registry.target-shape-mismatch: evaluator presence does not match the manifest.")
+    if manifest.has_participant_runtime != (participant_runtime is not None):
+        raise ValueError("registry.target-shape-mismatch: participant_runtime presence does not match the manifest.")
     sample_plan = object()
     sample_snapshot = object()
+    sample_request = object()
     _require_invokable_method(
         provisioner,
         label="provisioner",
@@ -131,6 +140,48 @@ def _validate_runtime_target_shape(
         method_name="stop",
         invocation_args=(sample_snapshot,),
     )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="initialize",
+        invocation_args=(sample_request, sample_snapshot),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="reset",
+        invocation_args=(sample_request, sample_snapshot),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="restart",
+        invocation_args=(sample_request, sample_snapshot),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="terminate",
+        invocation_args=(sample_request, sample_snapshot),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="status",
+        invocation_args=(),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="results",
+        invocation_args=(),
+    )
+    _require_invokable_method(
+        participant_runtime,
+        label="participant_runtime",
+        method_name="history",
+        invocation_args=(),
+    )
 
 
 @dataclass(frozen=True)
@@ -142,6 +193,7 @@ class RuntimeTarget:
     provisioner: Provisioner
     orchestrator: Orchestrator | None = None
     evaluator: Evaluator | None = None
+    participant_runtime: ParticipantRuntime | None = None
 
     def __post_init__(self) -> None:
         _validate_runtime_target_shape(
@@ -149,6 +201,7 @@ class RuntimeTarget:
             provisioner=self.provisioner,
             orchestrator=self.orchestrator,
             evaluator=self.evaluator,
+            participant_runtime=self.participant_runtime,
         )
 
 
@@ -159,6 +212,7 @@ class RuntimeTargetComponents:
     provisioner: Provisioner
     orchestrator: Orchestrator | None = None
     evaluator: Evaluator | None = None
+    participant_runtime: ParticipantRuntime | None = None
 
 
 @dataclass(frozen=True)
@@ -212,6 +266,7 @@ class BackendRegistry:
             provisioner=components.provisioner,
             orchestrator=components.orchestrator,
             evaluator=components.evaluator,
+            participant_runtime=components.participant_runtime,
         )
 
         return RuntimeTarget(
@@ -220,6 +275,7 @@ class BackendRegistry:
             provisioner=components.provisioner,
             orchestrator=components.orchestrator,
             evaluator=components.evaluator,
+            participant_runtime=components.participant_runtime,
         )
 
     def list_backends(self) -> list[str]:

@@ -153,6 +153,7 @@ def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_r
         provisioner=components.provisioner,
         orchestrator=components.orchestrator,
         evaluator=components.evaluator,
+        participant_runtime=components.participant_runtime,
     )
 
     report = run_target_conformance(target)

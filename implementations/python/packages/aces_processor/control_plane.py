@@ -25,6 +25,11 @@ from .models import (
     OperationState,
     OperationStatus,
     OrchestrationPlan,
+    ParticipantEpisodeInitializeRequest,
+    ParticipantEpisodeResetRequest,
+    ParticipantEpisodeRestartRequest,
+    ParticipantEpisodeTerminalReason,
+    ParticipantEpisodeTerminateRequest,
     ProvisioningPlan,
     RuntimeDomain,
     RuntimeSnapshot,
@@ -483,6 +488,187 @@ class RuntimeControlPlane:
             ControlPlaneOperationRecord(
                 receipt=receipt,
                 status=status,
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        )
+        return receipt
+
+    def initialize_participant_episode(
+        self,
+        participant_address: str,
+        *,
+        episode_id: str | None = None,
+        idempotency_key: str = "",
+        request_fingerprint: str = "",
+    ) -> OperationReceipt:
+        if self._target.participant_runtime is None:
+            return self._reject_submission(
+                domain=RuntimeDomain.PARTICIPANT,
+                message="Target does not provide a participant runtime.",
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        request = ParticipantEpisodeInitializeRequest(
+            participant_address=participant_address,
+            episode_id=episode_id,
+        )
+        return self._execute_participant_action(
+            method=self._target.participant_runtime.initialize,
+            request=request,
+            address=f"runtime.control-plane.participant.{participant_address}.initialize",
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+
+    def reset_participant_episode(
+        self,
+        participant_address: str,
+        *,
+        episode_id: str | None = None,
+        reason: str = "reset by operator",
+        idempotency_key: str = "",
+        request_fingerprint: str = "",
+    ) -> OperationReceipt:
+        if self._target.participant_runtime is None:
+            return self._reject_submission(
+                domain=RuntimeDomain.PARTICIPANT,
+                message="Target does not provide a participant runtime.",
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        request = ParticipantEpisodeResetRequest(
+            participant_address=participant_address,
+            episode_id=episode_id,
+            reason=reason,
+        )
+        return self._execute_participant_action(
+            method=self._target.participant_runtime.reset,
+            request=request,
+            address=f"runtime.control-plane.participant.{participant_address}.reset",
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+
+    def restart_participant_episode(
+        self,
+        participant_address: str,
+        *,
+        episode_id: str | None = None,
+        reason: str = "restarted by operator",
+        idempotency_key: str = "",
+        request_fingerprint: str = "",
+    ) -> OperationReceipt:
+        if self._target.participant_runtime is None:
+            return self._reject_submission(
+                domain=RuntimeDomain.PARTICIPANT,
+                message="Target does not provide a participant runtime.",
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        request = ParticipantEpisodeRestartRequest(
+            participant_address=participant_address,
+            episode_id=episode_id,
+            reason=reason,
+        )
+        return self._execute_participant_action(
+            method=self._target.participant_runtime.restart,
+            request=request,
+            address=f"runtime.control-plane.participant.{participant_address}.restart",
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+
+    def terminate_participant_episode(
+        self,
+        participant_address: str,
+        *,
+        terminal_reason: ParticipantEpisodeTerminalReason = ParticipantEpisodeTerminalReason.INTERRUPTED,
+        detail: str = "terminated by operator",
+        idempotency_key: str = "",
+        request_fingerprint: str = "",
+    ) -> OperationReceipt:
+        if self._target.participant_runtime is None:
+            return self._reject_submission(
+                domain=RuntimeDomain.PARTICIPANT,
+                message="Target does not provide a participant runtime.",
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        request = ParticipantEpisodeTerminateRequest(
+            participant_address=participant_address,
+            terminal_reason=terminal_reason,
+            detail=detail,
+        )
+        return self._execute_participant_action(
+            method=self._target.participant_runtime.terminate,
+            request=request,
+            address=f"runtime.control-plane.participant.{participant_address}.terminate",
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+
+    def _execute_participant_action(
+        self,
+        *,
+        method,
+        request,
+        address: str,
+        idempotency_key: str,
+        request_fingerprint: str,
+    ) -> OperationReceipt:
+        existing = self._idempotent_receipt(
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+        if existing is not None:
+            return existing
+        operation_id = str(uuid4())
+        submitted_at = _utc_now()
+        status = OperationStatus(
+            operation_id=operation_id,
+            domain=RuntimeDomain.PARTICIPANT,
+            state=OperationState.RUNNING,
+            submitted_at=submitted_at,
+            updated_at=submitted_at,
+        )
+        receipt = OperationReceipt(
+            operation_id=operation_id,
+            domain=RuntimeDomain.PARTICIPANT,
+            submitted_at=submitted_at,
+            accepted=True,
+        )
+        self._persist_record(
+            ControlPlaneOperationRecord(
+                receipt=receipt,
+                status=status,
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+            )
+        )
+        result = _call_backend_apply(
+            method,
+            request,
+            self._snapshot,
+            address=address,
+            snapshot=self._snapshot,
+        )
+        self._snapshot = result.snapshot
+        self._store.save_snapshot(self._snapshot)
+        final_state = OperationState.SUCCEEDED if result.success else OperationState.FAILED
+        final_status = OperationStatus(
+            operation_id=operation_id,
+            domain=RuntimeDomain.PARTICIPANT,
+            state=final_state,
+            submitted_at=submitted_at,
+            updated_at=_utc_now(),
+            diagnostics=[*status.diagnostics, *result.diagnostics],
+            changed_addresses=list(result.changed_addresses),
+        )
+        self._persist_record(
+            ControlPlaneOperationRecord(
+                receipt=receipt,
+                status=final_status,
                 idempotency_key=idempotency_key,
                 request_fingerprint=request_fingerprint,
             )
