@@ -30,6 +30,7 @@ from .models import (
     WorkflowHistoryEventType,
     WorkflowResultContract,
     WorkflowStatus,
+    iter_participant_episode_snapshot_violations,
     validate_evaluation_result,
 )
 from .planner import plan
@@ -242,6 +243,13 @@ def _call_backend_apply(
             success=False,
             snapshot=snapshot,
             diagnostics=evaluation_result_diagnostics,
+        )
+    participant_episode_result_diagnostics = _participant_episode_contract_diagnostics(result.snapshot)
+    if participant_episode_result_diagnostics:
+        return ApplyResult(
+            success=False,
+            snapshot=snapshot,
+            diagnostics=participant_episode_result_diagnostics,
         )
 
     return result
@@ -1047,6 +1055,26 @@ def _evaluation_result_contract_diagnostics(
                 )
 
     return diagnostics
+
+
+def _participant_episode_contract_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    """Validate participant-episode snapshot data against RUN-311 invariants.
+
+    Delegates to ``iter_participant_episode_snapshot_violations`` so the
+    manager apply path and the conformance semantic-check path share one
+    source of truth for every invariant, and wraps each violation in a
+    ``runtime.backend-contract-invalid`` diagnostic.
+    """
+
+    return [
+        _failure_diagnostic("runtime.backend-contract-invalid", address, message)
+        for address, message in iter_participant_episode_snapshot_violations(
+            snapshot.participant_episode_results,
+            snapshot.participant_episode_history,
+        )
+    ]
 
 
 def _provenance_diagnostics(

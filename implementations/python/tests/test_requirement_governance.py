@@ -44,6 +44,7 @@ def make_client(*, requirement_status: str = "DRAFT", api_412_status: str = "DRA
         "GOV-918": {"id": "req-gov-918", "uid": "GOV-918", "status": requirement_status},
         "API-412": {"id": "req-api-412", "uid": "API-412", "status": api_412_status},
         "RUN-300": {"id": "req-run-300", "uid": "RUN-300", "status": "ACTIVE"},
+        "RUN-311": {"id": "req-run-311", "uid": "RUN-311", "status": "ACTIVE"},
         "RUN-313": {"id": "req-run-313", "uid": "RUN-313", "status": "DRAFT"},
         "GOV-917": {"id": "req-gov-917", "uid": "GOV-917", "status": "ACTIVE"},
         "GOV-919": {"id": "req-gov-919", "uid": "GOV-919", "status": "ACTIVE"},

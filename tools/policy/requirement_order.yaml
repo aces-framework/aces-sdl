@@ -18,6 +18,7 @@ phases:
   - id: runtime-core
     requirements:
       - RUN-300
+      - RUN-311
     blocked_until:
       - api400-core
   - id: reference-implementations
@@ -98,9 +99,16 @@ ownership:
   runtime-core:
     - implementations/python/packages/aces_processor
     - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_conformance
     - implementations/python/tests
     - contracts/schemas/control-plane
+    - contracts/schemas/snapshots
+    - contracts/schemas/backend-manifest
+    - contracts/schemas/processor-manifest
     - contracts/fixtures/control-plane
+    - contracts/fixtures/backend-manifest
+    - contracts/fixtures/processor-manifest
+    - docs/decisions/adrs
     - CHANGELOG.md
   reference-implementations:
     - implementations/python/packages
