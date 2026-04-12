@@ -103,7 +103,11 @@ ownership:
     - implementations/python/tests
     - contracts/schemas/control-plane
     - contracts/schemas/snapshots
+    - contracts/schemas/backend-manifest
+    - contracts/schemas/processor-manifest
     - contracts/fixtures/control-plane
+    - contracts/fixtures/backend-manifest
+    - contracts/fixtures/processor-manifest
     - docs/decisions/adrs
     - CHANGELOG.md
   reference-implementations:

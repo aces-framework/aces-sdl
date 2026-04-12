@@ -157,7 +157,9 @@
           "workflow-result-envelope-v1",
           "workflow-history-event-stream-v1",
           "evaluation-result-envelope-v1",
-          "evaluation-history-event-stream-v1"
+          "evaluation-history-event-stream-v1",
+          "participant-episode-state-envelope-v1",
+          "participant-episode-history-event-stream-v1"
         ],
         "minLength": 1,
         "type": "string"
