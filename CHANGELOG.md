@@ -79,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `iter_participant_episode_snapshot_violations` now cross-checks each
+  ``participant_episode_results`` entry against the head of the
+  corresponding ``participant_episode_history`` chain. A stale result
+  that still points at an earlier episode than the history shows — the
+  specific scenario raised as production-readiness review finding 2 —
+  fails validation with ``does not match head of history chain``.
+  Identity (``episode_id`` + ``sequence_number``), status category, and
+  ``terminal_reason`` must all agree with the last valid history event
+  for the same participant. Apply-path and conformance semantic-check
+  paths both pick this up automatically via the shared helper.
 - `iter_participant_episode_snapshot_violations` no longer produces
   cascading duplicate violations when a stream-level rule fires. Both
   the sequence-transition gate and the per-sequence ``episode_id``
