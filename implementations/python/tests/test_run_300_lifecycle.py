@@ -119,10 +119,12 @@ class TestRun300Lifecycle:
     def test_valid_scenario_flows_through_all_five_stages_preserving_identity(self):
         """One parameterized scenario → instantiate → compile → plan → apply → observe.
 
-        Asserts that the ``${node_name}`` chosen at instantiation becomes
-        the canonical address ``provision.node.vm1`` and survives into
-        every downstream stage's typed contract (compiled model, plan
-        operation, applied snapshot entry, orchestration-history event).
+        Asserts that the values substituted for ``${os_kind}`` and
+        ``${cpu_count}`` at instantiation time, and the canonical node
+        address ``provision.node.vm1``, survive unchanged into every
+        downstream stage's typed contract (compiled model, plan operation,
+        applied snapshot entry, orchestration live-observation envelope).
+        No ``${...}`` token is permitted to escape any stage.
         """
 
         # ----- Stage 1: Instantiation --------------------------------
@@ -270,34 +272,39 @@ class TestRun300Lifecycle:
             )
 
         orchestration_results = applied_snapshot.orchestration_results
-        if orchestration_results:
-            # Portable workflow-execution-state envelope invariants.
-            for address, state in orchestration_results.items():
-                assert address in orchestration_state, (
-                    f"Orchestration result {address!r} must correspond to a snapshot entry in the orchestration domain."
-                )
-                assert "state_schema_version" in state, (
-                    "Workflow execution state must declare a "
-                    "state_schema_version per RUN-300's meaning-preservation "
-                    "contract (see workflow-results.md)."
-                )
-                assert "workflow_status" in state, (
-                    "Workflow execution state must publish a "
-                    "workflow_status; consumers key on it to interpret "
-                    "the live envelope."
-                )
+        assert orchestration_results, (
+            "Stub orchestrator must publish at least one workflow "
+            "execution state entry on the live-observation surface; an "
+            "empty result set would mean stage 5 is not actually exercised."
+        )
+        # Portable workflow-execution-state envelope invariants.
+        for address, state in orchestration_results.items():
+            assert address in orchestration_state, (
+                f"Orchestration result {address!r} must correspond to a snapshot entry in the orchestration domain."
+            )
+            assert state.get("state_schema_version") == "workflow-step-state/v1", (
+                f"Workflow execution state must declare the current "
+                f"state_schema_version per workflow-results.md; got "
+                f"{state.get('state_schema_version')!r}."
+            )
+            assert state.get("workflow_status") == "running", (
+                f"Stub orchestrator must publish workflow_status='running' "
+                f"on the live envelope immediately after start; got "
+                f"{state.get('workflow_status')!r}."
+            )
 
     def test_reapplying_stale_plan_is_rejected_by_provenance_drift_check(self):
         """Drift rejection test.
 
         After a successful apply the manager's snapshot advances. Re-applying
         the original plan — whose ``base_snapshot`` is now stale — must
-        surface a ``runtime.plan-snapshot-mismatch`` diagnostic and leave
-        the manager state untouched. This exercises the provenance check
-        at ``aces_processor/manager.py`` (the base_snapshot comparison in
-        ``_provenance_diagnostics``) and is the concrete guarantee that
-        RUN-300's "preserving scenario meaning across those stages" clause
-        is enforced even against out-of-order or replayed plans.
+        surface a ``runtime.plan-snapshot-mismatch`` diagnostic and must
+        not perform a second (partial) apply against the advanced state.
+        This exercises the provenance check in ``aces_processor/manager.py``
+        (the base_snapshot comparison in ``_provenance_diagnostics``) and
+        is the concrete guarantee that RUN-300's "preserving scenario
+        meaning across those stages" clause is enforced even against
+        out-of-order or replayed plans.
         """
 
         raw = _raw_scenario()
@@ -364,5 +371,5 @@ class TestRun300Lifecycle:
                 """
             )
         )
-        with pytest.raises(SDLInstantiationError):
+        with pytest.raises(SDLInstantiationError, match="unresolved variable references"):
             instantiate_scenario(raw, parameters={})
