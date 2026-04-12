@@ -578,6 +578,7 @@
     }
   },
   "additionalProperties": false,
+  "description": "Published envelope for a live runtime snapshot.\n\nParticipant episode surfaces (``participant_episode_results`` and\n``participant_episode_history``) are both keyed by the stable\n``participant_address`` of the participant the state/history belongs\nto. The results map carries the currently-live episode state per\nparticipant; prior episodes survive only through the append-only\nhistory stream and the ``previous_episode_id`` chain on each state.\nSee ADR-013.",
   "properties": {
     "entries": {
       "additionalProperties": {

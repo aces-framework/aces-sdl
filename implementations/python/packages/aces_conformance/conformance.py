@@ -44,6 +44,7 @@ from aces_processor.models import (
     Severity,
     SnapshotEntry,
     WorkflowExecutionState,
+    iter_participant_episode_snapshot_violations,
 )
 from aces_processor.planner import plan
 from aces_processor.registry import RuntimeTarget
@@ -148,6 +149,16 @@ _MODEL_VALIDATORS = {
 }
 
 
+_EVENT_STREAM_VALIDATORS: dict[str, tuple[type, str]] = {
+    "workflow-history-event-stream-v1": (WorkflowHistoryEventModel, "workflow"),
+    "evaluation-history-event-stream-v1": (EvaluationHistoryEventModel, "evaluation"),
+    "participant-episode-history-event-stream-v1": (
+        ParticipantEpisodeHistoryEventModel,
+        "participant episode",
+    ),
+}
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
@@ -187,6 +198,43 @@ def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _validate_event_stream(
+    *,
+    contract_name: str,
+    payload: Any,
+    model_cls: type,
+    event_label: str,
+) -> list[Diagnostic]:
+    """Validate a published history event stream against one Pydantic model.
+
+    Shared by the workflow, evaluation, and participant-episode history
+    event streams so adding a new stream type only requires extending
+    ``_EVENT_STREAM_VALIDATORS``.
+    """
+
+    if not isinstance(payload, list):
+        return [
+            _diagnostic(
+                "conformance.schema-invalid",
+                contract_name,
+                f"{event_label} history payload must be a list",
+            )
+        ]
+    diagnostics: list[Diagnostic] = []
+    for index, event in enumerate(payload):
+        try:
+            model_cls.model_validate(event)
+        except Exception as exc:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.schema-invalid",
+                    f"{contract_name}[{index}]",
+                    f"{event_label} history event is invalid: {exc}",
+                )
+            )
+    return diagnostics
+
+
 def _validate_payload(contract_name: str, payload: Any) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     validator = _MODEL_VALIDATORS.get(contract_name)
@@ -202,66 +250,15 @@ def _validate_payload(contract_name: str, payload: Any) -> list[Diagnostic]:
                 )
             )
             return diagnostics
-    elif contract_name == "workflow-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.schema-invalid",
-                    contract_name,
-                    "workflow history payload must be a list",
-                )
-            ]
-        for index, event in enumerate(payload):
-            try:
-                WorkflowHistoryEventModel.model_validate(event)
-            except Exception as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.schema-invalid",
-                        f"{contract_name}[{index}]",
-                        f"workflow history event is invalid: {exc}",
-                    )
-                )
-    elif contract_name == "evaluation-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.schema-invalid",
-                    contract_name,
-                    "evaluation history payload must be a list",
-                )
-            ]
-        for index, event in enumerate(payload):
-            try:
-                EvaluationHistoryEventModel.model_validate(event)
-            except Exception as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.schema-invalid",
-                        f"{contract_name}[{index}]",
-                        f"evaluation history event is invalid: {exc}",
-                    )
-                )
-    elif contract_name == "participant-episode-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.schema-invalid",
-                    contract_name,
-                    "participant episode history payload must be a list",
-                )
-            ]
-        for index, event in enumerate(payload):
-            try:
-                ParticipantEpisodeHistoryEventModel.model_validate(event)
-            except Exception as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.schema-invalid",
-                        f"{contract_name}[{index}]",
-                        f"participant episode history event is invalid: {exc}",
-                    )
-                )
+    elif contract_name in _EVENT_STREAM_VALIDATORS:
+        diagnostics.extend(
+            _validate_event_stream(
+                contract_name=contract_name,
+                payload=payload,
+                model_cls=_EVENT_STREAM_VALIDATORS[contract_name][0],
+                event_label=_EVENT_STREAM_VALIDATORS[contract_name][1],
+            )
+        )
     else:
         diagnostics.append(
             _diagnostic(
@@ -318,56 +315,21 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
 def _participant_episode_snapshot_diagnostics(
     snapshot: RuntimeSnapshot,
 ) -> list[Diagnostic]:
-    diagnostics: list[Diagnostic] = []
-    if not isinstance(snapshot.participant_episode_results, dict):
-        return [
-            _diagnostic(
-                "conformance.semantic-invalid",
-                "runtime-snapshot.participant-episode-results",
-                "RuntimeSnapshot.participant_episode_results must be a dict.",
-            )
-        ]
-    if not isinstance(snapshot.participant_episode_history, dict):
-        return [
-            _diagnostic(
-                "conformance.semantic-invalid",
-                "runtime-snapshot.participant-episode-history",
-                "RuntimeSnapshot.participant_episode_history must be a dict.",
-            )
-        ]
-    for participant_address, result in snapshot.participant_episode_results.items():
-        try:
-            ParticipantEpisodeExecutionState.from_payload(result)
-        except (TypeError, ValueError) as exc:
-            diagnostics.append(
-                _diagnostic(
-                    "conformance.semantic-invalid",
-                    f"participant-episode-state:{participant_address}",
-                    f"participant episode result semantics are invalid: {exc}",
-                )
-            )
-    for participant_address, history in snapshot.participant_episode_history.items():
-        if not isinstance(history, list):
-            diagnostics.append(
-                _diagnostic(
-                    "conformance.semantic-invalid",
-                    f"participant-episode-history:{participant_address}",
-                    "participant episode history must be a list of events.",
-                )
-            )
-            continue
-        for index, event in enumerate(history):
-            try:
-                ParticipantEpisodeHistoryEvent.from_payload(event)
-            except (TypeError, ValueError) as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.semantic-invalid",
-                        f"participant-episode-history:{participant_address}[{index}]",
-                        f"participant episode history event semantics are invalid: {exc}",
-                    )
-                )
-    return diagnostics
+    """Surface participant-episode snapshot invariants as conformance diagnostics.
+
+    Delegates to ``iter_participant_episode_snapshot_violations`` so the
+    conformance path and the manager apply path share one source of truth
+    for every RUN-311 invariant, and wraps each violation in a
+    ``conformance.semantic-invalid`` diagnostic.
+    """
+
+    return [
+        _diagnostic("conformance.semantic-invalid", address, message)
+        for address, message in iter_participant_episode_snapshot_violations(
+            snapshot.participant_episode_results,
+            snapshot.participant_episode_history,
+        )
+    ]
 
 
 def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
