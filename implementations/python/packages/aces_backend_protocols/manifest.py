@@ -89,6 +89,14 @@ def backend_manifest_v2_model(manifest: BackendManifest) -> BackendManifestV2Mod
                 if manifest.evaluator is not None
                 else None
             ),
+            "participant_runtime": (
+                {
+                    "name": manifest.participant_runtime.name,
+                    "constraints": dict(manifest.participant_runtime.constraints),
+                }
+                if manifest.participant_runtime is not None
+                else None
+            ),
         },
     )
 

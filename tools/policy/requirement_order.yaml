@@ -100,6 +100,8 @@ ownership:
     - implementations/python/packages/aces_processor
     - implementations/python/packages/aces_contracts
     - implementations/python/packages/aces_conformance
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_backend_stubs
     - implementations/python/tests
     - contracts/schemas/control-plane
     - contracts/schemas/snapshots

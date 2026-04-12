@@ -38,6 +38,7 @@ class RuntimeDomain(str, Enum):
     PROVISIONING = "provisioning"
     ORCHESTRATION = "orchestration"
     EVALUATION = "evaluation"
+    PARTICIPANT = "participant"
 
 
 class ChangeAction(str, Enum):
@@ -2118,6 +2119,64 @@ class WorkflowCancellationRequest:
     workflow_address: str
     run_id: str | None = None
     reason: str = "cancelled by operator"
+
+
+@dataclass(frozen=True)
+class ParticipantEpisodeInitializeRequest:
+    """Portable request for initializing the first episode of a participant.
+
+    Carries the stable ``participant_address`` plus an optional
+    caller-provided ``episode_id`` hint (the backend allocates one if the
+    caller does not supply one). See RUN-311.
+    """
+
+    participant_address: str
+    episode_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ParticipantEpisodeResetRequest:
+    """Portable request for resetting a non-terminal participant episode.
+
+    The backend must allocate a new ``episode_id``, increment
+    ``sequence_number``, preserve the stable participant identity, and
+    link to the prior episode via ``previous_episode_id``.
+    """
+
+    participant_address: str
+    episode_id: str | None = None
+    reason: str = "reset by operator"
+
+
+@dataclass(frozen=True)
+class ParticipantEpisodeRestartRequest:
+    """Portable request for restarting a terminated participant episode.
+
+    The backend must allocate a new ``episode_id``, increment
+    ``sequence_number``, preserve the stable participant identity, and
+    link to the prior episode via ``previous_episode_id``.
+    """
+
+    participant_address: str
+    episode_id: str | None = None
+    reason: str = "restarted by operator"
+
+
+@dataclass(frozen=True)
+class ParticipantEpisodeTerminateRequest:
+    """Portable request for driving the current episode to ``TERMINATED``.
+
+    The ``terminal_reason`` must be one of the published
+    ``ParticipantEpisodeTerminalReason`` values; the control plane
+    defaults to ``INTERRUPTED`` for operator-driven termination but
+    backends may also call this method with a terminal reason reflecting
+    an internally-detected ``COMPLETED``, ``TIMED_OUT``, or ``TRUNCATED``
+    condition.
+    """
+
+    participant_address: str
+    terminal_reason: ParticipantEpisodeTerminalReason = ParticipantEpisodeTerminalReason.INTERRUPTED
+    detail: str = "terminated by operator"
 
 
 @dataclass(frozen=True)

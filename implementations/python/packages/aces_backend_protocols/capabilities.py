@@ -135,12 +135,35 @@ class EvaluatorCapabilities:
 
 
 @dataclass(frozen=True)
+class ParticipantRuntimeCapabilities:
+    """Participant-episode lifecycle support declaration.
+
+    Declaring this capability means the backend exposes the full
+    participant episode control surface defined in RUN-311:
+    ``initialize``, ``reset``, ``restart``, and ``terminate`` on the
+    ``ParticipantRuntime`` protocol, plus the ``status``/``results``/
+    ``history`` observation methods. A backend that advertises this
+    capability MUST populate ``RuntimeSnapshot.participant_episode_results``
+    and ``participant_episode_history`` so downstream consumers see the
+    state machine transitions.
+    """
+
+    name: str
+    constraints: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("ParticipantRuntimeCapabilities.name must be non-empty")
+
+
+@dataclass(frozen=True)
 class BackendCapabilitySet:
     """Backend-specific nested capability blocks."""
 
     provisioner: ProvisionerCapabilities
     orchestrator: OrchestratorCapabilities | None = None
     evaluator: EvaluatorCapabilities | None = None
+    participant_runtime: ParticipantRuntimeCapabilities | None = None
 
 
 @dataclass(frozen=True)
@@ -184,6 +207,7 @@ class BackendManifest:
         provisioner: ProvisionerCapabilities | None = None,
         orchestrator: OrchestratorCapabilities | None = None,
         evaluator: EvaluatorCapabilities | None = None,
+        participant_runtime: ParticipantRuntimeCapabilities | None = None,
     ) -> None:
         if identity is None:
             if name is None:
@@ -198,6 +222,7 @@ class BackendManifest:
                 provisioner=provisioner,
                 orchestrator=orchestrator,
                 evaluator=evaluator,
+                participant_runtime=participant_runtime,
             )
         supported_contract_versions = frozenset(supported_contract_versions)
         if not supported_contract_versions:
@@ -244,12 +269,20 @@ class BackendManifest:
         return self.capabilities.evaluator
 
     @property
+    def participant_runtime(self) -> ParticipantRuntimeCapabilities | None:
+        return self.capabilities.participant_runtime
+
+    @property
     def has_orchestrator(self) -> bool:
         return self.orchestrator is not None
 
     @property
     def has_evaluator(self) -> bool:
         return self.evaluator is not None
+
+    @property
+    def has_participant_runtime(self) -> bool:
+        return self.participant_runtime is not None
 
     @property
     def evaluator_supported_sections(self) -> frozenset[str]:

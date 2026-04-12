@@ -90,6 +90,10 @@
       "supports_scoring": true,
       "supports_objectives": true,
       "constraints": {}
+    },
+    "participant_runtime": {
+      "name": "stub-participant-runtime",
+      "constraints": {}
     }
   }
 }

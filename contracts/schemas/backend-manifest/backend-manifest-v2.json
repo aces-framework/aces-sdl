@@ -46,6 +46,17 @@
           ],
           "default": null
         },
+        "participant_runtime": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParticipantRuntimeCapabilitiesModel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "provisioner": {
           "$ref": "#/$defs/ProvisionerCapabilitiesModel"
         }
@@ -287,6 +298,29 @@
         "supported_sections"
       ],
       "title": "OrchestratorCapabilitiesModel",
+      "type": "object"
+    },
+    "ParticipantRuntimeCapabilitiesModel": {
+      "additionalProperties": false,
+      "description": "Participant-episode lifecycle capability block (RUN-311).\n\nA backend that declares this block advertises that it implements\nthe full participant episode control surface on the\n``ParticipantRuntime`` protocol: ``initialize`` / ``reset`` /\n``restart`` / ``terminate`` plus ``status`` / ``results`` /\n``history``. Consumers of the manifest can infer the\n``FULL_REMOTE_CONTROL_PLANE`` conformance profile from this block.",
+      "properties": {
+        "constraints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "object"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ParticipantRuntimeCapabilitiesModel",
       "type": "object"
     },
     "ProvisionerCapabilitiesModel": {
