@@ -351,29 +351,29 @@ class TestRun311ParticipantEpisodeLifecycle:
             )
 
     @pytest.mark.parametrize(
-        ("event_type", "expected_action"),
+        ("event_type", "expected_action", "sequence_number"),
         [
-            (ParticipantEpisodeHistoryEventType.EPISODE_INITIALIZED, ParticipantEpisodeControlAction.INITIALIZE),
-            (ParticipantEpisodeHistoryEventType.EPISODE_RESET, ParticipantEpisodeControlAction.RESET),
-            (ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED, ParticipantEpisodeControlAction.RESTART),
+            (ParticipantEpisodeHistoryEventType.EPISODE_INITIALIZED, ParticipantEpisodeControlAction.INITIALIZE, 0),
+            (ParticipantEpisodeHistoryEventType.EPISODE_RESET, ParticipantEpisodeControlAction.RESET, 1),
+            (ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED, ParticipantEpisodeControlAction.RESTART, 1),
         ],
     )
-    def test_history_event_control_action_must_match_event_type(self, event_type, expected_action):
+    def test_history_event_control_action_must_match_event_type(self, event_type, expected_action, sequence_number):
         """Clauses 2, 3, 8 expressed as history events — each control event type
         is coupled to exactly one control action, and non-control event types
         cannot carry a control_action.
         """
 
-        ok = _history_event(event_type=event_type, control_action=expected_action)
+        ok = _history_event(event_type=event_type, control_action=expected_action, sequence_number=sequence_number)
         assert ok.control_action == expected_action
 
         wrong_actions = [action for action in ParticipantEpisodeControlAction if action != expected_action]
         for action in wrong_actions:
             with pytest.raises(ValueError, match="must report control_action"):
-                _history_event(event_type=event_type, control_action=action)
+                _history_event(event_type=event_type, control_action=action, sequence_number=sequence_number)
 
         with pytest.raises(ValueError, match="must report control_action"):
-            _history_event(event_type=event_type, control_action=None)
+            _history_event(event_type=event_type, control_action=None, sequence_number=sequence_number)
 
         with pytest.raises(ValueError, match="may not report a control_action"):
             _history_event(
@@ -482,6 +482,47 @@ class TestRun311ParticipantEpisodeLifecycle:
                 "History event payload must round-trip via the schema-first "
                 f"boundary; drift on {event.event_type.value} would silently "
                 "lose lifecycle data."
+            )
+
+    def test_initialized_history_event_requires_sequence_number_zero(self):
+        """Invariant — ``episode_initialized`` events describe the very first
+        episode of a participant, so they must carry ``sequence_number=0``.
+        A history stream that emits ``episode_initialized`` at any later
+        sequence cannot correspond to a valid
+        ``ParticipantEpisodeExecutionState`` chain.
+        """
+
+        with pytest.raises(ValueError, match="episode_initialized history events must report sequence_number=0"):
+            _history_event(
+                event_type=ParticipantEpisodeHistoryEventType.EPISODE_INITIALIZED,
+                sequence_number=1,
+                control_action=ParticipantEpisodeControlAction.INITIALIZE,
+            )
+
+    @pytest.mark.parametrize(
+        "event_type",
+        [
+            ParticipantEpisodeHistoryEventType.EPISODE_RESET,
+            ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED,
+        ],
+    )
+    def test_reset_and_restart_history_events_require_sequence_number_greater_than_zero(self, event_type):
+        """Invariant — ``episode_reset`` and ``episode_restarted`` events describe
+        transitions into a new episode instance, which only exists for
+        ``sequence_number > 0``. The very first episode must arrive via
+        ``episode_initialized`` instead.
+        """
+
+        expected_action = (
+            ParticipantEpisodeControlAction.RESET
+            if event_type == ParticipantEpisodeHistoryEventType.EPISODE_RESET
+            else ParticipantEpisodeControlAction.RESTART
+        )
+        with pytest.raises(ValueError, match="must report sequence_number>0"):
+            _history_event(
+                event_type=event_type,
+                sequence_number=0,
+                control_action=expected_action,
             )
 
     def test_published_state_schema_matches_bundle_for_run_311(self):

@@ -1509,6 +1509,23 @@ class ParticipantEpisodeHistoryEvent:
                 )
         elif self.control_action is not None:
             raise ValueError(f"{self.event_type.value} history events may not report a control_action")
+        if self.event_type == ParticipantEpisodeHistoryEventType.EPISODE_INITIALIZED and self.sequence_number != 0:
+            raise ValueError(
+                "episode_initialized history events must report sequence_number=0; "
+                "later episodes arrive via episode_reset or episode_restarted"
+            )
+        if (
+            self.event_type
+            in {
+                ParticipantEpisodeHistoryEventType.EPISODE_RESET,
+                ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED,
+            }
+            and self.sequence_number == 0
+        ):
+            raise ValueError(
+                f"{self.event_type.value} history events must report sequence_number>0; "
+                "the first episode uses episode_initialized"
+            )
 
 
 def validate_evaluation_result(
@@ -1773,6 +1790,8 @@ class RuntimeSnapshot:
     orchestration_history: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     evaluation_results: dict[str, dict[str, Any]] = field(default_factory=dict)
     evaluation_history: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    participant_episode_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    participant_episode_history: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def get(self, address: str) -> SnapshotEntry | None:
@@ -1789,6 +1808,8 @@ class RuntimeSnapshot:
         orchestration_history: dict[str, list[dict[str, Any]]] | None = None,
         evaluation_results: dict[str, dict[str, Any]] | None = None,
         evaluation_history: dict[str, list[dict[str, Any]]] | None = None,
+        participant_episode_results: dict[str, dict[str, Any]] | None = None,
+        participant_episode_history: dict[str, list[dict[str, Any]]] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "RuntimeSnapshot":
         return RuntimeSnapshot(
@@ -1808,6 +1829,22 @@ class RuntimeSnapshot:
                 {address: list(events) for address, events in self.evaluation_history.items()}
                 if evaluation_history is None
                 else {address: list(events) for address, events in evaluation_history.items()}
+            ),
+            participant_episode_results=(
+                dict(self.participant_episode_results)
+                if participant_episode_results is None
+                else dict(participant_episode_results)
+            ),
+            participant_episode_history=(
+                {
+                    participant_address: list(events)
+                    for participant_address, events in self.participant_episode_history.items()
+                }
+                if participant_episode_history is None
+                else {
+                    participant_address: list(events)
+                    for participant_address, events in participant_episode_history.items()
+                }
             ),
             metadata=dict(self.metadata) if metadata is None else dict(metadata),
         )
