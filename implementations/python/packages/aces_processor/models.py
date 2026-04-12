@@ -1559,6 +1559,14 @@ def iter_participant_episode_snapshot_violations(
     - Cross-sequence transitions are gated by an ``EPISODE_RESET`` or
       ``EPISODE_RESTARTED`` event (the first sequence number observed in
       a history stream is exempt because history may be truncated).
+    - When both a ``participant_episode_results`` entry and a non-empty
+      ``participant_episode_history`` entry exist for the same
+      participant, the current result must match the head of the history
+      chain: same ``episode_id``, same ``sequence_number``, and a status
+      that is consistent with the head event type and terminal reason.
+      A stale result that points at an earlier episode than the history
+      shows is a semantic inconsistency that breaks replay and operator
+      reasoning.
     """
 
     results_key = "runtime.snapshot.participant-episode-results"
@@ -1676,6 +1684,90 @@ def iter_participant_episode_snapshot_violations(
                 )
             sequence_to_episode[event.sequence_number] = event.episode_id
             last_sequence = event.sequence_number
+
+    # Cross-check: when both a result and a non-empty history exist for the
+    # same participant, the result must match the head of the history chain.
+    # An absent history is allowed (truncated observation); a present history
+    # whose last event describes a different episode than the current result
+    # is a stale result that breaks replay and operator reasoning.
+    if isinstance(participant_episode_results, Mapping) and isinstance(participant_episode_history, Mapping):
+        for outer_key, result in participant_episode_results.items():
+            if not isinstance(outer_key, str) or not outer_key:
+                continue
+            if not isinstance(result, Mapping):
+                continue
+            history = participant_episode_history.get(outer_key)
+            if not isinstance(history, list) or not history:
+                continue
+            try:
+                normalized_result = ParticipantEpisodeExecutionState.from_payload(result)
+            except (TypeError, ValueError):
+                continue
+            last_event: ParticipantEpisodeHistoryEvent | None = None
+            for event in history:
+                if not isinstance(event, Mapping):
+                    continue
+                try:
+                    candidate = ParticipantEpisodeHistoryEvent.from_payload(event)
+                except (TypeError, ValueError):
+                    continue
+                if candidate.participant_address != outer_key:
+                    continue
+                last_event = candidate
+            if last_event is None:
+                continue
+            if (
+                last_event.episode_id != normalized_result.episode_id
+                or last_event.sequence_number != normalized_result.sequence_number
+            ):
+                yield (
+                    outer_key,
+                    (
+                        f"participant episode result (episode_id="
+                        f"{normalized_result.episode_id!r}, sequence_number="
+                        f"{normalized_result.sequence_number}) does not match head of "
+                        f"history chain (episode_id={last_event.episode_id!r}, "
+                        f"sequence_number={last_event.sequence_number})"
+                    ),
+                )
+                continue
+            if normalized_result.status == ParticipantEpisodeStatus.TERMINATED:
+                if last_event.event_type not in _PARTICIPANT_EPISODE_TERMINAL_EVENTS:
+                    yield (
+                        outer_key,
+                        (
+                            f"participant episode result status is 'terminated' but head "
+                            f"history event is {last_event.event_type.value!r}, not a "
+                            f"terminal event"
+                        ),
+                    )
+                elif normalized_result.terminal_reason != last_event.terminal_reason:
+                    expected = (
+                        normalized_result.terminal_reason.value
+                        if normalized_result.terminal_reason is not None
+                        else None
+                    )
+                    got = last_event.terminal_reason.value if last_event.terminal_reason is not None else None
+                    yield (
+                        outer_key,
+                        (
+                            f"participant episode result terminal_reason {expected!r} does "
+                            f"not match head history terminal_reason {got!r}"
+                        ),
+                    )
+            elif normalized_result.status in (
+                ParticipantEpisodeStatus.INITIALIZING,
+                ParticipantEpisodeStatus.RUNNING,
+            ):
+                if last_event.event_type in _PARTICIPANT_EPISODE_TERMINAL_EVENTS:
+                    yield (
+                        outer_key,
+                        (
+                            f"participant episode result status is "
+                            f"{normalized_result.status.value!r} but head history event is "
+                            f"terminal ({last_event.event_type.value!r})"
+                        ),
+                    )
 
 
 def validate_evaluation_result(
