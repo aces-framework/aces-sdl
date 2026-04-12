@@ -74,6 +74,7 @@ class BackendConformanceReport:
     passed: bool
     cases: tuple[ConformanceCaseResult, ...] = ()
     contract_versions: dict[str, str] = field(default_factory=dict)
+    unsupported_contract_gaps: tuple[str, ...] = ()
     unsupported_capability_gaps: tuple[str, ...] = ()
     diagnostics: tuple[Diagnostic, ...] = ()
 
@@ -420,6 +421,14 @@ def _capability_gaps(
     return tuple(gaps)
 
 
+def _declared_contract_gaps(
+    profile: BackendCapabilityProfile,
+    manifest: BackendManifest,
+) -> tuple[str, ...]:
+    required = required_contracts(profile)
+    return tuple(sorted(required - manifest.supported_contract_versions))
+
+
 def run_target_conformance(
     target: RuntimeTarget,
     *,
@@ -430,9 +439,18 @@ def run_target_conformance(
 
     effective_profile = profile or profile_for_manifest(target.manifest)
     fixture_report = run_fixture_suite(profile=effective_profile, root=root)
+    contract_gaps = _declared_contract_gaps(effective_profile, target.manifest)
     gaps = _capability_gaps(effective_profile, target)
-    passed = fixture_report.passed and not gaps
+    passed = fixture_report.passed and not contract_gaps and not gaps
     diagnostics = list(fixture_report.diagnostics)
+    if contract_gaps:
+        diagnostics.append(
+            _diagnostic(
+                "conformance.unsupported-contract-declaration",
+                target.name,
+                f"Target does not declare required contracts for {effective_profile.value}: {', '.join(contract_gaps)}",
+            )
+        )
     if gaps:
         diagnostics.append(
             _diagnostic(
@@ -449,6 +467,7 @@ def run_target_conformance(
         passed=passed,
         cases=cases,
         contract_versions=dict(fixture_report.contract_versions),
+        unsupported_contract_gaps=contract_gaps,
         unsupported_capability_gaps=gaps,
         diagnostics=tuple(diagnostics),
     )

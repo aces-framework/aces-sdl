@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shared backend manifest authority directly, reducing drift between authority
   sets, emitted manifests, fixtures, and conformance validation.
 
+### Fixed
+
+- API-413 backend conformance now fails when a backend under-declares the
+  contract ids required by its inferred runtime capability profile, instead of
+  trusting capability shape alone.
+- Published schema checks now reject stale extra schema files that are no
+  longer generated from the live contract bundle, closing the hole where a dead
+  `backend-manifest-v1` file could silently creep back into `contracts/schemas`.
+- Backend manifest regression tests now keep valid `concept_bindings` in place
+  and assert the intended failure causes for empty compatibility,
+  under-specified realization support, and hollow capability blocks.
+
 ## [0.6.0] - 2026-04-11
 
 ### Added

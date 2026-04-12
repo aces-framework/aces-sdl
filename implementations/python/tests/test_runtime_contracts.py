@@ -26,7 +26,7 @@ def test_published_contract_schemas_exist_and_match_bundle():
 
     generated = schema_bundle()
 
-    assert set(generated) <= set(published)
+    assert set(generated) == set(published)
     for name, schema in generated.items():
         assert published[name] == schema
 
