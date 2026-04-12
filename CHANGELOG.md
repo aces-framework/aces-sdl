@@ -60,7 +60,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data instead of reporting it as an unknown contract. The reference
   backend stub fixture at
   `contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json`
-  is updated to match the widened authority list.
+  is updated to match the widened authority list. The
+  `_live_target_cases()` live conformance probe also serializes
+  `participant_episode_results` / `participant_episode_history` so a
+  backend advertising the full-remote profile cannot pass conformance
+  with malformed RUN-311 data.
+- `aces_processor.manager._participant_episode_contract_diagnostics`
+  validates participant episode results and history on every backend
+  apply, so invalid RUN-311 data now fails the live apply path with a
+  `runtime.backend-contract-invalid` diagnostic instead of being
+  silently persisted into `RuntimeSnapshot`.
 
 ### Changed
 

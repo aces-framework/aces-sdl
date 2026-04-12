@@ -18,6 +18,8 @@ from .models import (
     EvaluationResultContract,
     EvaluationResultStatus,
     ExecutionPlan,
+    ParticipantEpisodeExecutionState,
+    ParticipantEpisodeHistoryEvent,
     ProvisioningPlan,
     ProvisionOp,
     RuntimeDomain,
@@ -242,6 +244,13 @@ def _call_backend_apply(
             success=False,
             snapshot=snapshot,
             diagnostics=evaluation_result_diagnostics,
+        )
+    participant_episode_result_diagnostics = _participant_episode_contract_diagnostics(result.snapshot)
+    if participant_episode_result_diagnostics:
+        return ApplyResult(
+            success=False,
+            snapshot=snapshot,
+            diagnostics=participant_episode_result_diagnostics,
         )
 
     return result
@@ -1043,6 +1052,110 @@ def _evaluation_result_contract_diagnostics(
                         "runtime.backend-contract-invalid",
                         evaluation_address,
                         "Running evaluation results may not end history with a terminal event.",
+                    )
+                )
+
+    return diagnostics
+
+
+def _participant_episode_contract_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    """Validate participant-episode snapshot data against RUN-311 invariants.
+
+    Backends may populate ``participant_episode_results`` and
+    ``participant_episode_history`` on the snapshot. Both surfaces are
+    schema-first contracts with runtime invariants enforced by their
+    respective dataclass ``__post_init__`` methods; this helper reuses
+    those constructors so that invalid RUN-311 data is rejected on the
+    apply path instead of being silently persisted.
+    """
+
+    diagnostics: list[Diagnostic] = []
+    if not isinstance(snapshot.participant_episode_results, dict):
+        return [
+            _failure_diagnostic(
+                "runtime.backend-contract-invalid",
+                "runtime.apply.participant-episode-results",
+                "RuntimeSnapshot.participant_episode_results must be a dict.",
+            )
+        ]
+    if not isinstance(snapshot.participant_episode_history, dict):
+        return [
+            _failure_diagnostic(
+                "runtime.backend-contract-invalid",
+                "runtime.apply.participant-episode-history",
+                "RuntimeSnapshot.participant_episode_history must be a dict.",
+            )
+        ]
+
+    for participant_address, result in snapshot.participant_episode_results.items():
+        if not isinstance(participant_address, str):
+            diagnostics.append(
+                _failure_diagnostic(
+                    "runtime.backend-contract-invalid",
+                    "runtime.apply.participant-episode-results",
+                    "Participant episode result keys must be strings.",
+                )
+            )
+            continue
+        if not isinstance(result, dict):
+            diagnostics.append(
+                _failure_diagnostic(
+                    "runtime.backend-contract-invalid",
+                    participant_address,
+                    "Participant episode results must use plain-data mapping values.",
+                )
+            )
+            continue
+        try:
+            ParticipantEpisodeExecutionState.from_payload(result)
+        except (TypeError, ValueError) as exc:
+            diagnostics.append(
+                _failure_diagnostic(
+                    "runtime.backend-contract-invalid",
+                    participant_address,
+                    f"Participant episode result is invalid: {exc}",
+                )
+            )
+
+    for participant_address, history in snapshot.participant_episode_history.items():
+        if not isinstance(participant_address, str):
+            diagnostics.append(
+                _failure_diagnostic(
+                    "runtime.backend-contract-invalid",
+                    "runtime.apply.participant-episode-history",
+                    "Participant episode history keys must be strings.",
+                )
+            )
+            continue
+        if not isinstance(history, list):
+            diagnostics.append(
+                _failure_diagnostic(
+                    "runtime.backend-contract-invalid",
+                    participant_address,
+                    "Participant episode history must be a list of events.",
+                )
+            )
+            continue
+        for index, event in enumerate(history):
+            if not isinstance(event, dict):
+                diagnostics.append(
+                    _failure_diagnostic(
+                        "runtime.backend-contract-invalid",
+                        f"{participant_address}[{index}]",
+                        "Participant episode history events must use plain-data mapping values.",
+                    )
+                )
+                continue
+            try:
+                ParticipantEpisodeHistoryEvent.from_payload(event)
+            except (TypeError, ValueError) as exc:
+                diagnostics.append(
+                    _failure_diagnostic(
+                        "runtime.backend-contract-invalid",
+                        f"{participant_address}[{index}]",
+                        f"Participant episode history event is invalid: {exc}",
                     )
                 )
 

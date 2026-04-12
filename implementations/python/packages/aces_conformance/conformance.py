@@ -673,6 +673,11 @@ def _live_target_cases(
         "orchestration_history": dict(control_plane.snapshot.orchestration_history),
         "evaluation_results": dict(control_plane.snapshot.evaluation_results),
         "evaluation_history": dict(control_plane.snapshot.evaluation_history),
+        "participant_episode_results": dict(control_plane.snapshot.participant_episode_results),
+        "participant_episode_history": {
+            participant_address: list(events)
+            for participant_address, events in control_plane.snapshot.participant_episode_history.items()
+        },
         "metadata": dict(control_plane.snapshot.metadata),
     }
     snapshot_diags = [
