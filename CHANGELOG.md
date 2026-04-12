@@ -77,6 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to the new processor models, contract models, schema-version constant,
   ADR-013, the conformance wiring, and the lifecycle test.
 
+### Fixed
+
+- `iter_participant_episode_snapshot_violations` no longer produces
+  cascading duplicate violations when a stream-level rule fires. The
+  validator now advances ``last_sequence`` and ``sequence_to_episode``
+  after every yielded violation except strict backward movement, so a
+  single ungated sequence transition reports one error instead of one
+  error per follow-up event at the new sequence number.
+
 ### Changed
 
 - `tools/policy/requirement_order.yaml`: `RUN-311` added to the

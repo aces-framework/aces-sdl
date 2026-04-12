@@ -1632,6 +1632,12 @@ def iter_participant_episode_snapshot_violations(
         sequence_to_episode: dict[int, str] = {}
         for index, event in enumerate(normalized_events):
             locator = f"{outer_key}[{index}]"
+            # A strict backward movement cannot be reconciled into the same
+            # stream, so the event is dropped and stream state is not
+            # advanced for it. Every other violation path still advances
+            # stream state so that downstream events are not re-checked
+            # against stale ``last_sequence`` / ``sequence_to_episode``
+            # values.
             if event.sequence_number < last_sequence:
                 yield (
                     locator,
@@ -1641,20 +1647,23 @@ def iter_participant_episode_snapshot_violations(
                     ),
                 )
                 continue
-            if event.sequence_number > last_sequence and last_sequence != -1:
-                if event.event_type not in {
+            if (
+                event.sequence_number > last_sequence
+                and last_sequence != -1
+                and event.event_type
+                not in {
                     ParticipantEpisodeHistoryEventType.EPISODE_RESET,
                     ParticipantEpisodeHistoryEventType.EPISODE_RESTARTED,
-                }:
-                    yield (
-                        locator,
-                        (
-                            f"participant episode transition to sequence_number "
-                            f"{event.sequence_number} must arrive via episode_reset or "
-                            f"episode_restarted; saw {event.event_type.value}"
-                        ),
-                    )
-                    continue
+                }
+            ):
+                yield (
+                    locator,
+                    (
+                        f"participant episode transition to sequence_number "
+                        f"{event.sequence_number} must arrive via episode_reset or "
+                        f"episode_restarted; saw {event.event_type.value}"
+                    ),
+                )
             expected_episode_id = sequence_to_episode.get(event.sequence_number)
             if expected_episode_id is None:
                 sequence_to_episode[event.sequence_number] = event.episode_id
@@ -1667,7 +1676,6 @@ def iter_participant_episode_snapshot_violations(
                         f"{expected_episode_id!r} -> {event.episode_id!r}"
                     ),
                 )
-                continue
             last_sequence = event.sequence_number
 
 
