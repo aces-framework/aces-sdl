@@ -31,11 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR-013 ("Participant Episode Lifecycle Boundaries") in
   `docs/decisions/adrs/` defining the contract-surface boundary
   discipline that drives this work.
-- End-to-end coverage in
+- Contract-surface coverage in
   `implementations/python/tests/test_run_311_participant_episode_lifecycle.py`
-  satisfying every clause of the requirement (initialization, reset,
-  completion, timeout, truncation, interruption, restart) while
-  preserving stable participant identity across resets and restarts.
+  exercising every clause of the requirement (initialization, reset,
+  completion, timeout, truncation, interruption, restart) at the
+  ``ParticipantEpisodeExecutionState`` /
+  ``ParticipantEpisodeHistoryEvent`` boundary, plus the per-clause
+  invariants on stable participant identity across resets/restarts.
+  End-to-end coverage of the runtime + HTTP control surfaces lives
+  alongside the participant runtime added under finding 1 below
+  (``test_runtime_control_plane.py::TestParticipantEpisodeControlPlane``
+  and
+  ``test_runtime_control_plane_api.py::TestParticipantEpisodeHttpRoutes``).
 - `RuntimeSnapshot` and `RuntimeSnapshotEnvelopeModel` now carry
   `participant_episode_results` and `participant_episode_history`
   alongside the existing `orchestration_*` and `evaluation_*` surfaces.
@@ -61,9 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json`
   is updated to match the widened authority list.
 - `_live_target_cases()` live conformance probe now serializes
-  `participant_episode_results` / `participant_episode_history` so a
-  backend advertising the full-remote profile cannot pass conformance
-  with malformed RUN-311 data.
+  `participant_episode_results` / `participant_episode_history` from
+  the live ``RuntimeControlPlane.snapshot``. Note: the original drop
+  of this entry overstated coverage by implying serialization alone
+  rejected malformed data; the *active* lifecycle drive that actually
+  produces and validates participant data lives under finding 4 below.
 - Shared snapshot invariant iterator
   `aces_processor.models.iter_participant_episode_snapshot_violations`,
   consumed by both the runtime-manager apply path
@@ -79,6 +88,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Production-readiness review finding 5: tighten the original 0.10.0
+  release notes that overstated RUN-311 completeness relative to the
+  contract-only code that initially landed. The
+  ``test_run_311_participant_episode_lifecycle.py`` entry is now
+  scoped to "contract-surface coverage" with an explicit pointer to
+  the runtime/HTTP test classes added under finding 1, and the
+  ``_live_target_cases`` entry now distinguishes the original
+  serialization-only behavior from the active lifecycle drive added
+  under finding 4. Findings 1-4 below independently document the
+  runtime, conformance, and validation gaps the original wording
+  understated; this entry exists so the historical Added section
+  describes only what shipped at each point in time.
 - Production-readiness review finding 4: ``aces_conformance.conformance``
   now actively drives a full participant episode lifecycle whenever the
   target advertises a participant runtime. ``_live_target_cases`` calls
