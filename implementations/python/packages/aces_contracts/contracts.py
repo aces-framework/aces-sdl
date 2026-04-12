@@ -27,6 +27,7 @@ from .versions import (
     CONTROLLED_VOCABULARIES_SCHEMA_VERSION,
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
+    PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_V2_SCHEMA_VERSION,
     REFERENCE_MODELS_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
@@ -164,6 +165,31 @@ class EvaluationHistoryEventModel(ContractModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class ParticipantEpisodeStateModel(ContractModel):
+    state_schema_version: Literal[PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION] = PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION
+    participant_address: str
+    episode_id: str
+    sequence_number: int
+    status: str
+    terminal_reason: str | None = None
+    initialized_at: str
+    updated_at: str
+    terminated_at: str | None = None
+    last_control_action: str
+    previous_episode_id: str | None = None
+
+
+class ParticipantEpisodeHistoryEventModel(ContractModel):
+    event_type: str
+    timestamp: str
+    participant_address: str
+    episode_id: str
+    sequence_number: int
+    terminal_reason: str | None = None
+    control_action: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class PlanOperationModel(ContractModel):
     action: str
     address: str
@@ -201,12 +227,25 @@ class SnapshotEntryModel(ContractModel):
 
 
 class RuntimeSnapshotEnvelopeModel(ContractModel):
+    """Published envelope for a live runtime snapshot.
+
+    Participant episode surfaces (``participant_episode_results`` and
+    ``participant_episode_history``) are both keyed by the stable
+    ``participant_address`` of the participant the state/history belongs
+    to. The results map carries the currently-live episode state per
+    participant; prior episodes survive only through the append-only
+    history stream and the ``previous_episode_id`` chain on each state.
+    See ADR-013.
+    """
+
     schema_version: Literal[RUNTIME_SNAPSHOT_SCHEMA_VERSION] = RUNTIME_SNAPSHOT_SCHEMA_VERSION
     entries: dict[str, SnapshotEntryModel] = Field(default_factory=dict)
     orchestration_results: dict[str, WorkflowExecutionStateModel] = Field(default_factory=dict)
     orchestration_history: dict[str, list[WorkflowHistoryEventModel]] = Field(default_factory=dict)
     evaluation_results: dict[str, EvaluationResultStateModel] = Field(default_factory=dict)
     evaluation_history: dict[str, list[EvaluationHistoryEventModel]] = Field(default_factory=dict)
+    participant_episode_results: dict[str, ParticipantEpisodeStateModel] = Field(default_factory=dict)
+    participant_episode_history: dict[str, list[ParticipantEpisodeHistoryEventModel]] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -1122,6 +1161,13 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
             "type": "array",
             "items": EvaluationHistoryEventModel.model_json_schema(),
         },
+        "participant-episode-state-envelope-v1": ParticipantEpisodeStateModel.model_json_schema(),
+        "participant-episode-history-event-stream-v1": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "ParticipantEpisodeHistoryEventStream",
+            "type": "array",
+            "items": ParticipantEpisodeHistoryEventModel.model_json_schema(),
+        },
         "operation-receipt-v1": OperationReceiptModel.model_json_schema(),
         "operation-status-v1": OperationStatusModel.model_json_schema(),
     }
@@ -1156,6 +1202,9 @@ __all__ = [
     "OperationStatusModel",
     "OrchestrationPlanModel",
     "OrchestratorCapabilitiesModel",
+    "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
+    "ParticipantEpisodeHistoryEventModel",
+    "ParticipantEpisodeStateModel",
     "PlanOperationModel",
     "ProcessorFeature",
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",

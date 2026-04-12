@@ -5,6 +5,106 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-04-11
+
+### Added
+
+- `RUN-311` ("Participant Episode Lifecycle And Reset") participant
+  episode contract surface: `ParticipantEpisodeStatus`,
+  `ParticipantEpisodeTerminalReason`, `ParticipantEpisodeControlAction`,
+  `ParticipantEpisodeHistoryEventType`,
+  `ParticipantEpisodeExecutionState`, and
+  `ParticipantEpisodeHistoryEvent` in
+  `implementations/python/packages/aces_processor/models.py`, modelling
+  current lifecycle state, terminal reasons, and control actions as
+  three distinct categories per ADR-013.
+- Closed-world contract models `ParticipantEpisodeStateModel` and
+  `ParticipantEpisodeHistoryEventModel` plus matching
+  `participant-episode-state-envelope-v1` /
+  `participant-episode-history-event-stream-v1` entries in
+  `schema_bundle()`, with the new `participant-episode-state/v1`
+  schema-version constant in
+  `implementations/python/packages/aces_contracts/versions.py`.
+- Generated JSON Schemas in `contracts/schemas/control-plane/` and
+  minimal valid/invalid fixture pairs in
+  `contracts/fixtures/control-plane/`.
+- ADR-013 ("Participant Episode Lifecycle Boundaries") in
+  `docs/decisions/adrs/` defining the contract-surface boundary
+  discipline that drives this work.
+- End-to-end coverage in
+  `implementations/python/tests/test_run_311_participant_episode_lifecycle.py`
+  satisfying every clause of the requirement (initialization, reset,
+  completion, timeout, truncation, interruption, restart) while
+  preserving stable participant identity across resets and restarts.
+- `RuntimeSnapshot` and `RuntimeSnapshotEnvelopeModel` now carry
+  `participant_episode_results` and `participant_episode_history`
+  alongside the existing `orchestration_*` and `evaluation_*` surfaces.
+  Both are keyed by the stable `participant_address`. Matching
+  serialization in `aces_processor/control_plane_api.py::_snapshot_model`,
+  `aces_processor/control_plane_store.py::_snapshot_payload`, and
+  `aces_conformance/conformance.py` routes the new data through
+  `/snapshot` responses and durable snapshot state instead of forcing
+  it into `RuntimeSnapshot.metadata`.
+- Stream-level invariants on `ParticipantEpisodeHistoryEvent`:
+  `episode_initialized` must carry `sequence_number=0`, and
+  `episode_reset` / `episode_restarted` must carry `sequence_number>0`,
+  matching the `ParticipantEpisodeExecutionState` invariants so a valid
+  history stream can always be reconstructed into a valid state chain.
+- Manifest-authority registration: the new
+  `participant-episode-state-envelope-v1` and
+  `participant-episode-history-event-stream-v1` contract ids are now
+  members of `BACKEND_SUPPORTED_CONTRACT_IDS` and
+  `PROCESSOR_SUPPORTED_CONTRACT_IDS`, added to the conformance
+  `FULL_REMOTE_CONTROL_PLANE` profile requirements, and wired into
+  `aces_conformance.conformance._validate_payload` and
+  `_semantic_diagnostics`. The reference backend stub fixture at
+  `contracts/fixtures/backend-manifest/backend-manifest-v2/valid/stub.json`
+  is updated to match the widened authority list.
+- `_live_target_cases()` live conformance probe now serializes
+  `participant_episode_results` / `participant_episode_history` so a
+  backend advertising the full-remote profile cannot pass conformance
+  with malformed RUN-311 data.
+- Shared snapshot invariant iterator
+  `aces_processor.models.iter_participant_episode_snapshot_violations`,
+  consumed by both the runtime-manager apply path
+  (`_participant_episode_contract_diagnostics`) and the conformance
+  semantic-check path (`_participant_episode_snapshot_diagnostics`) so
+  both callers use one source of truth for per-entry validation and
+  stream-level consistency (outer-key/inner-address match, monotonic
+  `sequence_number`, stable `episode_id` per sequence, and `RESET` /
+  `RESTARTED` gating on cross-sequence transitions).
+- Ground Control IMPLEMENTS and TESTS traceability links from `RUN-311`
+  to the new processor models, contract models, schema-version constant,
+  ADR-013, the conformance wiring, and the lifecycle test.
+
+### Fixed
+
+- `iter_participant_episode_snapshot_violations` no longer produces
+  cascading duplicate violations when a stream-level rule fires. Both
+  the sequence-transition gate and the per-sequence ``episode_id``
+  stability check now advance stream state after every yielded
+  violation except strict backward movement, so an ungated sequence
+  transition reports one error per transition and an ``episode_id``
+  mismatch reports each distinct transition (e.g. ``A -> B`` then
+  ``B -> C``) instead of repeating the same comparison against the
+  first-observed id.
+
+### Changed
+
+- `tools/policy/requirement_order.yaml`: `RUN-311` added to the
+  `runtime-core` phase (it is the next runtime/control-plane sibling
+  after `RUN-300`). Phase ownership widened to cover
+  `docs/decisions/adrs`, `contracts/schemas/snapshots`,
+  `contracts/schemas/backend-manifest`,
+  `contracts/schemas/processor-manifest`,
+  `contracts/fixtures/backend-manifest`,
+  `contracts/fixtures/processor-manifest`, and
+  `implementations/python/packages/aces_conformance` so the ADR and the
+  conformance/schema wiring clear `check_requirement_governance.py`.
+- `aces_conformance.conformance._validate_event_stream` extracted from
+  the repeated history-stream validation blocks so workflow, evaluation,
+  and participant-episode history streams share one helper.
+
 ## [0.9.0] - 2026-04-11
 
 ### Added

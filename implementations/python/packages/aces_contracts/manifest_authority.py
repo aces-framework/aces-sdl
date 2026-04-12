@@ -23,6 +23,8 @@ PROCESSOR_SUPPORTED_CONTRACT_IDS = (
     "workflow-history-event-stream-v1",
     "evaluation-result-envelope-v1",
     "evaluation-history-event-stream-v1",
+    "participant-episode-state-envelope-v1",
+    "participant-episode-history-event-stream-v1",
 )
 
 # These are the published backend-facing and live-control-plane contracts a
@@ -41,6 +43,8 @@ BACKEND_SUPPORTED_CONTRACT_IDS = (
     "workflow-history-event-stream-v1",
     "evaluation-result-envelope-v1",
     "evaluation-history-event-stream-v1",
+    "participant-episode-state-envelope-v1",
+    "participant-episode-history-event-stream-v1",
 )
 
 
