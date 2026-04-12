@@ -40,6 +40,7 @@ from aces.core.sdl import (
 
 NODE_NAME = "vm1"
 EXPECTED_NODE_ADDRESS = f"provision.node.{NODE_NAME}"
+EXPECTED_WORKFLOW_ADDRESS = "orchestration.workflow.response"
 DRIFT_DIAGNOSTIC_CODE = "runtime.plan-snapshot-mismatch"
 PARAM_OS_KIND = "linux"
 PARAM_CPU_COUNT = 2
@@ -121,9 +122,11 @@ class TestRun300Lifecycle:
 
         Asserts that the values substituted for ``${os_kind}`` and
         ``${cpu_count}`` at instantiation time, and the canonical node
-        address ``provision.node.vm1``, survive unchanged into every
-        downstream stage's typed contract (compiled model, plan operation,
-        applied snapshot entry, orchestration live-observation envelope).
+        and workflow addresses, survive unchanged into the downstream
+        typed contracts that publish them. Substituted values must remain
+        intact in the compiled model, plan operation, and applied
+        snapshot entry; canonical addresses must remain intact through
+        compilation, planning, apply, and the live-observation envelope.
         No ``${...}`` token is permitted to escape any stage.
         """
 
@@ -156,6 +159,13 @@ class TestRun300Lifecycle:
         assert NODE_NAME in instantiated_payload.get("nodes", {}), (
             "The canonical node identity must appear under its literal key after instantiation."
         )
+        instantiated_node = instantiated_payload["nodes"][NODE_NAME]
+        assert instantiated_node["os"] == PARAM_OS_KIND, (
+            "Instantiation must substitute os_kind before compilation begins."
+        )
+        assert instantiated_node["resources"]["cpu"] == PARAM_CPU_COUNT, (
+            "Instantiation must substitute cpu_count before compilation begins."
+        )
 
         # ----- Stage 2: Compilation ----------------------------------
         model = compile_runtime_model(instantiated)
@@ -176,6 +186,10 @@ class TestRun300Lifecycle:
             f"substitution through into the compiled node's os_family; "
             f"got {compiled_node.os_family!r}."
         )
+        assert compiled_node.spec["node"]["resources"]["cpu"] == PARAM_CPU_COUNT, (
+            f"cpu_count parameter ({PARAM_CPU_COUNT!r}) must survive "
+            "compilation into the canonical node resource payload."
+        )
 
         # ----- Stage 3: Planning -------------------------------------
         target = create_stub_target()
@@ -191,10 +205,10 @@ class TestRun300Lifecycle:
         assert execution_plan.target_name == target.name, (
             "ExecutionPlan provenance must bind to the target name the manager will apply against."
         )
-        assert execution_plan.manifest is target.manifest, (
+        assert execution_plan.manifest == target.manifest, (
             "ExecutionPlan provenance must carry the manifest used at planning time so apply can detect manifest drift."
         )
-        assert execution_plan.base_snapshot is empty_snapshot, (
+        assert execution_plan.base_snapshot == empty_snapshot, (
             "ExecutionPlan provenance must carry the snapshot used at planning time so apply can detect snapshot drift."
         )
         assert execution_plan.scenario_name == instantiated.name, (
@@ -214,6 +228,18 @@ class TestRun300Lifecycle:
             "Against an empty snapshot the node must reconcile as CREATE; "
             "any other action means planning is conflating base state with "
             "the compiled model."
+        )
+        create_op = create_ops[0]
+        assert create_op.payload["os_family"] == PARAM_OS_KIND, (
+            "Planner payload must preserve the compiled os_family without rewriting or reinterpreting it."
+        )
+        assert create_op.payload["spec"]["node"]["resources"]["cpu"] == PARAM_CPU_COUNT, (
+            "Planner payload must preserve the compiled cpu_count without rewriting or reinterpreting it."
+        )
+        orchestration_addresses = {op.address for op in execution_plan.orchestration.operations}
+        assert orchestration_addresses == {EXPECTED_WORKFLOW_ADDRESS}, (
+            "Planner must emit the canonical workflow address so live "
+            "observation can report the same identity without translation."
         )
 
         # ----- Stage 4: Execution (apply) ----------------------------
@@ -245,6 +271,12 @@ class TestRun300Lifecycle:
             "ApplyResult must report the canonical address as changed so "
             "live-observation consumers can subscribe by canonical identity."
         )
+        assert applied_entry.payload["os_family"] == PARAM_OS_KIND, (
+            "Apply must preserve the planned os_family in the stored snapshot entry."
+        )
+        assert applied_entry.payload["spec"]["node"]["resources"]["cpu"] == PARAM_CPU_COUNT, (
+            "Apply must preserve the planned cpu_count in the stored snapshot entry."
+        )
         assert _no_variable_tokens(applied_entry.payload), (
             "Applied snapshot payload must not contain any ${...} tokens — "
             "meaning has been lost if unsubstituted placeholders reached "
@@ -263,19 +295,20 @@ class TestRun300Lifecycle:
             "Orchestration domain must contain at least one runtime entry "
             "after apply for a scenario that declares a workflow."
         )
-        workflow_addresses = list(orchestration_state)
-        for workflow_address in workflow_addresses:
-            assert workflow_address.startswith("orchestration."), (
-                f"Orchestration entry {workflow_address!r} must use the "
-                f"canonical address namespace; raw SDL names must not leak "
-                f"through the live-observation surface."
-            )
+        assert set(orchestration_state) == {EXPECTED_WORKFLOW_ADDRESS}, (
+            "Live observation must expose the exact canonical workflow "
+            "address chosen during planning, not merely the right namespace."
+        )
 
         orchestration_results = applied_snapshot.orchestration_results
         assert orchestration_results, (
             "Stub orchestrator must publish at least one workflow "
             "execution state entry on the live-observation surface; an "
             "empty result set would mean stage 5 is not actually exercised."
+        )
+        assert set(orchestration_results) == orchestration_addresses, (
+            "Live observation must publish the same workflow addresses the "
+            "planner emitted, with no drift or silent remapping."
         )
         # Portable workflow-execution-state envelope invariants.
         for address, state in orchestration_results.items():
@@ -328,6 +361,7 @@ class TestRun300Lifecycle:
         assert manager.snapshot != empty_snapshot, (
             "Manager snapshot must advance after a successful apply; otherwise the drift check below is a tautology."
         )
+        snapshot_before_reapply = manager.snapshot.with_entries(dict(manager.snapshot.entries))
 
         # Attempt to apply the original plan a second time. Its base_snapshot
         # is still the empty snapshot, which no longer matches the manager.
@@ -342,8 +376,12 @@ class TestRun300Lifecycle:
         assert DRIFT_DIAGNOSTIC_CODE in drift_codes, (
             f"Expected provenance drift diagnostic {DRIFT_DIAGNOSTIC_CODE!r}; got error codes: {sorted(drift_codes)!r}"
         )
-        assert second_apply.snapshot is manager.snapshot, (
-            "On drift rejection the manager snapshot must be returned unchanged — no partial apply is permitted."
+        assert second_apply.snapshot == snapshot_before_reapply, (
+            "On drift rejection apply must return the pre-existing snapshot "
+            "state unchanged — no partial apply is permitted."
+        )
+        assert manager.snapshot == snapshot_before_reapply, (
+            "On drift rejection the manager must retain its pre-existing snapshot state unchanged."
         )
 
     def test_unresolved_instantiation_parameter_is_rejected_before_compilation(self):

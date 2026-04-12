@@ -12,10 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RUN-300 lifecycle integrity test
   (`implementations/python/tests/test_run_300_lifecycle.py`) that threads
   a parameterized scenario through instantiation, compilation, planning,
-  execution, and live observation, asserting canonical addresses and
-  substituted parameter values survive unchanged across all five stages
-  and that provenance drift (a stale plan base snapshot) is rejected
-  rather than silently reconciled.
+  execution, and live observation, asserting substituted parameter values
+  survive unchanged through instantiation, compilation, planning, and
+  apply; canonical addresses survive unchanged across all five stages;
+  and provenance drift (a stale plan base snapshot) is rejected rather
+  than silently reconciled.
 - Ground Control IMPLEMENTS and TESTS traceability links from RUN-300
   (Processing Model and Lifecycle) to the processor/compiler/planner/
   manager/control-plane stack and its per-stage tests.
