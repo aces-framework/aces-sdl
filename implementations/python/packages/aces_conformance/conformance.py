@@ -471,8 +471,20 @@ def run_fixture_suite(
 
 
 def profile_for_manifest(manifest: BackendManifest) -> BackendCapabilityProfile:
-    """Infer the nearest conformance profile for a backend manifest."""
+    """Infer the nearest conformance profile for a backend manifest.
 
+    A backend that declares orchestrator, evaluator, AND participant
+    runtime capabilities is treated as ``FULL_REMOTE_CONTROL_PLANE``,
+    so the default ``run_target_conformance`` path automatically
+    validates the live target against the participant-episode contract
+    family (RUN-311). Backends that only declare orchestrator/evaluator
+    fall back to ``ORCHESTRATION_EVALUATION``; orchestrator-only
+    declarations fall back to ``ORCHESTRATION_CAPABLE``; provisioner-only
+    backends remain at ``PROVISIONING_ONLY``.
+    """
+
+    if manifest.has_orchestrator and manifest.has_evaluator and manifest.has_participant_runtime:
+        return BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
     if manifest.has_orchestrator and manifest.has_evaluator:
         return BackendCapabilityProfile.ORCHESTRATION_EVALUATION
     if manifest.has_orchestrator:
@@ -504,6 +516,8 @@ def _capability_gaps(
         and target.evaluator is None
     ):
         gaps.append("evaluator")
+    if profile == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE and target.participant_runtime is None:
+        gaps.append("participant_runtime")
     return tuple(gaps)
 
 

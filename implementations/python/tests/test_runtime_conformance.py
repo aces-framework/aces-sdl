@@ -28,16 +28,34 @@ def test_fixture_suite_passes_for_orchestration_evaluation_profile():
 def test_target_conformance_passes_for_stub_target():
     report = run_target_conformance(create_stub_target())
 
-    assert report.profile == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
+    assert report.profile == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
     assert report.passed is True
     assert not report.unsupported_contract_gaps
     assert not report.unsupported_capability_gaps
 
 
-def test_profile_is_inferred_from_manifest_shape():
+def test_profile_is_inferred_as_full_when_manifest_declares_participant_runtime():
+    """RUN-311 — finding 3: a manifest that declares orchestrator,
+    evaluator, and participant_runtime must infer the
+    ``FULL_REMOTE_CONTROL_PLANE`` profile so the default
+    ``run_target_conformance`` path validates the participant-episode
+    contract family without requiring callers to override the profile.
+    """
+
     target = create_stub_target()
 
-    assert profile_for_manifest(target.manifest) == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
+    assert profile_for_manifest(target.manifest) == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
+
+
+def test_profile_falls_back_to_orchestration_evaluation_without_participant_runtime():
+    """A manifest without participant_runtime continues to infer
+    ``ORCHESTRATION_EVALUATION`` so existing two-tier backends remain
+    compatible.
+    """
+    from aces_backend_stubs.stubs import create_stub_manifest
+
+    manifest = create_stub_manifest(with_participant_runtime=False)
+    assert profile_for_manifest(manifest) == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
 
 
 def test_fixture_suite_passes_for_full_remote_control_plane_profile():
@@ -158,13 +176,23 @@ def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_r
 
     report = run_target_conformance(target)
 
-    assert report.profile == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
+    # The reference stub manifest now declares participant_runtime, so
+    # profile_for_manifest infers the FULL_REMOTE_CONTROL_PLANE profile
+    # (RUN-311 finding 3). The contract gap set therefore also covers
+    # the participant-episode contracts and the plan contracts that
+    # the FULL profile requires.
+    assert report.profile == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
     assert report.passed is False
     assert set(report.unsupported_contract_gaps) == {
         "evaluation-history-event-stream-v1",
+        "evaluation-plan-v1",
         "evaluation-result-envelope-v1",
         "operation-receipt-v1",
         "operation-status-v1",
+        "orchestration-plan-v1",
+        "participant-episode-history-event-stream-v1",
+        "participant-episode-state-envelope-v1",
+        "provisioning-plan-v1",
         "runtime-snapshot-v1",
         "workflow-history-event-stream-v1",
         "workflow-result-envelope-v1",

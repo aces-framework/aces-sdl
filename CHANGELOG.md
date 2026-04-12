@@ -79,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Production-readiness review finding 3: ``profile_for_manifest`` now
+  promotes a manifest that declares orchestrator, evaluator, AND
+  participant runtime to ``BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE``
+  so the default ``run_target_conformance`` path automatically validates
+  the live target against the participant-episode contract family
+  (RUN-311) without callers having to override the profile.
+  ``_capability_gaps`` now requires a ``participant_runtime`` component
+  for that profile, and ``test_runtime_conformance`` covers both the
+  promotion path and the orchestration-evaluation fallback for backends
+  that omit the participant runtime block.
 - Production-readiness review finding 1: RUN-311 now ships an actual
   runtime capability, not just contracts and validators. New
   ``ParticipantRuntime`` backend protocol on
