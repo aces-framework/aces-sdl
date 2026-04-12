@@ -79,6 +79,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Production-readiness review finding 4: ``aces_conformance.conformance``
+  now actively drives a full participant episode lifecycle whenever the
+  target advertises a participant runtime. ``_live_target_cases`` calls
+  the new ``_drive_participant_episode_probe`` which submits
+  ``initialize`` / ``reset`` / ``terminate`` / ``restart`` through the
+  control plane, then adds a ``participant-snapshot-consistent``
+  conformance case that fails when ``participant_episode_results`` or
+  ``participant_episode_history`` is empty after the lifecycle, or when
+  the resulting snapshot violates ``iter_participant_episode_snapshot_violations``.
+  Backends that register a participant runtime but never publish
+  state/history through the snapshot now fail conformance instead of
+  silently certifying clean. Regression coverage in
+  ``test_live_probe_catches_participant_runtime_that_does_not_populate_snapshot``.
 - Production-readiness review finding 3: ``profile_for_manifest`` now
   promotes a manifest that declares orchestrator, evaluator, AND
   participant runtime to ``BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE``

@@ -32,6 +32,29 @@ def test_target_conformance_passes_for_stub_target():
     assert report.passed is True
     assert not report.unsupported_contract_gaps
     assert not report.unsupported_capability_gaps
+    # RUN-311 finding 4: the live probe must actually drive every
+    # participant episode control action and end with a non-empty,
+    # consistent snapshot for the conformance participant.
+    case_names = {case.name for case in report.cases}
+    assert {
+        "participant-initialize",
+        "participant-reset",
+        "participant-terminate",
+        "participant-restart",
+        "participant-snapshot-consistent",
+    }.issubset(case_names)
+    for case in report.cases:
+        if case.name in {
+            "participant-initialize",
+            "participant-reset",
+            "participant-terminate",
+            "participant-restart",
+            "participant-snapshot-consistent",
+        }:
+            assert case.passed, (
+                f"Live participant probe case {case.name!r} must succeed for the stub backend; "
+                f"diagnostics: {[diag.message for diag in case.diagnostics]}"
+            )
 
 
 def test_profile_is_inferred_as_full_when_manifest_declares_participant_runtime():
@@ -56,6 +79,64 @@ def test_profile_falls_back_to_orchestration_evaluation_without_participant_runt
 
     manifest = create_stub_manifest(with_participant_runtime=False)
     assert profile_for_manifest(manifest) == BackendCapabilityProfile.ORCHESTRATION_EVALUATION
+
+
+def test_live_probe_catches_participant_runtime_that_does_not_populate_snapshot():
+    """RUN-311 finding 4: a backend that exposes the participant runtime
+    surface but never publishes state/history through the snapshot must
+    fail conformance, not silently certify clean.
+    """
+    from aces_backend_stubs.stubs import (
+        StubEvaluator,
+        StubOrchestrator,
+        StubProvisioner,
+        create_stub_manifest,
+    )
+    from aces_processor.models import ApplyResult
+
+    class _SilentParticipantRuntime:
+        """Accepts every action without mutating the snapshot."""
+
+        def initialize(self, request, snapshot):
+            return ApplyResult(success=True, snapshot=snapshot)
+
+        def reset(self, request, snapshot):
+            return ApplyResult(success=True, snapshot=snapshot)
+
+        def restart(self, request, snapshot):
+            return ApplyResult(success=True, snapshot=snapshot)
+
+        def terminate(self, request, snapshot):
+            return ApplyResult(success=True, snapshot=snapshot)
+
+        def status(self):
+            return {}
+
+        def results(self):
+            return {}
+
+        def history(self):
+            return {}
+
+    manifest = create_stub_manifest()
+    target = RuntimeTarget(
+        name="silent-participant",
+        manifest=manifest,
+        provisioner=StubProvisioner(),
+        orchestrator=StubOrchestrator(),
+        evaluator=StubEvaluator(),
+        participant_runtime=_SilentParticipantRuntime(),
+    )
+
+    report = run_target_conformance(target)
+
+    assert report.profile == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
+    assert report.passed is False
+    snapshot_case = next(case for case in report.cases if case.name == "participant-snapshot-consistent")
+    assert snapshot_case.passed is False
+    messages = [diag.message for diag in snapshot_case.diagnostics]
+    assert any("exposes no participant_episode_results" in msg for msg in messages)
+    assert any("exposes no participant_episode_history" in msg for msg in messages)
 
 
 def test_fixture_suite_passes_for_full_remote_control_plane_profile():
