@@ -33,9 +33,31 @@ same day into:
 After the concept-authority side sequence, the intended return path appears to
 be the explicit ordering from ADR-010:
 
-1. `API-412` and `API-413`
+1. API-412 and API-413
+   - [x] `API-412`
+   - [x] `API-413`
 2. `RUN-300` and related runtime/control-plane requirements
-3. `RUN-313`, `RUN-314`, and `RUN-315`
+   - [x] `RUN-300` Processing Model And Lifecycle
+   - [x] `RUN-301` Instantiated Scenario Model
+   - [x] `RUN-302` Compiled Processing Representation
+   - [x] `RUN-303` Planning Semantics
+   - [x] `RUN-304` Live Execution State And Lifecycle
+   - [ ] `RUN-305` Participant Runtime State And History
+   - [ ] `RUN-306` Participant Decision And Execution Lifecycle
+   - [ ] `RUN-307` Shared Operational State Model
+   - [ ] `RUN-308` Concurrent Participant Execution
+   - [ ] `RUN-309` Reproducible Participant Execution Context
+   - [ ] `RUN-310` Intervention, Handoff, And Supervisory Lifecycle
+   - [ ] `RUN-311` Participant Episode Lifecycle And Reset
+   - [ ] `RUN-312` Budgeted Participant Execution Accounting
+   - [ ] `RUN-316` Operational Apparatus Observability
+   - [ ] `RUN-317` Runtime Clock And Time-Domain Handling
+   - [ ] `RUN-318` Time Advancement And Synchronization Lifecycle
+   - [x] `API-403` Per-Target Control Plane Contract
+3. Reference implementations
+   - [ ] `RUN-313` Reference Processor Implementation
+   - [ ] `RUN-314` Reference Emulation Backend
+   - [ ] `RUN-315` Reference Simulation Backend
 4. Remaining unfinished `SEM-*` work
 5. Deferred broader `API-400` expansion surfaces
 
