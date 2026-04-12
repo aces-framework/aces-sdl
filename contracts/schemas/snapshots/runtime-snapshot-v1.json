@@ -185,6 +185,155 @@
       "title": "EvaluationResultStateModel",
       "type": "object"
     },
+    "ParticipantEpisodeHistoryEventModel": {
+      "additionalProperties": false,
+      "properties": {
+        "control_action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Action"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "episode_id": {
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "event_type": {
+          "title": "Event Type",
+          "type": "string"
+        },
+        "participant_address": {
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "sequence_number": {
+          "title": "Sequence Number",
+          "type": "integer"
+        },
+        "terminal_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Terminal Reason"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_type",
+        "timestamp",
+        "participant_address",
+        "episode_id",
+        "sequence_number"
+      ],
+      "title": "ParticipantEpisodeHistoryEventModel",
+      "type": "object"
+    },
+    "ParticipantEpisodeStateModel": {
+      "additionalProperties": false,
+      "properties": {
+        "episode_id": {
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "initialized_at": {
+          "title": "Initialized At",
+          "type": "string"
+        },
+        "last_control_action": {
+          "title": "Last Control Action",
+          "type": "string"
+        },
+        "participant_address": {
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "previous_episode_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Episode Id"
+        },
+        "sequence_number": {
+          "title": "Sequence Number",
+          "type": "integer"
+        },
+        "state_schema_version": {
+          "const": "participant-episode-state/v1",
+          "default": "participant-episode-state/v1",
+          "title": "State Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "terminal_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Terminal Reason"
+        },
+        "terminated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Terminated At"
+        },
+        "updated_at": {
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "participant_address",
+        "episode_id",
+        "sequence_number",
+        "status",
+        "initialized_at",
+        "updated_at",
+        "last_control_action"
+      ],
+      "title": "ParticipantEpisodeStateModel",
+      "type": "object"
+    },
     "SnapshotEntryModel": {
       "additionalProperties": false,
       "properties": {
@@ -474,6 +623,23 @@
         "$ref": "#/$defs/WorkflowExecutionStateModel"
       },
       "title": "Orchestration Results",
+      "type": "object"
+    },
+    "participant_episode_history": {
+      "additionalProperties": {
+        "items": {
+          "$ref": "#/$defs/ParticipantEpisodeHistoryEventModel"
+        },
+        "type": "array"
+      },
+      "title": "Participant Episode History",
+      "type": "object"
+    },
+    "participant_episode_results": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ParticipantEpisodeStateModel"
+      },
+      "title": "Participant Episode Results",
       "type": "object"
     },
     "schema_version": {

@@ -99,8 +99,10 @@ ownership:
   runtime-core:
     - implementations/python/packages/aces_processor
     - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_conformance
     - implementations/python/tests
     - contracts/schemas/control-plane
+    - contracts/schemas/snapshots
     - contracts/fixtures/control-plane
     - docs/decisions/adrs
     - CHANGELOG.md

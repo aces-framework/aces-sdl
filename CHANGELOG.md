@@ -32,6 +32,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ground Control IMPLEMENTS and TESTS traceability links from `RUN-311`
   to the new processor models, contract models, schema-version constant,
   ADR-013, and the lifecycle test.
+- `RuntimeSnapshot` / `RuntimeSnapshotEnvelopeModel` now carry
+  `participant_episode_results` and `participant_episode_history`
+  alongside the existing `orchestration_*` and `evaluation_*` surfaces,
+  with matching serialization in
+  `aces_processor/control_plane_api.py::_snapshot_model`,
+  `aces_processor/control_plane_store.py::_snapshot_payload`, and
+  `aces_conformance/conformance.py`, so the participant-episode contract
+  surface is reachable through `/snapshot` responses and durable snapshot
+  state instead of being forced into `RuntimeSnapshot.metadata`.
+- `ParticipantEpisodeHistoryEvent` now enforces the sequence-number
+  semantics that link history events to the state chain: an
+  `episode_initialized` event must carry `sequence_number=0`, and
+  `episode_reset` / `episode_restarted` events must carry
+  `sequence_number>0`. These match the existing invariants on
+  `ParticipantEpisodeExecutionState` so a history stream that is valid
+  per the schema can always be reconstructed into a valid state chain.
 
 ### Changed
 

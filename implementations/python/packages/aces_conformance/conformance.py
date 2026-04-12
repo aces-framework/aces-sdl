@@ -276,6 +276,14 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
             address: [event.model_dump(mode="json") for event in history]
             for address, history in validated.evaluation_history.items()
         },
+        participant_episode_results={
+            participant_address: result.model_dump(mode="json")
+            for participant_address, result in validated.participant_episode_results.items()
+        },
+        participant_episode_history={
+            participant_address: [event.model_dump(mode="json") for event in history]
+            for participant_address, history in validated.participant_episode_history.items()
+        },
         metadata=dict(validated.metadata),
     )
 

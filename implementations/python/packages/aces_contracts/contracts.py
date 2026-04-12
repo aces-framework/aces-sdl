@@ -233,6 +233,8 @@ class RuntimeSnapshotEnvelopeModel(ContractModel):
     orchestration_history: dict[str, list[WorkflowHistoryEventModel]] = Field(default_factory=dict)
     evaluation_results: dict[str, EvaluationResultStateModel] = Field(default_factory=dict)
     evaluation_history: dict[str, list[EvaluationHistoryEventModel]] = Field(default_factory=dict)
+    participant_episode_results: dict[str, ParticipantEpisodeStateModel] = Field(default_factory=dict)
+    participant_episode_history: dict[str, list[ParticipantEpisodeHistoryEventModel]] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
