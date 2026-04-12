@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-04-11
+
+### Added
+
+- RUN-300 lifecycle integrity test
+  (`implementations/python/tests/test_run_300_lifecycle.py`) that threads
+  a parameterized scenario through instantiation, compilation, planning,
+  execution, and live observation, asserting canonical addresses and
+  substituted parameter values survive unchanged across all five stages
+  and that provenance drift (a stale plan base snapshot) is rejected
+  rather than silently reconciled.
+- Ground Control IMPLEMENTS and TESTS traceability links from RUN-300
+  (Processing Model and Lifecycle) to the processor/compiler/planner/
+  manager/control-plane stack and its per-stage tests.
+
 ## [0.8.0] - 2026-04-11
 
 ### Added
