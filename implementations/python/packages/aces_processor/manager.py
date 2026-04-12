@@ -1184,6 +1184,7 @@ class RuntimeManager:
             provisioner=target.provisioner,
             orchestrator=target.orchestrator,
             evaluator=target.evaluator,
+            participant_runtime=target.participant_runtime,
         )
         self._target = target
         self._snapshot = initial_snapshot if initial_snapshot is not None else RuntimeSnapshot()

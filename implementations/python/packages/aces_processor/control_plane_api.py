@@ -17,6 +17,7 @@ from aces_contracts.contracts import (
 )
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 from .control_plane import RuntimeControlPlane
 from .control_plane_security import (
@@ -32,11 +33,35 @@ from .models import (
     OperationStatus,
     OrchestrationOp,
     OrchestrationPlan,
+    ParticipantEpisodeTerminalReason,
     ProvisioningPlan,
     ProvisionOp,
     RuntimeSnapshotEnvelope,
     Severity,
 )
+
+
+class _ParticipantInitializeBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    episode_id: str | None = None
+
+
+class _ParticipantResetBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    episode_id: str | None = None
+    reason: str = Field(default="reset by operator")
+
+
+class _ParticipantRestartBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    episode_id: str | None = None
+    reason: str = Field(default="restarted by operator")
+
+
+class _ParticipantTerminateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    terminal_reason: str = Field(default=ParticipantEpisodeTerminalReason.INTERRUPTED.value)
+    detail: str = Field(default="terminated by operator")
 
 
 def _diagnostic_from_mapping(payload: dict[str, Any]) -> Diagnostic:
@@ -485,5 +510,152 @@ def create_control_plane_app(
                 "diagnostics": [asdict(diag) for diag in receipt.diagnostics],
             }
         )
+
+    def _receipt_response(receipt) -> OperationReceiptModel:
+        return OperationReceiptModel.model_validate(
+            {
+                "schema_version": receipt.schema_version,
+                "operation_id": receipt.operation_id,
+                "domain": receipt.domain.value,
+                "submitted_at": receipt.submitted_at,
+                "accepted": receipt.accepted,
+                "diagnostics": [asdict(diag) for diag in receipt.diagnostics],
+            }
+        )
+
+    @app.post(
+        "/participants/{participant_address}/episodes/initialize",
+        response_model=OperationReceiptModel,
+    )
+    async def initialize_participant_episode(
+        participant_address: str,
+        request: Request,
+        body: _ParticipantInitializeBody | None = None,
+        identity: ControlPlaneIdentity = Depends(_mutating_identity),
+    ) -> OperationReceiptModel:
+        payload = body or _ParticipantInitializeBody()
+        try:
+            receipt = control_plane.initialize_participant_episode(
+                participant_address,
+                episode_id=payload.episode_id,
+                idempotency_key=request.headers.get("idempotency-key", ""),
+                request_fingerprint=_request_fingerprint(
+                    request,
+                    getattr(request.state, "raw_body", b""),
+                ),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        control_plane.record_audit(
+            action="initialize_participant_episode",
+            identity=identity.identity,
+            allowed=True,
+            target=str(request.url.path),
+            operation_id=receipt.operation_id,
+        )
+        return _receipt_response(receipt)
+
+    @app.post(
+        "/participants/{participant_address}/episodes/reset",
+        response_model=OperationReceiptModel,
+    )
+    async def reset_participant_episode(
+        participant_address: str,
+        request: Request,
+        body: _ParticipantResetBody | None = None,
+        identity: ControlPlaneIdentity = Depends(_mutating_identity),
+    ) -> OperationReceiptModel:
+        payload = body or _ParticipantResetBody()
+        try:
+            receipt = control_plane.reset_participant_episode(
+                participant_address,
+                episode_id=payload.episode_id,
+                reason=payload.reason,
+                idempotency_key=request.headers.get("idempotency-key", ""),
+                request_fingerprint=_request_fingerprint(
+                    request,
+                    getattr(request.state, "raw_body", b""),
+                ),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        control_plane.record_audit(
+            action="reset_participant_episode",
+            identity=identity.identity,
+            allowed=True,
+            target=str(request.url.path),
+            operation_id=receipt.operation_id,
+        )
+        return _receipt_response(receipt)
+
+    @app.post(
+        "/participants/{participant_address}/episodes/restart",
+        response_model=OperationReceiptModel,
+    )
+    async def restart_participant_episode(
+        participant_address: str,
+        request: Request,
+        body: _ParticipantRestartBody | None = None,
+        identity: ControlPlaneIdentity = Depends(_mutating_identity),
+    ) -> OperationReceiptModel:
+        payload = body or _ParticipantRestartBody()
+        try:
+            receipt = control_plane.restart_participant_episode(
+                participant_address,
+                episode_id=payload.episode_id,
+                reason=payload.reason,
+                idempotency_key=request.headers.get("idempotency-key", ""),
+                request_fingerprint=_request_fingerprint(
+                    request,
+                    getattr(request.state, "raw_body", b""),
+                ),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        control_plane.record_audit(
+            action="restart_participant_episode",
+            identity=identity.identity,
+            allowed=True,
+            target=str(request.url.path),
+            operation_id=receipt.operation_id,
+        )
+        return _receipt_response(receipt)
+
+    @app.post(
+        "/participants/{participant_address}/episodes/terminate",
+        response_model=OperationReceiptModel,
+    )
+    async def terminate_participant_episode(
+        participant_address: str,
+        request: Request,
+        body: _ParticipantTerminateBody | None = None,
+        identity: ControlPlaneIdentity = Depends(_mutating_identity),
+    ) -> OperationReceiptModel:
+        payload = body or _ParticipantTerminateBody()
+        try:
+            terminal_reason = ParticipantEpisodeTerminalReason(payload.terminal_reason)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"invalid terminal_reason: {exc}") from exc
+        try:
+            receipt = control_plane.terminate_participant_episode(
+                participant_address,
+                terminal_reason=terminal_reason,
+                detail=payload.detail,
+                idempotency_key=request.headers.get("idempotency-key", ""),
+                request_fingerprint=_request_fingerprint(
+                    request,
+                    getattr(request.state, "raw_body", b""),
+                ),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        control_plane.record_audit(
+            action="terminate_participant_episode",
+            identity=identity.identity,
+            allowed=True,
+            target=str(request.url.path),
+            operation_id=receipt.operation_id,
+        )
+        return _receipt_response(receipt)
 
     return app

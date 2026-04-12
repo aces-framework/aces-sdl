@@ -604,3 +604,158 @@ workflows:
     assert result["workflow_status"] == "timed_out"
     assert result["compensation_status"] == "succeeded"
     assert any(event["event_type"] == "compensation_completed" for event in history)
+
+
+class TestParticipantEpisodeHttpRoutes:
+    """RUN-311 — HTTP surface for participant episode lifecycle control.
+
+    Each POST route must drive the same state-machine transitions as the
+    in-process control plane and the resulting ``/snapshot`` response
+    must expose the mutated ``participant_episode_results`` /
+    ``participant_episode_history`` fields in the RuntimeSnapshot envelope.
+    """
+
+    def _build_client(self):
+        target = create_stub_target()
+        control_plane = RuntimeControlPlane(target)
+        app = create_control_plane_app(
+            control_plane,
+            security=ControlPlaneSecurityConfig.strict_defaults(target_name=target.name),
+        )
+        return TestClient(app)
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {
+            "x-aces-client-verified": "true",
+            "x-aces-client-identity": "backend-service",
+        }
+
+    def test_initialize_route_creates_first_episode(self):
+        client = self._build_client()
+
+        response = client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={},
+        )
+        snapshot = client.get("/snapshot", headers=self._headers).json()
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["accepted"] is True
+        assert body["domain"] == "participant"
+        state = snapshot["participant_episode_results"]["participant.alice"]
+        assert state["status"] == "running"
+        assert state["sequence_number"] == 0
+        history = snapshot["participant_episode_history"]["participant.alice"]
+        assert [event["event_type"] for event in history] == [
+            "episode_initialized",
+            "episode_running",
+        ]
+
+    def test_reset_route_allocates_new_episode(self):
+        client = self._build_client()
+        client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={},
+        )
+
+        response = client.post(
+            "/participants/participant.alice/episodes/reset",
+            headers=self._headers,
+            json={"reason": "operator reset"},
+        )
+        snapshot = client.get("/snapshot", headers=self._headers).json()
+
+        assert response.status_code == 200
+        state = snapshot["participant_episode_results"]["participant.alice"]
+        assert state["sequence_number"] == 1
+        assert state["last_control_action"] == "reset"
+        assert state["previous_episode_id"] == "participant.alice-episode-1"
+
+    def test_terminate_route_drives_state_to_terminated(self):
+        client = self._build_client()
+        client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={},
+        )
+
+        response = client.post(
+            "/participants/participant.alice/episodes/terminate",
+            headers=self._headers,
+            json={"terminal_reason": "completed"},
+        )
+        snapshot = client.get("/snapshot", headers=self._headers).json()
+
+        assert response.status_code == 200
+        state = snapshot["participant_episode_results"]["participant.alice"]
+        assert state["status"] == "terminated"
+        assert state["terminal_reason"] == "completed"
+        history = snapshot["participant_episode_history"]["participant.alice"]
+        assert history[-1]["event_type"] == "episode_completed"
+
+    def test_terminate_route_rejects_invalid_terminal_reason(self):
+        client = self._build_client()
+        client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={},
+        )
+
+        response = client.post(
+            "/participants/participant.alice/episodes/terminate",
+            headers=self._headers,
+            json={"terminal_reason": "exploded"},
+        )
+
+        assert response.status_code == 400
+        assert "invalid terminal_reason" in response.json()["detail"]
+
+    def test_restart_route_resumes_after_termination(self):
+        client = self._build_client()
+        client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={},
+        )
+        client.post(
+            "/participants/participant.alice/episodes/terminate",
+            headers=self._headers,
+            json={"terminal_reason": "completed"},
+        )
+
+        response = client.post(
+            "/participants/participant.alice/episodes/restart",
+            headers=self._headers,
+            json={},
+        )
+        snapshot = client.get("/snapshot", headers=self._headers).json()
+
+        assert response.status_code == 200
+        state = snapshot["participant_episode_results"]["participant.alice"]
+        assert state["sequence_number"] == 1
+        assert state["status"] == "running"
+        assert state["last_control_action"] == "restart"
+
+    def test_routes_require_authenticated_identity(self):
+        client = self._build_client()
+
+        response = client.post(
+            "/participants/participant.alice/episodes/initialize",
+            json={},
+        )
+        assert response.status_code == 401
+
+    def test_routes_reject_unknown_body_fields(self):
+        """Closed-world request bodies — unknown fields must be rejected."""
+        client = self._build_client()
+
+        response = client.post(
+            "/participants/participant.alice/episodes/initialize",
+            headers=self._headers,
+            json={"episode_id": "alice-1", "unknown": "value"},
+        )
+        assert response.status_code == 422
