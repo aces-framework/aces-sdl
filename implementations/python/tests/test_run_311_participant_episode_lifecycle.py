@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pytest
 from aces_contracts.contracts import schema_bundle
+from aces_processor.manager import _participant_episode_contract_diagnostics
 
 from aces.core.runtime.models import (
     ParticipantEpisodeControlAction,
@@ -34,6 +35,7 @@ from aces.core.runtime.models import (
     ParticipantEpisodeHistoryEventType,
     ParticipantEpisodeStatus,
     ParticipantEpisodeTerminalReason,
+    RuntimeSnapshot,
 )
 
 PARTICIPANT_ADDRESS = "participant.alice"
@@ -524,6 +526,111 @@ class TestRun311ParticipantEpisodeLifecycle:
                 sequence_number=0,
                 control_action=expected_action,
             )
+
+    def test_runtime_apply_path_rejects_invalid_participant_episode_result(self):
+        """Runtime integration — ``_participant_episode_contract_diagnostics``
+        is called on every backend apply. It must emit a
+        ``runtime.backend-contract-invalid`` diagnostic for any participant
+        episode result that violates the dataclass invariants, so invalid
+        RUN-311 data cannot be silently persisted through the manager path.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": "ep-0001",
+                    "sequence_number": 0,
+                    "status": "running",
+                    "terminal_reason": "completed",
+                    "initialized_at": T0,
+                    "updated_at": T1,
+                    "terminated_at": None,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics, "apply path must reject invalid participant episode result"
+        assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
+        assert any(
+            "non-terminal participant episodes may not report a terminal_reason" in diag.message for diag in diagnostics
+        )
+
+    def test_runtime_apply_path_rejects_invalid_participant_episode_history_event(self):
+        """Runtime integration — the apply path must also reject a participant
+        episode history event whose sequence number disagrees with its event
+        type (for example ``episode_reset`` at ``sequence_number=0``).
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_reset",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": "ep-0001",
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "reset",
+                        "details": {},
+                    }
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics, "apply path must reject invalid participant episode history"
+        assert all(diag.code == "runtime.backend-contract-invalid" for diag in diagnostics)
+        assert any("must report sequence_number>0" in diag.message for diag in diagnostics)
+
+    def test_runtime_apply_path_accepts_valid_participant_episode_snapshot(self):
+        """Runtime integration — a snapshot that contains only valid RUN-311
+        data must pass the apply-path diagnostic helper cleanly. This is the
+        positive pair for the two rejection tests above.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_results={
+                "participant.alice": {
+                    "state_schema_version": "participant-episode-state/v1",
+                    "participant_address": "participant.alice",
+                    "episode_id": EP1,
+                    "sequence_number": 0,
+                    "status": "initializing",
+                    "terminal_reason": None,
+                    "initialized_at": T0,
+                    "updated_at": T0,
+                    "terminated_at": None,
+                    "last_control_action": "initialize",
+                    "previous_episode_id": None,
+                }
+            },
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    }
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        assert diagnostics == []
 
     def test_published_state_schema_matches_bundle_for_run_311(self):
         """Schema parity — the on-disk control-plane schemas for the participant
