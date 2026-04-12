@@ -773,6 +773,61 @@ class TestRun311ParticipantEpisodeLifecycle:
         assert diagnostics
         assert any("episode_id changed within sequence_number" in diag.message for diag in diagnostics)
 
+    def test_runtime_apply_path_stream_violations_do_not_cascade(self):
+        """Stream invariant — after a stream-level violation on one event,
+        subsequent events must be validated against the advanced sequence
+        state, not the pre-violation state. Otherwise a single bad
+        transition would produce the same "must arrive via reset/restart"
+        error on every follow-up event at the new sequence number.
+        """
+
+        snapshot = RuntimeSnapshot(
+            participant_episode_history={
+                "participant.alice": [
+                    {
+                        "event_type": "episode_initialized",
+                        "timestamp": T0,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP1,
+                        "sequence_number": 0,
+                        "terminal_reason": None,
+                        "control_action": "initialize",
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T1,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                    {
+                        "event_type": "episode_running",
+                        "timestamp": T2,
+                        "participant_address": "participant.alice",
+                        "episode_id": EP2,
+                        "sequence_number": 1,
+                        "terminal_reason": None,
+                        "control_action": None,
+                        "details": {},
+                    },
+                ]
+            },
+        )
+
+        diagnostics = _participant_episode_contract_diagnostics(snapshot)
+
+        gate_messages = [
+            diag.message for diag in diagnostics if "must arrive via episode_reset or episode_restarted" in diag.message
+        ]
+        assert len(gate_messages) == 1, (
+            "Stream gate violation must fire exactly once per ungated transition, not once "
+            f"per event at the new sequence; got {len(gate_messages)} occurrences: {gate_messages}"
+        )
+
     def test_runtime_apply_path_accepts_valid_participant_episode_snapshot(self):
         """Runtime integration — a snapshot that contains only valid RUN-311
         data must pass the apply-path diagnostic helper cleanly. This is the
