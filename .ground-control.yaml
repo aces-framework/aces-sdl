@@ -1,0 +1,12 @@
+schema_version: 1
+project: aces-sdl
+github_repo: aces-framework/aces-sdl
+workflow:
+  test_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
+  completion_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
+  lint_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
+sonarcloud:
+  project_key: aces-framework_aces-sdl
+  organization: keplerops
+rules:
+  plan_rules: .gc/plan-rules.md

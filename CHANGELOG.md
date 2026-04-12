@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-04-11
+
+### Added
+
+- `.ground-control.yaml` declaring workflow commands (nox verify),
+  sonarcloud key (`aces-framework_aces-sdl` in `keplerops` org), and
+  plan rules reference.
+- `.gc/plan-rules.md` containing the ACES SDL hard rules and required
+  checks (previously in AGENTS.md prose), rewritten as "plans MUST..."
+  bullets for the `/implement` skill plan phase.
+
+### Changed
+
+- `AGENTS.md` Ground Control Context block replaced with a pointer to
+  `.ground-control.yaml`. Hard rules and required checks now live in
+  `.gc/plan-rules.md`.
+- `.mcp.json` `GH_REPO` corrected from `KeplerOps/Ground-Control` to
+  `aces-framework/aces-sdl`.
+
 ## [0.7.0] - 2026-04-11
 
 ### Changed
