@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-04-11
+
+### Added
+
+- Participant episode lifecycle contract surface for `RUN-311`
+  ("Participant Episode Lifecycle And Reset"):
+  `ParticipantEpisodeStatus`, `ParticipantEpisodeTerminalReason`,
+  `ParticipantEpisodeControlAction`, `ParticipantEpisodeHistoryEventType`,
+  `ParticipantEpisodeExecutionState`, and `ParticipantEpisodeHistoryEvent`
+  in `implementations/python/packages/aces_processor/models.py`; closed-world
+  `ParticipantEpisodeStateModel` and `ParticipantEpisodeHistoryEventModel`
+  with `participant-episode-state-envelope-v1` and
+  `participant-episode-history-event-stream-v1` `schema_bundle()` entries
+  in `implementations/python/packages/aces_contracts/contracts.py`; the
+  `participant-episode-state/v1` schema-version constant in
+  `implementations/python/packages/aces_contracts/versions.py`; generated
+  JSON Schemas under `contracts/schemas/control-plane/`; valid/invalid
+  fixture corpora under `contracts/fixtures/control-plane/`; ADR-013
+  ("Participant Episode Lifecycle Boundaries") in
+  `docs/decisions/adrs/`; and end-to-end coverage in
+  `implementations/python/tests/test_run_311_participant_episode_lifecycle.py`
+  satisfying every clause of the requirement (initialization, reset,
+  completion, timeout, truncation, interruption, and restart) while
+  preserving stable participant identity across resets and restarts.
+- Ground Control IMPLEMENTS and TESTS traceability links from `RUN-311`
+  to the new processor models, contract models, schema-version constant,
+  ADR-013, and the lifecycle test.
+
+### Changed
+
+- `tools/policy/requirement_order.yaml`: `RUN-311` added to the
+  `runtime-core` phase (it is the next runtime/control-plane sibling
+  after `RUN-300`), and `docs/decisions/adrs` added to the
+  `runtime-core` ownership block so ADR-013 clears
+  `check_requirement_governance.py` path-ownership review.
+
 ## [0.9.0] - 2026-04-11
 
 ### Added
