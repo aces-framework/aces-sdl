@@ -84,11 +84,14 @@ ownership:
     - contracts/fixtures/processor-manifest
     - contracts/schemas/backend-manifest
     - contracts/schemas/processor-manifest
+    - implementations/python/packages/aces_backend_stubs
     - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_conformance
     - implementations/python/packages/aces_contracts
     - implementations/python/packages/aces_processor
     - implementations/python/tests/test_backend_manifest.py
     - implementations/python/tests/test_processor_manifest.py
+    - implementations/python/tests/test_runtime_conformance.py
     - implementations/python/tests/test_runtime_contracts.py
     - CHANGELOG.md
     - tools/generate_contract_schemas.py

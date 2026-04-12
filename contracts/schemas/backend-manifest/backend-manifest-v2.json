@@ -1,72 +1,5 @@
 {
   "$defs": {
-    "ApparatusCompatibilityModel": {
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "anyOf": [
-            {
-              "properties": {
-                "processors": {
-                  "minItems": 1
-                }
-              },
-              "required": [
-                "processors"
-              ]
-            },
-            {
-              "properties": {
-                "backends": {
-                  "minItems": 1
-                }
-              },
-              "required": [
-                "backends"
-              ]
-            },
-            {
-              "properties": {
-                "participant_implementations": {
-                  "minItems": 1
-                }
-              },
-              "required": [
-                "participant_implementations"
-              ]
-            }
-          ]
-        }
-      ],
-      "properties": {
-        "backends": {
-          "items": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Backends",
-          "type": "array"
-        },
-        "participant_implementations": {
-          "items": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Participant Implementations",
-          "type": "array"
-        },
-        "processors": {
-          "items": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Processors",
-          "type": "array"
-        }
-      },
-      "title": "ApparatusCompatibilityModel",
-      "type": "object"
-    },
     "ApparatusIdentityModel": {
       "additionalProperties": false,
       "properties": {
@@ -121,6 +54,25 @@
         "provisioner"
       ],
       "title": "BackendCapabilitiesV2Model",
+      "type": "object"
+    },
+    "BackendCompatibilityModel": {
+      "additionalProperties": false,
+      "properties": {
+        "processors": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Processors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "processors"
+      ],
+      "title": "BackendCompatibilityModel",
       "type": "object"
     },
     "ConceptBindingEntryModel": {
@@ -606,7 +558,7 @@
       "$ref": "#/$defs/BackendCapabilitiesV2Model"
     },
     "compatibility": {
-      "$ref": "#/$defs/ApparatusCompatibilityModel"
+      "$ref": "#/$defs/BackendCompatibilityModel"
     },
     "concept_bindings": {
       "items": {
@@ -642,6 +594,19 @@
     },
     "supported_contract_versions": {
       "items": {
+        "enum": [
+          "backend-manifest-v2",
+          "provisioning-plan-v1",
+          "orchestration-plan-v1",
+          "evaluation-plan-v1",
+          "operation-receipt-v1",
+          "operation-status-v1",
+          "runtime-snapshot-v1",
+          "workflow-result-envelope-v1",
+          "workflow-history-event-stream-v1",
+          "evaluation-result-envelope-v1",
+          "evaluation-history-event-stream-v1"
+        ],
         "minLength": 1,
         "type": "string"
       },

@@ -14,6 +14,7 @@ from aces_backend_protocols.capabilities import (
     WorkflowStatePredicateFeature,
 )
 from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
+from aces_contracts.manifest_authority import BACKEND_SUPPORTED_CONTRACT_IDS
 from aces_contracts.vocabulary import RealizationSupportMode
 from aces_processor.models import (
     EVALUATION_STATE_SCHEMA_VERSION,
@@ -29,19 +30,7 @@ from aces_processor.models import (
 )
 from aces_processor.registry import RuntimeTarget, RuntimeTargetComponents
 
-REFERENCE_BACKEND_SUPPORTED_CONTRACT_VERSIONS = (
-    "backend-manifest-v2",
-    "provisioning-plan-v1",
-    "orchestration-plan-v1",
-    "evaluation-plan-v1",
-    "operation-receipt-v1",
-    "operation-status-v1",
-    "runtime-snapshot-v1",
-    "workflow-result-envelope-v1",
-    "workflow-history-event-stream-v1",
-    "evaluation-result-envelope-v1",
-    "evaluation-history-event-stream-v1",
-)
+REFERENCE_BACKEND_SUPPORTED_CONTRACT_VERSIONS = BACKEND_SUPPORTED_CONTRACT_IDS
 
 
 def _current_backend_version() -> str:

@@ -1,4 +1,4 @@
-"""Authority sets for processor manifest declarations."""
+"""Authority sets for processor and backend manifest declarations."""
 
 from __future__ import annotations
 
@@ -25,6 +25,24 @@ PROCESSOR_SUPPORTED_CONTRACT_IDS = (
     "evaluation-history-event-stream-v1",
 )
 
+# These are the published backend-facing and live-control-plane contracts a
+# backend may honestly claim to support. Concept-authority catalogs, semantic
+# profiles, processor manifests, and authoring-side request artifacts are
+# separate authority surfaces and do not belong in this declaration field.
+BACKEND_SUPPORTED_CONTRACT_IDS = (
+    "backend-manifest-v2",
+    "provisioning-plan-v1",
+    "orchestration-plan-v1",
+    "evaluation-plan-v1",
+    "operation-receipt-v1",
+    "operation-status-v1",
+    "runtime-snapshot-v1",
+    "workflow-result-envelope-v1",
+    "workflow-history-event-stream-v1",
+    "evaluation-result-envelope-v1",
+    "evaluation-history-event-stream-v1",
+)
+
 
 def validate_processor_supported_sdl_versions(values: Iterable[str]) -> None:
     _validate_allowed_values(
@@ -41,6 +59,15 @@ def validate_processor_supported_contract_versions(values: Iterable[str]) -> Non
         values,
         PROCESSOR_SUPPORTED_CONTRACT_IDS,
         "published processor/runtime contract ids",
+    )
+
+
+def validate_backend_supported_contract_versions(values: Iterable[str]) -> None:
+    _validate_allowed_values(
+        "supported_contract_versions",
+        values,
+        BACKEND_SUPPORTED_CONTRACT_IDS,
+        "published backend/runtime contract ids",
     )
 
 

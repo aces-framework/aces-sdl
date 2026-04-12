@@ -6,9 +6,7 @@
   },
   "supported_contract_versions": ["backend-manifest-v2"],
   "compatibility": {
-    "processors": ["aces-reference-processor"],
-    "backends": [],
-    "participant_implementations": []
+    "processors": ["aces-reference-processor"]
   },
   "concept_bindings": [
     {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"}

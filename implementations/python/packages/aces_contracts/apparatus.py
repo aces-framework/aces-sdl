@@ -27,24 +27,6 @@ class ApparatusIdentity:
 
 
 @dataclass(frozen=True)
-class ApparatusCompatibility:
-    """Compatibility claims across apparatus surface families."""
-
-    processors: frozenset[str] = frozenset()
-    backends: frozenset[str] = frozenset()
-    participant_implementations: frozenset[str] = frozenset()
-
-    def __post_init__(self) -> None:
-        _require_non_empty_strings(self.processors, field_name="processors")
-        _require_non_empty_strings(self.backends, field_name="backends")
-        _require_non_empty_strings(self.participant_implementations, field_name="participant_implementations")
-        if not (self.processors or self.backends or self.participant_implementations):
-            raise ValueError(
-                "ApparatusCompatibility must declare at least one processor, backend, or participant implementation"
-            )
-
-
-@dataclass(frozen=True)
 class ConceptBinding:
     """Binds a vocabulary surface path to a canonical concept family."""
 
