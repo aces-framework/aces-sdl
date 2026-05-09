@@ -39,3 +39,4 @@ Each ADR includes:
 | [011](adr-011-narrow-end-to-end-mvp-validation.md) | Narrow End-to-End MVP Validation | accepted | 2026-04-04 |
 | [012](adr-012-shared-concept-authority-and-aces-extension-discipline.md) | Shared Concept Authority and ACES Extension Discipline | accepted | 2026-04-05 |
 | [013](adr-013-participant-episode-lifecycle-boundaries.md) | Participant Episode Lifecycle Boundaries | accepted | 2026-04-11 |
+| [014](adr-014-nox-as-canonical-verification-graph.md) | nox as the Canonical Verification Graph | accepted | 2026-05-09 |

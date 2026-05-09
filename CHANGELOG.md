@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-05-09
+
+### Added
+
+- ADR-014 ("nox as the Canonical Verification Graph") capturing the
+  rationale for nox-as-canonical-gate that was introduced in 0.10.0
+  without an accompanying ADR. The decision codifies what the
+  repository already does: one verification graph in `noxfile.py`, with
+  pre-commit, pre-push, and CI all resolving through the same `_run_*`
+  helpers, and `.ground-control.yaml` exposing the same commands to
+  ecosystem agents.
+- `.ground-control.yaml` now declares `workflow.format_command`
+  (`nox -s hygiene`) and tightens `workflow.lint_command` from the
+  full `verify` graph to the dedicated `lint` session. Optional
+  `docs.adr_dir`, `example_paths.{source,test}`, and
+  `requirements.uid_examples` blocks are populated so the
+  ground-control context the `/implement` skill consumes points at
+  this repository's actual paths and UID style instead of generic
+  fallbacks.
+
 ## [0.11.0] - 2026-05-09
 
 ### Added
