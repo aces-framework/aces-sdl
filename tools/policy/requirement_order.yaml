@@ -135,6 +135,8 @@ ownership:
     - docs
     - implementations/python/pyproject.toml
     - implementations/python/uv.lock
+    - implementations/python/packages/aces_mcp
+    - implementations/python/tests/test_mcp_server.py
     - CHANGELOG.md
 
 traceability:

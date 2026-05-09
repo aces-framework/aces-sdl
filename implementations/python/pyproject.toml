@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn[standard]>=0.34.0",
     "sse-starlette>=2.0.0",
     "asyncssh>=2.17.0",
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +38,7 @@ docs = [
 
 [project.scripts]
 aces = "aces.cli.main:app"
+aces-mcp = "aces_mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = [
@@ -46,6 +48,7 @@ packages = [
     "packages/aces_backend_stubs",
     "packages/aces_cli",
     "packages/aces_conformance",
+    "packages/aces_mcp",
     "packages/aces_processor",
     "packages/aces_sdl",
 ]
@@ -66,6 +69,7 @@ source = [
     "aces_backend_stubs",
     "aces_cli",
     "aces_conformance",
+    "aces_mcp",
     "aces_processor",
     "aces_sdl",
 ]
