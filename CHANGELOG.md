@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-05-09
+
+### Added
+
+- `AUT-807` ("Machine-Readable Guidance And Discovery Surfaces") MCP
+  server at `implementations/python/packages/aces_mcp/`, exposing 14
+  tools for SDL understanding, authoring, and inspection to any agent
+  speaking the Model Context Protocol. Tools split across three
+  modules:
+  - `aces_mcp.tools.reference` — `sdl_overview`,
+    `sdl_section_reference`, `sdl_get_example`, `sdl_parser_reference`,
+    `sdl_validation_reference`.
+  - `aces_mcp.tools.authoring` — `sdl_validate`, `sdl_scaffold`,
+    `sdl_instantiate`, `sdl_compose`, `sdl_minimal_example`.
+  - `aces_mcp.tools.inspection` — `sdl_list_elements`,
+    `sdl_get_element`, `sdl_check_references`, `sdl_diagram`.
+  Recreates PR #2 on top of the post-realignment dev branch with all
+  imports retargeted from `aces.core.sdl.*` to the canonical
+  `aces_sdl.*` packages, plus the original entry-point bug fixed
+  (`aces-mcp = "aces_mcp.server:main"` rather than the broken
+  `aces.mcp.__main__:server.run` form that re-imported the module
+  during entry-point resolution and triggered a double-run).
+- `mcp>=1.0.0` runtime dependency in
+  `implementations/python/pyproject.toml`. The aces_mcp package and
+  test file are added to the `documentation-surfaces` policy phase
+  ownership.
+- 45 unit tests covering all 14 tools, all three scaffold templates
+  (verified to produce valid SDL), and the three example scenarios.
+
+### Changed
+
+- `AUT-807` and `AUT-809` transitioned from DRAFT to ACTIVE in Ground
+  Control. The MCP server materially implements AUT-807 (machine-
+  readable discovery) and contributes to AUT-809 (semantic parity
+  across agent / CLI / docs surfaces). Traceability IMPLEMENTS / TESTS
+  links recorded against AUT-807 for every aces_mcp file and the test
+  file.
+
 ## [0.12.0] - 2026-05-09
 
 ### Added
