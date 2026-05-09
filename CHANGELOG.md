@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-05-09
+
+### Added
+
+- `AUT-805` ("Canonical Documentation, Glossary, And Reference Material")
+  Sphinx documentation site under `docs/` with `furo` theme, MyST markdown
+  support, copy-button, and autodoc against the canonical packages
+  (`aces_cli`, `aces_sdl`, `aces_processor`, `aces_processor.semantics`).
+  Recreates the original PR #1 work on top of the post-realignment layout
+  per ADR-009/010. API reference pages target the canonical `aces_*`
+  packages rather than the `aces.*` compatibility shims.
+- `nox -s docs` session that runs `sphinx-build`, joining the canonical
+  verification graph alongside hygiene, policy, lint, contracts, and
+  tests. Local hooks and CI invoke the same session.
+- `docs` extras in `implementations/python/pyproject.toml` covering
+  `sphinx`, `furo`, `myst-parser`, `sphinx-copybutton`, and
+  `sphinx-autobuild`.
+- New `documentation-surfaces` phase in
+  `tools/policy/requirement_order.yaml` covering `AUT-805`, `AUT-807`,
+  `AUT-809`, and `ASR-516`. Phase is blocked on `gov-concept-authority`
+  (canonical concepts must exist before they can be documented) and
+  owns `docs/`, `implementations/python/pyproject.toml`, and
+  `implementations/python/uv.lock`.
+
 ## [0.10.0] - 2026-04-11
 
 ### Added
