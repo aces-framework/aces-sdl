@@ -78,6 +78,7 @@ decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy
 decisions/adrs/adr-011-narrow-end-to-end-mvp-validation
 decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline
 decisions/adrs/adr-013-participant-episode-lifecycle-boundaries
+decisions/adrs/adr-014-nox-as-canonical-verification-graph
 ```
 
 ```{toctree}
