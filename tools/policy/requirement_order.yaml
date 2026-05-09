@@ -53,6 +53,14 @@ phases:
     blocked_until:
       - semantics-expansion
     manual_release: true
+  - id: documentation-surfaces
+    requirements:
+      - AUT-805
+      - AUT-807
+      - AUT-809
+      - ASR-516
+    blocked_until:
+      - gov-concept-authority
 
 ownership:
   gov-concept-authority:
@@ -122,6 +130,11 @@ ownership:
     - implementations/python/packages/aces_sdl
     - implementations/python/tests
     - specs/formal
+    - CHANGELOG.md
+  documentation-surfaces:
+    - docs
+    - implementations/python/pyproject.toml
+    - implementations/python/uv.lock
     - CHANGELOG.md
 
 traceability:
