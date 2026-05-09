@@ -525,6 +525,29 @@ def _run_fuzz(session: nox.Session, reporter: SessionReporter) -> None:
     )
 
 
+def _run_docs(session: nox.Session, reporter: SessionReporter) -> None:
+    _sync_project(session)
+    docs_dir = REPO_ROOT / "docs"
+    build_dir = docs_dir / "_build" / "html"
+    reporter.run(
+        "docs / sphinx-build",
+        lambda: _run(
+            session,
+            "uv",
+            "run",
+            "--project",
+            str(PROJECT_ROOT),
+            "--frozen",
+            "sphinx-build",
+            "-b",
+            "html",
+            str(docs_dir),
+            str(build_dir),
+        ),
+        detail=f"{docs_dir.relative_to(REPO_ROOT)} -> {build_dir.relative_to(REPO_ROOT)}",
+    )
+
+
 @nox.session
 def hygiene(session: nox.Session) -> None:
     reporter = SessionReporter(session, "hygiene")
@@ -579,6 +602,15 @@ def fuzz(session: nox.Session) -> None:
         reporter.summary()
 
 
+@nox.session
+def docs(session: nox.Session) -> None:
+    reporter = SessionReporter(session, "docs")
+    try:
+        _run_docs(session, reporter)
+    finally:
+        reporter.summary()
+
+
 @nox.session(name="hook-pre-commit")
 def hook_pre_commit(session: nox.Session) -> None:
     reporter = SessionReporter(session, "hook-pre-commit")
@@ -629,5 +661,6 @@ def verify(session: nox.Session) -> None:
         _run_lint(session, reporter)
         _run_contracts(session, reporter)
         _run_tests(session, reporter)
+        _run_docs(session, reporter)
     finally:
         reporter.summary()
