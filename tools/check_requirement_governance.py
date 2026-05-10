@@ -36,6 +36,7 @@ REQUIREMENT_CONTEXT_EXEMPT_PATHS = {
     "CHANGELOG.md",
     "implementations/python/tests/test_repo_policy_tools.py",
     "implementations/python/tests/test_requirement_governance.py",
+    "implementations/python/tests/test_semantic_coverage.py",
 }
 REQUIREMENT_CONTEXT_EXEMPT_PREFIXES = ("tools/",)
 
