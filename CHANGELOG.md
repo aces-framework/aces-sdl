@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-05-10
+
+### Added
+
+- `implementations/python/packages/aces_sdl/semantics/assessment.py` — the
+  pure, name-level source of truth for the assessment-pipeline semantics
+  (`SEM-206`): the scoring chain
+  `condition bindings -> metrics -> evaluations -> TLOs -> goals`. It resolves
+  the cross-resource references along the chain into a normalized typed IR
+  (`AssessmentReference` / `AssessmentResourceDependencies` /
+  `AssessmentPipelineAnalysis`), derives each evaluation's metric-max-score
+  total, enforces the "at most one metric per condition" rule and the
+  absolute-`min-score`-vs-total rule, and reports machine-readable issues
+  callers translate into their own envelope. The "every scoring-chain edge is
+  both an ordering edge and a refresh edge" fact lives in one place
+  (`ASSESSMENT_DEPENDENCY_ROLES` / `partition_assessment_dependencies`). Per
+  ADR-015 it lives with the SDL package and has no processor-runtime
+  dependencies; mirrored as a compatibility re-export at
+  `aces.core.semantics.assessment`.
+- `specs/formal/assessment/` — the formal artifacts for the assessment-pipeline
+  semantics (`README.md` scope/implementation mapping; `pipeline-consistency.md`
+  reference model, consistency rules, aggregation and dependency/refresh
+  semantics, fail-closed cases, composition-ready invariants).
+- `docs/explain/reference/assessment-semantics.md` — the architecture-preflight
+  guardrails note for `SEM-206` (governed by ADR-016), linked from the
+  reference index and the docs toctree.
+- `implementations/python/tests/test_semantics_assessment.py` and a
+  `TestAssessmentPipelineAgreement` suite in
+  `implementations/python/tests/test_fm2_semantics.py` — unit tests for the
+  helper plus cross-stage agreement tests (validator and compiler agree on the
+  pipeline reference errors; compiler and planner agree that a condition change
+  cascades a refresh through `metric -> evaluation -> TLO -> goal`).
+
+### Changed
+
+- `aces_sdl.validator` now routes the metric/evaluation/TLO/goal reference and
+  `min-score` checks through `analyze_assessment_pipeline` (the four
+  `_verify_metrics` / `_verify_evaluations` / `_verify_tlos` / `_verify_goals`
+  passes collapse into one `_verify_assessment_pipeline`); `aces_processor`'s
+  compiler derives `MetricRuntime` / `EvaluationRuntime` / `TLORuntime` /
+  `GoalRuntime` ordering/refresh dependencies via
+  `partition_assessment_dependencies`. Behavior-preserving — every authoring
+  error string and compiler diagnostic code is unchanged.
+- `docs/explain/reference/shared-semantic-integrity.md` — the `SEM-200`
+  Coverage Model row for the assessment construct family moves to `active`,
+  covering `authoring, validation, compilation, planning, execution,
+  observation`, with the new helper, spec, and tests as realizing artifacts.
+- `SEM-206` ("Assessment Semantics") transitions `DRAFT -> ACTIVE` in Ground
+  Control.
+
 ## [0.15.0] - 2026-05-10
 
 ### Added

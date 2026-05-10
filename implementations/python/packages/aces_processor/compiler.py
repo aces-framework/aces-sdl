@@ -13,6 +13,7 @@ from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.nodes import NodeType
 from aces_sdl.orchestration import WorkflowStepType
 from aces_sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.semantics.assessment import partition_assessment_dependencies
 from aces_sdl.semantics.objectives import analyze_objective_window
 from aces_sdl.semantics.workflow import (
     workflow_step_semantic_contract,
@@ -781,13 +782,14 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             "metric",
             metric_spec,
         )
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(condition_addresses)
         metrics[metric_address] = MetricRuntime(
             address=metric_address,
             name=name,
             condition_name=condition_name,
             condition_addresses=condition_addresses,
-            ordering_dependencies=condition_addresses,
-            refresh_dependencies=condition_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=metric_spec,
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -807,12 +809,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         )
         diagnostics.extend(evaluation_diagnostics)
         result_contract, execution_contract = _evaluation_contracts("evaluation")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(metric_addresses)
         evaluations[evaluation_address] = EvaluationRuntime(
             address=evaluation_address,
             name=name,
             metric_addresses=metric_addresses,
-            ordering_dependencies=metric_addresses,
-            refresh_dependencies=metric_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(evaluation),
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -833,12 +836,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         diagnostics.extend(tlo_diagnostics)
         evaluation_address = evaluation_addresses[0] if evaluation_addresses else ""
         result_contract, execution_contract = _evaluation_contracts("tlo")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(evaluation_addresses)
         tlos[tlo_address] = TLORuntime(
             address=tlo_address,
             name=name,
             evaluation_address=evaluation_address,
-            ordering_dependencies=evaluation_addresses,
-            refresh_dependencies=evaluation_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(tlo),
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -858,12 +862,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         )
         diagnostics.extend(goal_diagnostics)
         result_contract, execution_contract = _evaluation_contracts("goal")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(tlo_addresses)
         goals[goal_address] = GoalRuntime(
             address=goal_address,
             name=name,
             tlo_addresses=tlo_addresses,
-            ordering_dependencies=tlo_addresses,
-            refresh_dependencies=tlo_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(goal),
             result_contract=result_contract,
             execution_contract=execution_contract,

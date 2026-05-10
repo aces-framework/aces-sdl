@@ -91,6 +91,7 @@ explain/reference/README
 explain/reference/coding-standards
 explain/reference/shared-concept-model
 explain/reference/shared-semantic-integrity
+explain/reference/assessment-semantics
 ```
 
 ```{toctree}
