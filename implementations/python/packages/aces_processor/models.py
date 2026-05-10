@@ -28,8 +28,7 @@ from aces_contracts.versions import (
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
-
-from .semantics.workflow import WorkflowStepSemanticContract
+from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
 
 class RuntimeDomain(str, Enum):

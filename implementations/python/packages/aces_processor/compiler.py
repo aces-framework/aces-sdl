@@ -13,6 +13,10 @@ from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.nodes import NodeType
 from aces_sdl.orchestration import WorkflowStepType
 from aces_sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.semantics.objectives import analyze_objective_window
+from aces_sdl.semantics.workflow import (
+    workflow_step_semantic_contract,
+)
 
 from .models import (
     AccountPlacement,
@@ -45,10 +49,6 @@ from .models import (
     WorkflowStepRuntime,
     WorkflowStepStatePredicateRuntime,
     WorkflowSwitchCaseRuntime,
-)
-from .semantics.objectives import analyze_objective_window
-from .semantics.workflow import (
-    workflow_step_semantic_contract,
 )
 
 
