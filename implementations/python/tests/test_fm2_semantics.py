@@ -155,6 +155,74 @@ workflows:
         assert actions["evaluation.objective.initial"] == "update"
 
 
+class TestObjectiveSemanticAgreement:
+    def test_validator_and_compiler_agree_on_objective_reference_errors(self):
+        raw = _scenario("""
+name: objective-reference-errors
+entities:
+  blue: {role: blue}
+objectives:
+  base:
+    entity: blue
+    success: {metrics: [missing-metric]}
+    depends_on: [missing-objective]
+""")
+
+        with pytest.raises(SDLValidationError) as exc_info:
+            parse_sdl(raw)
+
+        errors = exc_info.value.errors
+        assert any(
+            "Objective 'base' references undefined metric 'missing-metric' in success criteria" in e for e in errors
+        )
+        assert any("Objective 'base' depends on undefined objective 'missing-objective'" in e for e in errors)
+
+        model = compile_runtime_model(parse_sdl(raw, skip_semantic_validation=True))
+        codes = {diag.code for diag in model.diagnostics}
+        assert "evaluation.metric-ref-unbound" in codes
+        assert "evaluation.objective-ref-unbound" in codes
+
+    def test_compiler_and_planner_agree_on_objective_dependency_ordering_and_refresh(self):
+        raw = _scenario("""
+name: objective-dependency-agreement
+nodes:
+  vm:
+    type: vm
+    os: linux
+    resources: {ram: 1 gib, cpu: 1}
+    conditions: {ready: ops, gate: ops}
+    roles: {ops: operator}
+conditions:
+  ready: {command: /bin/true, interval: 15}
+  gate: {command: /bin/echo, interval: 15}
+entities:
+  blue: {role: blue}
+objectives:
+  base:
+    entity: blue
+    success: {conditions: [ready]}
+  dependent:
+    entity: blue
+    success: {conditions: [gate]}
+    depends_on: [base]
+""")
+        compiled = compile_runtime_model(parse_sdl(raw))
+        dependent = compiled.objectives["evaluation.objective.dependent"]
+        assert "evaluation.objective.base" in dependent.ordering_dependencies
+        assert "evaluation.objective.base" in dependent.refresh_dependencies
+
+        baseline = plan(compiled, create_stub_manifest())
+        snapshot = _snapshot_from_plan(baseline)
+
+        mutated = compile_runtime_model(parse_sdl(raw.replace("/bin/true", "/bin/false")))
+        updated = plan(mutated, create_stub_manifest(), snapshot=snapshot)
+
+        actions = {op.address: op.action.value for op in updated.evaluation.operations}
+        assert actions["evaluation.condition.vm.ready"] == "update"
+        assert actions["evaluation.objective.base"] == "update"
+        assert actions["evaluation.objective.dependent"] == "update"
+
+
 class TestAssessmentPipelineAgreement:
     def test_validator_and_compiler_agree_on_pipeline_errors(self):
         raw = _scenario("""

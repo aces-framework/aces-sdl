@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-05-10
+
+### Added
+
+- `implementations/python/packages/aces_sdl/semantics/objective_semantics.py` —
+  the pure, name-level source of truth for declarative-objective semantics
+  (`SEM-207`): actor binding (an authored `agent` xor `entity`), target
+  resolution through the targetable named-reference index, success
+  interpretation (`mode` over referenced conditions/metrics/evaluations/TLOs/
+  goals), the optional window (delegated to `analyze_objective_window`), and the
+  acyclic `depends_on` ordering relation. `analyze_objective_semantics` resolves
+  those references into a normalized typed IR (`ObjectiveReference` /
+  `ObjectiveResourceDependencies` / `ObjectiveSemanticAnalysis`) and reports
+  machine-readable issues callers translate into their own envelope. The
+  "success and `depends_on` edges order *and* refresh; window edges only
+  refresh; actor and target references are normalized but carry no runtime
+  dependency role today" fact lives in one place
+  (`partition_objective_dependencies` plus the `OBJECTIVE_*_DEPENDENCY_ROLES`
+  constants, each gated independently so a future role change to one category
+  lands in exactly one place). Derived ordering/refresh names are kind-qualified
+  (`condition.<n>`, `metric.<n>`, `objective.<n>`, `workflow.<n>`, …) so
+  cross-namespace SDL names cannot collapse. Per ADR-015 it lives with the SDL
+  package and has no processor-runtime dependencies; mirrored as a compatibility
+  re-export at `aces.core.semantics.objective_semantics`.
+- `specs/formal/objectives/declarative-objective-semantics.md` — the formal
+  artifact for the declarative-objective semantic boundary (`SEM-207`): canonical
+  inputs, the required actor/target/success/window/dependency semantics, the
+  cross-cutting gates, the extensibility seam, anti-patterns, and the
+  implementation/test mapping.
+- `docs/explain/reference/objective-semantics.md` — the implementer-facing
+  reference note for `SEM-207` (governed by ADR-016), linked from the reference
+  index and the docs toctree.
+- A `TestObjectiveSemantics` / `TestObjectiveDependencyPartition` suite in
+  `implementations/python/tests/test_semantics_objectives.py` and a
+  `TestObjectiveSemanticAgreement` suite in
+  `implementations/python/tests/test_fm2_semantics.py` — unit tests for the
+  helper plus cross-stage agreement tests (validator and compiler agree on the
+  objective reference errors; compiler and planner agree that a condition change
+  cascades a refresh through `objective -> depends_on -> objective`).
+
+### Changed
+
+- `aces_sdl.validator` now routes `_verify_objectives` through
+  `analyze_objective_semantics` (rendering the machine-readable issue codes back
+  onto the existing authoring-error strings via `_OBJECTIVE_ISSUE_RENDERERS`);
+  `aces_processor`'s compiler derives `ObjectiveRuntime` ordering/refresh
+  dependencies via `partition_objective_dependencies`. Behavior-preserving —
+  every authoring error string and compiler diagnostic code is unchanged.
+- `docs/explain/reference/shared-semantic-integrity.md` — the `SEM-200` Coverage
+  Model row for declarative objectives moves to `active`, covering `authoring,
+  validation, instantiation, compilation, planning`, with the new helper, spec,
+  and tests as realizing artifacts.
+- `specs/formal/objectives/README.md` — the implementation mapping and test
+  lists name the new helper, the `_verify_objectives` pass, and
+  `partition_objective_dependencies`.
+- `SEM-207` ("Declarative Objective Semantics") transitions `DRAFT -> ACTIVE` in
+  Ground Control.
+
 ## [0.16.0] - 2026-05-10
 
 ### Added
