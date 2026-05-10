@@ -80,14 +80,17 @@ decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline
 decisions/adrs/adr-013-participant-episode-lifecycle-boundaries
 decisions/adrs/adr-014-nox-as-canonical-verification-graph
 decisions/adrs/adr-015-sdl-processor-layering-and-source-file-size-cap
+decisions/adrs/adr-016-semantic-layer-scope-and-coverage-model
 ```
 
 ```{toctree}
 :maxdepth: 2
 :caption: Reference
 
+explain/reference/README
 explain/reference/coding-standards
 explain/reference/shared-concept-model
+explain/reference/shared-semantic-integrity
 ```
 
 ```{toctree}

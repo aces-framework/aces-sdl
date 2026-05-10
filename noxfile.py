@@ -23,6 +23,7 @@ RUFF_CONFIG = PROJECT_ROOT / "pyproject.toml"
 TARGETED_POLICY_TESTS = [
     "implementations/python/tests/test_repo_policy_tools.py",
     "implementations/python/tests/test_requirement_governance.py",
+    "implementations/python/tests/test_semantic_coverage.py",
 ]
 CONTRACT_TRIGGER_PREFIXES = (
     "contracts/",
@@ -435,6 +436,16 @@ def _run_policy(session: nox.Session, reporter: SessionReporter, *args: str) -> 
         reporter.run(
             "policy / requirement governance",
             lambda: _run_project_python(session, "tools/check_requirement_governance.py", *requirement_args),
+        )
+    # check_semantic_coverage.py validates live files on disk, not a staged
+    # snapshot, so it is meaningless (and misleading) under --staged. It runs in
+    # the working-tree policy invocations (`policy`, `hook-pre-push`, `verify`).
+    if "--staged" in args:
+        reporter.skip("policy / semantic coverage ADR", "skipped on staged check; runs on push and verify")
+    else:
+        reporter.run(
+            "policy / semantic coverage ADR",
+            lambda: _run_project_python(session, "tools/check_semantic_coverage.py"),
         )
 
 

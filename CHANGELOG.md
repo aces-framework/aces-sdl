@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-05-10
+
+### Added
+
+- ADR-016 ("Semantic Layer Scope and Coverage Model (SEM-200)") under
+  `docs/decisions/adrs/`: `SEM-200` is recorded as a system-level umbrella
+  requirement that is the *parent* of its ~28 `SEM-2xx` children (the construct
+  families) and `DEPENDS_ON` `DSL-100`; a number of `EXP-*` / `AUT-*` / `GOV-*` /
+  `ASR-*` / API/runtime requirements `DEPENDS_ON` it as downstream consumers and
+  do not gate it. ADR-016 fixes the *model* — the seven canonical lifecycle
+  phases (authoring, validation, instantiation, compilation, planning, execution,
+  observation), the construct-family concept, the `active` / `partial` /
+  `planned` status vocabulary, and `SEM-200`'s definition of done (every
+  `SEM-2xx` child `ACTIVE`; no `partial`/`planned` rows in the coverage table;
+  cross-stage agreement tests extended construct-wide; the unassigned-wave
+  `SEM-2xx` children assigned to a wave). `SEM-200` stays `DRAFT` until then.
+- `docs/explain/reference/shared-semantic-integrity.md` (the architecture-preflight
+  guardrails note for `SEM-200`) gains the live, ADR-016-governed `## Coverage
+  Model` table mapping every semantic construct family to its owning
+  requirement(s), realizing artifacts, covered lifecycle phases, and status. The
+  table lives in this mutable reference note — not in the immutable ADR — so
+  routine `SEM-2xx` implementation PRs can update their construct family's row
+  without an ADR amendment; ADR-016 governs it and is linked from it. For
+  `planned` rows the table records the owning requirement(s) only; the intended
+  scope and wave come from those requirements' Ground Control records, not from a
+  duplicated table column. Higher-level capabilities that consume the semantic
+  layer (cross-run comparability, federation/standards profiles, …) are tracked
+  by their own requirements, not in this table.
+- `tools/check_semantic_coverage.py` — a filesystem-only structural gate that
+  parses that Coverage Model table and fails if a row is malformed, a status or
+  lifecycle-phase token is unrecognised, an owning-requirement token is not
+  UID-shaped, an artifact-cell token that looks like a path is missing, escapes
+  the repo root, or is not under a supported root, an `active`/`partial` row
+  names no lifecycle phase or no existing *non-test* realizing artifact, an
+  `active` row names no existing `implementations/python/tests/test_*.py` test, a
+  `planned` row claims phases or artifacts, or ADR-016 stops referencing the note
+  by path. Row diagnostics report the real source-line number. Failures use
+  `tools.policy.common.PolicyFailure`, and the CLI honours `--json` and the
+  shared `tools/policy/exceptions.yaml` waiver mechanism, like the other `policy`
+  nox-stage entry points. Wired into the `policy` step of the nox verification
+  graph (`_run_policy` in `noxfile.py`) for working-tree runs only (skipped on
+  the `--staged` pre-commit invocation, since it validates files on disk), added
+  to `TARGETED_POLICY_TESTS`, and the new tooling test is exempted in
+  `check_requirement_governance.py`'s `REQUIREMENT_CONTEXT_EXEMPT_PATHS`
+  alongside the other policy-tooling tests; covered by
+  `implementations/python/tests/test_semantic_coverage.py`.
+
 ## [0.14.0] - 2026-05-10
 
 ### Added
