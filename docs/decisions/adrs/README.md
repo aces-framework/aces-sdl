@@ -41,3 +41,4 @@ Each ADR includes:
 | [013](adr-013-participant-episode-lifecycle-boundaries.md) | Participant Episode Lifecycle Boundaries | accepted | 2026-04-11 |
 | [014](adr-014-nox-as-canonical-verification-graph.md) | nox as the Canonical Verification Graph | accepted | 2026-05-09 |
 | [015](adr-015-sdl-processor-layering-and-source-file-size-cap.md) | SDL-Processor Layering and Source-File Size Cap | accepted | 2026-05-10 |
+| [016](adr-016-semantic-layer-scope-and-coverage-model.md) | Semantic Layer Scope and Coverage Model (SEM-200) | accepted | 2026-05-10 |
