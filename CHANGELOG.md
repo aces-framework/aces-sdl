@@ -5,6 +5,116 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-05-10
+
+### Added
+
+- `MOD-001` ("Codebase Modularity And Layering") requirement in Ground
+  Control as the initiative anchor for the modularity work tracked by
+  issue #3 (the cycle break + size-cap gate + the 14 file-split child
+  PRs). Added to `tools/policy/requirement_order.yaml` as the sole
+  requirement of a new `modularity-initiative` phase.
+- ADR-015 ("SDL-Processor Layering and Source-File Size Cap") under
+  `docs/decisions/adrs/`: SDL is the lower layer, circular imports
+  between SDL and processor are forbidden, and non-test source files
+  under `implementations/python/packages/` cap at 600 lines with a
+  draining allowlist.
+- `layering_rules` block in `tools/policy/adr_policy.yaml` and
+  `_check_layering` in `tools/policy/repo_policy.py`: rejects any
+  `import aces_processor` / `from aces_processor … import …` line in a
+  changed `.py` file under `implementations/python/packages/aces_sdl/`.
+  New `layering-rule-violation` rule id.
+- `oversized_source_files` block in `tools/policy/adr_policy.yaml` and
+  `_check_oversized` in `tools/policy/repo_policy.py`: rejects a changed
+  non-test `.py` file under `implementations/python/packages/` that
+  exceeds 600 lines and isn't in the allowlist. New
+  `oversized-source-file` rule id.
+- `tools/policy/oversized_allowlist.yaml` listing the 14 source files
+  over the cap when ADR-015 landed, and `_ADR015_INITIAL_OVERSIZED_FILES`
+  in `tools/policy/repo_policy.py` — a *code constant*, not config —
+  holding that same fixed set as the locked reference. `_check_drain`
+  (new `oversized-allowlist-locked` rule id) requires the allowlist to be
+  a subset of that constant, so entries can be drained (split PRs) but
+  not added; pinning the reference in code rather than `adr_policy.yaml`
+  stops a single PR from relaxing the rule by editing both lists.
+  `_check_allowlist_entries_still_oversized` (new
+  `oversized-allowlist-stale-entry` rule id) requires every allowlist
+  entry from the initial set to still resolve to a regular file over the
+  cap, so a split PR that drops a file below 600 lines but forgets to
+  drain its entry is flagged on the next policy run.
+- Schema validation for the policy YAML: malformed config surfaces as
+  `policy-config-malformed` instead of a traceback — `adr_policy.yaml`
+  itself failing to parse or not having a mapping root (loaded through a
+  guard before any checker runs), the `layering_rules` /
+  `oversized_source_files` blocks having wrong types or empty required
+  lists, and an unparseable / non-mapping `oversized_allowlist.yaml`.
+  Both ADR-015 blocks are *required* — an absent block is a malformation,
+  not an opt-out, so the gates cannot be silently disabled. Path safety
+  is enforced at a
+  single chokepoint: `evaluate_repo_policy` drops any changed path that
+  resolves outside the repository root (absolute, parent-traversal, or a
+  planted symlink) *before any checker reads a file*, so the layering
+  scan, the size cap, and the pre-existing import-direction and
+  compat-wrapper checks all run on an already-validated list. The
+  allowlist file path and each allowlist entry the drain check inspects
+  are validated the same way. An out-of-tree path surfaces as the new
+  `policy-path-unsafe` rule id and the target is never opened.
+- `docs/api/sdl-semantics.rst` documenting the moved
+  `aces_sdl.semantics.{objectives,workflow}` modules; `docs/index.md`
+  toctree updated (ADR list + the new API page).
+- Unit tests in `implementations/python/tests/test_repo_policy_tools.py`
+  for the layering rule (all four import shapes + the prefix-boundary
+  case), the cap (over/under/allowlisted/test-excluded), the drain rule
+  (subset of the code constant; config cannot grow the locked set;
+  premature drain rejected; legitimate drain passes), the
+  stale-allowlist-entry rule (file below cap / missing / replaced by an
+  out-of-tree symlink), the required-block and malformed-config paths
+  (including a non-mapping/parse-broken `adr_policy.yaml`), the
+  unsafe-path chokepoint, and the config-wide checks running on an empty
+  changed list (deletion-only PRs).
+
+### Changed
+
+- Moved `aces_processor/semantics/{objectives,workflow}.py` to
+  `aces_sdl/semantics/{objectives,workflow}.py`. These are SDL-language
+  semantics — objective-window analysis, the workflow step-type contract,
+  branch closure, and the (pure, stdlib-only) workflow step-result
+  validator — needed by `aces_sdl/validator.py`. The move breaks the
+  `aces_sdl ↔ aces_processor` circular import that ran through
+  `aces_sdl/validator.py` →
+  `aces_processor.semantics.{objectives,workflow}`. The whole module
+  contents moved as a unit; `validate_workflow_step_result` stays with
+  the rest of `workflow.py` (it is pure and has no import-time coupling
+  to `aces_processor`, so moving it does not violate the layering rule
+  and keeping it grouped avoids fragmenting `aces.core.semantics.workflow`).
+  **Breaking change to the owning-package surface:** the import paths
+  `aces_processor.semantics.objectives` and
+  `aces_processor.semantics.workflow` no longer exist. Per ADR-009/010
+  the *stable* public surface is the `aces.*` namespace, not the owning
+  packages, so this follows the documented compatibility model: code
+  that imported the owning-package paths directly must move to
+  `aces_sdl.semantics.*`, and consumers of the stable API are
+  unaffected — `aces.core.semantics.{objectives,workflow}` keep working,
+  retargeted to re-export from `aces_sdl.semantics.*`.
+- `aces_processor/semantics/planner.py` is **not** moved — it is
+  processor-runtime reconciliation logic over a processor artifact
+  (resource-action reconciliation between compiled resources and runtime
+  snapshots, dependency graphs over compiled-resource addresses),
+  consumed only by `aces_processor`, and stays there. After this PR
+  `aces_processor.semantics` contains only `planner`.
+- Updated import sites in `aces_processor/{compiler,manager,models}.py`
+  and `aces_sdl/validator.py` to reach the moved modules via
+  `aces_sdl.semantics.{objectives,workflow}`. `aces_processor/manager.py`
+  keeps `.semantics.planner` for the planner helpers.
+- Retargeted the `aces.core.semantics.{objectives,workflow}`
+  compatibility wrappers to `aces_sdl.semantics.*`.
+  `aces.core.semantics.planner` is unchanged. Tests that import via the
+  `aces.core.semantics.*` namespace work without modification.
+- `docs/api/sdl-semantics.rst` (new) documents the moved
+  `aces_sdl.semantics.{objectives,workflow}` modules;
+  `docs/api/processor-semantics.rst` is rescoped to
+  `aces_processor.semantics.planner` only.
+
 ## [0.13.0] - 2026-05-09
 
 ### Added
