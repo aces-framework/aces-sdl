@@ -71,8 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AssessmentResourceCatalog` / `WindowResourceCatalog` dataclasses bundle the
   nine SDL section maps into two structured inputs, dropping the analyzer's
   signature from 14 parameters to 7 and removing the high cognitive-complexity
-  hot spot SonarCloud flagged on the first run. Behavior-preserving — every
-  authoring error string and compiler diagnostic code is unchanged.
+  hot spot SonarCloud flagged on the first run. `_analyze_actor_binding` itself
+  is decomposed further into `_check_agent` / `_check_agent_actions` /
+  `_check_entity` so each helper stays under the cognitive-complexity threshold.
+  Behavior-preserving — every authoring error string and compiler diagnostic
+  code is unchanged.
 
 ## [0.16.0] - 2026-05-10
 

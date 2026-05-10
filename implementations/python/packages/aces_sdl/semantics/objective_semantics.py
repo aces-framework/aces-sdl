@@ -140,12 +140,7 @@ class ObjectiveSemanticAnalysis:
 
 @dataclass(frozen=True)
 class AssessmentResourceCatalog:
-    """Name-keyed view of the assessment-pipeline resources an objective may name.
-
-    Bundles the five SDL sections (``conditions`` / ``metrics`` / ``evaluations``
-    / ``tlos`` / ``goals``) so the analyzer can resolve success references
-    without taking five separate keyword arguments.
-    """
+    """The five assessment-pipeline section maps an objective's success may name."""
 
     conditions: Mapping[str, object]
     metrics: Mapping[str, object]
@@ -156,12 +151,7 @@ class AssessmentResourceCatalog:
 
 @dataclass(frozen=True)
 class WindowResourceCatalog:
-    """Name-keyed view of the timeline resources an objective window may name.
-
-    Mirrors :class:`AssessmentResourceCatalog`: bundles ``stories`` / ``scripts``
-    / ``events`` / ``workflows`` so the analyzer can pass them to
-    :func:`analyze_objective_window` as one structured input.
-    """
+    """The four timeline section maps an objective's window may name."""
 
     stories: Mapping[str, object]
     scripts: Mapping[str, object]
@@ -239,6 +229,68 @@ _SUCCESS_REFERENCE_SECTIONS: tuple[tuple[str, AssessmentResourceKind, str], ...]
 )
 
 
+def _check_agent_actions(
+    objective_name: str,
+    objective: object,
+    agent_name: str,
+    agent: object,
+    unresolved: Callable[[object], bool],
+) -> list[ObjectiveIssue]:
+    allowed = set(getattr(agent, "actions", []) or [])
+    return [
+        ObjectiveIssue(
+            code="objective.action-not-declared",
+            objective_name=objective_name,
+            ref=action,
+            actor_name=agent_name,
+        )
+        for action in getattr(objective, "actions", []) or []
+        if not unresolved(action) and action not in allowed
+    ]
+
+
+def _check_agent(
+    objective_name: str,
+    objective: object,
+    agents_by_name: Mapping[str, object],
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue]]:
+    name = getattr(objective, "agent", "") or ""
+    if not name or unresolved(name):
+        return [], []
+    if name not in agents_by_name:
+        return [], [ObjectiveIssue(code="objective.actor-agent-undeclared", objective_name=objective_name, ref=name)]
+    ref = ObjectiveReference(
+        raw=name,
+        canonical_name=name,
+        reference_kind=ObjectiveReferenceKind.ACTOR,
+        source_name=objective_name,
+        dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
+    )
+    return [ref], _check_agent_actions(objective_name, objective, name, agents_by_name[name], unresolved)
+
+
+def _check_entity(
+    objective_name: str,
+    objective: object,
+    entity_name_set: set[str],
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue]]:
+    name = getattr(objective, "entity", "") or ""
+    if not name or unresolved(name):
+        return [], []
+    if name not in entity_name_set:
+        return [], [ObjectiveIssue(code="objective.actor-entity-undeclared", objective_name=objective_name, ref=name)]
+    ref = ObjectiveReference(
+        raw=name,
+        canonical_name=f"entities.{name}",
+        reference_kind=ObjectiveReferenceKind.ACTOR,
+        source_name=objective_name,
+        dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
+    )
+    return [ref], []
+
+
 def _analyze_actor_binding(
     objective_name: str,
     objective: object,
@@ -246,62 +298,9 @@ def _analyze_actor_binding(
     entity_name_set: set[str],
     unresolved: Callable[[object], bool],
 ) -> tuple[list[ObjectiveReference], list[ObjectiveIssue]]:
-    refs: list[ObjectiveReference] = []
-    issues: list[ObjectiveIssue] = []
-    agent_name = getattr(objective, "agent", "") or ""
-    entity_ref = getattr(objective, "entity", "") or ""
-    if agent_name and not unresolved(agent_name):
-        if agent_name not in agents_by_name:
-            issues.append(
-                ObjectiveIssue(
-                    code="objective.actor-agent-undeclared",
-                    objective_name=objective_name,
-                    ref=agent_name,
-                )
-            )
-        else:
-            refs.append(
-                ObjectiveReference(
-                    raw=agent_name,
-                    canonical_name=agent_name,
-                    reference_kind=ObjectiveReferenceKind.ACTOR,
-                    source_name=objective_name,
-                    dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
-                )
-            )
-            allowed_actions = set(getattr(agents_by_name[agent_name], "actions", []) or [])
-            for action in getattr(objective, "actions", []) or []:
-                if unresolved(action):
-                    continue
-                if action not in allowed_actions:
-                    issues.append(
-                        ObjectiveIssue(
-                            code="objective.action-not-declared",
-                            objective_name=objective_name,
-                            ref=action,
-                            actor_name=agent_name,
-                        )
-                    )
-    if entity_ref and not unresolved(entity_ref):
-        if entity_ref not in entity_name_set:
-            issues.append(
-                ObjectiveIssue(
-                    code="objective.actor-entity-undeclared",
-                    objective_name=objective_name,
-                    ref=entity_ref,
-                )
-            )
-        else:
-            refs.append(
-                ObjectiveReference(
-                    raw=entity_ref,
-                    canonical_name=f"entities.{entity_ref}",
-                    reference_kind=ObjectiveReferenceKind.ACTOR,
-                    source_name=objective_name,
-                    dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
-                )
-            )
-    return refs, issues
+    agent_refs, agent_issues = _check_agent(objective_name, objective, agents_by_name, unresolved)
+    entity_refs, entity_issues = _check_entity(objective_name, objective, entity_name_set, unresolved)
+    return [*agent_refs, *entity_refs], [*agent_issues, *entity_issues]
 
 
 def _analyze_targets(
