@@ -419,17 +419,39 @@ class TestObjectiveDependencyPartition:
         assert OBJECTIVE_ACTOR_DEPENDENCY_ROLES == ()
         assert OBJECTIVE_TARGET_DEPENDENCY_ROLES == ()
 
-    def test_partition_keys_categories_independently(self) -> None:
-        # When success_refs and dependency_refs share a name today, both gate to
-        # ORDERING+REFRESH, so the entry appears once in each tuple. The
-        # independent gating contract is what keeps a future ``depends_on``
-        # role-only change from silently bypassing the runtime tuples.
+    def test_partition_emits_each_category_under_default_roles(self) -> None:
+        # Default roles (success and depends_on both ORDERING+REFRESH; window
+        # REFRESH only) place the success and dependency entries in both tuples
+        # and the window entry in refresh only.
         ordering, refresh = partition_objective_dependencies(
             success_refs=["s"],
             dependency_refs=["d"],
             window_refresh_refs=["w"],
         )
         assert ordering == ("s", "d")
+        assert refresh == ("s", "d", "w")
+
+    def test_partition_reads_each_categorys_own_role_constant(self, monkeypatch) -> None:
+        # The cycle-1 bug merged success+depends_on into one list and gated
+        # both through OBJECTIVE_SUCCESS_DEPENDENCY_ROLES, so a hypothetical
+        # change to the dependency-role constant alone never reached the
+        # runtime tuples. Toggle just OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES to
+        # refresh-only and assert the partition output reflects exactly that
+        # difference — proving each category is keyed independently.
+        import aces_sdl.semantics.objective_semantics as os_module
+
+        monkeypatch.setattr(
+            os_module,
+            "OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES",
+            (ObjectiveDependencyRole.REFRESH,),
+        )
+        ordering, refresh = partition_objective_dependencies(
+            success_refs=["s"],
+            dependency_refs=["d"],
+            window_refresh_refs=["w"],
+        )
+        # success kept ORDERING; deps lost it; window unchanged.
+        assert ordering == ("s",)
         assert refresh == ("s", "d", "w")
 
     @given(st.lists(st.sampled_from(["a", "b", "c", "d"]), max_size=16))
