@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.semantics.workflow import validate_workflow_step_result
 
 from .compiler import compile_runtime_model
 from .models import (
@@ -36,7 +37,6 @@ from .models import (
 from .planner import plan
 from .registry import RuntimeTarget, _validate_runtime_target_shape
 from .semantics.planner import reverse_delete_order
-from .semantics.workflow import validate_workflow_step_result
 
 
 def _delete_order(entries: dict[str, SnapshotEntry]) -> list[str]:
