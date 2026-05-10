@@ -9,3 +9,5 @@ themselves normative specifications or ADRs.
   - Design guidance for `GOV-917` and related shared-concept-model work
 - [shared-semantic-integrity.md](shared-semantic-integrity.md)
   - Architecture guardrails for `SEM-200` shared semantic integrity work
+- [assessment-semantics.md](assessment-semantics.md)
+  - Architecture guardrails for `SEM-206` assessment semantics work
