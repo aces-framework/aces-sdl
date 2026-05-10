@@ -14,7 +14,9 @@ from aces.core.semantics.objective_semantics import (
     OBJECTIVE_SUCCESS_DEPENDENCY_ROLES,
     OBJECTIVE_TARGET_DEPENDENCY_ROLES,
     OBJECTIVE_WINDOW_DEPENDENCY_ROLES,
+    AssessmentResourceCatalog,
     ObjectiveReferenceKind,
+    WindowResourceCatalog,
     analyze_objective_semantics,
     partition_objective_dependencies,
 )
@@ -149,10 +151,14 @@ def _is_var(value: object) -> bool:
 
 
 def _analyze(objectives, **overrides):
-    kwargs: dict = {
-        "objectives_by_name": objectives,
-        "agents_by_name": {},
-        "entity_names": set(),
+    """Drive the analyzer with empty defaults; per-test overrides drop in.
+
+    Resource maps are bundled into ``AssessmentResourceCatalog`` /
+    ``WindowResourceCatalog`` for the analyzer; tests still pass the per-section
+    overrides (``conditions_by_name``, ``stories_by_name``, …) for readability.
+    """
+
+    section_defaults = {
         "conditions_by_name": {},
         "metrics_by_name": {},
         "evaluations_by_name": {},
@@ -162,6 +168,25 @@ def _analyze(objectives, **overrides):
         "scripts_by_name": {},
         "events_by_name": {},
         "workflows_by_name": {},
+    }
+    sections = {key: overrides.pop(key, default) for key, default in section_defaults.items()}
+    kwargs: dict = {
+        "objectives_by_name": objectives,
+        "agents_by_name": {},
+        "entity_names": set(),
+        "assessment_resources": AssessmentResourceCatalog(
+            conditions=sections["conditions_by_name"],
+            metrics=sections["metrics_by_name"],
+            evaluations=sections["evaluations_by_name"],
+            tlos=sections["tlos_by_name"],
+            goals=sections["goals_by_name"],
+        ),
+        "window_resources": WindowResourceCatalog(
+            stories=sections["stories_by_name"],
+            scripts=sections["scripts_by_name"],
+            events=sections["events_by_name"],
+            workflows=sections["workflows_by_name"],
+        ),
         "targetable_name_index": {},
     }
     kwargs.update(overrides)
