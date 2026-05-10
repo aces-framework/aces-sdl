@@ -19,8 +19,8 @@ from tools.check_semantic_coverage import (
     parse_coverage_rows,
 )
 
-# A stub ADR-016 that references the coverage note by basename, so the
-# ADR↔note linkage check passes in the seeded temp repo.
+# A stub ADR-016 that references the coverage note by its repo-relative path, so
+# the ADR↔note linkage check passes in the seeded temp repo.
 _GOOD_ADR = """# ADR-016: Semantic Layer Scope and Coverage Model
 
 ## Status
@@ -52,6 +52,13 @@ compilation, planning, execution, observation.
 Nothing else here.
 """
 
+_ACTIVE_ROW = (
+    "| Objective windows | SEM-202 | validation, compilation, planning | "
+    "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py` | active |"
+)
+_ARTIFACTS = "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py`"
+_PLANNED_ROW = "| Assessment semantics | SEM-206, DSL-110 | — | — | planned |"
+
 _ARTIFACTS_IN_GOOD_NOTE = (
     "specs/formal/objectives/README.md",
     "implementations/python/tests/test_semantics_objectives.py",
@@ -74,6 +81,108 @@ def _seed_repo(tmp_path: Path, note_body: str = _GOOD_NOTE, adr_body: str | None
     return tmp_path
 
 
+def _flagged(failures, marker: str) -> bool:
+    """True if some failure matches ``marker`` by rule id or by a substring of its rendered text."""
+    needle = marker.lower()
+    return any(f.rule_id == marker or needle in f.render().lower() for f in failures)
+
+
+# (case id, mutated coverage note, marker the checker must flag)
+_NOTE_DEFECT_CASES = [
+    ("section-missing", _GOOD_NOTE.replace("## Coverage Model", "## Something Else"), "coverage model"),
+    ("status-unknown", _GOOD_NOTE.replace("| active |", "| done |"), "done"),
+    ("status-unknown-rule", _GOOD_NOTE.replace("| active |", "| done |"), "coverage-status"),
+    ("phase-unknown", _GOOD_NOTE.replace("validation, compilation, planning", "validation, deployment"), "deployment"),
+    (
+        "phase-unknown-rule",
+        _GOOD_NOTE.replace("validation, compilation, planning", "validation, deployment"),
+        "coverage-phase",
+    ),
+    ("owner-bad-uid", _GOOD_NOTE.replace("| SEM-202 |", "| sem-202 |"), "sem-202"),
+    (
+        "artifact-missing",
+        _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`specs/formal/objectives/nope.md`"),
+        "nope.md",
+    ),
+    (
+        "artifact-missing-rule",
+        _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`specs/formal/objectives/nope.md`"),
+        "coverage-artifact-missing",
+    ),
+    (
+        "artifact-unsupported",
+        _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`pyproject.toml`"),
+        "coverage-artifact-unsupported",
+    ),
+    (
+        "artifact-escapes-root",
+        _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`specs/../../escape.md`"),
+        "coverage-artifact-escape",
+    ),
+    (
+        "active-no-artifacts",
+        _GOOD_NOTE.replace(_ACTIVE_ROW, "| Objective windows | SEM-202 | validation | — | active |"),
+        "coverage-incomplete",
+    ),
+    (
+        "active-only-prose-artifact",
+        _GOOD_NOTE.replace(_ARTIFACTS, "objective window semantics live in the validator"),
+        "coverage-incomplete",
+    ),
+    (
+        "active-no-test-artifact",
+        _GOOD_NOTE.replace(_ARTIFACTS, "`specs/formal/objectives/README.md`"),
+        "coverage-untested",
+    ),
+    (
+        "active-only-test-artifact",
+        _GOOD_NOTE.replace(_ARTIFACTS, "`implementations/python/tests/test_semantics_objectives.py`"),
+        "coverage-incomplete",
+    ),
+    (
+        "planned-has-artifacts",
+        _GOOD_NOTE.replace(
+            _PLANNED_ROW,
+            "| Assessment semantics | SEM-206 | validation | `specs/formal/objectives/README.md` | planned |",
+        ),
+        "coverage-planned",
+    ),
+    (
+        "planned-has-phases",
+        _GOOD_NOTE.replace(_PLANNED_ROW, "| Assessment semantics | SEM-206 | validation | — | planned |"),
+        "coverage-planned",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("note_body", "marker"), [(n, m) for _, n, m in _NOTE_DEFECT_CASES], ids=[c for c, _, _ in _NOTE_DEFECT_CASES]
+)
+def test_note_defect_is_flagged(tmp_path: Path, note_body: str, marker: str) -> None:
+    failures = evaluate_semantic_coverage(_seed_repo(tmp_path, note_body))
+    assert _flagged(failures, marker)
+
+
+# (case id, ADR-016 body — or None to omit the file entirely, expected rule id)
+_ADR_LINKAGE_CASES = [
+    ("adr-absent", None, "coverage-adr-missing"),
+    ("adr-no-reference", "# ADR-016: Something\n\n## Status\naccepted\n", "coverage-adr-unlinked"),
+    (
+        "adr-basename-only",
+        "# ADR-016: X\n\n## Status\naccepted\n\nSee shared-semantic-integrity.md.\n",
+        "coverage-adr-unlinked",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("adr_body", "rule_id"), [(b, r) for _, b, r in _ADR_LINKAGE_CASES], ids=[c for c, _, _ in _ADR_LINKAGE_CASES]
+)
+def test_adr_linkage_defect_is_flagged(tmp_path: Path, adr_body: str | None, rule_id: str) -> None:
+    failures = evaluate_semantic_coverage(_seed_repo(tmp_path, adr_body=adr_body))
+    assert any(f.rule_id == rule_id for f in failures)
+
+
 def test_well_formed_note_passes(tmp_path: Path) -> None:
     assert evaluate_semantic_coverage(_seed_repo(tmp_path)) == []
 
@@ -83,142 +192,17 @@ def test_missing_note_fails(tmp_path: Path) -> None:
     assert any(f.rule_id == "coverage-note-missing" for f in failures)
 
 
-def test_missing_governing_adr_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, adr_body=None)
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-adr-missing" for f in failures)
-    assert any("adr-016" in f.render().lower() for f in failures)
-
-
-def test_adr_not_referencing_note_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, adr_body="# ADR-016: Something\n\n## Status\naccepted\n")
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-adr-unlinked" for f in failures)
-
-
-def test_adr_basename_only_reference_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, adr_body="# ADR-016: X\n\n## Status\naccepted\n\nSee shared-semantic-integrity.md.\n")
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-adr-unlinked" for f in failures)
-
-
-def test_missing_coverage_section_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, _GOOD_NOTE.replace("## Coverage Model", "## Something Else"))
-    failures = evaluate_semantic_coverage(repo)
-    assert any("coverage model" in f.render().lower() for f in failures)
-
-
-def test_unknown_status_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, _GOOD_NOTE.replace("| active |", "| done |"))
-    failures = evaluate_semantic_coverage(repo)
-    assert any("status" in f.render().lower() and "done" in f.render().lower() for f in failures)
-
-
-def test_unknown_phase_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, _GOOD_NOTE.replace("validation, compilation, planning", "validation, deployment"))
-    failures = evaluate_semantic_coverage(repo)
-    assert any("phase" in f.render().lower() and "deployment" in f.render().lower() for f in failures)
-
-
-def test_dangling_artifact_path_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`specs/formal/objectives/does-not-exist.md`"),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any("does-not-exist" in f.render() for f in failures)
-
-
-def test_active_row_without_artifacts_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "| Objective windows | SEM-202 | validation, compilation, planning | "
-            "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py` | active |",
-            "| Objective windows | SEM-202 | validation | — | active |",
-        ),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-incomplete" for f in failures)
-
-
-def test_active_row_with_only_prose_artifact_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py`",
-            "objective window semantics live in the validator",
-        ),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-incomplete" for f in failures)
-
-
-def test_active_row_without_test_artifact_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py`",
-            "`specs/formal/objectives/README.md`",
-        ),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-untested" for f in failures)
-
-
-def test_active_row_with_only_test_artifacts_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "`specs/formal/objectives/README.md`, `implementations/python/tests/test_semantics_objectives.py`",
-            "`implementations/python/tests/test_semantics_objectives.py`",
-        ),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-incomplete" for f in failures)
-
-
-def test_unsupported_path_artifact_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, _GOOD_NOTE.replace("`specs/formal/objectives/README.md`", "`pyproject.toml`"))
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-artifact-unsupported" for f in failures)
-
-
-def test_planned_row_with_artifacts_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "| Assessment semantics | SEM-206, DSL-110 | — | — | planned |",
-            "| Assessment semantics | SEM-206, DSL-110 | validation | "
-            "`implementations/python/tests/test_semantics_objectives.py` | planned |",
-        ),
-    )
-    failures = evaluate_semantic_coverage(repo)
-    assert any(f.rule_id == "coverage-planned" for f in failures)
-
-
-def test_bad_requirement_uid_fails(tmp_path: Path) -> None:
-    repo = _seed_repo(tmp_path, _GOOD_NOTE.replace("| SEM-202 |", "| sem-202 |"))
-    failures = evaluate_semantic_coverage(repo)
-    assert any("sem-202" in f.render().lower() for f in failures)
-
-
 def test_malformed_row_column_count_fails(tmp_path: Path) -> None:
     repo = _seed_repo(
-        tmp_path,
-        _GOOD_NOTE.replace(
-            "| Assessment semantics | SEM-206, DSL-110 | — | — | planned |",
-            "| Assessment semantics | SEM-206, DSL-110 | — | planned |",
-        ),
+        tmp_path, _GOOD_NOTE.replace(_PLANNED_ROW, "| Assessment semantics | SEM-206, DSL-110 | — | planned |")
     )
     failures = evaluate_semantic_coverage(repo)
-    assert failures
+    assert any(f.rule_id == "coverage-model-parse" for f in failures)
 
 
 def test_no_table_raises_parse_error() -> None:
-    body = "# Note\n\n## Coverage Model\n\nNo table here.\n\n## Next\nDone.\n"
     with pytest.raises(CoverageParseError):
-        parse_coverage_rows(body)
+        parse_coverage_rows("# Note\n\n## Coverage Model\n\nNo table here.\n\n## Next\nDone.\n")
 
 
 def test_missing_section_raises_parse_error() -> None:
@@ -231,7 +215,10 @@ def test_parse_rows_returns_expected_count() -> None:
     assert len(rows) == 2
     assert rows[0].family == "Objective windows"
     assert rows[0].owners == ["SEM-202"]
+    assert rows[0].phases == ["validation", "compilation", "planning"]
     assert rows[0].status == "active"
+    assert rows[1].owners == ["SEM-206", "DSL-110"]
+    assert rows[1].phases == []
     assert rows[1].status == "planned"
 
 
