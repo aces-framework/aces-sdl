@@ -18,7 +18,7 @@ from .infrastructure import SimpleProperties
 from .nodes import MAX_NODE_NAME_LENGTH, NodeType
 from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
 from .scenario import Scenario
-from .scoring import MetricType
+from .semantics.assessment import AssessmentIssue, analyze_assessment_pipeline
 from .semantics.objectives import analyze_objective_window
 from .semantics.workflow import branch_closure, workflow_step_semantic_contract
 
@@ -210,10 +210,7 @@ class SemanticValidator:
         self._verify_features()
         self._verify_conditions()
         self._verify_vulnerabilities()
-        self._verify_metrics()
-        self._verify_evaluations()
-        self._verify_tlos()
-        self._verify_goals()
+        self._verify_assessment_pipeline()
         self._verify_entities()
         self._verify_injects()
         self._verify_events()
@@ -1297,60 +1294,42 @@ class SemanticValidator:
         # CWE format validation is handled by the Pydantic field_validator.
         pass
 
-    def _verify_metrics(self) -> None:
-        used_conditions: set[str] = set()
+    def _verify_assessment_pipeline(self) -> None:
+        # The condition -> metric -> evaluation -> TLO -> goal scoring chain.
+        # Reference, aggregation, and dependency-role semantics live in
+        # ``aces_sdl.semantics.assessment`` (SEM-206); this pass renders the
+        # machine-readable issues it reports as authoring errors.
+        analysis = analyze_assessment_pipeline(
+            conditions_by_name=self._s.conditions,
+            metrics_by_name=self._s.metrics,
+            evaluations_by_name=self._s.evaluations,
+            tlos_by_name=self._s.tlos,
+            goals_by_name=self._s.goals,
+            is_unresolved=self._is_unresolved_var,
+        )
+        for issue in analysis.issues:
+            self._err(self._format_assessment_issue(issue))
 
-        for name, metric in self._s.metrics.items():
-            if metric.type == MetricType.CONDITIONAL:
-                cond = metric.condition
-                if self._is_unresolved_var(cond):
-                    continue
-                if cond and cond not in self._s.conditions:
-                    self._err(f"Metric '{name}' references undefined condition '{cond}'")
-                if cond in used_conditions:
-                    self._err(f"Condition '{cond}' is referenced by multiple metrics")
-                if cond:
-                    used_conditions.add(cond)
-
-    def _verify_evaluations(self) -> None:
-        for name, evaluation in self._s.evaluations.items():
-            max_total = 0
-            unknown_max_score = False
-            for metric_name in evaluation.metrics:
-                if self._is_unresolved_var(metric_name):
-                    unknown_max_score = True
-                    continue
-                if metric_name not in self._s.metrics:
-                    self._err(f"Evaluation '{name}' references undefined metric '{metric_name}'")
-                else:
-                    metric_max_score = self._s.metrics[metric_name].max_score
-                    if isinstance(metric_max_score, int):
-                        max_total += metric_max_score
-                    else:
-                        unknown_max_score = True
-
-            if isinstance(evaluation.min_score.absolute, int) and not unknown_max_score:
-                if evaluation.min_score.absolute > max_total:
-                    self._err(
-                        f"Evaluation '{name}' absolute min-score "
-                        f"({evaluation.min_score.absolute}) exceeds sum of "
-                        f"metric max-scores ({max_total})"
-                    )
-
-    def _verify_tlos(self) -> None:
-        for name, tlo in self._s.tlos.items():
-            if self._is_unresolved_var(tlo.evaluation):
-                continue
-            if tlo.evaluation not in self._s.evaluations:
-                self._err(f"TLO '{name}' references undefined evaluation '{tlo.evaluation}'")
-
-    def _verify_goals(self) -> None:
-        for name, goal in self._s.goals.items():
-            for tlo_name in goal.tlos:
-                if self._is_unresolved_var(tlo_name):
-                    continue
-                if tlo_name not in self._s.tlos:
-                    self._err(f"Goal '{name}' references undefined TLO '{tlo_name}'")
+    @staticmethod
+    def _format_assessment_issue(issue: AssessmentIssue) -> str:
+        name, ref = issue.resource_name, issue.ref
+        if issue.code == "metric.condition-undeclared":
+            return f"Metric '{name}' references undefined condition '{ref}'"
+        if issue.code == "metric.condition-multiply-scored":
+            return f"Condition '{name}' is referenced by multiple metrics"
+        if issue.code == "evaluation.metric-undeclared":
+            return f"Evaluation '{name}' references undefined metric '{ref}'"
+        if issue.code == "evaluation.min-score-exceeds-metric-total":
+            return (
+                f"Evaluation '{name}' absolute min-score "
+                f"({issue.observed}) exceeds sum of "
+                f"metric max-scores ({issue.limit})"
+            )
+        if issue.code == "tlo.evaluation-undeclared":
+            return f"TLO '{name}' references undefined evaluation '{ref}'"
+        if issue.code == "goal.tlo-undeclared":
+            return f"Goal '{name}' references undefined TLO '{ref}'"
+        raise AssertionError(f"unhandled assessment-pipeline issue code: {issue.code}")
 
     def _verify_entities(self) -> None:
         flat = flatten_entities(self._s.entities)

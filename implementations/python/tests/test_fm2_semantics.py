@@ -153,3 +153,82 @@ workflows:
         actions = {op.address: op.action.value for op in updated.evaluation.operations}
         assert actions["evaluation.condition.vm.health"] == "update"
         assert actions["evaluation.objective.initial"] == "update"
+
+
+class TestAssessmentPipelineAgreement:
+    def test_validator_and_compiler_agree_on_pipeline_errors(self):
+        raw = _scenario("""
+name: assessment-errors
+metrics:
+  m1: {type: conditional, condition: missing-cond, max-score: 10}
+evaluations:
+  e1: {metrics: [missing-metric], min-score: 50}
+tlos:
+  t1: {evaluation: missing-evaluation}
+goals:
+  g1: {tlos: [missing-tlo]}
+""")
+
+        with pytest.raises(SDLValidationError) as exc_info:
+            parse_sdl(raw)
+
+        errors = exc_info.value.errors
+        assert any("Metric 'm1' references undefined condition 'missing-cond'" in error for error in errors)
+        assert any("Evaluation 'e1' references undefined metric 'missing-metric'" in error for error in errors)
+        assert any("TLO 't1' references undefined evaluation 'missing-evaluation'" in error for error in errors)
+        assert any("Goal 'g1' references undefined TLO 'missing-tlo'" in error for error in errors)
+
+        model = compile_runtime_model(parse_sdl(raw, skip_semantic_validation=True))
+        codes = {diag.code for diag in model.diagnostics}
+        assert "evaluation.condition-ref-unbound" in codes
+        assert "evaluation.metric-ref-unbound" in codes
+        assert "evaluation.evaluation-ref-unbound" in codes
+        assert "evaluation.tlo-ref-unbound" in codes
+
+    def test_compiler_and_planner_agree_on_pipeline_refresh_semantics(self):
+        raw = _scenario("""
+name: assessment-refresh
+nodes:
+  vm:
+    type: vm
+    os: linux
+    resources: {ram: 1 gib, cpu: 1}
+    conditions: {health: ops}
+    roles: {ops: operator}
+conditions:
+  health: {command: /bin/true, interval: 15}
+metrics:
+  m1: {type: conditional, condition: health, max-score: 10}
+evaluations:
+  e1: {metrics: [m1], min-score: 50}
+tlos:
+  t1: {evaluation: e1}
+goals:
+  g1: {tlos: [t1]}
+""")
+        compiled = compile_runtime_model(parse_sdl(raw))
+
+        metric = compiled.metrics["evaluation.metric.m1"]
+        assert "evaluation.condition.vm.health" in metric.ordering_dependencies
+        assert "evaluation.condition.vm.health" in metric.refresh_dependencies
+        evaluation = compiled.evaluations["evaluation.evaluation.e1"]
+        assert "evaluation.metric.m1" in evaluation.ordering_dependencies
+        assert "evaluation.metric.m1" in evaluation.refresh_dependencies
+        tlo = compiled.tlos["evaluation.tlo.t1"]
+        assert "evaluation.evaluation.e1" in tlo.ordering_dependencies
+        goal = compiled.goals["evaluation.goal.g1"]
+        assert "evaluation.tlo.t1" in goal.ordering_dependencies
+        assert "evaluation.tlo.t1" in goal.refresh_dependencies
+
+        baseline = plan(compiled, create_stub_manifest())
+        snapshot = _snapshot_from_plan(baseline)
+
+        mutated = compile_runtime_model(parse_sdl(raw.replace("/bin/true", "/bin/false")))
+        updated = plan(mutated, create_stub_manifest(), snapshot=snapshot)
+
+        actions = {op.address: op.action.value for op in updated.evaluation.operations}
+        assert actions["evaluation.condition.vm.health"] == "update"
+        assert actions["evaluation.metric.m1"] == "update"
+        assert actions["evaluation.evaluation.e1"] == "update"
+        assert actions["evaluation.tlo.t1"] == "update"
+        assert actions["evaluation.goal.g1"] == "update"
