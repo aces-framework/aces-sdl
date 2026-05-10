@@ -7,3 +7,5 @@ themselves normative specifications or ADRs.
   - Reference coding expectations for the repo
 - [shared-concept-model.md](shared-concept-model.md)
   - Design guidance for `GOV-917` and related shared-concept-model work
+- [shared-semantic-integrity.md](shared-semantic-integrity.md)
+  - Architecture guardrails for `SEM-200` shared semantic integrity work
