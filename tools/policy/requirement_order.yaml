@@ -61,6 +61,9 @@ phases:
       - ASR-516
     blocked_until:
       - gov-concept-authority
+  - id: modularity-initiative
+    requirements:
+      - MOD-001
 
 ownership:
   gov-concept-authority:
@@ -137,6 +140,21 @@ ownership:
     - implementations/python/uv.lock
     - implementations/python/packages/aces_mcp
     - implementations/python/tests/test_mcp_server.py
+    - CHANGELOG.md
+  modularity-initiative:
+    - implementations/python/packages/aces_sdl
+    - implementations/python/packages/aces_processor
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_conformance
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_backend_stubs
+    - implementations/python/packages/aces_mcp
+    - implementations/python/src/aces
+    - implementations/python/tests
+    - docs/api
+    - docs/decisions/adrs
+    - docs/explain/sdl
+    - docs/index.md
     - CHANGELOG.md
 
 traceability:

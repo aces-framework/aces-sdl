@@ -9,11 +9,6 @@ the first one.
 from collections import defaultdict, deque
 from ipaddress import ip_address, ip_network
 
-from aces_processor.semantics.objectives import analyze_objective_window
-from aces_processor.semantics.workflow import (
-    branch_closure,
-    workflow_step_semantic_contract,
-)
 from pydantic import BaseModel
 
 from ._base import extract_variable_name, is_variable_ref
@@ -24,6 +19,8 @@ from .nodes import MAX_NODE_NAME_LENGTH, NodeType
 from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
 from .scenario import Scenario
 from .scoring import MetricType
+from .semantics.objectives import analyze_objective_window
+from .semantics.workflow import branch_closure, workflow_step_semantic_contract
 
 
 def _topological_sort(graph: dict[str, list[str]]) -> list[str] | None:

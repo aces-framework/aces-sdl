@@ -1,0 +1,22 @@
+# Files over the 600-line cap (tools/policy/adr_policy.yaml :: oversized_source_files).
+# Each entry is a path relative to the repository root and must be one of the
+# files in _ADR015_INITIAL_OVERSIZED_FILES (tools/policy/repo_policy.py) — the
+# fixed reference set. The allowlist may only shrink: each split PR (a child of
+# issue #3) removes its file once it's been split below the cap. The modularity
+# tracker (#3) closes when this list is empty. Do NOT add new entries — split
+# the file instead. (See ADR-015.)
+files:
+  - implementations/python/packages/aces_processor/models.py
+  - implementations/python/packages/aces_processor/manager.py
+  - implementations/python/packages/aces_processor/compiler.py
+  - implementations/python/packages/aces_sdl/validator.py
+  - implementations/python/packages/aces_contracts/contracts.py
+  - implementations/python/packages/aces_processor/planner.py
+  - implementations/python/packages/aces_processor/control_plane.py
+  - implementations/python/packages/aces_conformance/conformance.py
+  - implementations/python/packages/aces_backend_stubs/stubs.py
+  - implementations/python/packages/aces_sdl/module_registry.py
+  - implementations/python/packages/aces_processor/control_plane_api.py
+  - implementations/python/packages/aces_mcp/tools/authoring.py
+  - implementations/python/packages/aces_mcp/tools/inspection.py
+  - implementations/python/packages/aces_sdl/orchestration.py
