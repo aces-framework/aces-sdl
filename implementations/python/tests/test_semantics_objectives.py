@@ -7,7 +7,19 @@ from types import SimpleNamespace
 from hypothesis import given
 from hypothesis import strategies as st
 
+from aces.core.semantics.assessment import AssessmentResourceKind
+from aces.core.semantics.objective_semantics import (
+    OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
+    OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES,
+    OBJECTIVE_SUCCESS_DEPENDENCY_ROLES,
+    OBJECTIVE_TARGET_DEPENDENCY_ROLES,
+    OBJECTIVE_WINDOW_DEPENDENCY_ROLES,
+    ObjectiveReferenceKind,
+    analyze_objective_semantics,
+    partition_objective_dependencies,
+)
 from aces.core.semantics.objectives import (
+    ObjectiveDependencyRole,
     ObjectiveWindowReferenceKind,
     analyze_objective_window,
 )
@@ -93,3 +105,313 @@ class TestObjectiveWindowSemantics:
         )
 
         assert analysis.workflow_step_refs == tuple(dict.fromkeys(step_refs))
+
+
+def _success(*, conditions=None, metrics=None, evaluations=None, tlos=None, goals=None, mode="all_of"):
+    return SimpleNamespace(
+        conditions=list(conditions or []),
+        metrics=list(metrics or []),
+        evaluations=list(evaluations or []),
+        tlos=list(tlos or []),
+        goals=list(goals or []),
+        mode=mode,
+    )
+
+
+def _window(*, stories=None, scripts=None, events=None, workflows=None, steps=None):
+    return SimpleNamespace(
+        stories=list(stories or []),
+        scripts=list(scripts or []),
+        events=list(events or []),
+        workflows=list(workflows or []),
+        steps=list(steps or []),
+    )
+
+
+def _objective(*, agent="", entity="", actions=None, targets=None, success=None, window=None, depends_on=None):
+    return SimpleNamespace(
+        agent=agent,
+        entity=entity,
+        actions=list(actions or []),
+        targets=list(targets or []),
+        success=success if success is not None else _success(conditions=["health"]),
+        window=window,
+        depends_on=list(depends_on or []),
+    )
+
+
+def _agent(*actions: str) -> SimpleNamespace:
+    return SimpleNamespace(actions=list(actions))
+
+
+def _is_var(value: object) -> bool:
+    return isinstance(value, str) and value.startswith("${") and value.endswith("}")
+
+
+def _analyze(objectives, **overrides):
+    kwargs: dict = {
+        "objectives_by_name": objectives,
+        "agents_by_name": {},
+        "entity_names": set(),
+        "conditions_by_name": {},
+        "metrics_by_name": {},
+        "evaluations_by_name": {},
+        "tlos_by_name": {},
+        "goals_by_name": {},
+        "stories_by_name": {},
+        "scripts_by_name": {},
+        "events_by_name": {},
+        "workflows_by_name": {},
+        "targetable_name_index": {},
+    }
+    kwargs.update(overrides)
+    return analyze_objective_semantics(**kwargs)
+
+
+class TestObjectiveSemantics:
+    def test_well_formed_objectives_normalize_references_and_dependencies(self) -> None:
+        analysis = _analyze(
+            {
+                "base": _objective(entity="blue", success=_success(metrics=["m1"])),
+                "follow": _objective(
+                    agent="red",
+                    actions=["Scan"],
+                    targets=["nodes.web"],
+                    success=_success(goals=["g1"]),
+                    window=_window(workflows=["flow"], steps=["flow.branch"]),
+                    depends_on=["base"],
+                ),
+            },
+            agents_by_name={"red": _agent("Scan", "Exploit")},
+            entity_names={"blue"},
+            metrics_by_name={"m1": object()},
+            goals_by_name={"g1": object()},
+            workflows_by_name={"flow": _workflow("start", "branch")},
+            targetable_name_index={"nodes.web": {"nodes.web"}},
+        )
+
+        assert not analysis.has_issues
+
+        actor_names = {ref.canonical_name for ref in analysis.references_of_kind(ObjectiveReferenceKind.ACTOR)}
+        assert actor_names == {"entities.blue", "red"}
+        assert {ref.canonical_name for ref in analysis.references_of_kind(ObjectiveReferenceKind.TARGET)} == {
+            "nodes.web"
+        }
+        assert {ref.canonical_name for ref in analysis.references_of_kind(ObjectiveReferenceKind.SUCCESS)} == {
+            "metric.m1",
+            "goal.g1",
+        }
+        success_kinds = {
+            ref.canonical_name: ref.success_resource_kind
+            for ref in analysis.references_of_kind(ObjectiveReferenceKind.SUCCESS)
+        }
+        assert success_kinds["metric.m1"] == AssessmentResourceKind.METRIC
+        assert success_kinds["goal.g1"] == AssessmentResourceKind.GOAL
+        assert {ref.canonical_name for ref in analysis.references_of_kind(ObjectiveReferenceKind.WINDOW)} == {
+            "flow",
+            "flow.branch",
+        }
+        assert {ref.canonical_name for ref in analysis.references_of_kind(ObjectiveReferenceKind.DEPENDENCY)} == {
+            "objective.base"
+        }
+
+        for ref in analysis.references_of_kind(ObjectiveReferenceKind.SUCCESS):
+            assert ref.dependency_roles == OBJECTIVE_SUCCESS_DEPENDENCY_ROLES
+        for ref in analysis.references_of_kind(ObjectiveReferenceKind.DEPENDENCY):
+            assert ref.dependency_roles == OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES
+        for ref in analysis.references_of_kind(ObjectiveReferenceKind.WINDOW):
+            assert ObjectiveDependencyRole.REFRESH in ref.dependency_roles
+            assert ObjectiveDependencyRole.ORDERING not in ref.dependency_roles
+        for kind in (ObjectiveReferenceKind.ACTOR, ObjectiveReferenceKind.TARGET):
+            for ref in analysis.references_of_kind(kind):
+                assert ref.dependency_roles == ()
+
+        assert analysis.dependencies_for("base").ordering_names == ("metric.m1",)
+        assert analysis.dependencies_for("base").refresh_names == ("metric.m1",)
+        assert analysis.dependencies_for("follow").ordering_names == ("goal.g1", "objective.base")
+        assert analysis.dependencies_for("follow").refresh_names == ("goal.g1", "objective.base", "workflow.flow")
+        assert "follow" in analysis.window_analyses
+
+    def test_undeclared_actor_references_are_reported(self) -> None:
+        analysis = _analyze(
+            {
+                "a": _objective(agent="ghost"),
+                "b": _objective(entity="ghost-team"),
+            },
+            agents_by_name={"red": _agent()},
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+        )
+        codes = {issue.code for issue in analysis.issues}
+        assert "objective.actor-agent-undeclared" in codes
+        assert "objective.actor-entity-undeclared" in codes
+
+    def test_agent_action_must_be_declared(self) -> None:
+        analysis = _analyze(
+            {"a": _objective(agent="red", actions=["Persist"])},
+            agents_by_name={"red": _agent("Scan")},
+            conditions_by_name={"health": object()},
+        )
+        issue = analysis.issues_of_code("objective.action-not-declared")[0]
+        assert issue.ref == "Persist"
+        assert issue.actor_name == "red"
+
+    def test_unresolvable_target_is_reported(self) -> None:
+        analysis = _analyze(
+            {"a": _objective(entity="blue", targets=["ghost"])},
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+        )
+        assert analysis.issues_of_code("objective.target-unresolvable")[0].ref == "ghost"
+
+    def test_ambiguous_target_is_reported_with_sorted_candidates(self) -> None:
+        analysis = _analyze(
+            {"a": _objective(entity="blue", targets=["web"])},
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+            targetable_name_index={"web": {"nodes.web", "features.web"}},
+        )
+        issue = analysis.issues_of_code("objective.target-ambiguous")[0]
+        assert issue.ref == "web"
+        assert issue.candidates == ("features.web", "nodes.web")
+
+    def test_undeclared_success_references_are_reported_per_kind(self) -> None:
+        analysis = _analyze(
+            {
+                "a": _objective(
+                    entity="blue",
+                    success=_success(
+                        conditions=["c?"],
+                        metrics=["m?"],
+                        evaluations=["e?"],
+                        tlos=["t?"],
+                        goals=["g?"],
+                    ),
+                )
+            },
+            entity_names={"blue"},
+        )
+        codes = {issue.code for issue in analysis.issues}
+        assert {
+            "objective.success-condition-undeclared",
+            "objective.success-metric-undeclared",
+            "objective.success-evaluation-undeclared",
+            "objective.success-tlo-undeclared",
+            "objective.success-goal-undeclared",
+        } <= codes
+
+    def test_window_issues_are_resurfaced_under_objective_codes(self) -> None:
+        analysis = _analyze(
+            {
+                "a": _objective(
+                    entity="blue",
+                    success=_success(conditions=["health"]),
+                    window=_window(scripts=["s1"], events=["evt"]),
+                )
+            },
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+            scripts_by_name={"s1": SimpleNamespace(events={"kickoff": 1})},
+            events_by_name={"evt": SimpleNamespace()},
+        )
+        assert analysis.issues_of_code("objective.window.event-outside-window-scripts")
+
+    def test_undeclared_dependency_is_reported(self) -> None:
+        analysis = _analyze(
+            {"a": _objective(entity="blue", depends_on=["ghost"])},
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+        )
+        assert analysis.issues_of_code("objective.dependency-undeclared")[0].ref == "ghost"
+
+    def test_dependency_cycle_is_reported_once_globally(self) -> None:
+        analysis = _analyze(
+            {
+                "a": _objective(entity="blue", depends_on=["b"]),
+                "b": _objective(entity="blue", depends_on=["a"]),
+            },
+            entity_names={"blue"},
+            conditions_by_name={"health": object()},
+        )
+        cycle_issues = analysis.issues_of_code("objective.dependency-cycle")
+        assert len(cycle_issues) == 1
+        assert cycle_issues[0].objective_name == ""
+
+    def test_unresolved_variable_references_are_skipped(self) -> None:
+        analysis = _analyze(
+            {
+                "a": _objective(
+                    agent="${actor}",
+                    actions=["${act}"],
+                    targets=["${tgt}"],
+                    success=_success(metrics=["${m}"]),
+                    window=_window(stories=["${story}"]),
+                    depends_on=["${dep}"],
+                )
+            },
+            is_unresolved=_is_var,
+        )
+        assert not analysis.has_issues
+        assert analysis.references == ()
+
+    def test_no_objectives_is_empty_analysis(self) -> None:
+        analysis = _analyze({})
+        assert analysis.references == ()
+        assert analysis.issues == ()
+        assert analysis.dependencies == ()
+
+
+class TestObjectiveDependencyPartition:
+    def test_partition_orders_primary_then_refreshes_window(self) -> None:
+        ordering, refresh = partition_objective_dependencies(
+            success_refs=["a", "b"],
+            dependency_refs=["c"],
+            window_refresh_refs=["w1", "w2"],
+        )
+        assert ordering == ("a", "b", "c")
+        assert refresh == ("a", "b", "c", "w1", "w2")
+
+    def test_partition_dedupes_across_categories(self) -> None:
+        ordering, refresh = partition_objective_dependencies(
+            success_refs=["a", "a"],
+            dependency_refs=["a", "b"],
+            window_refresh_refs=["b", "w"],
+        )
+        assert ordering == ("a", "b")
+        assert refresh == ("a", "b", "w")
+
+    def test_partition_handles_empty_inputs(self) -> None:
+        assert partition_objective_dependencies(success_refs=[], dependency_refs=[], window_refresh_refs=[]) == ((), ())
+
+    def test_role_constants_are_sane(self) -> None:
+        assert ObjectiveDependencyRole.ORDERING in OBJECTIVE_SUCCESS_DEPENDENCY_ROLES
+        assert ObjectiveDependencyRole.REFRESH in OBJECTIVE_SUCCESS_DEPENDENCY_ROLES
+        assert ObjectiveDependencyRole.ORDERING in OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES
+        assert ObjectiveDependencyRole.REFRESH in OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES
+        assert OBJECTIVE_WINDOW_DEPENDENCY_ROLES == (ObjectiveDependencyRole.REFRESH,)
+        # Actor and target references are normalized for fail-closed validation
+        # but the compiler does not propagate ordering or refresh through them.
+        assert OBJECTIVE_ACTOR_DEPENDENCY_ROLES == ()
+        assert OBJECTIVE_TARGET_DEPENDENCY_ROLES == ()
+
+    def test_partition_keys_categories_independently(self) -> None:
+        # When success_refs and dependency_refs share a name today, both gate to
+        # ORDERING+REFRESH, so the entry appears once in each tuple. The
+        # independent gating contract is what keeps a future ``depends_on``
+        # role-only change from silently bypassing the runtime tuples.
+        ordering, refresh = partition_objective_dependencies(
+            success_refs=["s"],
+            dependency_refs=["d"],
+            window_refresh_refs=["w"],
+        )
+        assert ordering == ("s", "d")
+        assert refresh == ("s", "d", "w")
+
+    @given(st.lists(st.sampled_from(["a", "b", "c", "d"]), max_size=16))
+    def test_partition_ordering_is_dedup_stable(self, refs: list[str]) -> None:
+        ordering, _refresh = partition_objective_dependencies(
+            success_refs=refs,
+            dependency_refs=[],
+            window_refresh_refs=[],
+        )
+        assert ordering == tuple(dict.fromkeys(refs))
