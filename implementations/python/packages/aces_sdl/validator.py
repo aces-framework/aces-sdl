@@ -19,7 +19,12 @@ from .nodes import MAX_NODE_NAME_LENGTH, NodeType
 from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
 from .scenario import Scenario
 from .semantics.assessment import AssessmentIssue, analyze_assessment_pipeline
-from .semantics.objective_semantics import ObjectiveIssue, analyze_objective_semantics
+from .semantics.objective_semantics import (
+    AssessmentResourceCatalog,
+    ObjectiveIssue,
+    WindowResourceCatalog,
+    analyze_objective_semantics,
+)
 from .semantics.workflow import branch_closure, workflow_step_semantic_contract
 
 # Renders an objective-semantics issue (machine-readable code from
@@ -537,15 +542,19 @@ class SemanticValidator:
             objectives_by_name=self._s.objectives,
             agents_by_name=self._s.agents,
             entity_names=self._all_entity_names(),
-            conditions_by_name=self._s.conditions,
-            metrics_by_name=self._s.metrics,
-            evaluations_by_name=self._s.evaluations,
-            tlos_by_name=self._s.tlos,
-            goals_by_name=self._s.goals,
-            stories_by_name=self._s.stories,
-            scripts_by_name=self._s.scripts,
-            events_by_name=self._s.events,
-            workflows_by_name=self._s.workflows,
+            assessment_resources=AssessmentResourceCatalog(
+                conditions=self._s.conditions,
+                metrics=self._s.metrics,
+                evaluations=self._s.evaluations,
+                tlos=self._s.tlos,
+                goals=self._s.goals,
+            ),
+            window_resources=WindowResourceCatalog(
+                stories=self._s.stories,
+                scripts=self._s.scripts,
+                events=self._s.events,
+                workflows=self._s.workflows,
+            ),
             targetable_name_index=self._named_ref_index(targetable=True),
             is_unresolved=self._is_unresolved_var,
         )

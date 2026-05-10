@@ -1,37 +1,25 @@
 """Pure declarative-objective semantic helpers (SEM-207).
 
-A declarative *objective* is the SDL construct that binds, in one place:
-
-* an **actor** — exactly one of an authored ``agent`` or an authored
-  ``entity`` — that owns the objective;
-* zero or more **targets**, normalized through the targetable named-reference
-  index (bare or section-qualified);
-* a **success** interpretation — ``mode`` (``all_of`` / ``any_of``) over
-  referenced conditions, metrics, evaluations, TLOs, and goals;
-* an optional **window** that constrains when the objective matters (the
-  story/script/event/workflow/workflow-step semantics live in
-  :func:`aces_sdl.semantics.objectives.analyze_objective_window`);
-* a ``depends_on`` **ordering** relation onto other objectives, which must be
-  acyclic.
-
 :func:`analyze_objective_semantics` is the single name-level source of truth
-for that construct: which cross-resource references are well-formed, which
-dependency roles each carries (success and ``depends_on`` edges order *and*
-refresh; window edges only refresh; actor and target references are normalized
-for fail-closed validation but the compiler does not propagate refresh through
-them today, so they carry an empty role tuple), and which fail-closed issues an
-authored objective has. ``aces_sdl.validator`` renders the machine-readable
-issues here as authoring errors; ``aces_processor.compiler`` reuses the
+for the SDL declarative-objective construct — actor binding, target resolution,
+success interpretation (over conditions/metrics/evaluations/TLOs/goals), the
+optional window (delegated to :func:`aces_sdl.semantics.objectives.analyze_objective_window`),
+and the acyclic ``depends_on`` ordering relation. It returns normalized
+references with their dependency-role tags, the per-objective ordering/refresh
+dependency names, and a fail-closed issue list that ``aces_sdl.validator``
+renders as authoring errors. ``aces_processor.compiler`` reuses the
 ordering/refresh role decision (:func:`partition_objective_dependencies`) when
 it maps a compiled ``evaluation.objective.*`` resource onto its dependency
-tuples, and the planner then walks those edges generically. Per ADR-015 this
-helper lives with the SDL package and has no processor-runtime dependencies;
-per ADR-016 it is part of the realized artifact set for SEM-207.
+tuples, and the planner then walks those edges generically.
 
-Whether a declared success ``condition`` is actually *bound* to a node is a
-compilation-phase concern (the compiler emits ``evaluation.condition-ref``
-diagnostics against the resolved addresses); this module deals only with the
-name-level reference graph that is meaningful before binding resolution.
+Role allocation: success and ``depends_on`` edges order *and* refresh; window
+edges only refresh; actor and target references are normalized for fail-closed
+validation but carry an empty role tuple today (the compiler does not propagate
+through them). Per ADR-015 this helper lives with the SDL package and has no
+processor-runtime dependencies; per ADR-016 it is part of the realized artifact
+set for SEM-207. Bound-to-node binding diagnostics remain a compilation-phase
+concern (``evaluation.condition-ref`` is emitted on resolved addresses, not by
+this name-level analyzer).
 """
 
 from __future__ import annotations
@@ -60,24 +48,16 @@ class ObjectiveReferenceKind(str, Enum):
     DEPENDENCY = "dependency"
 
 
-#: Success references (``success.{conditions,metrics,evaluations,tlos,goals}``)
-#: and ``depends_on`` edges are both ordering edges (the objective is evaluated
-#: after its inputs) and refresh edges (re-evaluated when an input changes).
-#: Window references only refresh the objective. Actor and target references
-#: are normalized for fail-closed validation but carry no runtime dependency
-#: role today: the compiler does not propagate ordering or refresh through
-#: actor or target identity, and advertising a role here would let
-#: ``analyze_objective_semantics`` claim a propagation that never reaches the
-#: planner. A future change that compiles actor/target into runtime addresses
-#: lifts ``REFRESH`` (or ``ORDERING``) here in lockstep.
-OBJECTIVE_SUCCESS_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = (
-    ObjectiveDependencyRole.ORDERING,
-    ObjectiveDependencyRole.REFRESH,
-)
-OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = (
-    ObjectiveDependencyRole.ORDERING,
-    ObjectiveDependencyRole.REFRESH,
-)
+# Role allocation by reference category (single authority for the planner-
+# facing decision). Success and depends_on order *and* refresh; window only
+# refreshes; actor and target are empty today — they are normalized for
+# fail-closed validation but the compiler does not propagate through them, so
+# advertising a role here would lie about reaching the planner. A future
+# change that compiles actor/target into runtime addresses lifts the constant
+# in lockstep.
+_BOTH_ROLES = (ObjectiveDependencyRole.ORDERING, ObjectiveDependencyRole.REFRESH)
+OBJECTIVE_SUCCESS_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = _BOTH_ROLES
+OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = _BOTH_ROLES
 OBJECTIVE_ACTOR_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = ()
 OBJECTIVE_TARGET_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = ()
 OBJECTIVE_WINDOW_DEPENDENCY_ROLES: tuple[ObjectiveDependencyRole, ...] = (ObjectiveDependencyRole.REFRESH,)
@@ -158,6 +138,37 @@ class ObjectiveSemanticAnalysis:
         raise KeyError(name)
 
 
+@dataclass(frozen=True)
+class AssessmentResourceCatalog:
+    """Name-keyed view of the assessment-pipeline resources an objective may name.
+
+    Bundles the five SDL sections (``conditions`` / ``metrics`` / ``evaluations``
+    / ``tlos`` / ``goals``) so the analyzer can resolve success references
+    without taking five separate keyword arguments.
+    """
+
+    conditions: Mapping[str, object]
+    metrics: Mapping[str, object]
+    evaluations: Mapping[str, object]
+    tlos: Mapping[str, object]
+    goals: Mapping[str, object]
+
+
+@dataclass(frozen=True)
+class WindowResourceCatalog:
+    """Name-keyed view of the timeline resources an objective window may name.
+
+    Mirrors :class:`AssessmentResourceCatalog`: bundles ``stories`` / ``scripts``
+    / ``events`` / ``workflows`` so the analyzer can pass them to
+    :func:`analyze_objective_window` as one structured input.
+    """
+
+    stories: Mapping[str, object]
+    scripts: Mapping[str, object]
+    events: Mapping[str, object]
+    workflows: Mapping[str, object]
+
+
 def _ordered_unique(items: list[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(items))
 
@@ -228,248 +239,330 @@ _SUCCESS_REFERENCE_SECTIONS: tuple[tuple[str, AssessmentResourceKind, str], ...]
 )
 
 
+def _analyze_actor_binding(
+    objective_name: str,
+    objective: object,
+    agents_by_name: Mapping[str, object],
+    entity_name_set: set[str],
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue]]:
+    refs: list[ObjectiveReference] = []
+    issues: list[ObjectiveIssue] = []
+    agent_name = getattr(objective, "agent", "") or ""
+    entity_ref = getattr(objective, "entity", "") or ""
+    if agent_name and not unresolved(agent_name):
+        if agent_name not in agents_by_name:
+            issues.append(
+                ObjectiveIssue(
+                    code="objective.actor-agent-undeclared",
+                    objective_name=objective_name,
+                    ref=agent_name,
+                )
+            )
+        else:
+            refs.append(
+                ObjectiveReference(
+                    raw=agent_name,
+                    canonical_name=agent_name,
+                    reference_kind=ObjectiveReferenceKind.ACTOR,
+                    source_name=objective_name,
+                    dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
+                )
+            )
+            allowed_actions = set(getattr(agents_by_name[agent_name], "actions", []) or [])
+            for action in getattr(objective, "actions", []) or []:
+                if unresolved(action):
+                    continue
+                if action not in allowed_actions:
+                    issues.append(
+                        ObjectiveIssue(
+                            code="objective.action-not-declared",
+                            objective_name=objective_name,
+                            ref=action,
+                            actor_name=agent_name,
+                        )
+                    )
+    if entity_ref and not unresolved(entity_ref):
+        if entity_ref not in entity_name_set:
+            issues.append(
+                ObjectiveIssue(
+                    code="objective.actor-entity-undeclared",
+                    objective_name=objective_name,
+                    ref=entity_ref,
+                )
+            )
+        else:
+            refs.append(
+                ObjectiveReference(
+                    raw=entity_ref,
+                    canonical_name=f"entities.{entity_ref}",
+                    reference_kind=ObjectiveReferenceKind.ACTOR,
+                    source_name=objective_name,
+                    dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
+                )
+            )
+    return refs, issues
+
+
+def _analyze_targets(
+    objective_name: str,
+    objective: object,
+    targetable_name_index: Mapping[str, Collection[str]],
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue]]:
+    refs: list[ObjectiveReference] = []
+    issues: list[ObjectiveIssue] = []
+    for target in getattr(objective, "targets", []) or []:
+        if unresolved(target):
+            continue
+        candidates = targetable_name_index.get(target)
+        if not candidates:
+            issues.append(
+                ObjectiveIssue(
+                    code="objective.target-unresolvable",
+                    objective_name=objective_name,
+                    ref=target,
+                )
+            )
+            continue
+        if len(candidates) > 1:
+            issues.append(
+                ObjectiveIssue(
+                    code="objective.target-ambiguous",
+                    objective_name=objective_name,
+                    ref=target,
+                    candidates=tuple(sorted(candidates)),
+                )
+            )
+            continue
+        (canonical_target,) = tuple(candidates)
+        refs.append(
+            ObjectiveReference(
+                raw=target,
+                canonical_name=canonical_target,
+                reference_kind=ObjectiveReferenceKind.TARGET,
+                source_name=objective_name,
+                dependency_roles=OBJECTIVE_TARGET_DEPENDENCY_ROLES,
+            )
+        )
+    return refs, issues
+
+
+def _analyze_success(
+    objective_name: str,
+    objective: object,
+    assessment_resources: AssessmentResourceCatalog,
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue], list[str]]:
+    """Resolve ``success.{conditions,metrics,evaluations,tlos,goals}``.
+
+    Each success namespace contributes its own keyspace; resolved names are
+    kind-qualified before they enter the derived ordering/refresh tuples so a
+    metric and a condition with the same SDL name remain distinguishable.
+    """
+
+    refs: list[ObjectiveReference] = []
+    issues: list[ObjectiveIssue] = []
+    resolved: list[str] = []
+    success = getattr(objective, "success", None)
+    sections = (
+        (assessment_resources.conditions, _SUCCESS_REFERENCE_SECTIONS[0]),
+        (assessment_resources.metrics, _SUCCESS_REFERENCE_SECTIONS[1]),
+        (assessment_resources.evaluations, _SUCCESS_REFERENCE_SECTIONS[2]),
+        (assessment_resources.tlos, _SUCCESS_REFERENCE_SECTIONS[3]),
+        (assessment_resources.goals, _SUCCESS_REFERENCE_SECTIONS[4]),
+    )
+    for section, (attr, kind, code) in sections:
+        for ref_name in getattr(success, attr, []) or []:
+            if unresolved(ref_name):
+                continue
+            if ref_name not in section:
+                issues.append(ObjectiveIssue(code=code, objective_name=objective_name, ref=ref_name))
+                continue
+            qualified_name = f"{kind.value}.{ref_name}"
+            refs.append(
+                ObjectiveReference(
+                    raw=ref_name,
+                    canonical_name=qualified_name,
+                    reference_kind=ObjectiveReferenceKind.SUCCESS,
+                    source_name=objective_name,
+                    dependency_roles=OBJECTIVE_SUCCESS_DEPENDENCY_ROLES,
+                    success_resource_kind=kind,
+                )
+            )
+            resolved.append(qualified_name)
+    return refs, issues, resolved
+
+
+def _analyze_window(
+    objective_name: str,
+    objective: object,
+    window_resources: WindowResourceCatalog,
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue], ObjectiveWindowAnalysis | None, list[str]]:
+    """Delegate window resolution to the SEM-202 helper and re-tag the result."""
+
+    window = getattr(objective, "window", None)
+    if window is None:
+        return [], [], None, []
+
+    analysis = analyze_objective_window(
+        story_refs=[ref for ref in getattr(window, "stories", []) or [] if not unresolved(ref)],
+        script_refs=[ref for ref in getattr(window, "scripts", []) or [] if not unresolved(ref)],
+        event_refs=[ref for ref in getattr(window, "events", []) or [] if not unresolved(ref)],
+        workflow_refs=[ref for ref in getattr(window, "workflows", []) or [] if not unresolved(ref)],
+        step_refs=[ref for ref in getattr(window, "steps", []) or [] if not unresolved(ref)],
+        stories_by_name=window_resources.stories,
+        scripts_by_name=window_resources.scripts,
+        events_by_name=window_resources.events,
+        workflows_by_name=window_resources.workflows,
+    )
+    refs = [
+        # The SEM-207 role constant is the single authority for objective-side
+        # window roles; the lower-level ``ObjectiveWindowReference.dependency_roles``
+        # is the SEM-202 helper's own metadata and must not double as the
+        # planner-facing role decision.
+        ObjectiveReference(
+            raw=window_ref.raw,
+            canonical_name=window_ref.canonical_name,
+            reference_kind=ObjectiveReferenceKind.WINDOW,
+            source_name=objective_name,
+            dependency_roles=OBJECTIVE_WINDOW_DEPENDENCY_ROLES,
+            window_reference_kind=window_ref.reference_kind,
+            workflow_name=window_ref.workflow_name,
+            step_name=window_ref.step_name,
+            namespace_path=window_ref.namespace_path,
+        )
+        for window_ref in analysis.references
+    ]
+    issues = [
+        ObjectiveIssue(
+            code=f"objective.window.{window_issue.code}",
+            objective_name=objective_name,
+            ref=window_issue.ref,
+            workflow_name=window_issue.workflow_name,
+            step_name=window_issue.step_name,
+        )
+        for window_issue in analysis.issues
+    ]
+    # Each window keyspace gets its kind prefix so it cannot collide with
+    # success-side or depends_on-side names in ``refresh_names``.
+    refresh = [
+        *(f"story.{name}" for name in analysis.story_names),
+        *(f"script.{name}" for name in analysis.script_names),
+        *(f"event.{name}" for name in analysis.event_names),
+        *(f"workflow.{name}" for name in analysis.workflow_names),
+        *(f"workflow.{name}" for name in analysis.refresh_workflow_names),
+    ]
+    return refs, issues, analysis, refresh
+
+
+def _analyze_dependencies(
+    objective_name: str,
+    objective: object,
+    objectives_by_name: Mapping[str, object],
+    unresolved: Callable[[object], bool],
+) -> tuple[list[ObjectiveReference], list[ObjectiveIssue], list[str]]:
+    refs: list[ObjectiveReference] = []
+    issues: list[ObjectiveIssue] = []
+    resolved: list[str] = []
+    for dep_name in getattr(objective, "depends_on", []) or []:
+        if unresolved(dep_name):
+            continue
+        if dep_name not in objectives_by_name:
+            issues.append(
+                ObjectiveIssue(
+                    code="objective.dependency-undeclared",
+                    objective_name=objective_name,
+                    ref=dep_name,
+                )
+            )
+            continue
+        qualified_dep = f"objective.{dep_name}"
+        refs.append(
+            ObjectiveReference(
+                raw=dep_name,
+                canonical_name=qualified_dep,
+                reference_kind=ObjectiveReferenceKind.DEPENDENCY,
+                source_name=objective_name,
+                dependency_roles=OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES,
+            )
+        )
+        resolved.append(qualified_dep)
+    return refs, issues, resolved
+
+
+def _objective_dependency_graph(
+    objectives_by_name: Mapping[str, object],
+    unresolved: Callable[[object], bool],
+) -> dict[str, list[str]]:
+    return {
+        name: [
+            dep
+            for dep in getattr(objective, "depends_on", []) or []
+            if not unresolved(dep) and dep in objectives_by_name
+        ]
+        for name, objective in objectives_by_name.items()
+    }
+
+
 def analyze_objective_semantics(
     *,
     objectives_by_name: Mapping[str, object],
     agents_by_name: Mapping[str, object],
     entity_names: Collection[str],
-    conditions_by_name: Mapping[str, object],
-    metrics_by_name: Mapping[str, object],
-    evaluations_by_name: Mapping[str, object],
-    tlos_by_name: Mapping[str, object],
-    goals_by_name: Mapping[str, object],
-    stories_by_name: Mapping[str, object],
-    scripts_by_name: Mapping[str, object],
-    events_by_name: Mapping[str, object],
-    workflows_by_name: Mapping[str, object],
+    assessment_resources: AssessmentResourceCatalog,
+    window_resources: WindowResourceCatalog,
     targetable_name_index: Mapping[str, Collection[str]],
     is_unresolved: Callable[[object], bool] | None = None,
 ) -> ObjectiveSemanticAnalysis:
     """Resolve the objective reference graph and derive its shared semantics.
 
-    Inputs are name-keyed mappings of the SDL constructs (accessed structurally
-    via ``getattr``) plus the targetable named-reference index;
-    ``is_unresolved`` (default: never) lets a caller skip references that are
-    still ``${var}`` placeholders. Returns the normalized references, the
-    per-objective ordering/refresh dependency names, the per-objective window
-    analyses, and any consistency issues — per objective in the order actor,
-    action, target, success, window, dependency, then a single global
-    ``objective.dependency-cycle`` issue when the ``depends_on`` graph cycles.
+    Inputs are the name-keyed objective and agent maps, the entity name set,
+    the bundled assessment-pipeline and timeline resource catalogs, and the
+    targetable named-reference index; ``is_unresolved`` (default: never) lets a
+    caller skip references that are still ``${var}`` placeholders. Returns the
+    normalized references, the per-objective ordering/refresh dependency names,
+    the per-objective window analyses, and any consistency issues — per
+    objective in the order actor, action, target, success, window, dependency,
+    then a single global ``objective.dependency-cycle`` issue when the
+    ``depends_on`` graph cycles.
     """
 
     unresolved = is_unresolved or _never_unresolved
     entity_name_set = set(entity_names)
-    success_sections = (
-        (conditions_by_name, _SUCCESS_REFERENCE_SECTIONS[0]),
-        (metrics_by_name, _SUCCESS_REFERENCE_SECTIONS[1]),
-        (evaluations_by_name, _SUCCESS_REFERENCE_SECTIONS[2]),
-        (tlos_by_name, _SUCCESS_REFERENCE_SECTIONS[3]),
-        (goals_by_name, _SUCCESS_REFERENCE_SECTIONS[4]),
-    )
-
     references: list[ObjectiveReference] = []
     issues: list[ObjectiveIssue] = []
     dependencies: list[ObjectiveResourceDependencies] = []
     window_analyses: dict[str, ObjectiveWindowAnalysis] = {}
 
     for objective_name, objective in objectives_by_name.items():
-        # --- actor binding (agent xor entity) -------------------------------
-        agent_name = getattr(objective, "agent", "") or ""
-        entity_ref = getattr(objective, "entity", "") or ""
-        if agent_name and not unresolved(agent_name):
-            if agent_name not in agents_by_name:
-                issues.append(
-                    ObjectiveIssue(
-                        code="objective.actor-agent-undeclared",
-                        objective_name=objective_name,
-                        ref=agent_name,
-                    )
-                )
-            else:
-                references.append(
-                    ObjectiveReference(
-                        raw=agent_name,
-                        canonical_name=agent_name,
-                        reference_kind=ObjectiveReferenceKind.ACTOR,
-                        source_name=objective_name,
-                        dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
-                    )
-                )
-                allowed_actions = set(getattr(agents_by_name[agent_name], "actions", []) or [])
-                for action in getattr(objective, "actions", []) or []:
-                    if unresolved(action):
-                        continue
-                    if action not in allowed_actions:
-                        issues.append(
-                            ObjectiveIssue(
-                                code="objective.action-not-declared",
-                                objective_name=objective_name,
-                                ref=action,
-                                actor_name=agent_name,
-                            )
-                        )
-        if entity_ref and not unresolved(entity_ref):
-            if entity_ref not in entity_name_set:
-                issues.append(
-                    ObjectiveIssue(
-                        code="objective.actor-entity-undeclared",
-                        objective_name=objective_name,
-                        ref=entity_ref,
-                    )
-                )
-            else:
-                references.append(
-                    ObjectiveReference(
-                        raw=entity_ref,
-                        canonical_name=f"entities.{entity_ref}",
-                        reference_kind=ObjectiveReferenceKind.ACTOR,
-                        source_name=objective_name,
-                        dependency_roles=OBJECTIVE_ACTOR_DEPENDENCY_ROLES,
-                    )
-                )
+        actor_refs, actor_issues = _analyze_actor_binding(
+            objective_name, objective, agents_by_name, entity_name_set, unresolved
+        )
+        target_refs, target_issues = _analyze_targets(objective_name, objective, targetable_name_index, unresolved)
+        success_refs, success_issues, resolved_success = _analyze_success(
+            objective_name, objective, assessment_resources, unresolved
+        )
+        window_refs, window_issues, window_analysis, window_refresh = _analyze_window(
+            objective_name, objective, window_resources, unresolved
+        )
+        dep_refs, dep_issues, resolved_dependencies = _analyze_dependencies(
+            objective_name, objective, objectives_by_name, unresolved
+        )
 
-        # --- targets --------------------------------------------------------
-        for target in getattr(objective, "targets", []) or []:
-            if unresolved(target):
-                continue
-            candidates = targetable_name_index.get(target)
-            if not candidates:
-                issues.append(
-                    ObjectiveIssue(
-                        code="objective.target-unresolvable",
-                        objective_name=objective_name,
-                        ref=target,
-                    )
-                )
-                continue
-            if len(candidates) > 1:
-                issues.append(
-                    ObjectiveIssue(
-                        code="objective.target-ambiguous",
-                        objective_name=objective_name,
-                        ref=target,
-                        candidates=tuple(sorted(candidates)),
-                    )
-                )
-                continue
-            (canonical_target,) = tuple(candidates)
-            references.append(
-                ObjectiveReference(
-                    raw=target,
-                    canonical_name=canonical_target,
-                    reference_kind=ObjectiveReferenceKind.TARGET,
-                    source_name=objective_name,
-                    dependency_roles=OBJECTIVE_TARGET_DEPENDENCY_ROLES,
-                )
-            )
-
-        # --- success interpretation ----------------------------------------
-        # Each success namespace (condition / metric / evaluation / TLO / goal)
-        # contributes its own keyspace; success names are kind-qualified before
-        # they enter the derived ordering/refresh tuples so that a metric and a
-        # condition with the same SDL name remain distinguishable to callers.
-        success = getattr(objective, "success", None)
-        resolved_success: list[str] = []
-        for section, (attr, kind, code) in success_sections:
-            for ref_name in getattr(success, attr, []) or []:
-                if unresolved(ref_name):
-                    continue
-                if ref_name not in section:
-                    issues.append(ObjectiveIssue(code=code, objective_name=objective_name, ref=ref_name))
-                    continue
-                qualified_name = f"{kind.value}.{ref_name}"
-                references.append(
-                    ObjectiveReference(
-                        raw=ref_name,
-                        canonical_name=qualified_name,
-                        reference_kind=ObjectiveReferenceKind.SUCCESS,
-                        source_name=objective_name,
-                        dependency_roles=OBJECTIVE_SUCCESS_DEPENDENCY_ROLES,
-                        success_resource_kind=kind,
-                    )
-                )
-                resolved_success.append(qualified_name)
-
-        # --- window --------------------------------------------------------
-        window = getattr(objective, "window", None)
-        window_refresh: list[str] = []
-        if window is not None:
-            window_analysis = analyze_objective_window(
-                story_refs=[ref for ref in getattr(window, "stories", []) or [] if not unresolved(ref)],
-                script_refs=[ref for ref in getattr(window, "scripts", []) or [] if not unresolved(ref)],
-                event_refs=[ref for ref in getattr(window, "events", []) or [] if not unresolved(ref)],
-                workflow_refs=[ref for ref in getattr(window, "workflows", []) or [] if not unresolved(ref)],
-                step_refs=[ref for ref in getattr(window, "steps", []) or [] if not unresolved(ref)],
-                stories_by_name=stories_by_name,
-                scripts_by_name=scripts_by_name,
-                events_by_name=events_by_name,
-                workflows_by_name=workflows_by_name,
-            )
+        references.extend(actor_refs)
+        references.extend(target_refs)
+        references.extend(success_refs)
+        references.extend(window_refs)
+        references.extend(dep_refs)
+        issues.extend(actor_issues)
+        issues.extend(target_issues)
+        issues.extend(success_issues)
+        issues.extend(window_issues)
+        issues.extend(dep_issues)
+        if window_analysis is not None:
             window_analyses[objective_name] = window_analysis
-            for window_ref in window_analysis.references:
-                references.append(
-                    ObjectiveReference(
-                        raw=window_ref.raw,
-                        canonical_name=window_ref.canonical_name,
-                        reference_kind=ObjectiveReferenceKind.WINDOW,
-                        source_name=objective_name,
-                        # The SEM-207 role constant is the single authority for
-                        # objective-side window roles; the lower-level
-                        # ``ObjectiveWindowReference.dependency_roles`` is the
-                        # SEM-202 helper's own metadata and must not double as
-                        # the planner-facing role decision.
-                        dependency_roles=OBJECTIVE_WINDOW_DEPENDENCY_ROLES,
-                        window_reference_kind=window_ref.reference_kind,
-                        workflow_name=window_ref.workflow_name,
-                        step_name=window_ref.step_name,
-                        namespace_path=window_ref.namespace_path,
-                    )
-                )
-            for window_issue in window_analysis.issues:
-                issues.append(
-                    ObjectiveIssue(
-                        code=f"objective.window.{window_issue.code}",
-                        objective_name=objective_name,
-                        ref=window_issue.ref,
-                        workflow_name=window_issue.workflow_name,
-                        step_name=window_issue.step_name,
-                    )
-                )
-            # Each window keyspace gets its kind prefix so it cannot collide
-            # with success-side or depends_on-side names in ``refresh_names``.
-            window_refresh = [
-                *(f"story.{name}" for name in window_analysis.story_names),
-                *(f"script.{name}" for name in window_analysis.script_names),
-                *(f"event.{name}" for name in window_analysis.event_names),
-                *(f"workflow.{name}" for name in window_analysis.workflow_names),
-                *(f"workflow.{name}" for name in window_analysis.refresh_workflow_names),
-            ]
-
-        # --- dependency ordering -------------------------------------------
-        resolved_dependencies: list[str] = []
-        for dep_name in getattr(objective, "depends_on", []) or []:
-            if unresolved(dep_name):
-                continue
-            if dep_name not in objectives_by_name:
-                issues.append(
-                    ObjectiveIssue(
-                        code="objective.dependency-undeclared",
-                        objective_name=objective_name,
-                        ref=dep_name,
-                    )
-                )
-                continue
-            qualified_dep = f"objective.{dep_name}"
-            references.append(
-                ObjectiveReference(
-                    raw=dep_name,
-                    canonical_name=qualified_dep,
-                    reference_kind=ObjectiveReferenceKind.DEPENDENCY,
-                    source_name=objective_name,
-                    dependency_roles=OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES,
-                )
-            )
-            resolved_dependencies.append(qualified_dep)
 
         ordering_names, refresh_names = partition_objective_dependencies(
             success_refs=_ordered_unique(resolved_success),
@@ -484,14 +577,7 @@ def analyze_objective_semantics(
             )
         )
 
-    dependency_graph: dict[str, list[str]] = {
-        name: [
-            dep
-            for dep in getattr(objective, "depends_on", []) or []
-            if not unresolved(dep) and dep in objectives_by_name
-        ]
-        for name, objective in objectives_by_name.items()
-    }
+    dependency_graph = _objective_dependency_graph(objectives_by_name, unresolved)
     if dependency_graph and _has_cycle(dependency_graph):
         issues.append(ObjectiveIssue(code="objective.dependency-cycle", objective_name=""))
 

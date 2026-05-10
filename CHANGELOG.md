@@ -63,6 +63,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SEM-207` ("Declarative Objective Semantics") transitions `DRAFT -> ACTIVE` in
   Ground Control.
 
+### Refactor
+
+- `analyze_objective_semantics` is split into five private resolvers
+  (`_analyze_actor_binding`, `_analyze_targets`, `_analyze_success`,
+  `_analyze_window`, `_analyze_dependencies`) and the new
+  `AssessmentResourceCatalog` / `WindowResourceCatalog` dataclasses bundle the
+  nine SDL section maps into two structured inputs, dropping the analyzer's
+  signature from 14 parameters to 7 and removing the high cognitive-complexity
+  hot spot SonarCloud flagged on the first run. Behavior-preserving — every
+  authoring error string and compiler diagnostic code is unchanged.
+
 ## [0.16.0] - 2026-05-10
 
 ### Added
