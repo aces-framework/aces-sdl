@@ -1,0 +1,93 @@
+{
+  "schema_version": "schema-publication-manifest/v1",
+  "schemas": [
+    {
+      "contract_id": "backend-manifest-v2",
+      "schema_path": "contracts/schemas/backend-manifest/backend-manifest-v2.json"
+    },
+    {
+      "contract_id": "concept-families-v1",
+      "schema_path": "contracts/schemas/concept-authority/concept-families-v1.json"
+    },
+    {
+      "contract_id": "controlled-vocabularies-v1",
+      "schema_path": "contracts/schemas/concept-authority/controlled-vocabularies-v1.json"
+    },
+    {
+      "contract_id": "evaluation-history-event-stream-v1",
+      "schema_path": "contracts/schemas/control-plane/evaluation-history-event-stream-v1.json"
+    },
+    {
+      "contract_id": "evaluation-plan-v1",
+      "schema_path": "contracts/schemas/plans/evaluation-plan-v1.json"
+    },
+    {
+      "contract_id": "evaluation-result-envelope-v1",
+      "schema_path": "contracts/schemas/control-plane/evaluation-result-envelope-v1.json"
+    },
+    {
+      "contract_id": "instantiated-scenario-v1",
+      "schema_path": "contracts/schemas/sdl/instantiated-scenario-v1.json"
+    },
+    {
+      "contract_id": "operation-receipt-v1",
+      "schema_path": "contracts/schemas/control-plane/operation-receipt-v1.json"
+    },
+    {
+      "contract_id": "operation-status-v1",
+      "schema_path": "contracts/schemas/control-plane/operation-status-v1.json"
+    },
+    {
+      "contract_id": "orchestration-plan-v1",
+      "schema_path": "contracts/schemas/plans/orchestration-plan-v1.json"
+    },
+    {
+      "contract_id": "participant-episode-history-event-stream-v1",
+      "schema_path": "contracts/schemas/control-plane/participant-episode-history-event-stream-v1.json"
+    },
+    {
+      "contract_id": "participant-episode-state-envelope-v1",
+      "schema_path": "contracts/schemas/control-plane/participant-episode-state-envelope-v1.json"
+    },
+    {
+      "contract_id": "processor-manifest-v2",
+      "schema_path": "contracts/schemas/processor-manifest/processor-manifest-v2.json"
+    },
+    {
+      "contract_id": "provisioning-plan-v1",
+      "schema_path": "contracts/schemas/plans/provisioning-plan-v1.json"
+    },
+    {
+      "contract_id": "reference-models-v1",
+      "schema_path": "contracts/schemas/concept-authority/reference-models-v1.json"
+    },
+    {
+      "contract_id": "runtime-snapshot-v1",
+      "schema_path": "contracts/schemas/snapshots/runtime-snapshot-v1.json"
+    },
+    {
+      "contract_id": "scenario-instantiation-request-v1",
+      "schema_path": "contracts/schemas/sdl/scenario-instantiation-request-v1.json"
+    },
+    {
+      "contract_id": "sdl-authoring-input-v1",
+      "schema_path": "contracts/schemas/sdl/sdl-authoring-input-v1.json"
+    },
+    {
+      "contract_id": "semantic-profile-v1",
+      "schema_path": "contracts/schemas/profiles/semantic-profile-v1.json"
+    },
+    {
+      "contract_id": "workflow-cancellation-request-v1",
+      "schema_path": "contracts/schemas/control-plane/workflow-cancellation-request-v1.json"
+    },
+    {
+      "contract_id": "workflow-history-event-stream-v1",
+      "schema_path": "contracts/schemas/control-plane/workflow-history-event-stream-v1.json"
+    },
+    {
+      "contract_id": "workflow-result-envelope-v1",
+      "schema_path": "contracts/schemas/control-plane/workflow-result-envelope-v1.json"
+    }
+  ]
+}
