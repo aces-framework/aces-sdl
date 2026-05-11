@@ -6,6 +6,10 @@
       "schema_path": "contracts/schemas/backend-manifest/backend-manifest-v2.json"
     },
     {
+      "contract_id": "backend-profile-v1",
+      "schema_path": "contracts/schemas/profiles/backend-profile-v1.json"
+    },
+    {
       "contract_id": "concept-families-v1",
       "schema_path": "contracts/schemas/concept-authority/concept-families-v1.json"
     },
