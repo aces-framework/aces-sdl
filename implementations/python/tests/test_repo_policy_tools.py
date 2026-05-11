@@ -13,6 +13,7 @@ import pytest
 import tools.check_generated_schemas as check_generated_schemas
 from tools.check_generated_schemas import _extra_published_schema_paths
 from tools.check_json_artifacts import collect_validation_targets, should_run_full_validation
+from tools.check_schema_publication import validate_schema_publication_manifest
 from tools.gitleaks_tool import _checksums_asset_name, _release_asset_name, gitleaks_binary_path
 from tools.policy.common import PolicyFailure
 from tools.policy.repo_policy import evaluate_repo_policy
@@ -657,10 +658,77 @@ def setup_json_validation_repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def write_schema_publication_manifest(repo_root: Path, entries: list[dict[str, str]]) -> None:
+    import json
+
+    write_text(
+        repo_root / "contracts" / "schema-publication-manifest.json",
+        json.dumps({"schema_version": "schema-publication-manifest/v1", "schemas": entries}, indent=2) + "\n",
+    )
+
+
 def test_should_run_full_validation_for_schema_driver_paths() -> None:
     assert should_run_full_validation(["tools/generate_contract_schemas.py"]) is True
     assert should_run_full_validation(["implementations/python/packages/aces_contracts/contracts.py"]) is True
     assert should_run_full_validation(["contracts/concept-authority/concept-families-v1.json"]) is False
+
+
+def test_schema_publication_manifest_accepts_complete_current_schema_inventory(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    write_text(repo_root / "contracts" / "schemas" / "sdl" / "sdl-authoring-input-v1.json", "{}\n")
+    write_text(repo_root / "contracts" / "schemas" / "control-plane" / "operation-status-v1.json", "{}\n")
+    write_schema_publication_manifest(
+        repo_root,
+        [
+            {
+                "contract_id": "operation-status-v1",
+                "schema_path": "contracts/schemas/control-plane/operation-status-v1.json",
+            },
+            {
+                "contract_id": "sdl-authoring-input-v1",
+                "schema_path": "contracts/schemas/sdl/sdl-authoring-input-v1.json",
+            },
+        ],
+    )
+
+    assert validate_schema_publication_manifest(repo_root) == []
+
+
+def test_schema_publication_manifest_rejects_missing_published_schema_entry(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    write_text(repo_root / "contracts" / "schemas" / "sdl" / "sdl-authoring-input-v1.json", "{}\n")
+    write_text(repo_root / "contracts" / "schemas" / "control-plane" / "operation-status-v1.json", "{}\n")
+    write_schema_publication_manifest(
+        repo_root,
+        [
+            {
+                "contract_id": "sdl-authoring-input-v1",
+                "schema_path": "contracts/schemas/sdl/sdl-authoring-input-v1.json",
+            },
+        ],
+    )
+
+    assert validate_schema_publication_manifest(repo_root) == [
+        "schema manifest is missing published schema: contracts/schemas/control-plane/operation-status-v1.json"
+    ]
+
+
+def test_schema_publication_manifest_rejects_paths_outside_contract_schemas(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    write_text(repo_root / "schemas" / "legacy.json", "{}\n")
+    write_schema_publication_manifest(
+        repo_root,
+        [
+            {
+                "contract_id": "legacy",
+                "schema_path": "schemas/legacy.json",
+            },
+        ],
+    )
+
+    assert validate_schema_publication_manifest(repo_root) == [
+        "schema manifest path must be under contracts/schemas/: schemas/legacy.json"
+    ]
 
 
 def test_collect_validation_targets_includes_only_schema_governed_artifacts(tmp_path: Path) -> None:
