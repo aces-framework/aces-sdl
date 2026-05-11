@@ -10,6 +10,7 @@ source_roots:
   - implementations/python/src
 
 changelog_path: CHANGELOG.md
+changelog_fragment_dir: changelog.d
 
 generated_contracts:
   generated_roots:
