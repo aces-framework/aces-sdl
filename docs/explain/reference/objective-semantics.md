@@ -1,0 +1,115 @@
+# Objective Semantics
+
+Implementer-facing reference for the declarative-objective semantics (`SEM-207`),
+governed by ADR-016. The formal artifact is
+[`specs/formal/objectives/declarative-objective-semantics.md`](../../../specs/formal/objectives/declarative-objective-semantics.md);
+this note is the working summary.
+
+## What an objective is
+
+A declarative *objective* binds, in one place:
+
+- an **actor** — exactly one of an authored `agent` or an authored `entity` —
+  that owns the objective. An agent objective may name `actions`, which must be
+  declared by that agent;
+- zero or more **targets**, resolved through the targetable named-reference
+  index (bare or section-qualified; objectives, workflows, and variables are not
+  targetable);
+- a **success** interpretation — `mode` (`all_of` / `any_of`) over referenced
+  conditions, metrics, evaluations, TLOs, and goals;
+- an optional **window** that constrains when the objective matters (the
+  story/script/event/workflow/workflow-step reachability and consistency rules
+  live with the window helper — see
+  [`window-consistency.md`](../../../specs/formal/objectives/window-consistency.md));
+- a `depends_on` **ordering** relation onto other objectives, which must be
+  acyclic.
+
+Objective semantics are declarative SDL meaning. They do not choose participant
+implementations, backend probes, evaluator queries, execution adapters, prompts,
+credentials, polling loops, or live control-plane behavior.
+
+## Name-level source of truth
+
+`aces_sdl.semantics.objective_semantics.analyze_objective_semantics(...)` is the
+single name-level analyzer. Given the name-keyed SDL constructs plus the
+targetable named-reference index (and an optional `is_unresolved` predicate so
+`${var}` placeholders are skipped and re-checked after instantiation), it
+returns an `ObjectiveSemanticAnalysis`:
+
+- `references` — normalized `ObjectiveReference` edges (actor, target, success,
+  window, dependency), each carrying its `dependency_roles` and a `namespace_path`
+  slot reserved for later module/import expansion;
+- `issues` — machine-readable consistency problems, per objective in the order
+  actor, action, target, success, window, dependency, then a single global
+  `objective.dependency-cycle` issue when the `depends_on` graph cycles. Callers
+  translate the codes into their own envelope (the validator renders them as
+  authoring-error strings via `_OBJECTIVE_ISSUE_RENDERERS`; the compiler emits
+  its own `evaluation.*` diagnostics for the window slice);
+- `dependencies` — per-objective derived ordering/refresh dependency *names*;
+- `window_analyses` — the per-objective `ObjectiveWindowAnalysis`, so callers
+  reuse the window resolution rather than re-running it.
+
+Whether a declared success `condition` is actually *bound* to a node is a
+compilation-phase concern (the compiler emits `evaluation.condition-ref`
+diagnostics against the resolved addresses); this analyzer deals only with the
+name-level reference graph that is meaningful before binding resolution.
+
+## Dependency roles
+
+Success references and `depends_on` edges carry **both** roles — the objective
+is evaluated *after* its inputs (ordering) and re-evaluated *when* an input
+changes (refresh). Window edges carry **only** refresh; they impose no
+execution-order constraint. Actor and target references are normalized for
+fail-closed validation and propagated through the analyzer's IR, but they carry
+an **empty** role tuple today: the compiler does not compile actor or target
+identity into runtime ordering or refresh dependencies, and advertising a role
+that never reaches the planner would let the helper claim a propagation that
+does not happen. A future change that compiles actor or target into runtime
+addresses lifts `REFRESH` (or `ORDERING`) on those role constants in lockstep.
+
+That single fact lives in `partition_objective_dependencies` plus the
+`OBJECTIVE_SUCCESS_DEPENDENCY_ROLES` / `OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES` /
+`OBJECTIVE_ACTOR_DEPENDENCY_ROLES` / `OBJECTIVE_TARGET_DEPENDENCY_ROLES` /
+`OBJECTIVE_WINDOW_DEPENDENCY_ROLES` constants — each category is gated by its
+own constant so a future role change to one category lands in exactly one
+place. The validator, the compiler's `ObjectiveRuntime` ordering/refresh
+tuples, and the planner's generic reconciliation all derive their behavior from
+those constants, so a change to a success condition (or to a depended-on
+objective) propagates as a refresh through `objective -> depends_on -> objective`.
+
+In the analyzer's name-level IR the derived `ordering_names` / `refresh_names`
+are kind-qualified (`condition.<n>`, `metric.<n>`, `evaluation.<n>`, `tlo.<n>`,
+`goal.<n>`, `objective.<n>`, `story.<n>`, `script.<n>`, `event.<n>`,
+`workflow.<n>`) so a metric and a condition with the same SDL name remain
+distinguishable, mirroring the canonical `evaluation.*` addresses the compiler
+builds independently.
+
+## Cross-stage agreement
+
+- **validation** — `SemanticValidator._verify_objectives` calls the analyzer and
+  renders every issue as an authoring error;
+- **compilation** — `compile_runtime_model()` resolves the success and
+  `depends_on` references onto canonical `evaluation.*` addresses, runs the
+  window helper for the window diagnostics, and derives `ObjectiveRuntime`'s
+  `ordering_dependencies` / `refresh_dependencies` via
+  `partition_objective_dependencies`;
+- **planning** — `plan()` walks those edges generically (ordering for execution
+  order, refresh for change propagation).
+
+`implementations/python/tests/test_fm2_semantics.py` (`TestObjectiveSemanticAgreement`,
+`TestObjectiveWindowAgreement`) is the cross-stage agreement suite; the analyzer
+itself is unit-tested in `implementations/python/tests/test_semantics_objectives.py`.
+
+## Anti-patterns
+
+- a second objective schema beside `aces_sdl.objectives`, or a second reference
+  resolver beside `SemanticValidator`'s named-reference index / the compiler's
+  canonical address helpers;
+- duplicating the window, assessment, dependency, or reference-resolution rules
+  in compiler, planner, or tests;
+- mixing objective actor binding with participant episode lifecycle or apparatus
+  realization, or treating objective targets as backend execution targets;
+- encoding evaluator query language, probe commands, credentials, or polling
+  behavior in objective `success`;
+- editing generated schemas under `contracts/schemas/` directly;
+- a `SEM-207`-specific exception, logging, persistence, or audit stack.

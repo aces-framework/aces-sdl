@@ -19,8 +19,89 @@ from .nodes import MAX_NODE_NAME_LENGTH, NodeType
 from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
 from .scenario import Scenario
 from .semantics.assessment import AssessmentIssue, analyze_assessment_pipeline
-from .semantics.objectives import analyze_objective_window
+from .semantics.objective_semantics import (
+    AssessmentResourceCatalog,
+    ObjectiveIssue,
+    WindowResourceCatalog,
+    analyze_objective_semantics,
+)
 from .semantics.workflow import branch_closure, workflow_step_semantic_contract
+
+# Renders an objective-semantics issue (machine-readable code from
+# ``aces_sdl.semantics.objective_semantics``) into the authoring-error string
+# the SDL surface has always used. Keyed by issue code so a new code is a new
+# line here rather than a new branch in a growing conditional.
+_OBJECTIVE_ISSUE_RENDERERS = {
+    "objective.actor-agent-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined agent '{i.ref}'"
+    ),
+    "objective.actor-entity-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined entity '{i.ref}'"
+    ),
+    "objective.action-not-declared": (
+        lambda i: f"Objective '{i.objective_name}' action '{i.ref}' is not declared by agent '{i.actor_name}'"
+    ),
+    "objective.target-unresolvable": (
+        lambda i: f"Objective '{i.objective_name}' target '{i.ref}' does not reference any defined targetable element"
+    ),
+    "objective.target-ambiguous": (
+        lambda i: f"Objective '{i.objective_name}' target '{i.ref}' is ambiguous; use one of: {', '.join(i.candidates)}"
+    ),
+    "objective.success-condition-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined condition '{i.ref}' in success criteria"
+    ),
+    "objective.success-metric-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined metric '{i.ref}' in success criteria"
+    ),
+    "objective.success-evaluation-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined evaluation '{i.ref}' in success criteria"
+    ),
+    "objective.success-tlo-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined TLO '{i.ref}' in success criteria"
+    ),
+    "objective.success-goal-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' references undefined goal '{i.ref}' in success criteria"
+    ),
+    "objective.window.story-unbound": (
+        lambda i: f"Objective '{i.objective_name}' references undefined story '{i.ref}' in window"
+    ),
+    "objective.window.script-unbound": (
+        lambda i: f"Objective '{i.objective_name}' references undefined script '{i.ref}' in window"
+    ),
+    "objective.window.script-outside-window-stories": (
+        lambda i: f"Objective '{i.objective_name}' window script '{i.ref}' is not included by the referenced stories"
+    ),
+    "objective.window.event-unbound": (
+        lambda i: f"Objective '{i.objective_name}' references undefined event '{i.ref}' in window"
+    ),
+    "objective.window.event-outside-window-scripts": (
+        lambda i: f"Objective '{i.objective_name}' window event '{i.ref}' is not included by the referenced scripts"
+    ),
+    "objective.window.workflow-unbound": (
+        lambda i: f"Objective '{i.objective_name}' references undefined workflow '{i.ref}' in window"
+    ),
+    "objective.window.step-requires-workflow-window": (
+        lambda i: f"Objective '{i.objective_name}' window steps require at least one referenced workflow"
+    ),
+    "objective.window.step-invalid-format": (
+        lambda i: f"Objective '{i.objective_name}' window step '{i.ref}' must use '<workflow>.<step>' syntax"
+    ),
+    "objective.window.step-workflow-unbound": (
+        lambda i: (
+            f"Objective '{i.objective_name}' window step '{i.ref}' references undefined workflow '{i.workflow_name}'"
+        )
+    ),
+    "objective.window.step-workflow-outside-window": (
+        lambda i: f"Objective '{i.objective_name}' window step '{i.ref}' is not part of the referenced workflows"
+    ),
+    "objective.window.step-unbound": (
+        lambda i: f"Objective '{i.objective_name}' window step '{i.ref}' references undefined step '{i.step_name}'"
+    ),
+    "objective.dependency-undeclared": (
+        lambda i: f"Objective '{i.objective_name}' depends on undefined objective '{i.ref}'"
+    ),
+    "objective.dependency-cycle": lambda _i: "Objective dependency graph contains a cycle",
+}
 
 
 def _topological_sort(graph: dict[str, list[str]]) -> list[str] | None:
@@ -451,131 +532,42 @@ class SemanticValidator:
                         self._err(f"Agent '{name}' initial_knowledge account '{acct_name}' not in accounts section")
 
     def _verify_objectives(self) -> None:
-        actor_entities = self._all_entity_names()
+        # Declarative-objective semantics — actor binding, target resolution,
+        # success interpretation, windows, and dependency ordering (SEM-207).
+        # The name-level reference graph, ordering/refresh-role model, and
+        # fail-closed issue set live in ``aces_sdl.semantics.objective_semantics``;
+        # this pass renders the machine-readable issues it reports as authoring
+        # errors.
+        analysis = analyze_objective_semantics(
+            objectives_by_name=self._s.objectives,
+            agents_by_name=self._s.agents,
+            entity_names=self._all_entity_names(),
+            assessment_resources=AssessmentResourceCatalog(
+                conditions=self._s.conditions,
+                metrics=self._s.metrics,
+                evaluations=self._s.evaluations,
+                tlos=self._s.tlos,
+                goals=self._s.goals,
+            ),
+            window_resources=WindowResourceCatalog(
+                stories=self._s.stories,
+                scripts=self._s.scripts,
+                events=self._s.events,
+                workflows=self._s.workflows,
+            ),
+            targetable_name_index=self._named_ref_index(targetable=True),
+            is_unresolved=self._is_unresolved_var,
+        )
+        for issue in analysis.issues:
+            self._err(self._format_objective_issue(issue))
 
-        for name, objective in self._s.objectives.items():
-            if (
-                objective.agent
-                and not self._is_unresolved_var(objective.agent)
-                and objective.agent not in self._s.agents
-            ):
-                self._err(f"Objective '{name}' references undefined agent '{objective.agent}'")
-
-            if (
-                objective.entity
-                and not self._is_unresolved_var(objective.entity)
-                and objective.entity not in actor_entities
-            ):
-                self._err(f"Objective '{name}' references undefined entity '{objective.entity}'")
-
-            if objective.agent and not self._is_unresolved_var(objective.agent) and objective.agent in self._s.agents:
-                allowed_actions = set(self._s.agents[objective.agent].actions)
-                for action in objective.actions:
-                    if self._is_unresolved_var(action):
-                        continue
-                    if action not in allowed_actions:
-                        self._err(f"Objective '{name}' action '{action}' is not declared by agent '{objective.agent}'")
-
-            for target in objective.targets:
-                if self._is_unresolved_var(target):
-                    continue
-                self._validate_named_ref(
-                    target,
-                    owner_label=f"Objective '{name}'",
-                    ref_label="target",
-                    targetable=True,
-                )
-
-            success_sections = (
-                ("condition", objective.success.conditions, self._s.conditions),
-                ("metric", objective.success.metrics, self._s.metrics),
-                ("evaluation", objective.success.evaluations, self._s.evaluations),
-                ("TLO", objective.success.tlos, self._s.tlos),
-                ("goal", objective.success.goals, self._s.goals),
-            )
-            for label, refs, section in success_sections:
-                for ref in refs:
-                    if self._is_unresolved_var(ref):
-                        continue
-                    if ref not in section:
-                        self._err(f"Objective '{name}' references undefined {label} '{ref}' in success criteria")
-
-            if objective.window:
-                window_analysis = analyze_objective_window(
-                    story_refs=[
-                        story_name for story_name in objective.window.stories if not self._is_unresolved_var(story_name)
-                    ],
-                    script_refs=[
-                        script_name
-                        for script_name in objective.window.scripts
-                        if not self._is_unresolved_var(script_name)
-                    ],
-                    event_refs=[
-                        event_name for event_name in objective.window.events if not self._is_unresolved_var(event_name)
-                    ],
-                    workflow_refs=[
-                        workflow_name
-                        for workflow_name in objective.window.workflows
-                        if not self._is_unresolved_var(workflow_name)
-                    ],
-                    step_refs=[
-                        step_ref for step_ref in objective.window.steps if not self._is_unresolved_var(step_ref)
-                    ],
-                    stories_by_name=self._s.stories,
-                    scripts_by_name=self._s.scripts,
-                    events_by_name=self._s.events,
-                    workflows_by_name=self._s.workflows,
-                )
-
-                for issue in window_analysis.issues:
-                    if issue.code == "story-unbound":
-                        self._err(f"Objective '{name}' references undefined story '{issue.ref}' in window")
-                    elif issue.code == "script-unbound":
-                        self._err(f"Objective '{name}' references undefined script '{issue.ref}' in window")
-                    elif issue.code == "script-outside-window-stories":
-                        self._err(
-                            f"Objective '{name}' window script '{issue.ref}' is not included by the referenced stories"
-                        )
-                    elif issue.code == "event-unbound":
-                        self._err(f"Objective '{name}' references undefined event '{issue.ref}' in window")
-                    elif issue.code == "event-outside-window-scripts":
-                        self._err(
-                            f"Objective '{name}' window event '{issue.ref}' is not included by the referenced scripts"
-                        )
-                    elif issue.code == "workflow-unbound":
-                        self._err(f"Objective '{name}' references undefined workflow '{issue.ref}' in window")
-                    elif issue.code == "step-requires-workflow-window":
-                        self._err(f"Objective '{name}' window steps require at least one referenced workflow")
-                    elif issue.code == "step-invalid-format":
-                        self._err(f"Objective '{name}' window step '{issue.ref}' must use '<workflow>.<step>' syntax")
-                    elif issue.code == "step-workflow-unbound":
-                        self._err(
-                            f"Objective '{name}' window step '{issue.ref}' "
-                            f"references undefined workflow '{issue.workflow_name}'"
-                        )
-                    elif issue.code == "step-workflow-outside-window":
-                        self._err(
-                            f"Objective '{name}' window step '{issue.ref}' is not part of the referenced workflows"
-                        )
-                    elif issue.code == "step-unbound":
-                        self._err(
-                            f"Objective '{name}' window step '{issue.ref}' "
-                            f"references undefined step '{issue.step_name}'"
-                        )
-
-            for dep_name in objective.depends_on:
-                if self._is_unresolved_var(dep_name):
-                    continue
-                if dep_name not in self._s.objectives:
-                    self._err(f"Objective '{name}' depends on undefined objective '{dep_name}'")
-
-        dep_graph: dict[str, list[str]] = {}
-        for name, objective in self._s.objectives.items():
-            dep_graph[name] = [
-                dep for dep in objective.depends_on if not self._is_unresolved_var(dep) and dep in self._s.objectives
-            ]
-        if dep_graph and _topological_sort(dep_graph) is None:
-            self._err("Objective dependency graph contains a cycle")
+    @staticmethod
+    def _format_objective_issue(issue: ObjectiveIssue) -> str:
+        try:
+            renderer = _OBJECTIVE_ISSUE_RENDERERS[issue.code]
+        except KeyError:  # pragma: no cover - defensive: a new code without a renderer
+            raise AssertionError(f"unhandled objective-semantics issue code: {issue.code}") from None
+        return renderer(issue)
 
     def _validate_workflow_predicate(
         self,
