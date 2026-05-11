@@ -18,8 +18,16 @@ class ObjectiveWindowReferenceKind(str, Enum):
 
 
 class ObjectiveDependencyRole(str, Enum):
-    """Semantic dependency roles derived from objective/window references."""
+    """Semantic dependency roles derived from objective/window references.
 
+    ``ORDERING`` constrains evaluation order (the dependent is computed after
+    its inputs); ``REFRESH`` propagates change (the dependent is recomputed when
+    an input changes). Window references carry only ``REFRESH``; success and
+    ``depends_on`` references (see :mod:`aces_sdl.semantics.objective_semantics`)
+    carry both.
+    """
+
+    ORDERING = "ordering"
     REFRESH = "refresh"
 
 

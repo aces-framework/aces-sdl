@@ -962,6 +962,20 @@ class TestVerifyObjectives:
         errors = _validate(s)
         assert any("Objective dependency graph contains a cycle" in e for e in errors)
 
+    def test_depends_on_must_reference_defined_objective(self):
+        s = _make_scenario(
+            **self._base_kwargs(),
+            objectives={
+                "obj-1": {
+                    "agent": "red-agent",
+                    "success": {"goals": ["pass-exercise"]},
+                    "depends_on": ["ghost-objective"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("depends on undefined objective 'ghost-objective'" in e for e in errors)
+
     def test_window_steps_require_workflows(self):
         s = _make_scenario(
             **self._base_kwargs(),
