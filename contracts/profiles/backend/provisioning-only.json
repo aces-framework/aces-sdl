@@ -1,4 +1,5 @@
 {
+  "schema_version": "backend-profile/v1",
   "profile": "provisioning-only",
   "required_contracts": [
     "backend-manifest-v2",

@@ -62,6 +62,12 @@ def _semantic_profile_schema(repo_root: Path, path: Path) -> Path:
     return repo_root / "contracts" / "schemas" / "profiles" / _schema_filename(schema_version)
 
 
+def _backend_profile_schema(repo_root: Path, path: Path) -> Path:
+    payload = _load_json(path)
+    schema_version = payload["schema_version"]
+    return repo_root / "contracts" / "schemas" / "profiles" / _schema_filename(schema_version)
+
+
 def _fixture_schema(repo_root: Path, path: Path) -> Path:
     relative = path.relative_to(repo_root / "contracts" / "fixtures")
     category = relative.parts[0]
@@ -97,6 +103,13 @@ def collect_validation_targets(
                 )
             )
             continue
+        if raw_path.startswith("contracts/profiles/backend/") and raw_path.endswith(".json"):
+            targets.append(
+                ValidationTarget(
+                    raw_path, _repo_rel_from(repo_root, _backend_profile_schema(repo_root, path)), "schema"
+                )
+            )
+            continue
         if "/valid/" in raw_path and raw_path.startswith("contracts/fixtures/") and raw_path.endswith(".json"):
             targets.append(
                 ValidationTarget(raw_path, _repo_rel_from(repo_root, _fixture_schema(repo_root, path)), "schema")
@@ -125,6 +138,14 @@ def _collect_full_targets(repo_root: Path) -> list[ValidationTarget]:
             ValidationTarget(
                 _repo_rel_from(repo_root, profile),
                 _repo_rel_from(repo_root, _semantic_profile_schema(repo_root, profile)),
+                "schema",
+            )
+        )
+    for profile in sorted((repo_root / "contracts" / "profiles" / "backend").glob("*.json")):
+        targets.append(
+            ValidationTarget(
+                _repo_rel_from(repo_root, profile),
+                _repo_rel_from(repo_root, _backend_profile_schema(repo_root, profile)),
                 "schema",
             )
         )
