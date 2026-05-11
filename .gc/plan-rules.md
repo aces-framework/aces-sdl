@@ -24,3 +24,8 @@ These encode the hard rules previously in `AGENTS.md` prose.
   concept-authority surfaces.
 - Plans MUST keep IMPLEMENTS and TESTS traceability in Ground Control
   aligned with changed code and tests.
+- Plans with a user-visible change MUST add a fragment under
+  `changelog.d/<issue>.<type>.md` (or `changelog.d/+<slug>.<type>.md`
+  for issue-free entries), where `<type>` is one of `security`, `added`,
+  `changed`, `deprecated`, `removed`, `fixed`; do not edit `CHANGELOG.md`
+  directly outside release-collation commits.
