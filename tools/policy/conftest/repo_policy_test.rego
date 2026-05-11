@@ -13,6 +13,7 @@ test_legacy_root_is_blocked if {
       "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
       "source_roots": [],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 1
@@ -34,6 +35,7 @@ test_generated_schema_edits_require_driver_changes if {
       "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
       "source_roots": [],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 1
@@ -58,6 +60,7 @@ test_generated_schema_edits_pass_with_driver_change if {
       "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
       "source_roots": [],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 0
@@ -77,6 +80,7 @@ test_reserved_concept_authority_paths_are_enforced if {
       },
       "source_roots": [],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 1
@@ -95,6 +99,49 @@ test_changelog_is_required_for_source_changes if {
       "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
       "source_roots": ["implementations/python/packages"],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
+    },
+  }
+  count(failures) == 1
+  some failure in failures
+  failure.rule_id == "changelog-required"
+}
+
+
+test_changelog_fragment_satisfies_source_changes if {
+  failures := deny with input as {
+    "changed": [
+      "implementations/python/packages/aces_processor/runtime.py",
+      "changelog.d/132.added.md",
+    ],
+    "check_set": "full",
+    "policy": {
+      "legacy_top_level_roots": [],
+      "generated_contracts": {"generated_roots": [], "driver_paths": []},
+      "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
+      "source_roots": ["implementations/python/packages"],
+      "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
+    },
+  }
+  count(failures) == 0
+}
+
+
+test_changelog_readme_does_not_satisfy_source_changes if {
+  failures := deny with input as {
+    "changed": [
+      "implementations/python/packages/aces_processor/runtime.py",
+      "changelog.d/README.md",
+    ],
+    "check_set": "full",
+    "policy": {
+      "legacy_top_level_roots": [],
+      "generated_contracts": {"generated_roots": [], "driver_paths": []},
+      "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
+      "source_roots": ["implementations/python/packages"],
+      "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 1
@@ -113,6 +160,7 @@ test_file_local_mode_skips_changelog if {
       "concept_authority": {"reserved_path_tokens": [], "allowed_paths": []},
       "source_roots": ["implementations/python/packages"],
       "changelog_path": "CHANGELOG.md",
+      "changelog_fragment_dir": "changelog.d",
     },
   }
   count(failures) == 0

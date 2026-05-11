@@ -43,11 +43,11 @@ deny contains result if {
   some path in input.changed
   path_matches_any(path, input.policy.source_roots)
   endswith(path, ".py")
-  not input.policy.changelog_path in input.changed
+  not changelog_signal_touched
   result := {
-    "msg": "source changes require a CHANGELOG.md update",
+    "msg": "source changes require a changelog fragment under changelog.d/",
     "rule_id": "changelog-required",
-    "path": input.policy.changelog_path,
+    "path": input.policy.changelog_fragment_dir,
   }
 }
 
@@ -55,6 +55,20 @@ deny contains result if {
 generated_driver_touched if {
   some path in input.changed
   path_matches_any(path, input.policy.generated_contracts.driver_paths)
+}
+
+
+changelog_signal_touched if {
+  input.policy.changelog_path in input.changed
+}
+
+
+changelog_signal_touched if {
+  some path in input.changed
+  path_matches_prefix(path, input.policy.changelog_fragment_dir)
+  endswith(path, ".md")
+  not endswith(path, "/README.md")
+  not startswith(path, sprintf("%s/_", [trim(input.policy.changelog_fragment_dir, "/")]))
 }
 
 
