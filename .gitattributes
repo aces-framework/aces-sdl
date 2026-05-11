@@ -1,0 +1,4 @@
+# Changelog entries are collated from fragments under changelog.d/. This
+# union driver is only a fallback for release-collation commits and straggler
+# hand-edits that still touch CHANGELOG.md.
+CHANGELOG.md merge=union
