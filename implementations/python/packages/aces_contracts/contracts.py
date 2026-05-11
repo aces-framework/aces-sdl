@@ -1145,6 +1145,21 @@ def _validate_canonical_concept_bindings(model: ContractModel, *, allowed_scopes
             )
 
 
+def _backend_profile_schema_for_bundle() -> dict[str, Any]:
+    """Lazily import :class:`BackendProfileModel` to avoid an import cycle.
+
+    ``backend_profiles`` imports :class:`ContractModel` and ``NonEmptyString``
+    from this module, so eager import at module load would cycle. The
+    deferred import here keeps the schema bundle wired up while letting
+    ``backend_profiles`` build on the same closed-world primitives the rest
+    of the contracts surface uses.
+    """
+
+    from .backend_profiles import BackendProfileModel
+
+    return BackendProfileModel.model_json_schema()
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -1158,6 +1173,7 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "reference-models-v1": ReferenceModelCatalogModel.model_json_schema(),
         "controlled-vocabularies-v1": ControlledVocabularyCatalogModel.model_json_schema(),
         "semantic-profile-v1": SemanticProfileModel.model_json_schema(),
+        "backend-profile-v1": _backend_profile_schema_for_bundle(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),

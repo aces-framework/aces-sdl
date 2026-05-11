@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "description": "Published backend capability profile (closed-world).",
+  "properties": {
+    "profile": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Profile",
+      "type": "string"
+    },
+    "required_contracts": {
+      "items": {
+        "enum": [
+          "backend-manifest-v2",
+          "provisioning-plan-v1",
+          "orchestration-plan-v1",
+          "evaluation-plan-v1",
+          "operation-receipt-v1",
+          "operation-status-v1",
+          "runtime-snapshot-v1",
+          "workflow-result-envelope-v1",
+          "workflow-history-event-stream-v1",
+          "evaluation-result-envelope-v1",
+          "evaluation-history-event-stream-v1",
+          "participant-episode-state-envelope-v1",
+          "participant-episode-history-event-stream-v1"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Required Contracts",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema_version": {
+      "const": "backend-profile/v1",
+      "default": "backend-profile/v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "profile",
+    "required_contracts"
+  ],
+  "title": "BackendProfileModel",
+  "type": "object"
+}
