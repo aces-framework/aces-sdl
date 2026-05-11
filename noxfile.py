@@ -452,6 +452,10 @@ def _run_policy(session: nox.Session, reporter: SessionReporter, *args: str) -> 
 def _run_contracts(session: nox.Session, reporter: SessionReporter, *args: str) -> None:
     _sync_project(session)
     reporter.run(
+        "contracts / schema publication manifest",
+        lambda: _run_project_python(session, "tools/check_schema_publication.py"),
+    )
+    reporter.run(
         "contracts / generated schema drift",
         lambda: _run_project_python(session, "tools/check_generated_schemas.py"),
     )
