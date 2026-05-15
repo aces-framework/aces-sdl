@@ -17,7 +17,7 @@ requirements:
     - RUN-311
     - ADR-012
 sonarcloud:
-  project_key: autarchy-ai_aces
-  organization: autarchy-ai
+  project_key: aces-framework_aces-sdl
+  organization: KeplerOps
 rules:
   plan_rules: .gc/plan-rules.md
