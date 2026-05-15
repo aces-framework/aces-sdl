@@ -575,7 +575,7 @@ fragments into this file. See [`changelog.d/README.md`](changelog.d/README.md).
 ### Added
 
 - `.ground-control.yaml` declaring workflow commands (nox verify),
-  sonarcloud key (`aces-framework_aces-sdl` in `keplerops` org), and
+  sonarcloud key (`autarchy-ai_aces` in `autarchy-ai` org), and
   plan rules reference.
 - `.gc/plan-rules.md` containing the ACES SDL hard rules and required
   checks (previously in AGENTS.md prose), rewritten as "plans MUST..."
@@ -587,7 +587,7 @@ fragments into this file. See [`changelog.d/README.md`](changelog.d/README.md).
   `.ground-control.yaml`. Hard rules and required checks now live in
   `.gc/plan-rules.md`.
 - `.mcp.json` `GH_REPO` corrected from `KeplerOps/Ground-Control` to
-  `aces-framework/aces-sdl`.
+  `autarchy-ai/aces`.
 
 ## [0.7.0] - 2026-04-11
 
@@ -768,10 +768,10 @@ fragments into this file. See [`changelog.d/README.md`](changelog.d/README.md).
 - Initial ACES SDL ecosystem extraction from APTL with SDL authoring layer,
   processor layer, backend protocols, conformance infrastructure, and CLI.
 
-[0.6.0]: https://github.com/aces-framework/aces-sdl/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/aces-framework/aces-sdl/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/aces-framework/aces-sdl/compare/v0.3.1...v0.4.0
-[0.3.1]: https://github.com/aces-framework/aces-sdl/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/aces-framework/aces-sdl/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/aces-framework/aces-sdl/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/aces-framework/aces-sdl/releases/tag/v0.1.0
+[0.6.0]: https://github.com/autarchy-ai/aces/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/autarchy-ai/aces/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/autarchy-ai/aces/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/autarchy-ai/aces/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/autarchy-ai/aces/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/autarchy-ai/aces/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/autarchy-ai/aces/releases/tag/v0.1.0

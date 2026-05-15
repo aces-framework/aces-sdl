@@ -1,6 +1,6 @@
 schema_version: 1
 project: aces-sdl
-github_repo: aces-framework/aces-sdl
+github_repo: autarchy-ai/aces
 workflow:
   test_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
   completion_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
@@ -18,6 +18,6 @@ requirements:
     - ADR-012
 sonarcloud:
   project_key: aces-framework_aces-sdl
-  organization: keplerops
+  organization: KeplerOps
 rules:
   plan_rules: .gc/plan-rules.md
