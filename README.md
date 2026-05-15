@@ -175,9 +175,7 @@ Release notes are collated from towncrier fragments in
 
 ## Maintainers
 
-- Brad Edwards — [Brad-Edwards-SecOps](https://github.com/Brad-Edwards) / [Brad-Edwards](https://github.com/Brad-Edwards-SecOps)
-
-  [LinkedIn](https://www.linkedin.com/in/bradley-edwards-dev/)
+- Brad Edwards — [Personal GitHub](https://github.com/Brad-Edwards), [PANW GitHub](https://github.com/Brad-Edwards-SecOps), [LinkedIn](https://www.linkedin.com/in/bradley-edwards-dev/)
 
 ## Citation
 
