@@ -19,6 +19,7 @@ product surface.
 - [Getting Started](#getting-started)
 - [Using the Python Reference Implementation](#using-the-python-reference-implementation)
 - [Repository Layout](#repository-layout)
+- [Lineage](#lineage)
 - [Documentation](#documentation)
 - [Verification](#verification)
 - [Contributing](#contributing)
@@ -116,6 +117,20 @@ uv run aces-mcp
 - `research/` - supporting literature and reference ecosystem material
 - `tools/` - repository maintenance, policy, and publication tooling
 - `changelog.d/` - towncrier release note fragments
+
+## Lineage
+
+- [Open Cyber Range SDL](https://documentation.opencyberrange.ee/docs/sdl/reference/)
+- [Open Cybersecurity Schema Framework](https://schema.ocsf.io/)
+- [CACAO Security Playbooks v2.0](https://docs.oasis-open.org/cacao/security-playbooks/v2.0/security-playbooks-v2.0.html)
+- [STIX 2.1](https://docs.oasis-open.org/cti/stix/v2.1/stix-v2.1.html)
+- [CybORG](https://github.com/cage-challenge/CybORG)
+- [TENA](https://www.trmc.osd.mil/tena-about.html)
+- [IEEE High Level Architecture](https://standards.ieee.org/standard/1516-2025.html)
+- [SISO Cyber DEM](https://cdn.ymaws.com/www.sisostandards.org/resource/resmgr/standards_products/siso-std-025-2023_cyberdem.pdf)
+- [SISO Cyber FOM](https://www.sisostandards.org/news/690125/Publication-of-Cyber-FOM-and-SIRL-Users-Guide.htm)
+- [MITRE CALDERA](https://github.com/mitre/caldera)
+- [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
 
 ## Documentation
 
