@@ -1,8 +1,8 @@
 # -- Project information -------------------------------------------------------
 
 project = "ACES SDL"
-copyright = "2026, ACES Framework Contributors"
-author = "ACES Framework Contributors"
+copyright = "2026, Autarchy"
+author = "Brad Edwards, Autarchy"
 release = "0.1.0"
 
 # -- General configuration -----------------------------------------------------
@@ -36,7 +36,7 @@ html_title = "ACES SDL"
 html_static_path = ["_static"]
 
 html_theme_options = {
-    "source_repository": "https://github.com/aces-framework/aces-sdl",
+    "source_repository": "https://github.com/autarchy-ai/aces",
     "source_branch": "main",
     "source_directory": "docs/",
     "navigation_with_keys": True,

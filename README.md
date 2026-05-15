@@ -1,10 +1,8 @@
-# ACES SDL
+# Agentic Cyber Environment System
 
-[![CI](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml/badge.svg)](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-ACES SDL is a backend-agnostic scenario description language and reference
-runtime for cyber range scenarios and experiments.
+Agentic Cyber Environment System (ACES) is a backend-agnostic scenario
+description language and reference runtime for cyber range scenarios and
+experiments.
 
 The repository separates authored scenario meaning from processors, backends,
 participant implementations, runtime state, and archived evidence. That lets
@@ -74,8 +72,8 @@ Prerequisites:
 Set up the Python reference implementation:
 
 ```shell
-git clone https://github.com/autarchy-ai/aces-sdl.git
-cd aces-sdl/implementations/python
+git clone https://github.com/autarchy-ai/aces.git
+cd aces/implementations/python
 uv sync --all-extras
 uv run aces --help
 ```
@@ -171,7 +169,7 @@ If you use ACES SDL in academic work, cite the repository:
   year         = {2026},
   organization = {Autarchy},
   license      = {MIT},
-  url          = {https://github.com/autarchy-ai/aces-sdl}
+  url          = {https://github.com/autarchy-ai/aces}
 }
 ```
 
@@ -183,5 +181,5 @@ Released under the MIT License. See [LICENSE](LICENSE).
 
 ACES SDL is maintained by Brad Edwards under Autarchy.
 
-The repository is expected to move under the `autarchy-ai` GitHub
-organization, but the project belongs to Autarchy.
+The repository is hosted under the `autarchy-ai` GitHub organization, but the
+project belongs to Autarchy.

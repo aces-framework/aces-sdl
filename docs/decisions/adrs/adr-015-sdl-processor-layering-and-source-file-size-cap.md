@@ -11,7 +11,7 @@ accepted
 ## Context
 
 Two structural problems in the `aces-sdl` Python tree, surfaced by the
-modularity audit ([issue #3](https://github.com/aces-framework/aces-sdl/issues/3)):
+modularity audit ([issue #3](https://github.com/autarchy-ai/aces/issues/3)):
 
 1. **Circular dependency.** `aces_sdl/validator.py` imported
    `analyze_objective_window` and workflow helpers from
