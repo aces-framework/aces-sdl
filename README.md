@@ -1,8 +1,5 @@
 # ACES SDL
 
-[![CI](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml/badge.svg)](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 ACES SDL is a backend-agnostic scenario description language and reference
 runtime for cyber range scenarios and experiments.
 
