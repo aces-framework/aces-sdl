@@ -158,6 +158,12 @@ The Python package currently declares its version in
 Release notes are collated from towncrier fragments in
 [`changelog.d/`](changelog.d/). Do not hand-edit `CHANGELOG.md`.
 
+## Maintainers
+
+- Brad Edwards — [Brad-Edwards-SecOps](https://github.com/Brad-Edwards) / [Brad-Edwards](https://github.com/Brad-Edwards-SecOps)
+
+  [LinkedIn](https://www.linkedin.com/in/bradley-edwards-dev/)
+
 ## Citation
 
 If you use ACES SDL in academic work, cite the repository:
