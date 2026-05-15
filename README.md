@@ -1,53 +1,187 @@
-# aces-sdl
+# ACES SDL
 
-A monorepo for ACES normative artifacts, portable contracts, conformance
-assets, research, and reference implementations for the SDL ecosystem.
+[![CI](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml/badge.svg)](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This repository is being reorganized so the language-agnostic,
-backend-agnostic, and processor-agnostic work sits at the top level, while
-reference implementations live under `implementations/`.
+ACES SDL is a backend-agnostic scenario description language and reference
+runtime for cyber range scenarios and experiments.
 
-Breakage during the reorganization is expected. The goal of this pass is to put
-the repo in the right shape, not to keep every existing import path, build
-entrypoint, or helper script working during the transition.
+The repository separates authored scenario meaning from processors, backends,
+participant implementations, runtime state, and archived evidence. That lets
+the same scenario be validated and compiled without binding it to one cloud,
+range implementation, or execution harness.
 
-## Top-Level Layout
+This is an academic and engineering project. The repository is intended to be
+read, tested, and used as a working reference implementation, not treated as a
+product surface.
 
-- `specs/`: normative prose and formal specification material
-- `contracts/`: machine-readable schemas, fixtures, and capability profiles
-- `implementations/`: reference implementations and their local tests/tooling
-- `examples/`: worked scenarios and other example artifacts
-- `docs/`: explanatory material, architecture decisions, and migration notes
-- `research/`: supporting literature and reference ecosystem material
-- `tools/`: repository maintenance and migration helpers
+## Contents
 
-## Current State
+- [What ACES SDL Describes](#what-aces-sdl-describes)
+- [Getting Started](#getting-started)
+- [Using the Python Reference Implementation](#using-the-python-reference-implementation)
+- [Repository Layout](#repository-layout)
+- [Documentation](#documentation)
+- [Verification](#verification)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
+- [Citation](#citation)
+- [License](#license)
+- [Maintainer](#maintainer)
 
-- The current Python reference implementation now lives under
-  `implementations/python/`.
-- Published contract assets now live under `contracts/`.
-- Architecture decisions now live under `docs/decisions/adrs/`.
-- Explanatory SDL/process documentation now lives under `docs/explain/`.
+## What ACES SDL Describes
 
-This repository is not a standards document. It is a working ecosystem repo
-that is being structured so normative artifacts and implementation artifacts
-are clearly separated while still standing on their own as a real, executable
-system.
+An SDL file is a declarative scenario document. It can describe topology,
+hosts, services, identities, content, relationships, agents, objectives,
+workflows, variables, and evaluation material without directly describing a
+specific backend's infrastructure primitives.
 
-The working order for aligning the current implementation to that structure is
-captured in [docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md](docs/decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md).
+```yaml
+name: hospital-ransomware-surgery-day
+description: Surgery-day ransomware exercise for a regional hospital.
 
-The repository now treats several surfaces as distinct:
+variables:
+  surgery_day_speed:
+    type: number
+    default: 1.0
 
-- the SDL and its authored scenario/experiment meaning
-- processor behavior and manifests
-- backend behavior and manifests
-- participant implementations such as agents, policies, scripts, or
-  human-control proxies
-- live runtime/control-plane state
-- archival run, evidence, and provenance artifacts
+nodes:
+  internet-edge:
+    type: Switch
+    description: Public ingress for email, VPN, and external access
 
-That separation is deliberate. It lets the same authored scenario be realized
-through different backends, processed by different processors, and driven by
-different participant implementations without silently changing what the SDL
-itself means.
+  mail-gateway:
+    type: VM
+    os: linux
+    source: secure-mail-gateway
+    resources: {ram: 2 gib, cpu: 1}
+    services:
+      - {port: 25, name: smtp-inbound}
+    roles: {mail-admin: postfix}
+```
+
+Complete examples live in [`examples/scenarios/`](examples/scenarios/).
+
+## Getting Started
+
+Prerequisites:
+
+- Python 3.11 or newer
+- [uv](https://github.com/astral-sh/uv)
+- [nox](https://nox.thea.codes/) for the repository verification graph, or
+  `uvx nox` without a separate install
+
+Set up the Python reference implementation:
+
+```shell
+git clone https://github.com/autarchy-ai/aces-sdl.git
+cd aces-sdl/implementations/python
+uv sync --all-extras
+uv run aces --help
+```
+
+## Using the Python Reference Implementation
+
+Parse and validate a scenario from Python:
+
+```python
+from pathlib import Path
+
+from aces_sdl import parse_sdl_file
+
+scenario = parse_sdl_file(
+    Path("../../examples/scenarios/hospital-ransomware-surgery-day.sdl.yaml")
+)
+
+for advisory in scenario.advisories:
+    print(advisory)
+```
+
+Run the CLI from `implementations/python`:
+
+```shell
+uv run aces sdl resolve ../../examples/scenarios/hospital-ransomware-surgery-day.sdl.yaml
+uv run aces sdl verify-imports ../../examples/scenarios/hospital-ransomware-surgery-day.sdl.yaml
+uv run aces sdl publish ../../examples/scenarios/hospital-ransomware-surgery-day.sdl.yaml
+uv run aces processor --help
+uv run aces conformance --help
+uv run aces-mcp
+```
+
+## Repository Layout
+
+- `specs/` - normative prose and formal specification material
+- `contracts/` - published schemas, fixtures, manifests, and profiles
+- `implementations/` - reference implementations and their local tooling
+- `examples/` - worked SDL scenario examples
+- `docs/` - explanatory documentation, API docs, and architecture decisions
+- `research/` - supporting literature and reference ecosystem material
+- `tools/` - repository maintenance, policy, and publication tooling
+- `changelog.d/` - towncrier release note fragments
+
+## Documentation
+
+The documentation source is under [`docs/`](docs/). Important entry points:
+
+- [`docs/index.md`](docs/index.md) - documentation index
+- [`docs/explain/sdl/index.md`](docs/explain/sdl/index.md) - SDL guide
+- [`docs/explain/sdl/runtime-architecture.md`](docs/explain/sdl/runtime-architecture.md) - runtime architecture
+- [`docs/explain/reference/backend-conformance.md`](docs/explain/reference/backend-conformance.md) - backend conformance model
+- [`docs/decisions/adrs/README.md`](docs/decisions/adrs/README.md) - architecture decisions
+- [`contracts/README.md`](contracts/README.md) - contract publication surface
+
+## Verification
+
+`nox` is the canonical verification graph. From the repository root:
+
+```shell
+uvx nox -s verify
+uvx nox -s tests
+uvx nox -l
+```
+
+The full `verify` session runs the project checks expected for pull requests,
+including repository policy, generated artifact checks, tests, and docs.
+
+## Contributing
+
+Contributions are welcome where they improve the language, reference
+implementation, contracts, tests, examples, or documentation. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Language and contract changes should be discussed before implementation because
+small SDL changes can affect validation, generated schemas, backend
+conformance, and existing scenario examples.
+
+## Versioning
+
+The Python package currently declares its version in
+[`implementations/python/pyproject.toml`](implementations/python/pyproject.toml).
+Release notes are collated from towncrier fragments in
+[`changelog.d/`](changelog.d/). Do not hand-edit `CHANGELOG.md`.
+
+## Citation
+
+If you use ACES SDL in academic work, cite the repository:
+
+```bibtex
+@software{aces_sdl,
+  author       = {Edwards, Brad},
+  title        = {ACES SDL: Backend-Agnostic Scenario Description Language for Cyber Range Experiments},
+  year         = {2026},
+  organization = {Autarchy},
+  license      = {MIT},
+  url          = {https://github.com/autarchy-ai/aces-sdl}
+}
+```
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE).
+
+## Maintainer
+
+ACES SDL is maintained by Brad Edwards under Autarchy.
+
+The repository is expected to move under the `autarchy-ai` GitHub
+organization, but the project belongs to Autarchy.
