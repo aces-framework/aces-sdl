@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from aces_sdl.scenario import InstantiatedScenario, Scenario
@@ -9,20 +13,31 @@ from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler, model_v
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from .manifest_authority import (
+    BACKEND_SUPPORTED_CONTRACT_IDS,
+    PROCESSOR_SUPPORTED_CONTRACT_IDS,
+    PROCESSOR_SUPPORTED_SDL_VERSION_IDS,
+    validate_backend_supported_contract_versions,
+    validate_processor_supported_contract_versions,
+    validate_processor_supported_sdl_versions,
+)
 from .versions import (
-    BACKEND_MANIFEST_SCHEMA_VERSION,
     BACKEND_MANIFEST_V2_SCHEMA_VERSION,
     CONCEPT_FAMILIES_SCHEMA_VERSION,
+    CONTROLLED_VOCABULARIES_SCHEMA_VERSION,
     EVALUATION_STATE_SCHEMA_VERSION,
     OPERATION_SCHEMA_VERSION,
-    PROCESSOR_MANIFEST_SCHEMA_VERSION,
+    PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION,
     PROCESSOR_MANIFEST_V2_SCHEMA_VERSION,
+    REFERENCE_MODELS_SCHEMA_VERSION,
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION,
+    SEMANTIC_PROFILE_SCHEMA_VERSION,
     WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
 from .vocabulary import (
+    ConceptFamilyId,
     ConceptProvenanceCategory,
     ProcessorFeature,
     RealizationSupportMode,
@@ -38,6 +53,46 @@ class ContractModel(BaseModel):
 
 
 NonEmptyString = Annotated[str, Field(min_length=1)]
+SemanticProfileId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*-v[0-9]+$")]
+SemanticAssumptionId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+ReferenceModelId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")]
+JsonPointerString = Annotated[str, Field(pattern=r"^#(?:/[A-Za-z0-9_.$~-]+)+$")]
+InstancePath = Annotated[str, Field(pattern=r"^[a-z_][a-z0-9_]*(?:\.(?:[a-z_][a-z0-9_]*|\*))*$")]
+ControlledVocabularyTermId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")]
+
+_BACKEND_CONCEPT_BINDING_SCOPES = frozenset(
+    {
+        "capabilities.provisioner.supported_node_types",
+        "capabilities.provisioner.supported_os_families",
+        "capabilities.provisioner.supported_content_types",
+        "capabilities.provisioner.supported_account_features",
+        "capabilities.orchestrator.supported_sections",
+        "capabilities.evaluator.supported_sections",
+    }
+)
+
+_PROCESSOR_CONCEPT_BINDING_SCOPES = frozenset(
+    {
+        "capabilities.supported_sdl_versions",
+        "capabilities.supported_features",
+    }
+)
+
+_CONTROLLED_VOCABULARY_GOVERNED_SCOPES = frozenset(
+    {
+        "capabilities.supported_features",
+        "capabilities.orchestrator.supported_workflow_features",
+        "capabilities.orchestrator.supported_workflow_state_predicates",
+        *_BACKEND_CONCEPT_BINDING_SCOPES,
+    }
+)
+
+_SEMANTIC_PROFILE_PHASE_ALLOWED_BINDING_SCOPES = {
+    "authoring": frozenset(),
+    "exchange": frozenset(),
+    "processing": _PROCESSOR_CONCEPT_BINDING_SCOPES,
+    "execution": _BACKEND_CONCEPT_BINDING_SCOPES,
+}
 
 
 class InstantiationRequestModel(ContractModel):
@@ -110,6 +165,31 @@ class EvaluationHistoryEventModel(ContractModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class ParticipantEpisodeStateModel(ContractModel):
+    state_schema_version: Literal[PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION] = PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION
+    participant_address: str
+    episode_id: str
+    sequence_number: int
+    status: str
+    terminal_reason: str | None = None
+    initialized_at: str
+    updated_at: str
+    terminated_at: str | None = None
+    last_control_action: str
+    previous_episode_id: str | None = None
+
+
+class ParticipantEpisodeHistoryEventModel(ContractModel):
+    event_type: str
+    timestamp: str
+    participant_address: str
+    episode_id: str
+    sequence_number: int
+    terminal_reason: str | None = None
+    control_action: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class PlanOperationModel(ContractModel):
     action: str
     address: str
@@ -147,12 +227,25 @@ class SnapshotEntryModel(ContractModel):
 
 
 class RuntimeSnapshotEnvelopeModel(ContractModel):
+    """Published envelope for a live runtime snapshot.
+
+    Participant episode surfaces (``participant_episode_results`` and
+    ``participant_episode_history``) are both keyed by the stable
+    ``participant_address`` of the participant the state/history belongs
+    to. The results map carries the currently-live episode state per
+    participant; prior episodes survive only through the append-only
+    history stream and the ``previous_episode_id`` chain on each state.
+    See ADR-013.
+    """
+
     schema_version: Literal[RUNTIME_SNAPSHOT_SCHEMA_VERSION] = RUNTIME_SNAPSHOT_SCHEMA_VERSION
     entries: dict[str, SnapshotEntryModel] = Field(default_factory=dict)
     orchestration_results: dict[str, WorkflowExecutionStateModel] = Field(default_factory=dict)
     orchestration_history: dict[str, list[WorkflowHistoryEventModel]] = Field(default_factory=dict)
     evaluation_results: dict[str, EvaluationResultStateModel] = Field(default_factory=dict)
     evaluation_history: dict[str, list[EvaluationHistoryEventModel]] = Field(default_factory=dict)
+    participant_episode_results: dict[str, ParticipantEpisodeStateModel] = Field(default_factory=dict)
+    participant_episode_history: dict[str, list[ParticipantEpisodeHistoryEventModel]] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -189,6 +282,22 @@ class ProvisionerCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_account_support(self) -> ProvisionerCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_node_types",
+            self.supported_node_types,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_os_families",
+            self.supported_os_families,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_content_types",
+            self.supported_content_types,
+        )
+        _validate_controlled_vocabulary_terms(
+            "capabilities.provisioner.supported_account_features",
+            self.supported_account_features,
+        )
         if self.supports_accounts and not self.supported_account_features:
             raise ValueError("provisioners that support accounts must declare supported_account_features")
         if not self.supports_accounts and self.supported_account_features:
@@ -241,6 +350,10 @@ class OrchestratorCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_workflow_support(self) -> OrchestratorCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.orchestrator.supported_sections",
+            self.supported_sections,
+        )
         if self.supports_workflows:
             if "workflows" not in self.supported_sections:
                 raise ValueError("orchestrators that support workflows must include 'workflows' in supported_sections")
@@ -305,6 +418,10 @@ class EvaluatorCapabilitiesModel(ContractModel):
 
     @model_validator(mode="after")
     def _validate_evaluator_support(self) -> EvaluatorCapabilitiesModel:
+        _validate_controlled_vocabulary_terms(
+            "capabilities.evaluator.supported_sections",
+            self.supported_sections,
+        )
         if not self.supports_scoring and not self.supports_objectives:
             raise ValueError("evaluators must support scoring, objectives, or both")
         return self
@@ -336,64 +453,17 @@ class EvaluatorCapabilitiesModel(ContractModel):
         return json_schema
 
 
-class BackendManifestModel(ContractModel):
-    schema_version: Literal[BACKEND_MANIFEST_SCHEMA_VERSION] = BACKEND_MANIFEST_SCHEMA_VERSION
-    name: NonEmptyString
-    provisioner: ProvisionerCapabilitiesModel
-    orchestrator: OrchestratorCapabilitiesModel | None = None
-    evaluator: EvaluatorCapabilitiesModel | None = None
-
-
-class ProcessorManifestModel(ContractModel):
-    schema_version: Literal[PROCESSOR_MANIFEST_SCHEMA_VERSION] = PROCESSOR_MANIFEST_SCHEMA_VERSION
-    name: NonEmptyString
-    version: NonEmptyString
-    supported_sdl_versions: list[NonEmptyString] = Field(min_length=1)
-    supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    supported_features: list[ProcessorFeature] = Field(min_length=1)
-    compatible_backends: list[NonEmptyString] = Field(min_length=1)
-    constraints: dict[str, str] = Field(default_factory=dict)
-
-
 class ApparatusIdentityModel(ContractModel):
     name: NonEmptyString
     version: NonEmptyString
 
 
-class ApparatusCompatibilityModel(ContractModel):
-    processors: list[NonEmptyString] = Field(default_factory=list)
-    backends: list[NonEmptyString] = Field(default_factory=list)
-    participant_implementations: list[NonEmptyString] = Field(default_factory=list)
+class BackendCompatibilityModel(ContractModel):
+    processors: list[NonEmptyString] = Field(min_length=1)
 
-    @model_validator(mode="after")
-    def _validate_non_hollow_compatibility(self) -> ApparatusCompatibilityModel:
-        if not (self.processors or self.backends or self.participant_implementations):
-            raise ValueError(
-                "compatibility must declare at least one processor, backend, or participant implementation"
-            )
-        return self
 
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        json_schema = handler(core_schema)
-        json_schema = handler.resolve_ref_schema(json_schema)
-        json_schema.setdefault("allOf", []).append(
-            {
-                "anyOf": [
-                    {"required": ["processors"], "properties": {"processors": {"minItems": 1}}},
-                    {"required": ["backends"], "properties": {"backends": {"minItems": 1}}},
-                    {
-                        "required": ["participant_implementations"],
-                        "properties": {"participant_implementations": {"minItems": 1}},
-                    },
-                ]
-            }
-        )
-        return json_schema
+class ProcessorCompatibilityModel(ContractModel):
+    backends: list[NonEmptyString] = Field(min_length=1)
 
 
 class RealizationSupportDeclarationModel(ContractModel):
@@ -455,35 +525,120 @@ class RealizationSupportDeclarationModel(ContractModel):
         return json_schema
 
 
+class ConceptBindingEntryModel(ContractModel):
+    """Binds a vocabulary surface in an artifact to a canonical concept family."""
+
+    scope: NonEmptyString = Field(
+        ...,
+        pattern=r"^[a-z_][a-z0-9_.]*[a-z0-9_]$",
+    )
+    family: ConceptFamilyId
+
+
 class ProcessorCapabilitiesV2Model(ContractModel):
     supported_sdl_versions: list[NonEmptyString] = Field(min_length=1)
     supported_features: list[ProcessorFeature] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_declared_authority(self) -> ProcessorCapabilitiesV2Model:
+        validate_processor_supported_sdl_versions(self.supported_sdl_versions)
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_sdl_versions"]["items"]["enum"] = list(PROCESSOR_SUPPORTED_SDL_VERSION_IDS)
+        return json_schema
+
+
+class ParticipantRuntimeCapabilitiesModel(ContractModel):
+    """Participant-episode lifecycle capability block (RUN-311).
+
+    A backend that declares this block advertises that it implements
+    the full participant episode control surface on the
+    ``ParticipantRuntime`` protocol: ``initialize`` / ``reset`` /
+    ``restart`` / ``terminate`` plus ``status`` / ``results`` /
+    ``history``. Consumers of the manifest can infer the
+    ``FULL_REMOTE_CONTROL_PLANE`` conformance profile from this block.
+    """
+
+    name: NonEmptyString
+    constraints: dict[str, str] = Field(default_factory=dict)
 
 
 class BackendCapabilitiesV2Model(ContractModel):
     provisioner: ProvisionerCapabilitiesModel
     orchestrator: OrchestratorCapabilitiesModel | None = None
     evaluator: EvaluatorCapabilitiesModel | None = None
+    participant_runtime: ParticipantRuntimeCapabilitiesModel | None = None
 
 
 class ProcessorManifestV2Model(ContractModel):
     schema_version: Literal[PROCESSOR_MANIFEST_V2_SCHEMA_VERSION] = PROCESSOR_MANIFEST_V2_SCHEMA_VERSION
     identity: ApparatusIdentityModel
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    compatibility: ApparatusCompatibilityModel
-    realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
+    compatibility: ProcessorCompatibilityModel
+    concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
     capabilities: ProcessorCapabilitiesV2Model
+
+    @model_validator(mode="after")
+    def _validate_unique_binding_scopes(self) -> ProcessorManifestV2Model:
+        validate_processor_supported_contract_versions(self.supported_contract_versions)
+        scopes = [binding.scope for binding in self.concept_bindings]
+        if len(scopes) != len(set(scopes)):
+            raise ValueError("concept_bindings must not contain duplicate scopes")
+        _validate_canonical_concept_bindings(self, allowed_scopes=_PROCESSOR_CONCEPT_BINDING_SCOPES)
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(
+            PROCESSOR_SUPPORTED_CONTRACT_IDS
+        )
+        return json_schema
 
 
 class BackendManifestV2Model(ContractModel):
     schema_version: Literal[BACKEND_MANIFEST_V2_SCHEMA_VERSION] = BACKEND_MANIFEST_V2_SCHEMA_VERSION
     identity: ApparatusIdentityModel
     supported_contract_versions: list[NonEmptyString] = Field(min_length=1)
-    compatibility: ApparatusCompatibilityModel
+    compatibility: BackendCompatibilityModel
     realization_support: list[RealizationSupportDeclarationModel] = Field(min_length=1)
+    concept_bindings: list[ConceptBindingEntryModel] = Field(min_length=1)
     constraints: dict[str, str] = Field(default_factory=dict)
     capabilities: BackendCapabilitiesV2Model
+
+    @model_validator(mode="after")
+    def _validate_unique_binding_scopes(self) -> BackendManifestV2Model:
+        validate_backend_supported_contract_versions(self.supported_contract_versions)
+        scopes = [binding.scope for binding in self.concept_bindings]
+        if len(scopes) != len(set(scopes)):
+            raise ValueError("concept_bindings must not contain duplicate scopes")
+        _validate_canonical_concept_bindings(self, allowed_scopes=_BACKEND_CONCEPT_BINDING_SCOPES)
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["properties"]["supported_contract_versions"]["items"]["enum"] = list(BACKEND_SUPPORTED_CONTRACT_IDS)
+        return json_schema
 
 
 class ConceptFamilyDefinitionModel(ContractModel):
@@ -492,6 +647,9 @@ class ConceptFamilyDefinitionModel(ContractModel):
     provenance: ConceptProvenanceCategory
     authority: str | None = Field(default=None, min_length=1)
     authority_reference: str | None = Field(default=None, min_length=1)
+    extension_scope: str | None = Field(default=None, min_length=1)
+    relation_rules: list[NonEmptyString] = Field(default_factory=list, min_length=1)
+    non_ambiguity_constraints: list[NonEmptyString] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
     def _validate_provenance_rules(self) -> ConceptFamilyDefinitionModel:
@@ -502,6 +660,13 @@ class ConceptFamilyDefinitionModel(ContractModel):
             self.authority is not None or self.authority_reference is not None
         ):
             raise ValueError("native concept families must not declare authority metadata")
+        if self.provenance == ConceptProvenanceCategory.NATIVE:
+            if self.extension_scope is None:
+                raise ValueError("native concept families require extension_scope")
+            if not self.relation_rules:
+                raise ValueError("native concept families require relation_rules")
+            if not self.non_ambiguity_constraints:
+                raise ValueError("native concept families require non_ambiguity_constraints")
         return self
 
     @classmethod
@@ -519,14 +684,26 @@ class ConceptFamilyDefinitionModel(ContractModel):
                         "properties": {"provenance": {"const": ConceptProvenanceCategory.ADOPTED.value}},
                         "required": ["provenance"],
                     },
-                    "then": {"required": ["authority", "authority_reference"]},
+                    "then": {
+                        "required": ["authority", "authority_reference"],
+                        "properties": {
+                            "authority": {"type": "string", "minLength": 1},
+                            "authority_reference": {"type": "string", "minLength": 1},
+                        },
+                    },
                 },
                 {
                     "if": {
                         "properties": {"provenance": {"const": ConceptProvenanceCategory.ADAPTED.value}},
                         "required": ["provenance"],
                     },
-                    "then": {"required": ["authority", "authority_reference"]},
+                    "then": {
+                        "required": ["authority", "authority_reference"],
+                        "properties": {
+                            "authority": {"type": "string", "minLength": 1},
+                            "authority_reference": {"type": "string", "minLength": 1},
+                        },
+                    },
                 },
                 {
                     "if": {
@@ -534,12 +711,18 @@ class ConceptFamilyDefinitionModel(ContractModel):
                         "required": ["provenance"],
                     },
                     "then": {
+                        "required": ["extension_scope", "relation_rules", "non_ambiguity_constraints"],
+                        "properties": {
+                            "extension_scope": {"type": "string", "minLength": 1},
+                            "relation_rules": {"type": "array", "minItems": 1},
+                            "non_ambiguity_constraints": {"type": "array", "minItems": 1},
+                        },
                         "not": {
                             "anyOf": [
                                 {"required": ["authority"]},
                                 {"required": ["authority_reference"]},
                             ]
-                        }
+                        },
                     },
                 },
             ]
@@ -571,6 +754,412 @@ class ConceptFamilyCatalogModel(ContractModel):
         return json_schema
 
 
+class ReferenceModelSchemaBindingModel(ContractModel):
+    contract_id: NonEmptyString
+    schema_pointer: JsonPointerString
+    instance_path: InstancePath
+
+
+class ReferenceModelDefinitionModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+    concept_family: ConceptFamilyId
+    authoritative_schema: ReferenceModelSchemaBindingModel
+    reused_schemas: list[ReferenceModelSchemaBindingModel] = Field(default_factory=list)
+    key_fields: list[NonEmptyString] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_reference_model_definition(self) -> ReferenceModelDefinitionModel:
+        if len(self.key_fields) != len(set(self.key_fields)):
+            raise ValueError("reference model key_fields must not contain duplicates")
+
+        authoritative_key = (
+            self.authoritative_schema.contract_id,
+            self.authoritative_schema.schema_pointer,
+            self.authoritative_schema.instance_path,
+        )
+        reused_keys = [
+            (binding.contract_id, binding.schema_pointer, binding.instance_path) for binding in self.reused_schemas
+        ]
+        if len(reused_keys) != len(set(reused_keys)):
+            raise ValueError("reference model reused_schemas must not contain duplicate schema bindings")
+        if authoritative_key in set(reused_keys):
+            raise ValueError("reference model reused_schemas must not repeat authoritative_schema")
+        return self
+
+
+class ReferenceModelCatalogModel(ContractModel):
+    schema_version: Literal[REFERENCE_MODELS_SCHEMA_VERSION] = REFERENCE_MODELS_SCHEMA_VERSION
+    models: dict[NonEmptyString, ReferenceModelDefinitionModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_reference_models(self) -> ReferenceModelCatalogModel:
+        known_families = _authoritative_concept_family_ids()
+        unknown_families = {
+            model.concept_family for model in self.models.values() if model.concept_family not in known_families
+        }
+        if unknown_families:
+            unknown = ", ".join(sorted(unknown_families))
+            raise ValueError(f"reference models include unknown concept families: {unknown}")
+
+        known_contracts = _known_contract_ids()
+        unknown_contracts = {
+            binding.contract_id
+            for model in self.models.values()
+            for binding in (model.authoritative_schema, *model.reused_schemas)
+            if binding.contract_id not in known_contracts
+        }
+        if unknown_contracts:
+            unknown = ", ".join(sorted(unknown_contracts))
+            raise ValueError(f"reference models include unknown contract ids: {unknown}")
+
+        for model_id, model in self.models.items():
+            _validate_reference_model_schema_binding(
+                model_id=model_id,
+                binding_label="authoritative_schema",
+                binding=model.authoritative_schema,
+                key_fields=model.key_fields,
+            )
+            for index, binding in enumerate(model.reused_schemas):
+                _validate_reference_model_schema_binding(
+                    model_id=model_id,
+                    binding_label=f"reused_schemas[{index}]",
+                    binding=binding,
+                    key_fields=model.key_fields,
+                )
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        models_schema = json_schema.get("properties", {}).get("models")
+        if isinstance(models_schema, dict):
+            models_schema.setdefault("propertyNames", {"minLength": 1})
+        return json_schema
+
+
+class ControlledVocabularyTermModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+
+
+class ControlledVocabularyDefinitionModel(ContractModel):
+    title: NonEmptyString
+    description: NonEmptyString
+    kind: Literal["enumeration", "vocabulary"]
+    governed_scopes: list[NonEmptyString] = Field(default_factory=list)
+    extension_policy: Literal["closed", "governed-extension"]
+    extension_pattern: NonEmptyString | None = None
+    terms: dict[ControlledVocabularyTermId, ControlledVocabularyTermModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_vocabulary_definition(self) -> ControlledVocabularyDefinitionModel:
+        unknown_scopes = set(self.governed_scopes) - _CONTROLLED_VOCABULARY_GOVERNED_SCOPES
+        if unknown_scopes:
+            unknown = ", ".join(sorted(unknown_scopes))
+            raise ValueError(f"controlled vocabulary includes unknown governed scopes: {unknown}")
+
+        if len(self.governed_scopes) != len(set(self.governed_scopes)):
+            raise ValueError("controlled vocabulary governed_scopes must not contain duplicates")
+
+        if self.kind == "enumeration" and self.extension_policy != "closed":
+            raise ValueError("enumeration controlled vocabularies must use extension_policy='closed'")
+
+        if self.extension_policy == "closed":
+            if self.extension_pattern is not None:
+                raise ValueError("closed controlled vocabularies must not declare extension_pattern")
+            return self
+
+        if not self.governed_scopes:
+            raise ValueError("governed-extension controlled vocabularies must declare governed_scopes")
+        if self.extension_pattern is None:
+            raise ValueError("governed-extension controlled vocabularies must declare extension_pattern")
+        try:
+            re.compile(self.extension_pattern)
+        except re.error as exc:
+            raise ValueError("controlled vocabulary extension_pattern must be a valid regex") from exc
+        return self
+
+
+class ControlledVocabularyCatalogModel(ContractModel):
+    schema_version: Literal[CONTROLLED_VOCABULARIES_SCHEMA_VERSION] = CONTROLLED_VOCABULARIES_SCHEMA_VERSION
+    vocabularies: dict[NonEmptyString, ControlledVocabularyDefinitionModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_vocabulary_catalog(self) -> ControlledVocabularyCatalogModel:
+        scope_to_vocabulary: dict[str, str] = {}
+        for vocabulary_id, definition in self.vocabularies.items():
+            for scope in definition.governed_scopes:
+                previous = scope_to_vocabulary.setdefault(scope, vocabulary_id)
+                if previous != vocabulary_id:
+                    raise ValueError(
+                        f"governed scope '{scope}' is declared by multiple vocabularies: {previous}, {vocabulary_id}"
+                    )
+        return self
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        vocabularies_schema = json_schema.get("properties", {}).get("vocabularies")
+        if isinstance(vocabularies_schema, dict):
+            vocabularies_schema.setdefault("propertyNames", {"minLength": 1})
+        return json_schema
+
+
+class SemanticBehaviorAssumptionModel(ContractModel):
+    id: SemanticAssumptionId
+    statement: NonEmptyString
+
+
+class SemanticProfilePhaseModel(ContractModel):
+    required_contracts: list[NonEmptyString] = Field(min_length=1)
+    required_concept_families: list[ConceptFamilyId] = Field(min_length=1)
+    required_bindings: list[ConceptBindingEntryModel] = Field(default_factory=list)
+    behavior_assumptions: list[SemanticBehaviorAssumptionModel] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_phase_assumptions(self) -> SemanticProfilePhaseModel:
+        if len(self.required_contracts) != len(set(self.required_contracts)):
+            raise ValueError("semantic profile required_contracts must not contain duplicates")
+        if len(self.required_concept_families) != len(set(self.required_concept_families)):
+            raise ValueError("semantic profile required_concept_families must not contain duplicates")
+
+        known_contracts = _known_contract_ids()
+        unknown_contracts = set(self.required_contracts) - known_contracts
+        if unknown_contracts:
+            unknown = ", ".join(sorted(unknown_contracts))
+            raise ValueError(f"semantic profile required_contracts include unknown contract ids: {unknown}")
+
+        known_families = _authoritative_concept_family_ids()
+        unknown_families = set(self.required_concept_families) - known_families
+        if unknown_families:
+            unknown = ", ".join(sorted(unknown_families))
+            raise ValueError(f"semantic profile required_concept_families include unknown families: {unknown}")
+
+        binding_scopes = [binding.scope for binding in self.required_bindings]
+        if len(binding_scopes) != len(set(binding_scopes)):
+            raise ValueError("semantic profile required_bindings must not contain duplicate scopes")
+
+        undeclared_binding_families = {
+            binding.family for binding in self.required_bindings if binding.family not in self.required_concept_families
+        }
+        if undeclared_binding_families:
+            missing = ", ".join(sorted(undeclared_binding_families))
+            raise ValueError(
+                f"semantic profile required_bindings must use families declared in required_concept_families: {missing}"
+            )
+
+        assumption_ids = [assumption.id for assumption in self.behavior_assumptions]
+        if len(assumption_ids) != len(set(assumption_ids)):
+            raise ValueError("semantic profile behavior_assumptions must not contain duplicate ids")
+        return self
+
+
+class SemanticProfileModel(ContractModel):
+    schema_version: Literal[SEMANTIC_PROFILE_SCHEMA_VERSION] = SEMANTIC_PROFILE_SCHEMA_VERSION
+    profile_id: SemanticProfileId
+    title: NonEmptyString
+    description: NonEmptyString
+    concept_catalog_version: Literal[CONCEPT_FAMILIES_SCHEMA_VERSION]
+    authoring: SemanticProfilePhaseModel
+    exchange: SemanticProfilePhaseModel
+    processing: SemanticProfilePhaseModel
+    execution: SemanticProfilePhaseModel
+
+    @model_validator(mode="after")
+    def _validate_phase_binding_scopes(self) -> SemanticProfileModel:
+        for phase_name, allowed_scopes in _SEMANTIC_PROFILE_PHASE_ALLOWED_BINDING_SCOPES.items():
+            phase = getattr(self, phase_name)
+            declared_scopes = {binding.scope for binding in phase.required_bindings}
+            invalid_scopes = declared_scopes - allowed_scopes
+            if invalid_scopes:
+                invalid = ", ".join(sorted(invalid_scopes))
+                if allowed_scopes:
+                    allowed = ", ".join(sorted(allowed_scopes))
+                    raise ValueError(
+                        f"semantic profile {phase_name} required_bindings include scopes outside the governed "
+                        f"{phase_name} surfaces: {invalid}; allowed scopes: {allowed}"
+                    )
+                raise ValueError(
+                    f"semantic profile {phase_name} does not define governed required_bindings surfaces: {invalid}"
+                )
+        return self
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+@lru_cache(maxsize=1)
+def _authoritative_concept_family_ids() -> frozenset[str]:
+    catalog_path = _repo_root() / "contracts" / "concept-authority" / "concept-families-v1.json"
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog = ConceptFamilyCatalogModel.model_validate(payload)
+    return frozenset(catalog.families)
+
+
+@lru_cache(maxsize=1)
+def _known_contract_ids() -> frozenset[str]:
+    return frozenset(schema_bundle())
+
+
+def _decode_json_pointer_segment(segment: str) -> str:
+    return segment.replace("~1", "/").replace("~0", "~")
+
+
+def _resolve_schema_pointer(schema_root: dict[str, Any], pointer: str) -> dict[str, Any]:
+    if not pointer.startswith("#/"):
+        raise KeyError(pointer)
+
+    current: Any = schema_root
+    for raw_segment in pointer[2:].split("/"):
+        segment = _decode_json_pointer_segment(raw_segment)
+        if not isinstance(current, dict) or segment not in current:
+            raise KeyError(pointer)
+        current = current[segment]
+
+    if not isinstance(current, dict):
+        raise KeyError(pointer)
+    return current
+
+
+def _resolve_ref_schema(schema_root: dict[str, Any], schema_node: dict[str, Any]) -> dict[str, Any]:
+    current = schema_node
+    while "$ref" in current:
+        ref = current["$ref"]
+        if not isinstance(ref, str):
+            raise KeyError(ref)
+        current = _resolve_schema_pointer(schema_root, ref)
+    return current
+
+
+def _resolve_instance_path_schema(schema_root: dict[str, Any], instance_path: str) -> dict[str, Any]:
+    current = schema_root
+    for segment in instance_path.split("."):
+        current = _resolve_ref_schema(schema_root, current)
+        if segment == "*":
+            additional_properties = current.get("additionalProperties")
+            if not isinstance(additional_properties, dict):
+                raise KeyError(instance_path)
+            current = additional_properties
+            continue
+
+        properties = current.get("properties")
+        if not isinstance(properties, dict) or segment not in properties or not isinstance(properties[segment], dict):
+            raise KeyError(instance_path)
+        current = properties[segment]
+    return _resolve_ref_schema(schema_root, current)
+
+
+def _validate_reference_model_schema_binding(
+    *,
+    model_id: str,
+    binding_label: str,
+    binding: ReferenceModelSchemaBindingModel,
+    key_fields: list[str],
+) -> None:
+    schema_root = schema_bundle()[binding.contract_id]
+    try:
+        pointer_schema = _resolve_ref_schema(schema_root, _resolve_schema_pointer(schema_root, binding.schema_pointer))
+    except KeyError as exc:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} schema_pointer '{binding.schema_pointer}' "
+            f"does not resolve within contract '{binding.contract_id}'"
+        ) from exc
+
+    try:
+        instance_schema = _resolve_instance_path_schema(schema_root, binding.instance_path)
+    except KeyError as exc:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} instance_path '{binding.instance_path}' "
+            f"does not resolve within contract '{binding.contract_id}'"
+        ) from exc
+
+    if pointer_schema != instance_schema:
+        raise ValueError(
+            f"reference model {model_id} {binding_label} instance_path '{binding.instance_path}' "
+            f"does not resolve to schema_pointer '{binding.schema_pointer}' in contract '{binding.contract_id}'"
+        )
+
+    properties = pointer_schema.get("properties")
+    if not isinstance(properties, dict):
+        raise ValueError(
+            f"reference model {model_id} {binding_label} schema_pointer '{binding.schema_pointer}' "
+            "must resolve to an object schema with properties"
+        )
+
+    missing_key_fields = [field for field in key_fields if field not in properties]
+    if missing_key_fields:
+        missing = ", ".join(sorted(missing_key_fields))
+        raise ValueError(
+            f"reference model {model_id} key_fields are not declared by schema_pointer "
+            f"'{binding.schema_pointer}' in contract '{binding.contract_id}': {missing}"
+        )
+
+
+def _scope_is_present(model: ContractModel, scope: str) -> bool:
+    current: Any = model
+    for segment in scope.split("."):
+        if not isinstance(current, BaseModel):
+            return False
+        if segment not in type(current).model_fields:
+            return False
+        current = getattr(current, segment)
+        if current is None:
+            return False
+    return True
+
+
+def _validate_controlled_vocabulary_terms(scope: str, values: list[str]) -> None:
+    if not values:
+        return
+    from .controlled_vocabularies import validate_controlled_vocabulary_scope_values
+
+    validate_controlled_vocabulary_scope_values(scope, values)
+
+
+def _validate_canonical_concept_bindings(model: ContractModel, *, allowed_scopes: frozenset[str]) -> None:
+    family_ids = _authoritative_concept_family_ids()
+    for binding in getattr(model, "concept_bindings", ()):
+        if binding.family not in family_ids:
+            raise ValueError(f"concept_bindings family '{binding.family}' is not defined in concept-families-v1")
+        if binding.scope not in allowed_scopes:
+            allowed = ", ".join(sorted(allowed_scopes))
+            raise ValueError(
+                f"concept_bindings scope '{binding.scope}' is not a governed manifest vocabulary surface; "
+                f"allowed scopes: {allowed}"
+            )
+        if not _scope_is_present(model, binding.scope):
+            raise ValueError(
+                f"concept_bindings scope '{binding.scope}' does not resolve to a declared field in this manifest"
+            )
+
+
+def _backend_profile_schema_for_bundle() -> dict[str, Any]:
+    """Lazily import :class:`BackendProfileModel` to avoid an import cycle.
+
+    ``backend_profiles`` imports :class:`ContractModel` and ``NonEmptyString``
+    from this module, so eager import at module load would cycle. The
+    deferred import here keeps the schema bundle wired up while letting
+    ``backend_profiles`` build on the same closed-world primitives the rest
+    of the contracts surface uses.
+    """
+
+    from .backend_profiles import BackendProfileModel
+
+    return BackendProfileModel.model_json_schema()
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -578,11 +1167,13 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "sdl-authoring-input-v1": Scenario.model_json_schema(),
         "instantiated-scenario-v1": InstantiatedScenario.model_json_schema(),
         "scenario-instantiation-request-v1": InstantiationRequestModel.model_json_schema(),
-        "backend-manifest-v1": BackendManifestModel.model_json_schema(),
         "backend-manifest-v2": BackendManifestV2Model.model_json_schema(),
-        "processor-manifest-v1": ProcessorManifestModel.model_json_schema(),
         "processor-manifest-v2": ProcessorManifestV2Model.model_json_schema(),
         "concept-families-v1": ConceptFamilyCatalogModel.model_json_schema(),
+        "reference-models-v1": ReferenceModelCatalogModel.model_json_schema(),
+        "controlled-vocabularies-v1": ControlledVocabularyCatalogModel.model_json_schema(),
+        "semantic-profile-v1": SemanticProfileModel.model_json_schema(),
+        "backend-profile-v1": _backend_profile_schema_for_bundle(),
         "provisioning-plan-v1": ProvisioningPlanModel.model_json_schema(),
         "orchestration-plan-v1": OrchestrationPlanModel.model_json_schema(),
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),
@@ -602,24 +1193,36 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
             "type": "array",
             "items": EvaluationHistoryEventModel.model_json_schema(),
         },
+        "participant-episode-state-envelope-v1": ParticipantEpisodeStateModel.model_json_schema(),
+        "participant-episode-history-event-stream-v1": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "ParticipantEpisodeHistoryEventStream",
+            "type": "array",
+            "items": ParticipantEpisodeHistoryEventModel.model_json_schema(),
+        },
         "operation-receipt-v1": OperationReceiptModel.model_json_schema(),
         "operation-status-v1": OperationStatusModel.model_json_schema(),
     }
 
 
 __all__ = [
-    "BACKEND_MANIFEST_SCHEMA_VERSION",
     "BACKEND_MANIFEST_V2_SCHEMA_VERSION",
-    "ApparatusCompatibilityModel",
     "ApparatusIdentityModel",
-    "BackendManifestModel",
+    "BackendCompatibilityModel",
     "BackendManifestV2Model",
     "BackendCapabilitiesV2Model",
     "CONCEPT_FAMILIES_SCHEMA_VERSION",
-    "ContractModel",
+    "ConceptBindingEntryModel",
     "ConceptFamilyCatalogModel",
     "ConceptFamilyDefinitionModel",
+    "ConceptFamilyId",
     "ConceptProvenanceCategory",
+    "CONTROLLED_VOCABULARIES_SCHEMA_VERSION",
+    "ControlledVocabularyCatalogModel",
+    "ControlledVocabularyDefinitionModel",
+    "ControlledVocabularyTermId",
+    "ControlledVocabularyTermModel",
+    "ContractModel",
     "EvaluationHistoryEventModel",
     "EvaluationPlanModel",
     "EvaluationResultStateModel",
@@ -631,21 +1234,32 @@ __all__ = [
     "OperationStatusModel",
     "OrchestrationPlanModel",
     "OrchestratorCapabilitiesModel",
+    "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
+    "ParticipantEpisodeHistoryEventModel",
+    "ParticipantEpisodeStateModel",
+    "ParticipantRuntimeCapabilitiesModel",
     "PlanOperationModel",
     "ProcessorFeature",
-    "PROCESSOR_MANIFEST_SCHEMA_VERSION",
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",
-    "ProcessorManifestModel",
     "ProcessorManifestV2Model",
+    "ProcessorCompatibilityModel",
     "ProcessorCapabilitiesV2Model",
     "ProvisionerCapabilitiesModel",
     "ProvisioningPlanModel",
     "RealizationSupportDeclarationModel",
     "RealizationSupportMode",
+    "ReferenceModelCatalogModel",
+    "ReferenceModelDefinitionModel",
+    "ReferenceModelSchemaBindingModel",
+    "REFERENCE_MODELS_SCHEMA_VERSION",
     "RUNTIME_SNAPSHOT_SCHEMA_VERSION",
     "RuntimeSnapshotEnvelopeModel",
     "SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION",
+    "SEMANTIC_PROFILE_SCHEMA_VERSION",
     "schema_bundle",
+    "SemanticBehaviorAssumptionModel",
+    "SemanticProfileModel",
+    "SemanticProfilePhaseModel",
     "SnapshotEntryModel",
     "WorkflowCancellationRequestModel",
     "WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION",

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.semantics.workflow import validate_workflow_step_result
 
 from .compiler import compile_runtime_model
 from .models import (
@@ -30,12 +31,12 @@ from .models import (
     WorkflowHistoryEventType,
     WorkflowResultContract,
     WorkflowStatus,
+    iter_participant_episode_snapshot_violations,
     validate_evaluation_result,
 )
 from .planner import plan
 from .registry import RuntimeTarget, _validate_runtime_target_shape
 from .semantics.planner import reverse_delete_order
-from .semantics.workflow import validate_workflow_step_result
 
 
 def _delete_order(entries: dict[str, SnapshotEntry]) -> list[str]:
@@ -242,6 +243,13 @@ def _call_backend_apply(
             success=False,
             snapshot=snapshot,
             diagnostics=evaluation_result_diagnostics,
+        )
+    participant_episode_result_diagnostics = _participant_episode_contract_diagnostics(result.snapshot)
+    if participant_episode_result_diagnostics:
+        return ApplyResult(
+            success=False,
+            snapshot=snapshot,
+            diagnostics=participant_episode_result_diagnostics,
         )
 
     return result
@@ -1049,6 +1057,26 @@ def _evaluation_result_contract_diagnostics(
     return diagnostics
 
 
+def _participant_episode_contract_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    """Validate participant-episode snapshot data against RUN-311 invariants.
+
+    Delegates to ``iter_participant_episode_snapshot_violations`` so the
+    manager apply path and the conformance semantic-check path share one
+    source of truth for every invariant, and wraps each violation in a
+    ``runtime.backend-contract-invalid`` diagnostic.
+    """
+
+    return [
+        _failure_diagnostic("runtime.backend-contract-invalid", address, message)
+        for address, message in iter_participant_episode_snapshot_violations(
+            snapshot.participant_episode_results,
+            snapshot.participant_episode_history,
+        )
+    ]
+
+
 def _provenance_diagnostics(
     execution_plan: ExecutionPlan,
     target: RuntimeTarget,
@@ -1156,6 +1184,7 @@ class RuntimeManager:
             provisioner=target.provisioner,
             orchestrator=target.orchestrator,
             evaluator=target.evaluator,
+            participant_runtime=target.participant_runtime,
         )
         self._target = target
         self._snapshot = initial_snapshot if initial_snapshot is not None else RuntimeSnapshot()

@@ -201,6 +201,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Claude local scheduler state
+.claude/scheduled_tasks.lock
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

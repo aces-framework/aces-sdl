@@ -6,7 +6,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from aces_contracts.apparatus import RealizationSupportDeclaration
+from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.vocabulary import RealizationSupportMode
 
 from aces.backends.stubs import create_stub_manifest
@@ -74,6 +74,7 @@ def _limited_backend_manifest(
                 disclosure_kinds=frozenset({"runtime-snapshot-v1"}),
             ),
         ),
+        concept_bindings=(ConceptBinding(scope="capabilities.provisioner.supported_node_types", family="assets"),),
         provisioner=provisioner,
         orchestrator=orchestrator,
         evaluator=evaluator,
@@ -1032,15 +1033,6 @@ nodes:
         assert execution_plan.is_valid
 
     def test_variable_backed_os_defaults_must_be_valid_for_nodes_os(self):
-        manifest = _limited_backend_manifest(
-            name="limited",
-            provisioner=ProvisionerCapabilities(
-                name="limited-provisioner",
-                supported_node_types=frozenset({"vm"}),
-                supported_os_families=frozenset({"banana"}),
-            ),
-        )
-
         with pytest.raises(SDLInstantiationError) as exc:
             compile_runtime_model(
                 _scenario("""

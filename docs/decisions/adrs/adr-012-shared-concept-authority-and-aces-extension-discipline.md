@@ -83,12 +83,28 @@ areas such as:
 
 These extensions must be explicit rather than implicit shadow vocabularies.
 
+ACES-native concept families must also carry explicit extension discipline in
+the concept-family catalog:
+
+- the ACES-specific extension scope
+- relation rules to adopted, adapted, or other native families
+- non-ambiguity constraints that prevent the native family from shadowing
+  shared cyber-domain concepts
+
+This is intentionally stricter than the earlier loose native-family shape. The
+project chose to tighten the catalog now because no deployed `v1` consumer
+depends on native families being metadata-free labels.
+
 ### 4. Bind artifacts to concepts instead of reusing labels loosely
 
 SDL, manifests, contracts, provenance, and reports should bind to canonical
 concepts rather than merely repeating the same text labels.
 
 The goal is shared meaning across artifacts, not merely consistent spelling.
+
+Shared semantic profiles may then bundle compatible concept, contract, and
+behavior assumptions for specific interoperable stacks without changing the
+underlying concept authority or artifact schemas themselves.
 
 ### 5. Keep concept authority separate from structure authority
 
@@ -99,14 +115,50 @@ Normative prose, schemas, manifests, and reports remain responsible for their
 own artifact-level structure, while concept authority governs what declared
 terms mean.
 
-### 6. Start narrow and representative
+Shared reference models may then identify the repo-owned reusable structures
+for recurrent objects by anchoring them to published contract definitions
+without collapsing concept authority into artifact-local schema layout.
+
+### 6. Use controlled vocabularies where portable value comparison matters
+
+When cross-artifact comparison depends on stable portable values, ACES shall
+publish a controlled-vocabulary authority surface instead of relying on
+artifact-local free strings.
+
+That surface must distinguish between:
+
+- closed enumerations for mature portable terms
+- governed-extension vocabularies for surfaces that still need disciplined
+  local extension space
+
+Governed extensions must remain explicit and machine-checkable rather than
+silently accepting arbitrary local strings.
+
+### 7. Start narrow and representative
 
 The initial concept-model slice should be narrow enough to validate the method
 without ontology-izing the entire ecosystem prematurely.
 
-The first slice should focus on the cyber-domain concept families listed above
-and the artifact-binding rules needed to carry those concepts across SDL,
-manifests, provenance, and reporting.
+The first slice should focus on the cyber-domain concept families listed above,
+the artifact-binding rules needed to carry those concepts across SDL,
+manifests, provenance, and reporting, and the smallest controlled-vocabulary
+surfaces where stable portable comparison already matters.
+
+### 8. Tighten v2 semantics instead of preserving v1 looseness
+
+The first apparatus-manifest implementation should tighten the `v2` semantics
+instead of preserving any looser `v1` behavior for compatibility.
+
+In practice, that means:
+
+- `concept_bindings` are required on `v2` apparatus manifests
+- each bound family identifier must resolve against the authoritative
+  `concept-families-v1` catalog
+- each bound scope must resolve to a governed manifest vocabulary surface that
+  is actually declared in the artifact being validated
+
+This tightening is intentional. The legacy `v1` shapes are deprecated and are
+not a constraint on how precisely the `v2` concept-binding layer is enforced.
 
 ## Consequences
 
@@ -118,6 +170,9 @@ manifests, provenance, and reporting.
   ecosystem identity.
 - Future manifest, reporting, and interoperability work has a cleaner basis
   for shared meaning.
+- Portable enumerations and governed vocabularies can be published without
+  turning every local implementation detail into a prematurely standardized
+  term set.
 
 ### Negative
 

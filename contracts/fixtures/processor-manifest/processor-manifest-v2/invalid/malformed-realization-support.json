@@ -6,15 +6,16 @@
   },
   "supported_contract_versions": ["processor-manifest-v2"],
   "compatibility": {
-    "processors": [],
-    "backends": ["stub"],
-    "participant_implementations": []
+    "backends": ["stub"]
   },
   "realization_support": [
     {
       "domain": "instantiation",
       "support_mode": "not-a-real-support-mode"
     }
+  ],
+  "concept_bindings": [
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
   ],
   "constraints": {},
   "capabilities": {

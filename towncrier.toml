@@ -1,0 +1,40 @@
+[tool.towncrier]
+name = "aces-sdl"
+filename = "CHANGELOG.md"
+directory = "changelog.d"
+template = "changelog.d/_template.md.jinja"
+title_format = false
+start_string = "<!-- towncrier release notes start -->\n"
+issue_format = "(#{issue})"
+wrap = false
+all_bullets = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true

@@ -15,6 +15,9 @@
       "disclosure_kinds": []
     }
   ],
+  "concept_bindings": [
+    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"}
+  ],
   "capabilities": {
     "provisioner": {
       "name": "stub-provisioner",

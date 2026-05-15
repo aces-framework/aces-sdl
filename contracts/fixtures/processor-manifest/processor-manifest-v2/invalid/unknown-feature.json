@@ -6,10 +6,11 @@
   },
   "supported_contract_versions": ["processor-manifest-v2"],
   "compatibility": {
-    "processors": [],
-    "backends": ["stub"],
-    "participant_implementations": []
+    "backends": ["stub"]
   },
+  "concept_bindings": [
+    {"scope": "capabilities.supported_features", "family": "apparatus-declarations"}
+  ],
   "constraints": {},
   "capabilities": {
     "supported_sdl_versions": ["sdl-authoring-input-v1"],

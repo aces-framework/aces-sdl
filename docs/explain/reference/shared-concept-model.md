@@ -133,10 +133,178 @@ It should make it possible for ACES artifacts to state:
 
 The authoritative concept-family catalog is keyed by canonical family
 identifier. That keeps the concept identifier authoritative at one boundary
-instead of repeating it as an artifact-local field that can drift.
+instead of repeating it as an artifact-local field that can drift, while
+still allowing each artifact family to keep its own fit-for-purpose shape.
 
-while still allowing each artifact family to keep its own fit-for-purpose
-shape.
+## Cross-Artifact Concept Binding (GOV-918)
+
+`GOV-918` implements the artifact binding layer for apparatus manifests.
+
+Both `v2` backend manifests and `v2` processor manifests now require a
+`concept_bindings` section. Each entry maps a dot-delimited field path (scope)
+to a concept family identifier from the authoritative catalog.
+
+For example, a backend manifest binds its provisioner vocabulary:
+
+```json
+"concept_bindings": [
+  {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+  {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
+  {"scope": "capabilities.provisioner.supported_content_types", "family": "tools-and-artifacts"},
+  {"scope": "capabilities.provisioner.supported_account_features", "family": "identities"},
+  {"scope": "capabilities.orchestrator.supported_sections", "family": "actions-and-events"},
+  {"scope": "capabilities.evaluator.supported_sections", "family": "observables"}
+]
+```
+
+This makes it possible for downstream tooling to answer: "which concept family
+does this manifest field belong to?" without relying on field-name conventions
+or documentation.
+
+The binding is required (not optional) to prevent specification gaps where
+concept bindings could be silently omitted. Family identifiers are validated
+against the authoritative catalog at model time, and scope paths must resolve
+to governed manifest vocabulary surfaces that are actually declared in the
+artifact.
+
+## ACES Extension Discipline (GOV-919)
+
+`GOV-919` implements the ACES concept layer by making native extension metadata
+normative in the concept-family catalog.
+
+Every `native` concept family now declares:
+
+- `extension_scope`, describing the ACES-specific concern covered by the family
+- `relation_rules`, describing how the native family may relate to adopted,
+  adapted, or other native families
+- `non_ambiguity_constraints`, describing how the family avoids shadowing
+  shared cyber-domain concepts
+
+This is intentionally stricter than treating native families as loose labels.
+If a field denotes a cyber-domain asset, identity, observable, relationship,
+action, event, tool, or artifact directly, it should bind to the adopted or
+adapted family. Native families are for ACES experiment, runtime, apparatus,
+provenance, and governance concerns that the shared authority does not
+naturally cover.
+
+## Shared Semantic Profiles (GOV-920)
+
+`GOV-920` implements the composition layer above concept families, bindings,
+reference models, and vocabularies. It does not redefine any of those
+authority surfaces.
+
+A shared semantic profile is a named interoperability declaration that says
+which existing assumptions must hold together across authoring, exchange,
+processing, and execution.
+
+For this repo, that means:
+
+- semantic profiles are not backend capability profiles. The checked-in
+  `contracts/profiles/backend/*.json` artifacts remain apparatus capability
+  declarations about required runtime contract surfaces. A semantic profile may
+  reference or compose them, but it must not duplicate or replace them.
+- semantic profiles are not concept families, reference models, or controlled
+  vocabularies. Those remain separate authority surfaces; a profile only
+  selects, constrains, or composes them.
+- semantic profiles must resolve to existing normative artifacts instead of
+  restating concept definitions, enum members, schema fragments, or behavior
+  rules inline.
+- if machine-readable semantic profile artifacts are introduced, they belong
+  under `contracts/profiles/` with the repo's other normative profile
+  declarations, not as implementation-only constants or ad hoc docs.
+- the existing `scenario-instantiation-request-v1.profile` field is only a
+  selector today. Do not let it become a second implicit authority surface
+  with undocumented local-only behavior.
+- validation should reuse the existing repo pattern: closed-world contract
+  models for external shape, followed by repo-owned semantic validation for
+  cross-artifact rules. Do not introduce a separate profile-specific exception
+  hierarchy, schema DSL, or validator stack.
+- required binding scopes remain governed by the artifact family that owns
+  them. For the initial slice, semantic profiles may declare required
+  bindings only for processor `v2` processing surfaces and backend `v2`
+  execution surfaces. `authoring` and `exchange` stay binding-free until the
+  repo defines governed vocabulary surfaces for those phases.
+
+The initial machine-readable profile is
+`contracts/profiles/semantic/reference-stack-v1.json`. It declares:
+
+- authoring assumptions for SDL authoring and instantiation
+- exchange assumptions for shared apparatus manifests and typed runtime
+  envelopes
+- processing assumptions for the reference processor contract and binding
+  surfaces
+- execution assumptions for the reference backend contract and binding
+  surfaces
+
+## Shared Reference Models (GOV-921)
+
+`GOV-921` implements the reusable structure-authority layer for recurrent
+federation-relevant objects.
+
+For this repo, that means:
+
+- shared reference models are not concept families. Families still answer what
+  a declared thing means; reference models answer which published structure
+  definitions are the repo-owned reusable shapes for recurrent objects.
+- shared reference models are not semantic profiles. Profiles may select or
+  compose reference models, but they do not replace them.
+- shared reference models must anchor to existing published contract schema
+  definitions and governed instance collections instead of restating object
+  fields inline.
+- the initial catalog belongs with the concept-authority artifacts under
+  `contracts/concept-authority/`, with generated schema and fixture support
+  under the matching concept-authority schema and fixture trees.
+
+The initial machine-readable catalog is
+`contracts/concept-authority/reference-models-v1.json`. It publishes the
+current recurrent SDL object slice for assets, identities, relationships,
+observables, actions-and-events, and tools-and-artifacts.
+
+## Controlled Vocabularies And Enumerations (GOV-922)
+
+`GOV-922` implements the portable term-authority layer for fields where
+cross-artifact comparison depends on stable shared values.
+
+For this repo, that means:
+
+- a controlled vocabulary is not a concept family. Concept families govern
+  what a field means; a controlled vocabulary governs which portable values
+  may appear in that field.
+- a controlled vocabulary is not a reference model. A reference model governs
+  reusable structure; a controlled vocabulary governs term membership inside a
+  field surface.
+- not every repeated string field should become a portable controlled
+  vocabulary. Only surfaces that need stable cross-artifact comparison should
+  become governed vocabularies.
+- the authority surface should distinguish between truly closed portable
+  enumerations and governed-extension vocabularies. Some terms are mature
+  enough to close; others need disciplined extension space rather than
+  unconstrained local strings.
+- governed extensions must be explicit and machine-checkable. For the initial
+  slice, extension values use a namespaced `x-...:...` pattern instead of
+  implicit ad hoc strings.
+- the repo should preserve already-authoritative portable identifiers unless
+  there is a deliberate migration. GOV-922 is about governing portable terms,
+  not renaming them cosmetically while they are already wired into published
+  artifacts.
+
+The initial machine-readable catalog is
+`contracts/concept-authority/controlled-vocabularies-v1.json`. It defines:
+
+- closed portable enumerations for processor features, workflow features,
+  workflow state-predicate features, realization support modes, and concept
+  provenance categories
+- governed-extension vocabularies for apparatus-manifest capability surfaces
+  that still need controlled local extension space:
+  `capabilities.provisioner.supported_node_types`,
+  `capabilities.provisioner.supported_os_families`,
+  `capabilities.provisioner.supported_content_types`,
+  `capabilities.provisioner.supported_account_features`,
+  `capabilities.orchestrator.supported_sections`, and
+  `capabilities.evaluator.supported_sections`
+
+Validation now treats that catalog as normative for both contract-model
+validation and runtime capability declarations.
 
 ## Relationship To Other Requirements
 
@@ -145,15 +313,15 @@ shape.
 The related requirements split the rest of the problem:
 
 - `GOV-918`
-  Cross-artifact concept binding
+  Cross-artifact concept binding (implemented)
 - `GOV-919`
-  ACES extension discipline over the shared authority
+  ACES extension discipline over the shared authority (implemented)
 - `GOV-920`
-  shared semantic profiles
+  shared semantic profiles (implemented)
 - `GOV-921`
-  shared reference models
+  shared reference models (implemented)
 - `GOV-922`
-  controlled vocabularies and enumerations
+  controlled vocabularies and enumerations (implemented)
 
 The point is to avoid solving all of those implicitly and inconsistently inside
 one implementation pass.
@@ -164,7 +332,11 @@ The first pass should not attempt to:
 
 - replace SDL with ontology syntax
 - make every contract structurally identical to the ontology
+- define one universal super-model for every asset, identity, observable,
+  action, event, relationship, and artifact occurrence in the ecosystem
 - model all ACES concepts at once
+- turn every repeated field group into a portable reference model without
+  evidence that it is reused across artifact families
 - solve all participant, provenance, evidence, and time/apparatus semantics in
   one step
 - standardize every local implementation detail as a portable vocabulary term
