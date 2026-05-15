@@ -90,6 +90,10 @@ def governed_requirement_paths(paths: list[str]) -> list[str]:
     return filtered
 
 
+def is_dev_to_main_promotion() -> bool:
+    return os.environ.get("GITHUB_HEAD_REF") == "dev" and os.environ.get("GITHUB_BASE_REF") == "main"
+
+
 def main() -> int:
     args = parse_args()
     paths = (
@@ -100,6 +104,8 @@ def main() -> int:
     effective_paths = governed_requirement_paths(paths)
     uid = requirement_uid_from_context(current_branch(REPO_ROOT), args.requirement_uid)
     if not requires_requirement_context(effective_paths):
+        return 0
+    if is_dev_to_main_promotion():
         return 0
     if not uid:
         failure = [

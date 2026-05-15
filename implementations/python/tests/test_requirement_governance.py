@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.check_requirement_governance import governed_requirement_paths
+from tools.check_requirement_governance import governed_requirement_paths, is_dev_to_main_promotion
 from tools.policy.requirement_governance import (
     detect_requirement_uid,
     evaluate_requirement_governance,
@@ -92,6 +92,20 @@ def test_governed_requirement_paths_excludes_exempt_tooling_files() -> None:
             "tools/check_json_artifacts.py",
         ]
     ) == ["implementations/python/packages/aces_processor/manifest.py"]
+
+
+def test_dev_to_main_promotion_is_detected(monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_HEAD_REF", "dev")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+
+    assert is_dev_to_main_promotion()
+
+
+def test_dev_to_non_main_is_not_a_promotion(monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_HEAD_REF", "dev")
+    monkeypatch.setenv("GITHUB_BASE_REF", "release")
+
+    assert not is_dev_to_main_promotion()
 
 
 def test_archived_requirements_are_rejected(tmp_path: Path) -> None:
