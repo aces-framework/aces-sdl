@@ -1,17 +1,16 @@
 """Version identifiers for published external contracts."""
 
 SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION = "scenario-instantiation/v1"
-BACKEND_MANIFEST_V1_SCHEMA_VERSION = "backend-manifest/v1"
 BACKEND_MANIFEST_V2_SCHEMA_VERSION = "backend-manifest/v2"
-PROCESSOR_MANIFEST_V1_SCHEMA_VERSION = "processor-manifest/v1"
 PROCESSOR_MANIFEST_V2_SCHEMA_VERSION = "processor-manifest/v2"
 CONCEPT_FAMILIES_SCHEMA_VERSION = "concept-families/v1"
+REFERENCE_MODELS_SCHEMA_VERSION = "reference-models/v1"
+CONTROLLED_VOCABULARIES_SCHEMA_VERSION = "controlled-vocabularies/v1"
+SEMANTIC_PROFILE_SCHEMA_VERSION = "semantic-profile/v1"
+BACKEND_PROFILE_SCHEMA_VERSION = "backend-profile/v1"
 WORKFLOW_STATE_SCHEMA_VERSION = "workflow-step-state/v1"
 WORKFLOW_CANCELLATION_REQUEST_SCHEMA_VERSION = "workflow-cancellation-request/v1"
 RUNTIME_SNAPSHOT_SCHEMA_VERSION = "runtime-snapshot/v1"
 OPERATION_SCHEMA_VERSION = "runtime-operation/v1"
 EVALUATION_STATE_SCHEMA_VERSION = "evaluation-result-state/v1"
-
-# Compatibility aliases for the original v1-only names.
-BACKEND_MANIFEST_SCHEMA_VERSION = BACKEND_MANIFEST_V1_SCHEMA_VERSION
-PROCESSOR_MANIFEST_SCHEMA_VERSION = PROCESSOR_MANIFEST_V1_SCHEMA_VERSION
+PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION = "participant-episode-state/v1"

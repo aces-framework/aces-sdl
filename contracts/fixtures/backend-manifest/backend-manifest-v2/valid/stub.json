@@ -6,21 +6,21 @@
   },
   "supported_contract_versions": [
     "backend-manifest-v2",
-    "evaluation-history-event-stream-v1",
+    "provisioning-plan-v1",
+    "orchestration-plan-v1",
     "evaluation-plan-v1",
-    "evaluation-result-envelope-v1",
     "operation-receipt-v1",
     "operation-status-v1",
-    "orchestration-plan-v1",
-    "provisioning-plan-v1",
     "runtime-snapshot-v1",
+    "workflow-result-envelope-v1",
     "workflow-history-event-stream-v1",
-    "workflow-result-envelope-v1"
+    "evaluation-result-envelope-v1",
+    "evaluation-history-event-stream-v1",
+    "participant-episode-state-envelope-v1",
+    "participant-episode-history-event-stream-v1"
   ],
   "compatibility": {
-    "processors": ["aces-reference-processor"],
-    "backends": [],
-    "participant_implementations": []
+    "processors": ["aces-reference-processor"]
   },
   "realization_support": [
     {
@@ -42,6 +42,14 @@
       ],
       "constraints": {}
     }
+  ],
+  "concept_bindings": [
+    {"scope": "capabilities.provisioner.supported_node_types", "family": "assets"},
+    {"scope": "capabilities.provisioner.supported_os_families", "family": "assets"},
+    {"scope": "capabilities.provisioner.supported_content_types", "family": "tools-and-artifacts"},
+    {"scope": "capabilities.provisioner.supported_account_features", "family": "identities"},
+    {"scope": "capabilities.orchestrator.supported_sections", "family": "actions-and-events"},
+    {"scope": "capabilities.evaluator.supported_sections", "family": "observables"}
   ],
   "constraints": {},
   "capabilities": {
@@ -81,6 +89,10 @@
       "supported_sections": ["conditions", "evaluations", "goals", "metrics", "objectives", "tlos"],
       "supports_scoring": true,
       "supports_objectives": true,
+      "constraints": {}
+    },
+    "participant_runtime": {
+      "name": "stub-participant-runtime",
       "constraints": {}
     }
   }

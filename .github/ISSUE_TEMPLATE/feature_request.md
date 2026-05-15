@@ -6,13 +6,13 @@ labels: enhancement
 assignees: ''
 ---
 
-## Description
+## Proposal
 
-<!-- Clear description of the feature -->
+<!-- Clear description of the proposed language, contract, implementation, or documentation change. -->
 
 ## Use Case
 
-<!-- Why is this feature needed? What problem does it solve? -->
+<!-- What scenario authoring, validation, conformance, or runtime problem does this solve? -->
 
 ## Proposed Solution
 
@@ -21,3 +21,7 @@ assignees: ''
 ## Alternatives Considered
 
 <!-- Other approaches you've considered -->
+
+## Compatibility Notes
+
+<!-- Existing SDL, schemas, contracts, examples, or backend expectations that may be affected. -->

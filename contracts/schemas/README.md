@@ -13,6 +13,9 @@ Current published schemas cover:
 - backend manifests (`v1` legacy plus shared-apparatus `v2`)
 - processor manifests (`v1` legacy plus shared-apparatus `v2`)
 - concept-authority catalogs
+- reference model catalogs
+- controlled vocabulary catalogs
+- semantic profiles
 - live-execution snapshots
 - workflow result envelopes
 - workflow history streams
@@ -48,6 +51,81 @@ particular:
 `v1` backend and processor manifests remain checked in as deprecated legacy
 schema artifacts. The reference stack, contract tests, and conformance profiles
 use `v2`.
+
+## Concept Authority Catalog
+
+The `concept-families-v1` schema publishes the machine-readable shared concept
+authority catalog. Catalog entries distinguish adopted, adapted, and
+ACES-native concept families.
+
+Adopted and adapted families must declare `authority` and
+`authority_reference`. Native families must not declare those authority fields;
+instead they must declare non-empty `extension_scope`, `relation_rules`, and
+`non_ambiguity_constraints`. This keeps ACES experiment, runtime, apparatus,
+provenance, and governance concepts explicit without letting them silently fork
+shared cyber-domain concepts.
+
+## Semantic Profiles
+
+The `semantic-profile-v1` schema publishes shared semantic profile documents.
+Each profile declares the compatible concept, contract, and behavior
+assumptions required across authoring, exchange, processing, and execution
+phases.
+
+The initial profile lives at `contracts/profiles/semantic/reference-stack-v1.json`.
+Its processing and execution phases also declare required concept bindings for
+the governed apparatus-manifest vocabulary surfaces introduced by GOV-918.
+
+## Shared Reference Models
+
+The `reference-models-v1` schema publishes shared reference model catalogs.
+Each catalog entry binds a recurrent object model to an authoritative concept
+family and to published contract schema definitions plus governed instance
+paths.
+
+The initial catalog lives at
+`contracts/concept-authority/reference-models-v1.json`. It anchors the current
+recurrent SDL object slice for nodes, accounts, relationships, conditions,
+events, and content to the shared concept-authority layer.
+
+## Controlled Vocabularies And Enumerations
+
+The `controlled-vocabularies-v1` schema publishes controlled-vocabulary
+catalogs for stable portable term sets.
+
+The initial catalog lives at
+`contracts/concept-authority/controlled-vocabularies-v1.json`. It defines:
+
+- closed portable enumerations for processor features, workflow features,
+  workflow state-predicate features, realization support modes, and concept
+  provenance categories
+- governed-extension vocabularies for apparatus-manifest capability surfaces
+  that need stable shared base terms plus disciplined extension space
+
+For governed apparatus-manifest capability fields, contract validation and
+runtime validation both treat the catalog as normative. Values must either be
+declared terms or valid governed extensions; closed enumerations reject
+extensions.
+
+## Cross-Artifact Concept Binding
+
+Apparatus manifests (`v2`) require a `concept_bindings` section that binds
+vocabulary fields to canonical concept families from the concept-authority
+catalog. Each binding entry declares:
+
+- `scope`: a dot-delimited field path identifying the bound vocabulary surface
+  (e.g. `capabilities.provisioner.supported_node_types`)
+- `family`: a concept family identifier from the authoritative catalog
+  (e.g. `assets`, `identities`, `tools-and-artifacts`)
+
+This is the "artifact binding layer" described in ADR-012. It prevents
+artifact-local strings from becoming de facto semantics by explicitly declaring
+which concept family each vocabulary surface belongs to.
+
+The field is required with at least one binding entry. Duplicate scopes within a
+single manifest are rejected. Family identifiers must resolve against the
+authoritative `concept-families-v1` catalog, and scope paths must resolve to a
+governed vocabulary field that is actually declared in the manifest.
 
 Generation or sync helpers may exist under `tools/`, but those helpers are
 supporting repo machinery, not the authority boundary.

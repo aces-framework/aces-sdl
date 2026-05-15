@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "ControlledVocabularyDefinitionModel": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "extension_pattern": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extension Pattern"
+        },
+        "extension_policy": {
+          "enum": [
+            "closed",
+            "governed-extension"
+          ],
+          "title": "Extension Policy",
+          "type": "string"
+        },
+        "governed_scopes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Governed Scopes",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "enumeration",
+            "vocabulary"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "terms": {
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z0-9]+(?:[-_][a-z0-9]+)*$": {
+              "$ref": "#/$defs/ControlledVocabularyTermModel"
+            }
+          },
+          "title": "Terms",
+          "type": "object"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "kind",
+        "extension_policy",
+        "terms"
+      ],
+      "title": "ControlledVocabularyDefinitionModel",
+      "type": "object"
+    },
+    "ControlledVocabularyTermModel": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description"
+      ],
+      "title": "ControlledVocabularyTermModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "controlled-vocabularies/v1",
+      "default": "controlled-vocabularies/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "vocabularies": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ControlledVocabularyDefinitionModel"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Vocabularies",
+      "type": "object"
+    }
+  },
+  "required": [
+    "vocabularies"
+  ],
+  "title": "ControlledVocabularyCatalogModel",
+  "type": "object"
+}

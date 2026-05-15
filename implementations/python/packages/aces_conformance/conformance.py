@@ -11,8 +11,13 @@ from typing import Any
 
 from aces_backend_protocols.capabilities import BackendManifest
 from aces_backend_protocols.manifest import backend_manifest_payload
+from aces_contracts.backend_profiles import (
+    BackendProfileModel,
+    backend_profile_path,
+    backend_profiles_root,
+    load_backend_profile_from_path,
+)
 from aces_contracts.contracts import (
-    BackendManifestModel,
     BackendManifestV2Model,
     EvaluationHistoryEventModel,
     EvaluationPlanModel,
@@ -20,6 +25,8 @@ from aces_contracts.contracts import (
     OperationReceiptModel,
     OperationStatusModel,
     OrchestrationPlanModel,
+    ParticipantEpisodeHistoryEventModel,
+    ParticipantEpisodeStateModel,
     ProvisioningPlanModel,
     RuntimeSnapshotEnvelopeModel,
     WorkflowExecutionStateModel,
@@ -35,25 +42,68 @@ from aces_processor.manager import (
 from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
+    ParticipantEpisodeExecutionState,
+    ParticipantEpisodeHistoryEvent,
+    ParticipantEpisodeTerminalReason,
     RuntimeDomain,
     RuntimeSnapshot,
     RuntimeSnapshotEnvelope,
     Severity,
     SnapshotEntry,
     WorkflowExecutionState,
+    iter_participant_episode_snapshot_violations,
 )
 from aces_processor.planner import plan
 from aces_processor.registry import RuntimeTarget
 from aces_sdl.parser import parse_sdl
+from pydantic import ValidationError
 
 
 class BackendCapabilityProfile(str, Enum):
-    """Declared runtime surface level for backend conformance."""
+    """Known backend capability profile ids the runner can map to known runtime surfaces.
+
+    The published ``contracts/profiles/backend/*.json`` corpus is the authority
+    for profile *contract sets* — this enum is intentionally NOT used to gate
+    which profile ids the CLI / API will accept. It is the inference target of
+    :func:`profile_for_manifest` and the dispatch key for capability-gap and
+    live-probe behavior that depends on a *known* runtime surface (e.g. only
+    the FULL_REMOTE_CONTROL_PLANE family drives the participant-episode probe).
+    Unknown profile ids loaded from the JSON corpus are still validated and
+    fixture-tested; they just skip capability and live-probe behavior because
+    their runtime surface contract is not known to this implementation.
+    """
 
     PROVISIONING_ONLY = "provisioning-only"
     ORCHESTRATION_CAPABLE = "orchestration-capable"
     ORCHESTRATION_EVALUATION = "orchestration-evaluation"
     FULL_REMOTE_CONTROL_PLANE = "full-remote-control-plane"
+
+
+BackendProfileSelector = str | BackendCapabilityProfile
+"""Type alias for any callable that accepts either a free-form profile id string
+or a known :class:`BackendCapabilityProfile` enum member. The CLI and runner
+accept either so adding a new published profile JSON does not require a
+Python-side enum edit."""
+
+
+def _to_profile_id(profile: BackendProfileSelector) -> str:
+    """Normalize a profile selector to its published id string."""
+
+    return profile.value if isinstance(profile, BackendCapabilityProfile) else profile
+
+
+def _to_known_profile(profile: BackendProfileSelector) -> BackendCapabilityProfile | None:
+    """Return the matching :class:`BackendCapabilityProfile` when ``profile`` is
+    a known runtime surface, else ``None``. Used to gate capability-gap and
+    live-probe behavior, both of which depend on knowing the runtime surface
+    contract for the profile."""
+
+    if isinstance(profile, BackendCapabilityProfile):
+        return profile
+    try:
+        return BackendCapabilityProfile(profile)
+    except ValueError:
+        return None
 
 
 @dataclass(frozen=True)
@@ -69,67 +119,25 @@ class ConformanceCaseResult:
 
 @dataclass(frozen=True)
 class BackendConformanceReport:
-    """Machine-friendly conformance result."""
+    """Machine-friendly conformance result.
 
-    profile: BackendCapabilityProfile
+    ``profile`` is the requested profile id as a string. When the request used
+    a :class:`BackendCapabilityProfile` enum member, equality comparisons against
+    that member still work because the enum is ``str``-valued. Carrying the
+    field as ``str`` lets the runner accept (and report) profile ids that have
+    no Python-side enum member.
+    """
+
+    profile: str
     passed: bool
     cases: tuple[ConformanceCaseResult, ...] = ()
     contract_versions: dict[str, str] = field(default_factory=dict)
+    unsupported_contract_gaps: tuple[str, ...] = ()
     unsupported_capability_gaps: tuple[str, ...] = ()
     diagnostics: tuple[Diagnostic, ...] = ()
 
 
-_PROFILE_REQUIREMENTS: dict[BackendCapabilityProfile, frozenset[str]] = {
-    BackendCapabilityProfile.PROVISIONING_ONLY: frozenset(
-        {
-            "backend-manifest-v2",
-            "operation-receipt-v1",
-            "operation-status-v1",
-            "runtime-snapshot-v1",
-        }
-    ),
-    BackendCapabilityProfile.ORCHESTRATION_CAPABLE: frozenset(
-        {
-            "backend-manifest-v2",
-            "operation-receipt-v1",
-            "operation-status-v1",
-            "runtime-snapshot-v1",
-            "workflow-result-envelope-v1",
-            "workflow-history-event-stream-v1",
-        }
-    ),
-    BackendCapabilityProfile.ORCHESTRATION_EVALUATION: frozenset(
-        {
-            "backend-manifest-v2",
-            "operation-receipt-v1",
-            "operation-status-v1",
-            "runtime-snapshot-v1",
-            "workflow-result-envelope-v1",
-            "workflow-history-event-stream-v1",
-            "evaluation-result-envelope-v1",
-            "evaluation-history-event-stream-v1",
-        }
-    ),
-    BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE: frozenset(
-        {
-            "backend-manifest-v2",
-            "provisioning-plan-v1",
-            "orchestration-plan-v1",
-            "evaluation-plan-v1",
-            "operation-receipt-v1",
-            "operation-status-v1",
-            "runtime-snapshot-v1",
-            "workflow-result-envelope-v1",
-            "workflow-history-event-stream-v1",
-            "evaluation-result-envelope-v1",
-            "evaluation-history-event-stream-v1",
-        }
-    ),
-}
-
-
 _MODEL_VALIDATORS = {
-    "backend-manifest-v1": BackendManifestModel.model_validate,
     "backend-manifest-v2": BackendManifestV2Model.model_validate,
     "provisioning-plan-v1": ProvisioningPlanModel.model_validate,
     "orchestration-plan-v1": OrchestrationPlanModel.model_validate,
@@ -139,6 +147,17 @@ _MODEL_VALIDATORS = {
     "runtime-snapshot-v1": RuntimeSnapshotEnvelopeModel.model_validate,
     "workflow-result-envelope-v1": WorkflowExecutionStateModel.model_validate,
     "evaluation-result-envelope-v1": EvaluationResultStateModel.model_validate,
+    "participant-episode-state-envelope-v1": ParticipantEpisodeStateModel.model_validate,
+}
+
+
+_EVENT_STREAM_VALIDATORS: dict[str, tuple[type, str]] = {
+    "workflow-history-event-stream-v1": (WorkflowHistoryEventModel, "workflow"),
+    "evaluation-history-event-stream-v1": (EvaluationHistoryEventModel, "evaluation"),
+    "participant-episode-history-event-stream-v1": (
+        ParticipantEpisodeHistoryEventModel,
+        "participant episode",
+    ),
 }
 
 
@@ -151,7 +170,7 @@ def fixtures_root() -> Path:
 
 
 def profiles_root() -> Path:
-    return _repo_root() / "contracts" / "profiles"
+    return backend_profiles_root()
 
 
 def _fixture_contract_root(root: Path, contract_name: str) -> Path:
@@ -161,10 +180,116 @@ def _fixture_contract_root(root: Path, contract_name: str) -> Path:
     return root / contract_name
 
 
+def _load_backend_profile(
+    profile: BackendProfileSelector,
+    *,
+    profiles_root: Path | None = None,
+) -> BackendProfileModel:
+    """Load a published backend profile from ``contracts/profiles/backend``.
+
+    ``profiles_root`` lets tests redirect the loader at a temporary corpus,
+    matching how ``run_fixture_suite`` accepts a ``root`` override for fixtures.
+    Identity checks (filename stem == payload ``profile``) and profile-id
+    grammar validation are enforced by the shared
+    :func:`load_backend_profile_from_path` helper. The override path here
+    *also* confines the resolved path to under the supplied ``profiles_root``
+    so a caller cannot escape it even if the grammar check were ever relaxed.
+    """
+
+    profile_id = _to_profile_id(profile)
+    if profiles_root is None:
+        path = backend_profile_path(profile_id)
+    else:
+        root = profiles_root.resolve()
+        candidate = (root / f"{profile_id}.json").resolve()
+        if not _path_is_within(candidate, root):
+            raise ValueError(
+                f"backend profile id {profile_id!r} resolves to {candidate} "
+                f"which is outside the configured profiles root {root}; refusing to load."
+            )
+        path = candidate
+    return load_backend_profile_from_path(profile_id, path)
+
+
+def _path_is_within(candidate: Path, root: Path) -> bool:
+    """Return ``True`` iff ``candidate`` is the same as or under ``root``."""
+
+    try:
+        candidate.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def required_contracts(
-    profile: BackendCapabilityProfile,
+    profile: BackendProfileSelector,
+    *,
+    profiles_root: Path | None = None,
 ) -> frozenset[str]:
-    return _PROFILE_REQUIREMENTS[profile]
+    """Return the contracts a backend must honor for ``profile``.
+
+    The contract set is loaded from the published
+    ``contracts/profiles/backend/<profile>.json`` artifact — that file is the
+    single source of truth for the profile-to-contract mapping (ASR-502).
+    ``profile`` may be a free-form profile id string (the discoverable artifact
+    name) or a known :class:`BackendCapabilityProfile` enum member. Raises
+    ``FileNotFoundError`` / ``json.JSONDecodeError`` / ``ValidationError`` /
+    ``ValueError`` when the artifact is missing, malformed, or mislabeled;
+    the runner-facing :func:`_resolve_required_contracts` wraps those into
+    structured conformance diagnostics.
+    """
+
+    return frozenset(_load_backend_profile(profile, profiles_root=profiles_root).required_contracts)
+
+
+def _resolve_required_contracts(
+    profile: BackendProfileSelector,
+    *,
+    profiles_root: Path | None = None,
+) -> tuple[frozenset[str], tuple[Diagnostic, ...]]:
+    """Load the profile's contract set, converting load failures to diagnostics.
+
+    Profile JSON loading is now a hard prerequisite of every conformance run
+    (ASR-502), but the runner's public contract is to return a
+    :class:`BackendConformanceReport` rather than raise. Any failure to load
+    the published profile — missing file, malformed JSON, schema-rejected
+    payload, swapped artifact — therefore surfaces as a
+    ``conformance.profile-load-failed`` diagnostic on the report so the CLI
+    can still print the structured response and CI gates can still parse it.
+    """
+
+    profile_id = _to_profile_id(profile)
+    try:
+        return required_contracts(profile, profiles_root=profiles_root), ()
+    except (FileNotFoundError, json.JSONDecodeError, ValidationError, ValueError) as exc:
+        return frozenset(), (
+            _diagnostic(
+                "conformance.profile-load-failed",
+                profile_id,
+                f"Failed to load published backend profile {profile_id!r}: {_sanitize_load_error(exc)}",
+            ),
+        )
+
+
+def _sanitize_load_error(exc: Exception) -> str:
+    """Render a profile-load exception without echoing rejected file contents.
+
+    Pydantic's ``ValidationError`` carries the rejected ``input_value`` and can
+    surface it in ``str(exc)``. For a profile-load failure the diagnostic
+    should describe *what* went wrong (file missing, malformed JSON, identity
+    mismatch, schema-rejected) without quoting the failed input back to the
+    caller — that would turn a malformed-profile failure into a file-content
+    disclosure oracle when the loader is wrapped behind a less-trusted
+    boundary.
+    """
+
+    if isinstance(exc, FileNotFoundError):
+        return "profile artifact not found"
+    if isinstance(exc, json.JSONDecodeError):
+        return "profile artifact is not valid JSON"
+    if isinstance(exc, ValidationError):
+        return f"profile artifact failed closed-world validation ({exc.error_count()} error(s))"
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _diagnostic(code: str, address: str, message: str) -> Diagnostic:
@@ -179,6 +304,43 @@ def _diagnostic(code: str, address: str, message: str) -> Diagnostic:
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _validate_event_stream(
+    *,
+    contract_name: str,
+    payload: Any,
+    model_cls: type,
+    event_label: str,
+) -> list[Diagnostic]:
+    """Validate a published history event stream against one Pydantic model.
+
+    Shared by the workflow, evaluation, and participant-episode history
+    event streams so adding a new stream type only requires extending
+    ``_EVENT_STREAM_VALIDATORS``.
+    """
+
+    if not isinstance(payload, list):
+        return [
+            _diagnostic(
+                "conformance.schema-invalid",
+                contract_name,
+                f"{event_label} history payload must be a list",
+            )
+        ]
+    diagnostics: list[Diagnostic] = []
+    for index, event in enumerate(payload):
+        try:
+            model_cls.model_validate(event)
+        except Exception as exc:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.schema-invalid",
+                    f"{contract_name}[{index}]",
+                    f"{event_label} history event is invalid: {exc}",
+                )
+            )
+    return diagnostics
 
 
 def _validate_payload(contract_name: str, payload: Any) -> list[Diagnostic]:
@@ -196,46 +358,15 @@ def _validate_payload(contract_name: str, payload: Any) -> list[Diagnostic]:
                 )
             )
             return diagnostics
-    elif contract_name == "workflow-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.schema-invalid",
-                    contract_name,
-                    "workflow history payload must be a list",
-                )
-            ]
-        for index, event in enumerate(payload):
-            try:
-                WorkflowHistoryEventModel.model_validate(event)
-            except Exception as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.schema-invalid",
-                        f"{contract_name}[{index}]",
-                        f"workflow history event is invalid: {exc}",
-                    )
-                )
-    elif contract_name == "evaluation-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.schema-invalid",
-                    contract_name,
-                    "evaluation history payload must be a list",
-                )
-            ]
-        for index, event in enumerate(payload):
-            try:
-                EvaluationHistoryEventModel.model_validate(event)
-            except Exception as exc:
-                diagnostics.append(
-                    _diagnostic(
-                        "conformance.schema-invalid",
-                        f"{contract_name}[{index}]",
-                        f"evaluation history event is invalid: {exc}",
-                    )
-                )
+    elif contract_name in _EVENT_STREAM_VALIDATORS:
+        diagnostics.extend(
+            _validate_event_stream(
+                contract_name=contract_name,
+                payload=payload,
+                model_cls=_EVENT_STREAM_VALIDATORS[contract_name][0],
+                event_label=_EVENT_STREAM_VALIDATORS[contract_name][1],
+            )
+        )
     else:
         diagnostics.append(
             _diagnostic(
@@ -277,8 +408,36 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
             address: [event.model_dump(mode="json") for event in history]
             for address, history in validated.evaluation_history.items()
         },
+        participant_episode_results={
+            participant_address: result.model_dump(mode="json")
+            for participant_address, result in validated.participant_episode_results.items()
+        },
+        participant_episode_history={
+            participant_address: [event.model_dump(mode="json") for event in history]
+            for participant_address, history in validated.participant_episode_history.items()
+        },
         metadata=dict(validated.metadata),
     )
+
+
+def _participant_episode_snapshot_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    """Surface participant-episode snapshot invariants as conformance diagnostics.
+
+    Delegates to ``iter_participant_episode_snapshot_violations`` so the
+    conformance path and the manager apply path share one source of truth
+    for every RUN-311 invariant, and wraps each violation in a
+    ``conformance.semantic-invalid`` diagnostic.
+    """
+
+    return [
+        _diagnostic("conformance.semantic-invalid", address, message)
+        for address, message in iter_participant_episode_snapshot_violations(
+            snapshot.participant_episode_results,
+            snapshot.participant_episode_history,
+        )
+    ]
 
 
 def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
@@ -307,27 +466,68 @@ def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
                 )
             )
         return diagnostics
+    if contract_name == "participant-episode-state-envelope-v1":
+        try:
+            ParticipantEpisodeExecutionState.from_payload(payload)
+        except (TypeError, ValueError) as exc:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.semantic-invalid",
+                    contract_name,
+                    f"participant episode state semantics are invalid: {exc}",
+                )
+            )
+        return diagnostics
+    if contract_name == "participant-episode-history-event-stream-v1":
+        if not isinstance(payload, list):
+            return [
+                _diagnostic(
+                    "conformance.semantic-invalid",
+                    contract_name,
+                    "participant episode history payload must be a list",
+                )
+            ]
+        for index, event in enumerate(payload):
+            try:
+                ParticipantEpisodeHistoryEvent.from_payload(event)
+            except (TypeError, ValueError) as exc:
+                diagnostics.append(
+                    _diagnostic(
+                        "conformance.semantic-invalid",
+                        f"{contract_name}[{index}]",
+                        f"participant episode history event semantics are invalid: {exc}",
+                    )
+                )
+        return diagnostics
     if contract_name != "runtime-snapshot-v1":
         return []
     snapshot = _snapshot_from_envelope(payload)
     return [
         *_workflow_result_contract_diagnostics(snapshot),
         *_evaluation_result_contract_diagnostics(snapshot),
+        *_participant_episode_snapshot_diagnostics(snapshot),
     ]
 
 
 def run_fixture_suite(
     *,
-    profile: BackendCapabilityProfile,
+    profile: BackendProfileSelector,
     root: Path | None = None,
+    profiles_root: Path | None = None,
 ) -> BackendConformanceReport:
-    """Run the checked-in fixture corpus for a backend profile."""
+    """Run the checked-in fixture corpus for a backend profile.
+
+    ``root`` overrides the fixtures tree (defaults to ``contracts/fixtures``);
+    ``profiles_root`` overrides the backend profile tree (defaults to
+    ``contracts/profiles/backend``). Both default to the canonical
+    ``contracts/`` paths so the published artifacts remain the authority.
+    """
 
     root = fixtures_root() if root is None else root
     bundle = schema_bundle()
-    required = required_contracts(profile)
+    required, profile_diagnostics = _resolve_required_contracts(profile, profiles_root=profiles_root)
     cases: list[ConformanceCaseResult] = []
-    diagnostics: list[Diagnostic] = []
+    diagnostics: list[Diagnostic] = list(profile_diagnostics)
 
     for contract_name in sorted(required):
         contract_root = _fixture_contract_root(root, contract_name)
@@ -377,7 +577,7 @@ def run_fixture_suite(
                 )
 
     return BackendConformanceReport(
-        profile=profile,
+        profile=_to_profile_id(profile),
         passed=not diagnostics and all(case.passed for case in cases),
         cases=tuple(cases),
         contract_versions={name: str(schema.get("title", name)) for name, schema in bundle.items() if name in required},
@@ -386,8 +586,20 @@ def run_fixture_suite(
 
 
 def profile_for_manifest(manifest: BackendManifest) -> BackendCapabilityProfile:
-    """Infer the nearest conformance profile for a backend manifest."""
+    """Infer the nearest conformance profile for a backend manifest.
 
+    A backend that declares orchestrator, evaluator, AND participant
+    runtime capabilities is treated as ``FULL_REMOTE_CONTROL_PLANE``,
+    so the default ``run_target_conformance`` path automatically
+    validates the live target against the participant-episode contract
+    family (RUN-311). Backends that only declare orchestrator/evaluator
+    fall back to ``ORCHESTRATION_EVALUATION``; orchestrator-only
+    declarations fall back to ``ORCHESTRATION_CAPABLE``; provisioner-only
+    backends remain at ``PROVISIONING_ONLY``.
+    """
+
+    if manifest.has_orchestrator and manifest.has_evaluator and manifest.has_participant_runtime:
+        return BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE
     if manifest.has_orchestrator and manifest.has_evaluator:
         return BackendCapabilityProfile.ORCHESTRATION_EVALUATION
     if manifest.has_orchestrator:
@@ -396,12 +608,26 @@ def profile_for_manifest(manifest: BackendManifest) -> BackendCapabilityProfile:
 
 
 def _capability_gaps(
-    profile: BackendCapabilityProfile,
+    profile: BackendProfileSelector,
     target: RuntimeTarget,
 ) -> tuple[str, ...]:
+    """Report runtime-surface gaps for known capability profiles only.
+
+    Capability-gap checking depends on knowing the runtime surface contract
+    for the profile (which roles must be present). For an unknown profile id
+    — e.g. a freshly-published artifact whose runtime surface this
+    implementation does not yet understand — we conservatively report no
+    gaps and let the published contract set drive validation. This keeps the
+    JSON corpus end-to-end authoritative for new profiles without requiring
+    Python edits up front.
+    """
+
+    known = _to_known_profile(profile)
+    if known is None:
+        return ()
     gaps: list[str] = []
     if (
-        profile
+        known
         in {
             BackendCapabilityProfile.ORCHESTRATION_CAPABLE,
             BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
@@ -411,7 +637,7 @@ def _capability_gaps(
     ):
         gaps.append("orchestrator")
     if (
-        profile
+        known
         in {
             BackendCapabilityProfile.ORCHESTRATION_EVALUATION,
             BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE,
@@ -419,22 +645,100 @@ def _capability_gaps(
         and target.evaluator is None
     ):
         gaps.append("evaluator")
+    if known == BackendCapabilityProfile.FULL_REMOTE_CONTROL_PLANE and target.participant_runtime is None:
+        gaps.append("participant_runtime")
     return tuple(gaps)
+
+
+def _declared_contract_gaps(
+    profile: BackendProfileSelector,
+    manifest: BackendManifest,
+    *,
+    profiles_root: Path | None = None,
+) -> tuple[str, ...]:
+    """Return the contract ids declared by ``profile`` that ``manifest`` is missing.
+
+    Uses :func:`_resolve_required_contracts` so a missing/malformed/mislabeled
+    profile artifact cannot raise out of the conformance boundary. When the
+    profile fails to load, ``required`` is empty and the gap set is empty —
+    the profile-load diagnostic is surfaced separately on the report by
+    :func:`run_fixture_suite`, which the only caller (``run_target_conformance``)
+    invokes for the same profile.
+    """
+
+    required, _profile_diagnostics = _resolve_required_contracts(profile, profiles_root=profiles_root)
+    return tuple(sorted(required - manifest.supported_contract_versions))
 
 
 def run_target_conformance(
     target: RuntimeTarget,
     *,
-    profile: BackendCapabilityProfile | None = None,
+    profile: BackendProfileSelector | None = None,
     root: Path | None = None,
+    profiles_root: Path | None = None,
 ) -> BackendConformanceReport:
-    """Run fixture conformance for a target's declared runtime surface."""
+    """Run fixture conformance for a target's declared runtime surface.
+
+    ``root`` overrides the fixtures tree and ``profiles_root`` overrides the
+    backend profile tree; both default to the canonical published roots.
+    """
 
     effective_profile = profile or profile_for_manifest(target.manifest)
-    fixture_report = run_fixture_suite(profile=effective_profile, root=root)
+    fixture_report = run_fixture_suite(profile=effective_profile, root=root, profiles_root=profiles_root)
+    if any(diag.code == "conformance.profile-load-failed" for diag in fixture_report.diagnostics):
+        # The published profile is the contract set we are supposed to validate
+        # against. With no profile loaded we must NOT mutate the backend via
+        # ``_live_target_cases`` — there is nothing to validate against. The
+        # fixture report already carries the structured profile-load
+        # diagnostic and ``passed=False``; surface it as the conformance
+        # result for this target.
+        return fixture_report
+    if _to_known_profile(effective_profile) is None:
+        # Target conformance enforces runtime-surface gates (which capability
+        # roles the target must implement, which live probes to run). Those
+        # gates depend on knowing the profile's runtime surface contract. For
+        # an unknown profile id we have NO runtime-surface authority — letting
+        # the run continue would silently certify a target that's missing every
+        # required role (orchestrator/evaluator/participant_runtime) just
+        # because the diff added a profile JSON we don't yet understand.
+        # Refuse explicitly so the gap is visible to CI and the JSON corpus is
+        # forced to land its runtime-surface contract before target conformance
+        # can certify against it.
+        profile_id = _to_profile_id(effective_profile)
+        diagnostics = (
+            *fixture_report.diagnostics,
+            _diagnostic(
+                "conformance.profile-runtime-surface-unknown",
+                profile_id,
+                (
+                    f"Target conformance cannot certify profile {profile_id!r}: this "
+                    "implementation does not know the runtime-surface contract for the "
+                    "profile. Known runtime surfaces: "
+                    + ", ".join(sorted(p.value for p in BackendCapabilityProfile))
+                    + ". Use run_fixture_suite() for fixture-only validation, or extend "
+                    "BackendCapabilityProfile to declare this profile's runtime surfaces."
+                ),
+            ),
+        )
+        return BackendConformanceReport(
+            profile=profile_id,
+            passed=False,
+            cases=fixture_report.cases,
+            contract_versions=dict(fixture_report.contract_versions),
+            diagnostics=diagnostics,
+        )
+    contract_gaps = _declared_contract_gaps(effective_profile, target.manifest, profiles_root=profiles_root)
     gaps = _capability_gaps(effective_profile, target)
-    passed = fixture_report.passed and not gaps
+    passed = fixture_report.passed and not contract_gaps and not gaps
     diagnostics = list(fixture_report.diagnostics)
+    if contract_gaps:
+        diagnostics.append(
+            _diagnostic(
+                "conformance.unsupported-contract-declaration",
+                target.name,
+                f"Target does not declare required contracts for {_to_profile_id(effective_profile)}: {', '.join(contract_gaps)}",
+            )
+        )
     if gaps:
         diagnostics.append(
             _diagnostic(
@@ -447,21 +751,158 @@ def run_target_conformance(
     cases = tuple((*fixture_report.cases, *live_cases))
     passed = passed and all(case.passed for case in live_cases)
     return BackendConformanceReport(
-        profile=effective_profile,
+        profile=_to_profile_id(effective_profile),
         passed=passed,
         cases=cases,
         contract_versions=dict(fixture_report.contract_versions),
+        unsupported_contract_gaps=contract_gaps,
         unsupported_capability_gaps=gaps,
         diagnostics=tuple(diagnostics),
     )
 
 
+def _drive_participant_episode_probe(
+    control_plane: RuntimeControlPlane,
+    *,
+    participant_address: str,
+) -> list[ConformanceCaseResult]:
+    """Drive a full RUN-311 participant lifecycle via the control plane.
+
+    Each control action becomes one ``ConformanceCaseResult`` so that
+    ``run_target_conformance`` reports a separate failure for any step
+    the backend rejects, and a final case validates the resulting
+    ``participant_episode_results`` / ``participant_episode_history``
+    against the shared snapshot invariants.
+
+    A target that registers a participant runtime but never populates
+    the snapshot fields fails the snapshot-state-not-empty check, so
+    the live conformance probe cannot certify a backend whose runtime
+    accepts every action but produces no observable state.
+    """
+
+    cases: list[ConformanceCaseResult] = []
+    actions = (
+        ("participant-initialize", lambda: control_plane.initialize_participant_episode(participant_address)),
+        ("participant-reset", lambda: control_plane.reset_participant_episode(participant_address)),
+        (
+            "participant-terminate",
+            lambda: control_plane.terminate_participant_episode(
+                participant_address,
+                terminal_reason=ParticipantEpisodeTerminalReason.COMPLETED,
+            ),
+        ),
+        ("participant-restart", lambda: control_plane.restart_participant_episode(participant_address)),
+    )
+    contract_name = "participant-episode-state-envelope-v1"
+    for case_name, invoke in actions:
+        try:
+            receipt = invoke()
+        except Exception as exc:  # pragma: no cover - defensive only
+            cases.append(
+                ConformanceCaseResult(
+                    name=case_name,
+                    contract_name=contract_name,
+                    valid=True,
+                    passed=False,
+                    diagnostics=(
+                        _diagnostic(
+                            "conformance.participant-runtime-failed",
+                            f"runtime.control-plane.participant.{participant_address}",
+                            f"{case_name} raised {type(exc).__name__}: {exc}",
+                        ),
+                    ),
+                )
+            )
+            continue
+        status = control_plane.get_operation(receipt.operation_id)
+        diagnostics: list[Diagnostic] = []
+        if status is None:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.participant-runtime-missing-status",
+                    f"runtime.control-plane.participant.{participant_address}",
+                    f"{case_name} did not produce an OperationStatus record",
+                )
+            )
+        elif status.state.value not in {"succeeded"}:
+            diagnostics.append(
+                _diagnostic(
+                    "conformance.participant-runtime-failed",
+                    f"runtime.control-plane.participant.{participant_address}",
+                    (
+                        f"{case_name} returned state {status.state.value!r} with diagnostics: "
+                        + "; ".join(diag.message for diag in status.diagnostics)
+                    ),
+                )
+            )
+        cases.append(
+            ConformanceCaseResult(
+                name=case_name,
+                contract_name=contract_name,
+                valid=True,
+                passed=not diagnostics,
+                diagnostics=tuple(diagnostics),
+            )
+        )
+
+    snapshot = control_plane.snapshot
+    final_diagnostics: list[Diagnostic] = []
+    if not snapshot.participant_episode_results:
+        final_diagnostics.append(
+            _diagnostic(
+                "conformance.participant-runtime-empty",
+                f"runtime.snapshot.participant-episode-results.{participant_address}",
+                (
+                    "Participant runtime accepted every control action but the snapshot "
+                    "exposes no participant_episode_results. RUN-311 backends must publish "
+                    "live episode state through the snapshot."
+                ),
+            )
+        )
+    if not snapshot.participant_episode_history:
+        final_diagnostics.append(
+            _diagnostic(
+                "conformance.participant-runtime-empty",
+                f"runtime.snapshot.participant-episode-history.{participant_address}",
+                (
+                    "Participant runtime accepted every control action but the snapshot "
+                    "exposes no participant_episode_history. RUN-311 backends must publish "
+                    "live episode history events through the snapshot."
+                ),
+            )
+        )
+    for address, message in iter_participant_episode_snapshot_violations(
+        snapshot.participant_episode_results,
+        snapshot.participant_episode_history,
+    ):
+        final_diagnostics.append(_diagnostic("conformance.semantic-invalid", address, message))
+    cases.append(
+        ConformanceCaseResult(
+            name="participant-snapshot-consistent",
+            contract_name=contract_name,
+            valid=True,
+            passed=not final_diagnostics,
+            diagnostics=tuple(final_diagnostics),
+        )
+    )
+    return cases
+
+
 def _live_target_cases(
     target: RuntimeTarget,
-    profile: BackendCapabilityProfile,
+    profile: BackendProfileSelector,
 ) -> tuple[ConformanceCaseResult, ...]:
+    """Run live probes appropriate for known runtime surfaces only.
+
+    Live probes (orchestration, evaluation, participant-episode actions)
+    require knowing the profile's runtime contract. For an unknown profile id
+    we run only the manifest validation case (it's universally safe — just
+    validates against ``backend-manifest-v2``) and skip the rest. Capability
+    inference for known profiles still routes via :class:`BackendCapabilityProfile`.
+    """
+
     cases: list[ConformanceCaseResult] = []
-    manifest_payload = backend_manifest_payload(target.manifest, version="v2")
+    manifest_payload = backend_manifest_payload(target.manifest)
     manifest_diags = _validate_payload("backend-manifest-v2", manifest_payload)
     cases.append(
         ConformanceCaseResult(
@@ -473,7 +914,8 @@ def _live_target_cases(
         )
     )
 
-    if profile == BackendCapabilityProfile.PROVISIONING_ONLY:
+    known = _to_known_profile(profile)
+    if known is None or known == BackendCapabilityProfile.PROVISIONING_ONLY:
         return tuple(cases)
 
     scenario = parse_sdl(
@@ -514,6 +956,13 @@ def _live_target_cases(
         control_plane.submit_orchestration(execution_plan.orchestration)
     if target.evaluator is not None:
         control_plane.submit_evaluation(execution_plan.evaluation)
+    if target.participant_runtime is not None:
+        cases.extend(
+            _drive_participant_episode_probe(
+                control_plane,
+                participant_address="participant.conformance",
+            )
+        )
     snapshot_payload = {
         "schema_version": RuntimeSnapshotEnvelope().schema_version,
         "entries": {
@@ -532,6 +981,11 @@ def _live_target_cases(
         "orchestration_history": dict(control_plane.snapshot.orchestration_history),
         "evaluation_results": dict(control_plane.snapshot.evaluation_results),
         "evaluation_history": dict(control_plane.snapshot.evaluation_history),
+        "participant_episode_results": dict(control_plane.snapshot.participant_episode_results),
+        "participant_episode_history": {
+            participant_address: list(events)
+            for participant_address, events in control_plane.snapshot.participant_episode_history.items()
+        },
         "metadata": dict(control_plane.snapshot.metadata),
     }
     snapshot_diags = [

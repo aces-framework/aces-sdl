@@ -1,0 +1,338 @@
+{
+  "schema_version": "controlled-vocabularies/v1",
+  "vocabularies": {
+    "processor-features": {
+      "title": "Processor Features",
+      "description": "Closed portable processor capability feature identifiers.",
+      "kind": "enumeration",
+      "governed_scopes": [
+        "capabilities.supported_features"
+      ],
+      "extension_policy": "closed",
+      "terms": {
+        "compilation": {
+          "title": "Compilation",
+          "description": "Processor can compile authoring inputs into intermediate artifacts."
+        },
+        "planning": {
+          "title": "Planning",
+          "description": "Processor can produce provisioning, orchestration, and evaluation plans."
+        },
+        "orchestration-coordination": {
+          "title": "Orchestration Coordination",
+          "description": "Processor coordinates orchestration concerns across runtime targets."
+        },
+        "evaluation-coordination": {
+          "title": "Evaluation Coordination",
+          "description": "Processor coordinates evaluation concerns across runtime targets."
+        },
+        "workflow-semantics": {
+          "title": "Workflow Semantics",
+          "description": "Processor supports the workflow semantic contract surface."
+        },
+        "objective-window-consistency": {
+          "title": "Objective Window Consistency",
+          "description": "Processor can validate objective-to-window consistency constraints."
+        },
+        "dependency-ordering": {
+          "title": "Dependency Ordering",
+          "description": "Processor computes dependency-safe execution and provisioning order."
+        },
+        "runtime-control-plane": {
+          "title": "Runtime Control Plane",
+          "description": "Processor participates in the typed runtime control-plane contract surfaces."
+        }
+      }
+    },
+    "workflow-features": {
+      "title": "Workflow Features",
+      "description": "Closed portable workflow control feature identifiers.",
+      "kind": "enumeration",
+      "governed_scopes": [
+        "capabilities.orchestrator.supported_workflow_features"
+      ],
+      "extension_policy": "closed",
+      "terms": {
+        "decision": {
+          "title": "Decision",
+          "description": "Workflow engine supports decision nodes."
+        },
+        "switch": {
+          "title": "Switch",
+          "description": "Workflow engine supports switch nodes."
+        },
+        "retry": {
+          "title": "Retry",
+          "description": "Workflow engine supports retry nodes."
+        },
+        "call": {
+          "title": "Call",
+          "description": "Workflow engine supports call nodes."
+        },
+        "parallel-barrier": {
+          "title": "Parallel Barrier",
+          "description": "Workflow engine supports barrier-style parallel synchronization."
+        },
+        "failure-transitions": {
+          "title": "Failure Transitions",
+          "description": "Workflow engine supports failure transitions."
+        },
+        "cancellation": {
+          "title": "Cancellation",
+          "description": "Workflow engine supports cancellation semantics."
+        },
+        "timeouts": {
+          "title": "Timeouts",
+          "description": "Workflow engine supports timeout semantics."
+        },
+        "compensation": {
+          "title": "Compensation",
+          "description": "Workflow engine supports compensation semantics."
+        }
+      }
+    },
+    "workflow-state-predicate-features": {
+      "title": "Workflow State Predicate Features",
+      "description": "Closed portable workflow state-predicate identifiers.",
+      "kind": "enumeration",
+      "governed_scopes": [
+        "capabilities.orchestrator.supported_workflow_state_predicates"
+      ],
+      "extension_policy": "closed",
+      "terms": {
+        "outcome-matching": {
+          "title": "Outcome Matching",
+          "description": "Workflow predicates may match declared outcomes."
+        },
+        "attempt-counts": {
+          "title": "Attempt Counts",
+          "description": "Workflow predicates may inspect attempt counts."
+        }
+      }
+    },
+    "realization-support-modes": {
+      "title": "Realization Support Modes",
+      "description": "Closed portable realization-support mode identifiers.",
+      "kind": "enumeration",
+      "extension_policy": "closed",
+      "terms": {
+        "exact-only": {
+          "title": "Exact Only",
+          "description": "Implementation supports only exact realization matches."
+        },
+        "constrained": {
+          "title": "Constrained",
+          "description": "Implementation supports constrained realization."
+        },
+        "open-realization": {
+          "title": "Open Realization",
+          "description": "Implementation supports open-ended realization."
+        }
+      }
+    },
+    "concept-provenance-categories": {
+      "title": "Concept Provenance Categories",
+      "description": "Closed provenance categories for concept-family authority relationships.",
+      "kind": "enumeration",
+      "extension_policy": "closed",
+      "terms": {
+        "adopted": {
+          "title": "Adopted",
+          "description": "Concept family is adopted directly from an external authority."
+        },
+        "adapted": {
+          "title": "Adapted",
+          "description": "Concept family adapts an external authority for ACES use."
+        },
+        "native": {
+          "title": "Native",
+          "description": "Concept family is native to ACES."
+        }
+      }
+    },
+    "provisioner-node-types": {
+      "title": "Provisioner Node Types",
+      "description": "Provisioner-supported node type vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.provisioner.supported_node_types"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "vm": {
+          "title": "Virtual Machine",
+          "description": "Provisioner can realize virtual machine nodes."
+        },
+        "switch": {
+          "title": "Switch",
+          "description": "Provisioner can realize switch nodes."
+        }
+      }
+    },
+    "provisioner-os-families": {
+      "title": "Provisioner OS Families",
+      "description": "Provisioner-supported operating system family vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.provisioner.supported_os_families"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "linux": {
+          "title": "Linux",
+          "description": "Linux operating system family."
+        },
+        "windows": {
+          "title": "Windows",
+          "description": "Windows operating system family."
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "macOS operating system family."
+        },
+        "freebsd": {
+          "title": "FreeBSD",
+          "description": "FreeBSD operating system family."
+        },
+        "other": {
+          "title": "Other",
+          "description": "Portable catch-all when no standard family applies."
+        }
+      }
+    },
+    "provisioner-content-types": {
+      "title": "Provisioner Content Types",
+      "description": "Provisioner-supported content type vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.provisioner.supported_content_types"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "file": {
+          "title": "File",
+          "description": "Single file content."
+        },
+        "dataset": {
+          "title": "Dataset",
+          "description": "Dataset or collection content."
+        },
+        "directory": {
+          "title": "Directory",
+          "description": "Directory content."
+        }
+      }
+    },
+    "provisioner-account-features": {
+      "title": "Provisioner Account Features",
+      "description": "Provisioner-supported account feature vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.provisioner.supported_account_features"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "groups": {
+          "title": "Groups",
+          "description": "Account group membership support."
+        },
+        "mail": {
+          "title": "Mail",
+          "description": "Account mail attribute support."
+        },
+        "spn": {
+          "title": "SPN",
+          "description": "Service principal name support."
+        },
+        "shell": {
+          "title": "Shell",
+          "description": "Shell attribute support."
+        },
+        "home": {
+          "title": "Home",
+          "description": "Home directory attribute support."
+        },
+        "disabled": {
+          "title": "Disabled",
+          "description": "Disabled-state attribute support."
+        },
+        "auth_method": {
+          "title": "Authentication Method",
+          "description": "Authentication method attribute support."
+        }
+      }
+    },
+    "orchestrator-supported-sections": {
+      "title": "Orchestrator Supported Sections",
+      "description": "Orchestrator-supported SDL section vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.orchestrator.supported_sections"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "injects": {
+          "title": "Injects",
+          "description": "Inject section support."
+        },
+        "events": {
+          "title": "Events",
+          "description": "Event section support."
+        },
+        "scripts": {
+          "title": "Scripts",
+          "description": "Script section support."
+        },
+        "stories": {
+          "title": "Stories",
+          "description": "Story section support."
+        },
+        "workflows": {
+          "title": "Workflows",
+          "description": "Workflow section support."
+        }
+      }
+    },
+    "evaluator-supported-sections": {
+      "title": "Evaluator Supported Sections",
+      "description": "Evaluator-supported SDL section vocabulary.",
+      "kind": "vocabulary",
+      "governed_scopes": [
+        "capabilities.evaluator.supported_sections"
+      ],
+      "extension_policy": "governed-extension",
+      "extension_pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "terms": {
+        "conditions": {
+          "title": "Conditions",
+          "description": "Condition section support."
+        },
+        "metrics": {
+          "title": "Metrics",
+          "description": "Metric section support."
+        },
+        "evaluations": {
+          "title": "Evaluations",
+          "description": "Evaluation section support."
+        },
+        "tlos": {
+          "title": "TLOs",
+          "description": "TLO section support."
+        },
+        "goals": {
+          "title": "Goals",
+          "description": "Goal section support."
+        },
+        "objectives": {
+          "title": "Objectives",
+          "description": "Objective section support."
+        }
+      }
+    }
+  }
+}

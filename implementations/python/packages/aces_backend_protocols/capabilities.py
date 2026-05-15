@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from aces_contracts.apparatus import (
-    ApparatusCompatibility,
     ApparatusIdentity,
+    ConceptBinding,
     RealizationSupportDeclaration,
 )
+from aces_contracts.controlled_vocabularies import validate_controlled_vocabulary_scope_values
+from aces_contracts.manifest_authority import validate_backend_supported_contract_versions
 from aces_contracts.vocabulary import WorkflowFeature, WorkflowStatePredicateFeature
 
 
@@ -41,6 +43,22 @@ class ProvisionerCapabilities:
             raise ValueError("ProvisionerCapabilities.supported_content_types must not contain empty strings")
         if any(not feature.strip() for feature in self.supported_account_features):
             raise ValueError("ProvisionerCapabilities.supported_account_features must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_node_types",
+            self.supported_node_types,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_os_families",
+            self.supported_os_families,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_content_types",
+            self.supported_content_types,
+        )
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.provisioner.supported_account_features",
+            self.supported_account_features,
+        )
         if self.max_total_nodes is not None and self.max_total_nodes < 1:
             raise ValueError("ProvisionerCapabilities.max_total_nodes must be positive when provided")
         if self.supports_accounts and not self.supported_account_features:
@@ -69,6 +87,10 @@ class OrchestratorCapabilities:
             raise ValueError("OrchestratorCapabilities.supported_sections must not be empty")
         if any(not section.strip() for section in self.supported_sections):
             raise ValueError("OrchestratorCapabilities.supported_sections must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.orchestrator.supported_sections",
+            self.supported_sections,
+        )
         if self.supports_workflows:
             if "workflows" not in self.supported_sections:
                 raise ValueError(
@@ -104,8 +126,34 @@ class EvaluatorCapabilities:
             raise ValueError("EvaluatorCapabilities.supported_sections must not be empty")
         if any(not section.strip() for section in self.supported_sections):
             raise ValueError("EvaluatorCapabilities.supported_sections must not contain empty strings")
+        validate_controlled_vocabulary_scope_values(
+            "capabilities.evaluator.supported_sections",
+            self.supported_sections,
+        )
         if not self.supports_scoring and not self.supports_objectives:
             raise ValueError("EvaluatorCapabilities must support scoring, objectives, or both")
+
+
+@dataclass(frozen=True)
+class ParticipantRuntimeCapabilities:
+    """Participant-episode lifecycle support declaration.
+
+    Declaring this capability means the backend exposes the full
+    participant episode control surface defined in RUN-311:
+    ``initialize``, ``reset``, ``restart``, and ``terminate`` on the
+    ``ParticipantRuntime`` protocol, plus the ``status``/``results``/
+    ``history`` observation methods. A backend that advertises this
+    capability MUST populate ``RuntimeSnapshot.participant_episode_results``
+    and ``participant_episode_history`` so downstream consumers see the
+    state machine transitions.
+    """
+
+    name: str
+    constraints: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("ParticipantRuntimeCapabilities.name must be non-empty")
 
 
 @dataclass(frozen=True)
@@ -115,6 +163,20 @@ class BackendCapabilitySet:
     provisioner: ProvisionerCapabilities
     orchestrator: OrchestratorCapabilities | None = None
     evaluator: EvaluatorCapabilities | None = None
+    participant_runtime: ParticipantRuntimeCapabilities | None = None
+
+
+@dataclass(frozen=True)
+class BackendCompatibility:
+    """Backend compatibility claims against processor surfaces."""
+
+    processors: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        if not self.processors:
+            raise ValueError("BackendCompatibility.processors must not be empty")
+        if any(not processor.strip() for processor in self.processors):
+            raise ValueError("BackendCompatibility.processors must not contain empty strings")
 
 
 @dataclass(frozen=True, init=False)
@@ -123,8 +185,9 @@ class BackendManifest:
 
     identity: ApparatusIdentity
     supported_contract_versions: frozenset[str]
-    compatibility: ApparatusCompatibility
+    compatibility: BackendCompatibility
     realization_support: tuple[RealizationSupportDeclaration, ...]
+    concept_bindings: tuple[ConceptBinding, ...]
     constraints: dict[str, str]
     capabilities: BackendCapabilitySet
 
@@ -133,29 +196,25 @@ class BackendManifest:
         *,
         identity: ApparatusIdentity | None = None,
         supported_contract_versions: frozenset[str] = frozenset(),
-        compatibility: ApparatusCompatibility | None = None,
+        compatibility: BackendCompatibility | None = None,
         realization_support: tuple[RealizationSupportDeclaration, ...] = (),
+        concept_bindings: tuple[ConceptBinding, ...] = (),
         constraints: dict[str, str] | None = None,
         capabilities: BackendCapabilitySet | None = None,
         name: str | None = None,
         version: str = "0.0.0+unknown",
         compatible_processors: frozenset[str] = frozenset(),
-        compatible_backends: frozenset[str] = frozenset(),
-        compatible_participant_implementations: frozenset[str] = frozenset(),
         provisioner: ProvisionerCapabilities | None = None,
         orchestrator: OrchestratorCapabilities | None = None,
         evaluator: EvaluatorCapabilities | None = None,
+        participant_runtime: ParticipantRuntimeCapabilities | None = None,
     ) -> None:
         if identity is None:
             if name is None:
                 raise ValueError("BackendManifest requires either identity or name.")
             identity = ApparatusIdentity(name=name, version=version)
         if compatibility is None:
-            compatibility = ApparatusCompatibility(
-                processors=frozenset(compatible_processors),
-                backends=frozenset(compatible_backends),
-                participant_implementations=frozenset(compatible_participant_implementations),
-            )
+            compatibility = BackendCompatibility(processors=frozenset(compatible_processors))
         if capabilities is None:
             if provisioner is None:
                 raise ValueError("BackendManifest requires either capabilities or provisioner.")
@@ -163,19 +222,25 @@ class BackendManifest:
                 provisioner=provisioner,
                 orchestrator=orchestrator,
                 evaluator=evaluator,
+                participant_runtime=participant_runtime,
             )
         supported_contract_versions = frozenset(supported_contract_versions)
         if not supported_contract_versions:
             raise ValueError("BackendManifest.supported_contract_versions must not be empty")
         if any(not version.strip() for version in supported_contract_versions):
             raise ValueError("BackendManifest.supported_contract_versions must not contain empty strings")
+        validate_backend_supported_contract_versions(supported_contract_versions)
         realization_support = tuple(realization_support)
         if not realization_support:
             raise ValueError("BackendManifest.realization_support must not be empty")
+        concept_bindings = tuple(concept_bindings)
+        if not concept_bindings:
+            raise ValueError("BackendManifest.concept_bindings must not be empty")
         object.__setattr__(self, "identity", identity)
         object.__setattr__(self, "supported_contract_versions", supported_contract_versions)
         object.__setattr__(self, "compatibility", compatibility)
         object.__setattr__(self, "realization_support", realization_support)
+        object.__setattr__(self, "concept_bindings", concept_bindings)
         object.__setattr__(self, "constraints", {} if constraints is None else dict(constraints))
         object.__setattr__(self, "capabilities", capabilities)
 
@@ -192,14 +257,6 @@ class BackendManifest:
         return self.compatibility.processors
 
     @property
-    def compatible_backends(self) -> frozenset[str]:
-        return self.compatibility.backends
-
-    @property
-    def compatible_participant_implementations(self) -> frozenset[str]:
-        return self.compatibility.participant_implementations
-
-    @property
     def provisioner(self) -> ProvisionerCapabilities:
         return self.capabilities.provisioner
 
@@ -212,12 +269,20 @@ class BackendManifest:
         return self.capabilities.evaluator
 
     @property
+    def participant_runtime(self) -> ParticipantRuntimeCapabilities | None:
+        return self.capabilities.participant_runtime
+
+    @property
     def has_orchestrator(self) -> bool:
         return self.orchestrator is not None
 
     @property
     def has_evaluator(self) -> bool:
         return self.evaluator is not None
+
+    @property
+    def has_participant_runtime(self) -> bool:
+        return self.participant_runtime is not None
 
     @property
     def evaluator_supported_sections(self) -> frozenset[str]:

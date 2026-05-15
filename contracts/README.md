@@ -8,6 +8,11 @@ The goal of this bucket is organizational clarity:
 - `fixtures/` contains valid and invalid payload corpora for those contracts
 - `profiles/` contains capability profile declarations
 
+`schema-publication-manifest.json` is the authoritative publication inventory
+for the current machine-readable schema set. The contracts verification gate
+checks that every entry points at `contracts/schemas/`, that every listed schema
+exists, and that every JSON Schema file under `contracts/schemas/` is listed.
+
 These assets are intentionally language-neutral. Any conformance runners or
 implementation-specific validation helpers belong under `implementations/`,
 not here.

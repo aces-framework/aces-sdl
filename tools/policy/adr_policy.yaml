@@ -1,0 +1,73 @@
+policy_version: 1
+
+legacy_top_level_roots:
+  - conformance
+  - schemas
+  - src
+
+source_roots:
+  - implementations/python/packages
+  - implementations/python/src
+
+changelog_path: CHANGELOG.md
+changelog_fragment_dir: changelog.d
+
+generated_contracts:
+  generated_roots:
+    - contracts/schemas
+  driver_paths:
+    - tools/generate_contract_schemas.py
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_processor
+
+compatibility_layer:
+  root: implementations/python/src/aces
+  owning_root: implementations/python/packages
+  forbidden_import_prefixes:
+    - aces.
+
+concept_authority:
+  reserved_path_tokens:
+    - concept-authority
+    - concept-families-v1
+  allowed_paths:
+    - specs/concept-authority
+    - contracts/concept-authority
+    - contracts/schemas/concept-authority
+    - contracts/fixtures/concept-authority
+    - docs/explain/reference/shared-concept-model.md
+    - docs/decisions/adrs/adr-012-shared-concept-authority-and-aces-extension-discipline.md
+    - implementations/python/tests/test_concept_authority.py
+    - implementations/python/packages/aces_contracts
+    - implementations/python/packages/aces_backend_protocols
+    - implementations/python/packages/aces_processor
+    - notes/reconstructed-work-order-after-gov-917.md
+
+adr_index:
+  index_path: docs/decisions/adrs/README.md
+  adr_glob: docs/decisions/adrs/adr-*.md
+
+# ADR-015: SDL is the lower layer; aces_sdl must not import aces_processor.
+layering_rules:
+  - id: aces_sdl_no_aces_processor
+    scope_root: implementations/python/packages/aces_sdl
+    forbidden_top_level: aces_processor
+
+# ADR-015: non-test source files under packages/ cap at 600 lines.
+# The allowlist (oversized_allowlist.yaml) lists the files that were over
+# the cap when ADR-015 landed; each split PR (child of issue #3) removes
+# its entry. The allowlist must stay a subset of the *code* constant
+# _ADR015_INITIAL_OVERSIZED_FILES in tools/policy/repo_policy.py (the fixed
+# reference set) — entries can be drained but not added. The locked set is
+# intentionally NOT mirrored here: keeping it as config the same PR can edit
+# would make the "shrink only" rule self-satisfiable.
+oversized_source_files:
+  line_cap: 600
+  allowlist_path: tools/policy/oversized_allowlist.yaml
+  scope_roots:
+    - implementations/python/packages
+  excluded_path_prefixes:
+    - implementations/python/tests
+  file_extensions:
+    - .py

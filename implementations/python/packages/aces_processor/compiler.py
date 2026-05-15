@@ -13,6 +13,15 @@ from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.nodes import NodeType
 from aces_sdl.orchestration import WorkflowStepType
 from aces_sdl.scenario import InstantiatedScenario, Scenario
+from aces_sdl.semantics.assessment import partition_assessment_dependencies
+from aces_sdl.semantics.objective_semantics import (
+    OBJECTIVE_WINDOW_DEPENDENCY_ROLES,
+    partition_objective_dependencies,
+)
+from aces_sdl.semantics.objectives import analyze_objective_window
+from aces_sdl.semantics.workflow import (
+    workflow_step_semantic_contract,
+)
 
 from .models import (
     AccountPlacement,
@@ -45,10 +54,6 @@ from .models import (
     WorkflowStepRuntime,
     WorkflowStepStatePredicateRuntime,
     WorkflowSwitchCaseRuntime,
-)
-from .semantics.objectives import analyze_objective_window
-from .semantics.workflow import (
-    workflow_step_semantic_contract,
 )
 
 
@@ -781,13 +786,14 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             "metric",
             metric_spec,
         )
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(condition_addresses)
         metrics[metric_address] = MetricRuntime(
             address=metric_address,
             name=name,
             condition_name=condition_name,
             condition_addresses=condition_addresses,
-            ordering_dependencies=condition_addresses,
-            refresh_dependencies=condition_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=metric_spec,
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -807,12 +813,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         )
         diagnostics.extend(evaluation_diagnostics)
         result_contract, execution_contract = _evaluation_contracts("evaluation")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(metric_addresses)
         evaluations[evaluation_address] = EvaluationRuntime(
             address=evaluation_address,
             name=name,
             metric_addresses=metric_addresses,
-            ordering_dependencies=metric_addresses,
-            refresh_dependencies=metric_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(evaluation),
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -833,12 +840,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         diagnostics.extend(tlo_diagnostics)
         evaluation_address = evaluation_addresses[0] if evaluation_addresses else ""
         result_contract, execution_contract = _evaluation_contracts("tlo")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(evaluation_addresses)
         tlos[tlo_address] = TLORuntime(
             address=tlo_address,
             name=name,
             evaluation_address=evaluation_address,
-            ordering_dependencies=evaluation_addresses,
-            refresh_dependencies=evaluation_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(tlo),
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -858,12 +866,13 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         )
         diagnostics.extend(goal_diagnostics)
         result_contract, execution_contract = _evaluation_contracts("goal")
+        ordering_dependencies, refresh_dependencies = partition_assessment_dependencies(tlo_addresses)
         goals[goal_address] = GoalRuntime(
             address=goal_address,
             name=name,
             tlo_addresses=tlo_addresses,
-            ordering_dependencies=tlo_addresses,
-            refresh_dependencies=tlo_addresses,
+            ordering_dependencies=ordering_dependencies,
+            refresh_dependencies=refresh_dependencies,
             spec=_dump(goal),
             result_contract=result_contract,
             execution_contract=execution_contract,
@@ -966,12 +975,18 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             window_step_workflow_addresses = _dedupe(
                 [_workflow_address(workflow_name) for workflow_name in window_analysis.refresh_workflow_names]
             )
+            # ``dependency_roles`` on the runtime objective-window reference is
+            # derived from the SEM-207 role constant, not from the SEM-202
+            # window helper's per-ref metadata, so the planner-facing role
+            # decision has a single source of truth (matches
+            # ``partition_objective_dependencies`` and the analyzer).
+            window_role_values = tuple(role.value for role in OBJECTIVE_WINDOW_DEPENDENCY_ROLES)
             window_references = tuple(
                 ObjectiveWindowReferenceRuntime(
                     raw=ref.raw,
                     canonical_name=ref.canonical_name,
                     reference_kind=ref.reference_kind.value,
-                    dependency_roles=tuple(role.value for role in ref.dependency_roles),
+                    dependency_roles=window_role_values,
                     workflow_name=ref.workflow_name or "",
                     step_name=ref.step_name or "",
                     namespace_path=ref.namespace_path,
@@ -1087,17 +1102,20 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
 
         actor_type = "agent" if objective.agent else "entity"
         actor_name = objective.agent or objective.entity
-        ordering_dependencies = _dedupe([*success_addresses, *objective_dependencies])
-        refresh_dependencies = _dedupe(
-            [
-                *success_addresses,
-                *objective_dependencies,
+        # Success and objective-dependency edges order and refresh the compiled
+        # objective; window edges only refresh it. The role decision lives in
+        # ``aces_sdl.semantics.objective_semantics`` (SEM-207) so the validator,
+        # this compiler, and the planner derive it from one fact.
+        ordering_dependencies, refresh_dependencies = partition_objective_dependencies(
+            success_refs=success_addresses,
+            dependency_refs=objective_dependencies,
+            window_refresh_refs=[
                 *window_story_addresses,
                 *window_script_addresses,
                 *window_event_addresses,
                 *window_workflow_addresses,
                 *window_step_workflow_addresses,
-            ]
+            ],
         )
         result_contract, execution_contract = _evaluation_contracts("objective")
         objectives[objective_address] = ObjectiveRuntime(
