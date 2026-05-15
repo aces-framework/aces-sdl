@@ -1,8 +1,5 @@
 # ACES SDL
 
-[![CI](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml/badge.svg)](https://github.com/autarchy-ai/aces-sdl/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 ACES SDL is a backend-agnostic scenario description language and reference
 runtime for cyber range scenarios and experiments.
 
@@ -159,6 +156,12 @@ The Python package currently declares its version in
 [`implementations/python/pyproject.toml`](implementations/python/pyproject.toml).
 Release notes are collated from towncrier fragments in
 [`changelog.d/`](changelog.d/). Do not hand-edit `CHANGELOG.md`.
+
+## Maintainers
+
+- Brad Edwards — [Brad-Edwards-SecOps](https://github.com/Brad-Edwards) / [Brad-Edwards](https://github.com/Brad-Edwards-SecOps)
+
+  [LinkedIn](https://www.linkedin.com/in/bradley-edwards-dev/)
 
 ## Citation
 
