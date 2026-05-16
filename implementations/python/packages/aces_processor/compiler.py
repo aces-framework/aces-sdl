@@ -366,8 +366,15 @@ def _resolve_node_ref(
 
 def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeModel:
     """Compile an SDL scenario into bound runtime objects."""
+    # `${name}` references on node.os and infrastructure.count are erased by
+    # `instantiate_scenario`, so always read the captured snapshot off the
+    # InstantiatedScenario after the substitution has run. When the caller
+    # already instantiated upstream (e.g. `RuntimeManager.plan()`), the snapshot
+    # is already there; otherwise instantiate now so the snapshot is built and
+    # merged with any module-import provenance attached during composition.
     if not isinstance(scenario, InstantiatedScenario):
         scenario = instantiate_scenario(scenario, validate_semantics=False)
+    node_variable_refs = dict(scenario.node_variable_refs)
 
     diagnostics: list[Diagnostic] = []
 
@@ -407,6 +414,24 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
     agent_specs = {name: _dump(agent) for name, agent in scenario.agents.items()}
     relationship_specs = {name: _dump(relationship) for name, relationship in scenario.relationships.items()}
     variable_specs = {name: _dump(variable) for name, variable in scenario.variables.items()}
+    # Module-import provenance: composition stripped imported variables from
+    # the merged payload, but the import-time provenance was preserved as a
+    # side channel. Merge those namespace-prefixed specs in so the planner
+    # can resolve a captured ref (e.g. `<ns>.__private.os_name`) to its
+    # original `allowed_values`. Reject name collisions outright — a user-
+    # authored variable whose name matches a generated private-prefixed
+    # imported name would otherwise silently shadow the imported domain and
+    # make the planner validate against the wrong `allowed_values`.
+    for prefixed_name, spec in scenario.module_variable_specs.items():
+        if prefixed_name in variable_specs:
+            raise ValueError(
+                "Outer scenario variable "
+                f"{prefixed_name!r} collides with a module-import "
+                "provenance entry generated under the reserved private "
+                "namespace; rename the outer variable so it does not "
+                "shadow the imported domain."
+            )
+        variable_specs[prefixed_name] = spec
 
     networks: dict[str, NetworkRuntime] = {}
     node_deployments: dict[str, NodeRuntime] = {}
@@ -1482,6 +1507,20 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             spec=_dump(workflow),
         )
 
+    # Re-key the name-indexed variable-ref snapshot to the resource address
+    # the planner sees (`_network_address` for switches, `_node_address`
+    # otherwise) so capability checks can look up provenance by
+    # `resource.address` without depending on the dataclass-internal name.
+    node_variable_refs_by_address: dict[str, dict[str, str | None]] = {}
+    for node_name, refs in node_variable_refs.items():
+        if not refs.get("os") and not refs.get("count"):
+            continue
+        scenario_node = scenario.nodes.get(node_name)
+        if scenario_node is None:
+            continue
+        address = _network_address(node_name) if scenario_node.type == NodeType.SWITCH else _node_address(node_name)
+        node_variable_refs_by_address[address] = refs
+
     return RuntimeModel(
         scenario_name=scenario.name,
         feature_templates=feature_templates,
@@ -1492,6 +1531,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         agent_specs=agent_specs,
         relationship_specs=relationship_specs,
         variable_specs=variable_specs,
+        node_variable_refs=node_variable_refs_by_address,
         networks=networks,
         node_deployments=node_deployments,
         feature_bindings=feature_bindings,
