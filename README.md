@@ -195,10 +195,3 @@ If you use ACES SDL in academic work, cite the repository:
 ## License
 
 Released under the MIT License. See [LICENSE](LICENSE).
-
-## Maintainer
-
-ACES SDL is maintained by Brad Edwards under Autarchy.
-
-The repository is hosted under the `autarchy-ai` GitHub organization, but the
-project belongs to Autarchy.
