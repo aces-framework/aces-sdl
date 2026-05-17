@@ -122,6 +122,16 @@ class Scenario(SDLModel):
 
     _advisories: list[str] = PrivateAttr(default_factory=list)
     _semantic_validated: bool = PrivateAttr(default=False)
+    # Capability-variable provenance carried across the SDL module-import
+    # composition boundary. The composition pass strips imported variables
+    # from the merged payload by design, so this side-channel preserves the
+    # imported variable specs (namespace-prefixed) and the imported nodes'
+    # `${name}` refs onto the outer scenario. The instantiation and runtime-
+    # compile paths read these to enforce backend `allowed_values` against
+    # imported modules even though their variables don't survive the merge.
+    # Inner mapping shape mirrors `InstantiatedScenario._node_variable_refs`.
+    _module_variable_specs: dict[str, dict[str, object]] = PrivateAttr(default_factory=dict)
+    _module_node_variable_refs: dict[str, dict[str, str | None]] = PrivateAttr(default_factory=dict)
 
     @property
     def advisories(self) -> list[str]:
@@ -139,12 +149,34 @@ class Scenario(SDLModel):
     def _set_semantic_validated(self, validated: bool) -> None:
         self._semantic_validated = bool(validated)
 
+    @property
+    def module_variable_specs(self) -> dict[str, dict[str, object]]:
+        """Namespace-prefixed variable specs preserved across module imports."""
+        return {name: dict(spec) for name, spec in self._module_variable_specs.items()}
+
+    @property
+    def module_node_variable_refs(self) -> dict[str, dict[str, str | None]]:
+        """Refs on imported-module nodes that survived the composition merge."""
+        return {name: dict(refs) for name, refs in self._module_node_variable_refs.items()}
+
+    def _set_module_variable_specs(self, specs: dict[str, dict[str, object]]) -> None:
+        self._module_variable_specs = {name: dict(spec) for name, spec in specs.items()}
+
+    def _set_module_node_variable_refs(self, refs: dict[str, dict[str, str | None]]) -> None:
+        self._module_node_variable_refs = {name: dict(entry) for name, entry in refs.items()}
+
 
 class InstantiatedScenario(Scenario):
     """Scenario with all `${var}` references resolved to concrete values."""
 
     _instantiation_parameters: dict[str, object] = PrivateAttr(default_factory=dict)
     _instantiation_profile: str | None = PrivateAttr(default=None)
+    # Snapshot of pre-instantiation `${name}` refs on `nodes.os` and
+    # `infrastructure.count`, captured by `instantiate_scenario` before
+    # substitution. Carries downstream so the runtime processor / planner
+    # can reach each variable's `allowed_values` after the resolved values
+    # have been written onto the concrete scenario.
+    _node_variable_refs: dict[str, dict[str, str | None]] = PrivateAttr(default_factory=dict)
 
     @property
     def instantiation_parameters(self) -> dict[str, object]:
@@ -156,6 +188,11 @@ class InstantiatedScenario(Scenario):
         """Optional instantiation profile name."""
         return self._instantiation_profile
 
+    @property
+    def node_variable_refs(self) -> dict[str, dict[str, str | None]]:
+        """Pre-instantiation `${var}` refs on `nodes.os` / `infrastructure.count`."""
+        return {name: dict(refs) for name, refs in self._node_variable_refs.items()}
+
     def _set_instantiation_context(
         self,
         *,
@@ -164,6 +201,9 @@ class InstantiatedScenario(Scenario):
     ) -> None:
         self._instantiation_parameters = dict(parameters)
         self._instantiation_profile = profile
+
+    def _set_node_variable_refs(self, refs: dict[str, dict[str, str | None]]) -> None:
+        self._node_variable_refs = {name: dict(entry) for name, entry in refs.items()}
 
 
 class ExpandedScenario(Scenario):

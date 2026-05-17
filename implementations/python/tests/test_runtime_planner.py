@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import textwrap
-from pathlib import Path
 
 import pytest
 from aces_contracts.apparatus import ConceptBinding, RealizationSupportDeclaration
 from aces_contracts.vocabulary import RealizationSupportMode
+from paths import EXAMPLES_DIR
 
 from aces.backends.stubs import create_stub_manifest
 from aces.core.runtime.capabilities import (
@@ -1029,8 +1029,8 @@ nodes:
 
         codes = {diag.code for diag in execution_plan.diagnostics}
 
-        assert "provisioner.unsupported-os-family" not in codes
-        assert execution_plan.is_valid
+        assert "provisioner.unsupported-os-family" in codes
+        assert not execution_plan.is_valid
 
     def test_variable_backed_os_defaults_must_be_valid_for_nodes_os(self):
         with pytest.raises(SDLInstantiationError) as exc:
@@ -1132,8 +1132,66 @@ infrastructure:
 
         codes = {diag.code for diag in execution_plan.diagnostics}
 
-        assert "provisioner.max-total-nodes-exceeded" not in codes
-        assert execution_plan.is_valid
+        assert "provisioner.max-total-nodes-exceeded" in codes
+        assert not execution_plan.is_valid
+
+    def test_imported_module_allowed_values_enforce_against_backend(self, tmp_path):
+        # SDL module-import composition strips imported variables from the
+        # merged payload, so the side-channel provenance must carry both the
+        # imported variable spec AND the imported nodes' captured refs onto
+        # the outer scenario. Otherwise the runtime planner's
+        # `allowed_values`-vs-`supported_os_families` check is unreachable
+        # for parameterized imported modules. This test exercises the path
+        # end-to-end via parse_sdl_file.
+        from pathlib import Path
+
+        from aces.core.sdl import parse_sdl_file
+
+        imported = tmp_path / "shared.yaml"
+        imported.write_text(
+            """
+name: shared
+version: 1.0.0
+variables:
+  os_name:
+    type: string
+    default: linux
+    allowed_values: [linux, windows]
+nodes:
+  vm:
+    type: vm
+    os: '${os_name}'
+    resources: {ram: 1 gib, cpu: 1}
+""",
+            encoding="utf-8",
+        )
+        root = tmp_path / "root.yaml"
+        root.write_text(
+            """
+name: root
+imports:
+  - path: shared.yaml
+    namespace: shared
+    version: 1.0.0
+""",
+            encoding="utf-8",
+        )
+        manifest = _limited_backend_manifest(
+            name="limited",
+            provisioner=ProvisionerCapabilities(
+                name="limited-provisioner",
+                supported_node_types=frozenset({"vm"}),
+                supported_os_families=frozenset({"linux"}),
+            ),
+        )
+
+        scenario = parse_sdl_file(Path(root), skip_semantic_validation=True)
+        execution_plan = plan(compile_runtime_model(scenario), manifest)
+
+        codes = {diag.code for diag in execution_plan.diagnostics}
+
+        assert "provisioner.unsupported-os-family" in codes
+        assert not execution_plan.is_valid
 
     def test_variable_backed_counts_defaults_must_be_valid_for_infrastructure_count(self):
         manifest = _limited_backend_manifest(
@@ -1162,6 +1220,80 @@ infrastructure:
 """)
             )
         assert "infrastructure.vm.count" in str(exc.value)
+
+    def test_variable_backed_os_allowed_values_fail_when_pre_instantiated(self):
+        # Manager-path coverage: when the caller instantiates upstream and
+        # passes an InstantiatedScenario to compile_runtime_model, the
+        # captured-ref snapshot must still flow through so the
+        # allowed_values-vs-supported_os_families check fires.
+        manifest = _limited_backend_manifest(
+            name="limited",
+            provisioner=ProvisionerCapabilities(
+                name="limited-provisioner",
+                supported_node_types=frozenset({"vm"}),
+                supported_os_families=frozenset({"linux"}),
+            ),
+        )
+
+        from aces_sdl.instantiate import instantiate_scenario
+
+        instantiated = instantiate_scenario(
+            _scenario("""
+name: variable-os
+variables:
+  os_name:
+    type: string
+    default: linux
+    allowed_values: [linux, windows]
+nodes:
+  vm: {type: vm, os: '${os_name}', resources: {ram: 1 gib, cpu: 1}}
+"""),
+            validate_semantics=False,
+        )
+        execution_plan = plan(compile_runtime_model(instantiated), manifest)
+
+        codes = {diag.code for diag in execution_plan.diagnostics}
+
+        assert "provisioner.unsupported-os-family" in codes
+        assert not execution_plan.is_valid
+
+    def test_variable_backed_switch_count_enforces_max_nodes(self):
+        # Switch (network) resources go through the same max_total_nodes
+        # check as VM resources, so their `infrastructure.count` provenance
+        # must be captured by the same path. Without that, a switch with
+        # `allowed_values: [1, 3]` would slip past `max_total_nodes=2`.
+        manifest = _limited_backend_manifest(
+            name="limited",
+            provisioner=ProvisionerCapabilities(
+                name="limited-provisioner",
+                supported_node_types=frozenset({"vm", "switch"}),
+                supported_os_families=frozenset({"linux"}),
+                max_total_nodes=2,
+            ),
+        )
+
+        execution_plan = plan(
+            compile_runtime_model(
+                _scenario("""
+name: variable-switch-count
+variables:
+  net_count:
+    type: integer
+    default: 1
+    allowed_values: [1, 3]
+nodes:
+  net: {type: switch}
+infrastructure:
+  net: ${net_count}
+""")
+            ),
+            manifest,
+        )
+
+        codes = {diag.code for diag in execution_plan.diagnostics}
+
+        assert "provisioner.max-total-nodes-exceeded" in codes
+        assert not execution_plan.is_valid
 
     def test_variable_backed_counts_without_allowed_values_use_instantiated_default(self):
         manifest = _limited_backend_manifest(
@@ -1312,19 +1444,22 @@ workflows:
         assert evaluation_order.index("evaluation.goal.pass") < evaluation_order.index("evaluation.objective.initial")
 
     def test_satcom_release_poisoning_compiles_to_valid_execution_plan(self):
-        scenario_path = (
-            Path(__file__).resolve().parents[3] / "examples" / "scenarios" / "satcom-release-poisoning.sdl.yaml"
-        )
+        scenario_path = EXAMPLES_DIR / "satcom-release-poisoning.sdl.yaml"
         content = scenario_path.read_text(encoding="utf-8")
         model = compile_runtime_model(parse_sdl(content))
         execution_plan = plan(model, create_stub_manifest())
 
+        # Pinned counts from the satcom example. A partial regression
+        # (e.g. half the nodes failing to compile) keeps `> 5` green; exact
+        # match catches it. Authors who add or remove SDL elements update
+        # this single line, which is preferable to letting the test rot
+        # into a no-op.
         assert execution_plan.is_valid
-        assert len(model.node_deployments) > 5
-        assert len(model.feature_bindings) > 5
-        assert len(model.injects) > 0
-        assert len(model.objectives) > 0
-        assert len(model.workflows) > 0
+        assert len(model.node_deployments) == 14
+        assert len(model.feature_bindings) == 14
+        assert len(model.injects) == 3
+        assert len(model.objectives) == 6
+        assert len(model.workflows) == 1
         assert len(execution_plan.provisioning.operations) > 0
         assert len(execution_plan.orchestration.startup_order) > 0
         assert len(execution_plan.evaluation.startup_order) > 0

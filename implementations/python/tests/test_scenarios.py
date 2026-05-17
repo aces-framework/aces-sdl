@@ -1,15 +1,12 @@
 """Tests for the SDL scenario loading boundary."""
 
-from pathlib import Path
-
 import pytest
+from paths import EXAMPLES_DIR
 
 VALID_SDL = """
 name: test-scenario
 description: Minimal SDL scenario
 """
-
-EXAMPLES_DIR = Path(__file__).resolve().parents[3] / "examples" / "scenarios"
 EXAMPLE_SCENARIOS = sorted(EXAMPLES_DIR.glob("*.sdl.yaml"))
 COMPLEX_EXAMPLES = [
     EXAMPLES_DIR / "hospital-ransomware-surgery-day.sdl.yaml",
@@ -69,7 +66,12 @@ mode: red
             encoding="utf-8",
         )
 
-        with pytest.raises(ScenarioValidationError):
+        # Match against the legacy-format fingerprint (the `metadata` /
+        # `mode` extra-field rejection that distinguishes the old SDL shape
+        # from a generic invalid scenario) so the test fails if the legacy-
+        # detection path is removed but the YAML keeps being rejected for
+        # an unrelated reason.
+        with pytest.raises(ScenarioValidationError, match=r"(?s)(metadata|mode).*Extra inputs"):
             load_scenario(path)
 
     def test_validation_error_includes_path(self, tmp_path):

@@ -55,7 +55,7 @@ packages = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "packages"]
+pythonpath = ["src", "packages", "tests"]
 markers = [
     "fuzz: property-based fuzz tests (run with: pytest -m fuzz)",
 ]
