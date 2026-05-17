@@ -225,10 +225,28 @@ def _variable_ref(
     variable_name = extract_variable_name(value)
     if variable_name is None:
         return None, None, False
+    return _resolve_variable_ref(model, variable_name)
+
+
+def _resolve_variable_ref(
+    model: RuntimeModel,
+    variable_name: str,
+) -> tuple[str | None, dict[str, object] | None, bool]:
+    """Look up a variable's spec by name and report whether it is declared."""
+
     spec = model.variable_specs.get(variable_name)
     if isinstance(spec, dict):
         return variable_name, spec, True
     return variable_name, None, False
+
+
+def _has_allowed_values(variable_spec: dict[str, object] | None) -> bool:
+    """Return whether `variable_spec` declares a non-empty `allowed_values`."""
+
+    if not isinstance(variable_spec, dict):
+        return False
+    allowed_values = variable_spec.get("allowed_values")
+    return isinstance(allowed_values, list) and bool(allowed_values)
 
 
 def _error_diagnostic(code: str, address: str, message: str) -> Diagnostic:
@@ -305,7 +323,21 @@ def _validate_node_os_family(
     if not node.os_family:
         return []
 
-    variable_name, variable_spec, is_declared = _variable_ref(model, node.os_family)
+    # Prefer the pre-instantiation variable ref captured by the compiler over
+    # any `${...}` placeholder still on the resolved value, but only when the
+    # variable carries an explicit `allowed_values` domain. Without
+    # allowed_values the documented planner contract is "trust the
+    # instantiated default"; widening the captured-ref path to those variables
+    # would emit a spurious validation-deferred warning even though the
+    # default is a concrete supported value.
+    variable_name, variable_spec, is_declared = None, None, False
+    captured_ref = model.node_variable_refs.get(node.address, {}).get("os")
+    if captured_ref:
+        ref_name, ref_spec, ref_declared = _resolve_variable_ref(model, captured_ref)
+        if _has_allowed_values(ref_spec):
+            variable_name, variable_spec, is_declared = ref_name, ref_spec, ref_declared
+    if variable_name is None:
+        variable_name, variable_spec, is_declared = _variable_ref(model, node.os_family)
     if variable_name is None:
         if node.os_family in supported_os_families:
             return []
@@ -417,10 +449,28 @@ def _resource_count_upper_bound(
     resource,
 ) -> tuple[int | None, Diagnostic | None]:
     count = resource.spec.get("infrastructure", {}).get("count", 1)
-    if isinstance(count, int):
-        return count, None
 
-    variable_name, variable_spec, is_declared = _variable_ref(model, count)
+    # Same provenance issue as `_validate_node_os_family`: `instantiate_scenario`
+    # has already resolved `${var}` references on infrastructure.count by the
+    # time the planner sees the model. The captured ref on
+    # `model.node_variable_refs[resource.address]["count"]` lets the capability
+    # check still reach the variable's `allowed_values` so that, e.g.,
+    # `max_total_nodes=2` rejects a variable whose domain includes `3` even
+    # when its default is `1`. Switch (network) and node (vm) resources share
+    # the same dict because the planner enforces `max_total_nodes` against
+    # both. Variables without `allowed_values` keep the documented "trust the
+    # instantiated default" contract and fall through to the integer-direct
+    # branch below.
+    variable_name, variable_spec, is_declared = None, None, False
+    captured_ref = model.node_variable_refs.get(resource.address, {}).get("count")
+    if captured_ref:
+        ref_name, ref_spec, ref_declared = _resolve_variable_ref(model, captured_ref)
+        if _has_allowed_values(ref_spec):
+            variable_name, variable_spec, is_declared = ref_name, ref_spec, ref_declared
+    if variable_name is None:
+        if isinstance(count, int):
+            return count, None
+        variable_name, variable_spec, is_declared = _variable_ref(model, count)
     if variable_name is None:
         return None, None
     if not is_declared:

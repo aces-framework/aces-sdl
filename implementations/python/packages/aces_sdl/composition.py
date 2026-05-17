@@ -8,6 +8,15 @@ from typing import Any
 
 from ._base import is_variable_ref
 from ._errors import SDLInstantiationError, SDLParseError
+from ._module_provenance import (
+    add_unique_provenance as _add_unique_provenance,
+)
+from ._module_provenance import (
+    dump_variable_spec as _dump_variable_spec,
+)
+from ._module_provenance import (
+    rename_variable_ref,
+)
 from .entities import flatten_entities
 from .instantiate import instantiate_scenario
 from .module_registry import (
@@ -392,8 +401,23 @@ def expand_sdl_modules(
     *,
     path: Path,
     seen: set[Path] | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Expand local SDL imports into one canonical merged payload."""
+) -> tuple[
+    dict[str, Any],
+    dict[str, str],
+    dict[str, dict[str, object]],
+    dict[str, dict[str, str | None]],
+]:
+    """Expand local SDL imports into one canonical merged payload.
+
+    Returns ``(merged_payload, namespaces, module_variable_specs,
+    module_node_variable_refs)``. The trailing two channels carry capability-
+    variable provenance across the import boundary so the runtime planner can
+    enforce `allowed_values` against backend support for imported parameterized
+    modules. The composition step strips imported variables from the merged
+    payload by design; these side-channel dicts preserve their specs
+    (namespace-prefixed) and the imported nodes' `${name}` refs (with both
+    node and variable names namespace-prefixed) for downstream consumers.
+    """
 
     seen = set() if seen is None else set(seen)
     resolved_path = path.resolve()
@@ -405,6 +429,8 @@ def expand_sdl_modules(
     merged.setdefault("imports", [])
     merged.setdefault("version", "*")
     namespaces: dict[str, str] = {}
+    module_variable_specs: dict[str, dict[str, object]] = {}
+    module_node_variable_refs: dict[str, dict[str, str | None]] = {}
     lockfile = load_lockfile(resolved_path.parent)
     trust_policy = load_trust_policy(resolved_path.parent)
 
@@ -426,13 +452,23 @@ def expand_sdl_modules(
             import_path.read_text(encoding="utf-8"),
             path=import_path,
         )
-        imported_expanded, imported_namespaces = expand_sdl_modules(
+        (
+            imported_expanded,
+            imported_namespaces,
+            inner_module_variable_specs,
+            inner_module_node_variable_refs,
+        ) = expand_sdl_modules(
             imported_raw,
             path=import_path,
             seen=seen,
         )
         try:
             imported_scenario = Scenario.model_validate(imported_expanded)
+            # Re-attach the deeper-import provenance so `instantiate_scenario`
+            # can propagate it onto the `InstantiatedScenario` alongside
+            # whatever local refs it captures.
+            imported_scenario._set_module_variable_specs(inner_module_variable_specs)
+            imported_scenario._set_module_node_variable_refs(inner_module_node_variable_refs)
             imported_instantiated = instantiate_scenario(
                 imported_scenario,
                 parameters=import_decl.parameters,
@@ -442,6 +478,80 @@ def expand_sdl_modules(
             raise SDLParseError(str(exc), path=import_path) from exc
         imported_instantiated.module = resolved_import.module_descriptor
         namespace = import_decl.namespace or resolved_import.module_descriptor.id.split("/")[-1]
+
+        descriptor = imported_instantiated.module or ModuleDescriptor(
+            id=imported_instantiated.name,
+            version=imported_instantiated.version,
+            parameters=sorted(imported_instantiated.variables.keys()),
+            exports={
+                section: sorted(getattr(imported_instantiated, section).keys())
+                for section in _HASHMAP_SECTIONS
+                if getattr(imported_instantiated, section)
+            },
+        )
+        symbols = _symbol_index(imported_instantiated, namespace=namespace, descriptor=descriptor)
+
+        # Local imported variables get namespace-prefixed (private prefix; they
+        # are not exported) and threaded into the module-variable-specs
+        # accumulator. Deeper-import specs from `imported_instantiated.module_variable_specs`
+        # are already prefixed at their level; re-prefix them at this level too.
+        # Collisions on the generated private-prefix namespace are rejected
+        # outright: silently letting one provenance entry overwrite another
+        # would let the planner validate an imported node against the wrong
+        # `allowed_values` domain. The same applies to the node-ref merge below.
+        local_var_renames = {name: _private_prefix(namespace, name) for name in imported_instantiated.variables}
+        for var_name, spec in imported_instantiated.variables.items():
+            _add_unique_provenance(
+                module_variable_specs,
+                local_var_renames[var_name],
+                _dump_variable_spec(spec),
+                kind="variable spec",
+                source_path=import_path,
+            )
+        for inner_name, spec in imported_instantiated.module_variable_specs.items():
+            _add_unique_provenance(
+                module_variable_specs,
+                _prefix(namespace, inner_name),
+                dict(spec),
+                kind="variable spec",
+                source_path=import_path,
+            )
+
+        # Captured node refs come from two sources: locally-captured refs in
+        # the imported scenario (`imported_instantiated.node_variable_refs`)
+        # whose node-name keys are still the imported scenario's own names,
+        # and pre-existing deeper-import refs in
+        # `imported_instantiated.module_node_variable_refs` whose node names
+        # are already deeper-prefixed. Both need this level's namespace
+        # applied to node names and variable names, with the variable name
+        # routed through the local rename map when local, else through the
+        # outer-prefix when deeper.
+        node_renames = symbols.get("nodes") or {}
+        for node_name, refs in imported_instantiated.node_variable_refs.items():
+            renamed_node = node_renames.get(node_name) or _prefix(namespace, node_name)
+            _add_unique_provenance(
+                module_node_variable_refs,
+                renamed_node,
+                {
+                    "os": _rename_variable_ref(refs.get("os"), local_var_renames, namespace),
+                    "count": _rename_variable_ref(refs.get("count"), local_var_renames, namespace),
+                },
+                kind="node variable ref",
+                source_path=import_path,
+            )
+        for inner_node_name, refs in imported_instantiated.module_node_variable_refs.items():
+            renamed_node = _prefix(namespace, inner_node_name)
+            _add_unique_provenance(
+                module_node_variable_refs,
+                renamed_node,
+                {
+                    "os": _rename_variable_ref(refs.get("os"), local_var_renames, namespace),
+                    "count": _rename_variable_ref(refs.get("count"), local_var_renames, namespace),
+                },
+                kind="node variable ref",
+                source_path=import_path,
+            )
+
         namespaced_payload = _namespace_payload(
             imported_instantiated.model_dump(mode="python", by_alias=True),
             imported_instantiated,
@@ -452,4 +562,16 @@ def expand_sdl_modules(
         namespaces.update(imported_namespaces)
 
     merged["imports"] = []
-    return merged, namespaces
+    return merged, namespaces, module_variable_specs, module_node_variable_refs
+
+
+def _rename_variable_ref(
+    ref: str | None,
+    local_var_renames: Mapping[str, str],
+    namespace: str,
+) -> str | None:
+    """Thin shim binding `_module_provenance.rename_variable_ref` to this
+    file's local `_prefix` namespace helper. The provenance module accepts
+    the prefix function as a parameter to avoid a circular import."""
+
+    return rename_variable_ref(ref, local_var_renames, namespace, prefix=_prefix)

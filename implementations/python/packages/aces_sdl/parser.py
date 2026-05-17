@@ -277,6 +277,8 @@ def parse_sdl(
         SDLValidationError: If semantic validation finds errors.
     """
     data = _load_normalized_data(content, path=path)
+    module_variable_specs: dict[str, dict[str, object]] = {}
+    module_node_variable_refs: dict[str, dict[str, str | None]] = {}
     if data.get("imports"):
         if path is None:
             raise SDLParseError(
@@ -285,7 +287,12 @@ def parse_sdl(
             )
         from .composition import expand_sdl_modules
 
-        data, namespaces = expand_sdl_modules(data, path=path)
+        (
+            data,
+            namespaces,
+            module_variable_specs,
+            module_node_variable_refs,
+        ) = expand_sdl_modules(data, path=path)
         scenario_cls = ExpandedScenario if namespaces else Scenario
     else:
         scenario_cls = Scenario
@@ -295,6 +302,11 @@ def parse_sdl(
         scenario = scenario_cls(**data)
     except ValidationError as e:
         raise SDLParseError(str(e), path=path) from e
+
+    # Attach the module-import capability-variable provenance BEFORE semantic
+    # validation so downstream `instantiate_scenario` can propagate it.
+    scenario._set_module_variable_specs(module_variable_specs)
+    scenario._set_module_node_variable_refs(module_node_variable_refs)
 
     # Semantic validation
     if not skip_semantic_validation:
@@ -326,15 +338,25 @@ def parse_sdl_file(path: Path, **kwargs: Any) -> Scenario:
     content = path.read_text(encoding="utf-8")
     data = _load_normalized_data(content, path=path)
     namespaces: dict[str, str] = {}
+    module_variable_specs: dict[str, dict[str, object]] = {}
+    module_node_variable_refs: dict[str, dict[str, str | None]] = {}
     if data.get("imports"):
         from .composition import expand_sdl_modules
 
-        data, namespaces = expand_sdl_modules(data, path=path)
+        (
+            data,
+            namespaces,
+            module_variable_specs,
+            module_node_variable_refs,
+        ) = expand_sdl_modules(data, path=path)
     scenario_cls = ExpandedScenario if namespaces else Scenario
     try:
         scenario = scenario_cls(**data)
     except ValidationError as e:
         raise SDLParseError(str(e), path=path) from e
+
+    scenario._set_module_variable_specs(module_variable_specs)
+    scenario._set_module_node_variable_refs(module_node_variable_refs)
 
     skip_semantic_validation = bool(kwargs.pop("skip_semantic_validation", False))
     if not skip_semantic_validation:

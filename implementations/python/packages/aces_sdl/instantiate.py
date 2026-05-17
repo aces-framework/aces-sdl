@@ -114,6 +114,33 @@ def _substitute_value(
     return _VARIABLE_TOKEN_RE.sub(replace_token, value)
 
 
+def _capture_node_variable_refs(
+    scenario: Scenario,
+) -> dict[str, dict[str, str | None]]:
+    """Snapshot `${name}` refs on `nodes.os` and `infrastructure.count`.
+
+    Captured before variable substitution so downstream consumers
+    (typically the runtime planner via `InstantiatedScenario.node_variable_refs`)
+    can still reach each variable's `allowed_values` after the resolved
+    values have been written onto the concrete scenario. Covers every node
+    name regardless of `NodeType` because the runtime planner's
+    `max_total_nodes` check runs across both networks (switches) and node
+    deployments.
+    """
+
+    refs: dict[str, dict[str, str | None]] = {}
+    for node_name, node in scenario.nodes.items():
+        os_ref = extract_variable_name(node.os) if isinstance(node.os, str) else None
+        count_ref: str | None = None
+        infra = scenario.infrastructure.get(node_name)
+        if infra is not None and isinstance(infra.count, str):
+            count_ref = extract_variable_name(infra.count)
+        if os_ref is None and count_ref is None:
+            continue
+        refs[node_name] = {"os": os_ref, "count": count_ref}
+    return refs
+
+
 def instantiate_scenario(
     raw_scenario: Scenario,
     parameters: Mapping[str, JSONLike] | None = None,
@@ -129,6 +156,19 @@ def instantiate_scenario(
     """
 
     effective_parameters = dict(parameters or {})
+    # Capture `${var}` refs on `nodes.os` and `infrastructure.count` BEFORE
+    # substitution so downstream consumers (e.g. the runtime planner's
+    # capability checks) can still reach each variable's `allowed_values`
+    # after the resolved values are written onto the concrete scenario.
+    node_variable_refs = _capture_node_variable_refs(raw_scenario)
+    # Merge in any module-import provenance attached by `expand_sdl_modules`
+    # (composition.py). Outer node names take precedence over deeper ones if
+    # the same key appears in both (cannot happen with namespaced names, but
+    # guard explicitly to keep the merge predictable).
+    module_node_refs = raw_scenario.module_node_variable_refs
+    for node_name, refs in module_node_refs.items():
+        node_variable_refs.setdefault(node_name, refs)
+    module_variable_specs = raw_scenario.module_variable_specs
     variable_values, errors = _resolve_variable_values(raw_scenario, effective_parameters)
     if errors:
         raise SDLInstantiationError(errors)
@@ -167,4 +207,6 @@ def instantiate_scenario(
         parameters=variable_values,
         profile=profile,
     )
+    instantiated._set_node_variable_refs(node_variable_refs)
+    instantiated._set_module_variable_specs(module_variable_specs)
     return instantiated

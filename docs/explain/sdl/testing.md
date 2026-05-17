@@ -122,6 +122,27 @@ as syntax or contracts.
 
 ## Adding New Scenarios
 
-To test a new scenario topology, add a YAML string constant to `test_sdl_stress.py` or `test_sdl_realworld.py` and add it to the `SCENARIOS` list. The parametrized tests will automatically pick it up.
+Use the corpus leg that matches the artifact's purpose:
 
-The scenario should exercise specific SDL features you want to validate. Include comments noting what aspect is being tested.
+- **Reusable example scenarios** live in `examples/scenarios/*.sdl.yaml`.
+  They are real SDL artifacts and are loaded from disk by
+  `implementations/python/tests/test_scenarios.py`.
+- **Synthetic stress and real-world topology fixtures** may stay inline in
+  `test_sdl_stress.py` or `test_sdl_realworld.py` when they are test-only
+  specimens rather than reusable examples. Add them to the relevant `SCENARIOS`
+  list so the parametrized tests pick them up.
+- **Negative-path cases** should stay close to the parser, model, or validator
+  rule they exercise. Do not add invalid files under `examples/scenarios/`;
+  that directory is the positive example corpus.
+
+All scenario corpus loading should continue to flow through the existing
+`load_scenario()` / `parse_sdl()` boundary so it receives the same `yaml.safe_load`
+parsing, Pydantic structural validation, semantic validation, advisory logging,
+and `ScenarioValidationError`/`SDLParseError`/`SDLValidationError` behavior as
+the rest of the SDL stack.
+
+The canonical example-corpus location is repo-root relative
+`examples/scenarios/`. If another suite needs to enumerate the same examples,
+reuse or extract a small shared path helper from the existing test boundary
+rather than introducing a second hard-coded corpus root or a new discovery
+schema.

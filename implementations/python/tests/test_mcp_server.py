@@ -7,13 +7,10 @@ reference, authoring, and inspection categories.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import pytest
 from aces_mcp.server import create_server
-
-EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
-
+from paths import EXAMPLES_DIR
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -182,7 +179,10 @@ class TestReferenceTools:
     def test_sdl_overview_returns_content(self, server):
         text = _call(server, "sdl_overview")
         assert "SDL" in text
-        assert "21" in text or "sections" in text.lower()
+        # Both pieces of evidence must be present; an OR disjunction over
+        # "21" / "sections" would let either drift go undetected.
+        assert "21" in text
+        assert "sections" in text.lower()
         assert "nodes" in text
 
     def test_sdl_section_reference_valid(self, server):
@@ -204,6 +204,9 @@ class TestReferenceTools:
         text = _call(server, "sdl_get_example", {"name": "minimal"})
         assert "name:" in text
         assert "nodes:" in text
+        # Pin the example identity so a regression returning a different
+        # SDL (still with `name:` / `nodes:`) is not silently accepted.
+        assert "simple-pentest-lab" in text
 
     def test_sdl_get_example_hospital(self, server):
         text = _call(server, "sdl_get_example", {"name": "hospital"})
@@ -220,7 +223,12 @@ class TestReferenceTools:
 
     def test_sdl_validation_reference(self, server):
         text = _call(server, "sdl_validation_reference")
-        assert "22" in text or "validation" in text.lower()
+        # Both pieces of evidence: the documented "22 named passes" count
+        # AND a section heading specific to the validation reference. An OR
+        # disjunction over the generic "validation" substring would be
+        # vacuously satisfied by any response.
+        assert "22" in text
+        assert "Validation Passes" in text
 
 
 # ---------------------------------------------------------------------------
@@ -254,8 +262,12 @@ class TestAuthoringTools:
             "sdl_validate",
             {"sdl_content": INVALID_SDL, "structural_only": True},
         )
-        # With structural_only, the cross-reference error should not appear
-        assert "VALID" in text or "semantic validation was skipped" in text
+        # With structural_only, structural validation passes, the response
+        # affirmatively notes that semantic validation was skipped, and the
+        # semantic cross-reference error (ghost-feature) does not appear.
+        assert text.startswith("VALID")
+        assert "semantic validation was skipped" in text
+        assert "ghost-feature" not in text
 
     def test_validate_section_valid(self, server):
         text = _call(
@@ -266,7 +278,7 @@ class TestAuthoringTools:
                 "section_yaml": "myvm:\n  type: VM\n  os: linux\n  resources: {ram: 2 GiB, cpu: 1}",
             },
         )
-        assert "VALID" in text
+        assert text.startswith("VALID")
 
     def test_validate_section_invalid_yaml(self, server):
         text = _call(
@@ -324,7 +336,11 @@ variables:
             "sdl_instantiate",
             {"sdl_content": sdl, "parameters_json": '{"greeting": "hi"}'},
         )
-        assert "INSTANTIATED" in text
+        assert text.startswith("INSTANTIATED")
+        # Verify the supplied parameter actually substituted into the resolved
+        # scenario rather than the default being silently retained.
+        assert "'greeting': 'hi'" in text
+        assert "'greeting': 'hello'" not in text
 
     def test_instantiate_bad_json(self, server):
         text = _call(
@@ -418,7 +434,12 @@ class TestInspectionTools:
             "sdl_check_references",
             {"sdl_content": FULL_SDL, "element_name": "app"},
         )
+        # `app` is the feature `nodes.web` binds and the source of the
+        # `relationships.web-to-db` relationship in FULL_SDL. Pin both
+        # named references so a regression in either reference-tracking
+        # path (node feature bindings OR relationships) is caught.
         assert "Outgoing" in text or "Incoming" in text
+        assert "relationships.web-to-db" in text
 
     def test_check_references_full_graph(self, server):
         text = _call(
@@ -474,8 +495,6 @@ class TestExampleScenarios:
     )
     def test_example_validates(self, server, filename):
         path = EXAMPLES_DIR / filename
-        if not path.exists():
-            pytest.skip(f"Example not found: {filename}")
         sdl = path.read_text()
         text = _call(server, "sdl_validate", {"sdl_content": sdl})
         assert text.startswith("VALID"), f"{filename} failed: {text[:200]}"
@@ -490,12 +509,15 @@ class TestExampleScenarios:
     )
     def test_example_summarizes(self, server, filename):
         path = EXAMPLES_DIR / filename
-        if not path.exists():
-            pytest.skip(f"Example not found: {filename}")
         sdl = path.read_text()
         text = _call(server, "sdl_summarize", {"sdl_content": sdl})
         assert "Scenario:" in text
         assert "VMs:" in text
+        # Pin the scenario identity so a cached/boilerplate response or a
+        # wrong-file regression is not silently accepted. Each example's
+        # `name:` field matches the basename of its .sdl.yaml file.
+        scenario_name = filename.removesuffix(".sdl.yaml")
+        assert scenario_name in text
 
 
 # ---------------------------------------------------------------------------
@@ -597,5 +619,5 @@ class TestSecurity:
             },
         )
         # Should succeed validation — name should still be the safe internal one
-        assert "VALID" in text or "VALIDATION" in text
+        assert text.startswith("VALID")
         assert "hijacked" not in text
