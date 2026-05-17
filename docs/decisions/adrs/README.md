@@ -43,3 +43,4 @@ Each ADR includes:
 | [015](adr-015-sdl-processor-layering-and-source-file-size-cap.md) | SDL-Processor Layering and Source-File Size Cap | accepted | 2026-05-10 |
 | [016](adr-016-semantic-layer-scope-and-coverage-model.md) | Semantic Layer Scope and Coverage Model (SEM-200) | accepted | 2026-05-10 |
 | [017](adr-017-conversation-surface-hardening.md) | Conversation Surface Hardening | accepted | 2026-05-17 |
+| [018](adr-018-classification-based-assurance-policy.md) | Canonical Mapping for the Classification-Based Assurance Policy | accepted | 2026-05-17 |

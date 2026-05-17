@@ -17,9 +17,15 @@ formal artifacts are warranted.
 
 ## FM Classification
 
-| Level | Scope | Artifacts |
-|-------|-------|-----------|
-| FM0 | Structural (parsing, models) | Unit tests only |
-| FM1 | Static semantic rules | Invariant lists + unit tests |
-| FM2 | Dynamic semantic rules | Formal specs + property-based tests |
-| FM3 | Cross-system contracts | Formal specs + conformance tests |
+The canonical mapping is
+[`specs/formal/assurance-policy.yaml`](../../specs/formal/assurance-policy.yaml)
+(see [ADR-018](../decisions/adrs/adr-018-classification-based-assurance-policy.md)),
+which is the structural source of truth and gates CI via
+`tools/check_assurance_policy.py`.
+
+| Level | Scope | Required artifacts |
+|-------|-------|--------------------|
+| FM0 | Structural (parsing, schema, local validation) | Unit tests |
+| FM1 | Static Semantic (cross-references, ambiguity, fail-closed) | Invariants + unit tests |
+| FM2 | Semantic Graph / Constraint (reachability, dependencies, portability) | FM1 + typed IR/contract coverage + targeted property-based or differential tests |
+| FM3 | Stateful / Control Semantics (state machines, branching, lifecycle) | FM2 + abstract state-machine model |
