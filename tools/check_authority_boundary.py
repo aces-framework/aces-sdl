@@ -660,6 +660,12 @@ def _dir_has_content(directory: Path) -> bool:
 def _check_root_exists(
     repo_root: Path, authority_roots: list[dict], non_normative_roots: list[dict]
 ) -> list[PolicyFailure]:
+    """Authority roots MUST exist with real content (they are the contract).
+    Non-normative roots are CLASSIFIED but not required to exist on disk —
+    `research/` and `notes/` are gitignored in this repo, so requiring them
+    to exist would fail CI checkouts while passing local dev. The YAML is
+    the boundary classifier; presence-on-disk is a separate concern enforced
+    only for normative artifacts."""
     failures: list[PolicyFailure] = []
     for entry in authority_roots:
         root_path = entry["root"]
@@ -680,17 +686,9 @@ def _check_root_exists(
                     root_path,
                 )
             )
-    for entry in non_normative_roots:
-        root_path = entry["root"]
-        directory = repo_root / root_path
-        if not directory.is_dir():
-            failures.append(
-                _fail(
-                    "authority-boundary-root-missing",
-                    f"non-normative root '{root_path}' (id={entry['id']!r}) does not exist on disk",
-                    root_path,
-                )
-            )
+    # Non-normative roots are not required to exist on disk. The classified
+    # set still feeds into _check_unclassified_top_level so a non-normative
+    # dir that DOES exist on disk is accepted rather than flagged.
     return failures
 
 

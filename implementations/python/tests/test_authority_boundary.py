@@ -564,13 +564,16 @@ def test_authority_root_missing_on_disk_is_flagged(tmp_path: Path) -> None:
     )
 
 
-def test_non_normative_root_missing_on_disk_is_flagged(tmp_path: Path) -> None:
+def test_non_normative_root_missing_on_disk_is_allowed(tmp_path: Path) -> None:
+    # Non-normative roots are classified but not required to exist on disk.
+    # `research/` and `notes/` are gitignored in this repo, so requiring
+    # existence would fail CI (where they aren't checked out) while passing
+    # local dev. Deleting one must NOT fire `authority-boundary-root-missing`.
     seeded = _seed_repo(tmp_path)
     _rmtree(seeded / "research")
     failures = evaluate_authority_boundary(seeded)
-    assert _flagged(failures, "authority-boundary-root-missing")
-    assert any("research" in failure.render() for failure in failures), (
-        f"expected the missing path to be named; got: {[failure.render() for failure in failures]}"
+    assert not _flagged(failures, "authority-boundary-root-missing"), (
+        f"non-normative roots must be allowed to be absent; got: {[f.render() for f in failures]}"
     )
 
 
