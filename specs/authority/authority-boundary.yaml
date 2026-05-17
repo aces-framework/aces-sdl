@@ -1,0 +1,109 @@
+# Normative Artifact Authority Boundary (ASR-517)
+#
+# Canonical machine-readable surface for the normative-artifact authority
+# decision. Required reading:
+#
+#   docs/decisions/adrs/adr-009-normative-artifact-authority-and-repository-structure.md
+#     -- the authority decision itself (immutable; this YAML codifies it)
+#   docs/decisions/adrs/adr-019-normative-authority-boundary-manifest.md
+#     -- the canonical seam decision (governs THIS file)
+#   docs/explain/reference/normative-artifact-authority.md
+#     -- contributor-facing guardrails note
+#
+# Drift between this file and ADR-009, contracts/README.md, or specs/README.md
+# is guarded by tools/check_authority_boundary.py. ADR-009 supplies the
+# decision; this YAML is the canonical seam that lets a future normative
+# artifact family or root reclassification land in a single place rather than
+# requiring prose updates across the doc tree.
+
+policy: normative-artifact-authority
+
+requirement_refs:
+  - ASR-517
+
+adr_refs:
+  - ADR-009
+  - ADR-019
+
+# Roots that carry normative authority. Artifacts under these roots are binding
+# on the ecosystem and supersede any reference implementation or generator
+# output. Each entry pins the root, the authority it bears, and the artifact
+# family it owns.
+authority_roots:
+  - id: normative_prose
+    root: specs/
+    authority: normative prose specifications
+    family: prose
+
+  - id: normative_schemas
+    root: contracts/schemas/
+    authority: published JSON Schemas
+    family: schemas
+
+  - id: normative_fixtures
+    root: contracts/fixtures/
+    authority: conformance fixtures (valid and invalid payload corpora)
+    family: fixtures
+
+  - id: normative_profiles
+    root: contracts/profiles/
+    authority: capability profile declarations
+    family: profiles
+
+  - id: normative_concept_authority
+    root: contracts/concept-authority/
+    authority: concept-family and controlled-vocabulary authority artifacts
+    family: concept-authority
+
+# Roots that are non-normative. These consume authority; they do not define it.
+# A reference implementation, an explanatory doc, a worked example, a research
+# note, and the tooling tree all live here. Adding a new top-level directory
+# without classifying it (here or as a legacy entry) fails the gate.
+non_normative_roots:
+  - id: reference_implementations
+    root: implementations/
+    note: reference code only; no Python model defines ecosystem meaning
+
+  - id: explanatory_docs
+    root: docs/
+    note: explanatory, tutorial, and migration material
+
+  - id: worked_examples
+    root: examples/
+    note: non-normative worked examples; not used for conformance
+
+  - id: research_notes
+    root: research/
+    note: non-normative research material
+
+  - id: process_notes
+    root: notes/
+    note: non-normative process notes
+
+  - id: tooling
+    root: tools/
+    note: maintenance, codegen, and release helpers
+
+  - id: changelog_fragments
+    root: changelog.d/
+    note: towncrier changelog fragments; collated into CHANGELOG.md at release
+
+# Top-level directories explicitly transitioned out by ADR-009. The gate fails
+# if any of these reappears at the repo root.
+legacy_top_level_dirs:
+  - schemas
+  - conformance
+  - src
+
+# Schema authority direction: contracts/schemas/ owns published schemas and is
+# bound to the publication manifest. Generator drivers under tools/ and the
+# aces_contracts owning package emit into this root; they do not define
+# authority. Published schemas may not live anywhere else, and reference
+# implementations may not own schema files.
+schema_authority:
+  normative_root: contracts/schemas/
+  publication_manifest: contracts/schema-publication-manifest.json
+  forbidden_authority_roots:
+    - implementations/
+  forbidden_schema_filename_suffixes:
+    - .schema.json

@@ -25,6 +25,7 @@ TARGETED_POLICY_TESTS = [
     "implementations/python/tests/test_requirement_governance.py",
     "implementations/python/tests/test_semantic_coverage.py",
     "implementations/python/tests/test_assurance_policy.py",
+    "implementations/python/tests/test_authority_boundary.py",
 ]
 CONTRACT_TRIGGER_PREFIXES = (
     "contracts/",
@@ -444,6 +445,7 @@ def _run_policy(session: nox.Session, reporter: SessionReporter, *args: str) -> 
     if "--staged" in args:
         reporter.skip("policy / semantic coverage ADR", "skipped on staged check; runs on push and verify")
         reporter.skip("policy / assurance policy ADR", "skipped on staged check; runs on push and verify")
+        reporter.skip("policy / authority boundary ADR", "skipped on staged check; runs on push and verify")
     else:
         reporter.run(
             "policy / semantic coverage ADR",
@@ -452,6 +454,10 @@ def _run_policy(session: nox.Session, reporter: SessionReporter, *args: str) -> 
         reporter.run(
             "policy / assurance policy ADR",
             lambda: _run_project_python(session, "tools/check_assurance_policy.py"),
+        )
+        reporter.run(
+            "policy / authority boundary ADR",
+            lambda: _run_project_python(session, "tools/check_authority_boundary.py"),
         )
 
 
@@ -546,6 +552,13 @@ def _run_fuzz(session: nox.Session, reporter: SessionReporter) -> None:
     )
 
 
+def _run_integration_tests(session: nox.Session, reporter: SessionReporter) -> None:
+    reporter.run(
+        "tests / pytest integration",
+        lambda: _run_pytest(session, "-m", "integration", "-v"),
+    )
+
+
 def _run_docs(session: nox.Session, reporter: SessionReporter) -> None:
     _sync_project(session)
     docs_dir = REPO_ROOT / "docs"
@@ -624,6 +637,22 @@ def fuzz(session: nox.Session) -> None:
 
 
 @nox.session
+def integration(session: nox.Session) -> None:
+    """Run pytest with the `integration` marker only.
+
+    The default unit-test session excludes integration tests (which read the
+    real repository on disk). This session opts them in. `verify` wires this
+    session in after the unit-test sweep so CI keeps both layers covered.
+    """
+    reporter = SessionReporter(session, "integration")
+    try:
+        _sync_project(session)
+        _run_integration_tests(session, reporter)
+    finally:
+        reporter.summary()
+
+
+@nox.session
 def docs(session: nox.Session) -> None:
     reporter = SessionReporter(session, "docs")
     try:
@@ -682,6 +711,7 @@ def verify(session: nox.Session) -> None:
         _run_lint(session, reporter)
         _run_contracts(session, reporter)
         _run_tests(session, reporter)
+        _run_integration_tests(session, reporter)
         _run_docs(session, reporter)
     finally:
         reporter.summary()
