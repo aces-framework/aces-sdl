@@ -156,7 +156,7 @@
     },
     "Agent": {
       "additionalProperties": false,
-      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n- ``entity`` links to the entities section (team/role)\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure",
+      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n- ``entity`` links to the entities section (team/role) and supplies\n  identity and role per ADR-020\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure\n- ``starting_conditions`` links to the conditions section, giving the\n  authoring surface a declarative hook for participant-relevant\n  precondition checks (ACT-601)\n- ``authority_anchors`` links to declared SDL elements (entities,\n  relationships, content, etc.) that anchor what the participant is\n  allowed or expected to do in scenario meaning (ACT-601, ADR-020)\n- ``operating_scope`` links to targetable named scenario elements\n  (subnets, hosts, services, content) defining where the participant\n  may act or observe (ACT-601, ADR-020)",
       "properties": {
         "actions": {
           "items": {
@@ -170,6 +170,13 @@
             "type": "string"
           },
           "title": "Allowed Subnets",
+          "type": "array"
+        },
+        "authority_anchors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authority Anchors",
           "type": "array"
         },
         "description": {
@@ -193,6 +200,13 @@
           ],
           "default": null
         },
+        "operating_scope": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Operating Scope",
+          "type": "array"
+        },
         "reward_calculator": {
           "default": "",
           "title": "Reward Calculator",
@@ -203,6 +217,13 @@
             "type": "string"
           },
           "title": "Starting Accounts",
+          "type": "array"
+        },
+        "starting_conditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Starting Conditions",
           "type": "array"
         }
       },

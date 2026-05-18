@@ -1,0 +1,91 @@
+# Classification-Based Assurance Policy (ASR-505)
+#
+# Canonical machine-readable mapping from change classification to verification
+# artifacts. Required reading:
+#
+#   docs/decisions/adrs/adr-007-lightweight-formal-methods-policy.md  -- policy decision
+#   docs/decisions/adrs/adr-018-classification-based-assurance-policy.md  -- canonical seam
+#   docs/explain/reference/coding-standards.md  -- contributor-facing source of truth
+#   docs/specs/formal.md  -- formal-specs overview
+#
+# Drift between this file and those documents is guarded by
+# tools/check_assurance_policy.py. ADR-007 supplies the levels; this YAML is the
+# canonical seam that lets a future FM4 or new artifact type land in a single
+# place rather than requiring prose updates across the doc tree.
+
+policy: classification-based-assurance
+
+requirement_refs:
+  - ASR-505
+
+adr_refs:
+  - ADR-007
+  - ADR-018
+
+levels:
+  - id: FM0
+    name: Structural
+    scope: >-
+      Shape, parsing, schema, and local validation only. Use for syntactic and
+      structural work where behavior is determined entirely by data shape.
+    change_categories:
+      - structural
+    required_artifacts:
+      - unit_tests
+    prohibited_artifacts:
+      - TLA+
+      - Alloy
+
+  - id: FM1
+    name: Static Semantic
+    scope: >-
+      Cross-references, uniqueness, ambiguity, acyclicity, and fail-closed
+      resolution. Static rules over the parsed model.
+    change_categories:
+      - semantic
+    required_artifacts:
+      - invariant_list
+      - unit_tests
+    recommended_artifacts:
+      - property_based_tests
+
+  - id: FM2
+    name: Semantic Graph / Constraint
+    scope: >-
+      Reachability, visibility, dependency propagation, planner ordering, and
+      portability rules. Graph and constraint semantics across the model.
+    change_categories:
+      - graph
+      - constraint
+    required_artifacts:
+      - invariant_list
+      - unit_tests
+      - typed_ir_or_contract_coverage
+      - property_based_or_differential_tests
+
+  - id: FM3
+    name: Stateful / Control Semantics
+    scope: >-
+      State machines, branching, retries, joins, re-entry, lifecycle semantics,
+      and result contracts. Control-flow and stateful behavior.
+    change_categories:
+      - stateful
+      - control
+    required_artifacts:
+      - invariant_list
+      - unit_tests
+      - typed_ir_or_contract_coverage
+      - property_based_or_differential_tests
+      - abstract_state_machine_model
+    recommended_artifacts:
+      - TLA+
+      - Alloy
+
+out_of_scope:
+  - raw YAML syntax and parsing mechanics
+  - ordinary schema validation
+  - formatting and editorial documentation changes
+  - trivial refactors with unchanged semantics
+  - isolated field additions with no new invariants
+  - simple parser normalization or aliasing
+  - straightforward CRUD/config plumbing

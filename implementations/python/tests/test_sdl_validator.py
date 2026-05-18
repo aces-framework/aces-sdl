@@ -415,7 +415,12 @@ class TestVerifyACLs:
         errors = _validate(s)
         assert any("undefined network" in e for e in errors)
 
-    def test_acl_checks_both_endpoints(self):
+    def test_acl_to_net_checked_when_from_net_valid(self):
+        # When ``from_net`` is a valid declared switch but ``to_net`` is
+        # bogus, validation must (a) surface the bad ``to_net`` reference
+        # AND (b) not raise a spurious error for the valid ``from_net``.
+        # The complementary `test_acl_references_undefined_network` case
+        # covers the inverse (bogus ``from_net``, no ``to_net``).
         s = _make_scenario(
             nodes={"sw": {"type": "switch"}},
             infrastructure={
@@ -434,7 +439,35 @@ class TestVerifyACLs:
             },
         )
         errors = _validate(s)
-        assert any("ghost-net" in e for e in errors)
+        assert any("ghost-net" in e for e in errors), errors
+        # The valid `from_net: "sw"` must not be flagged as a bad reference.
+        # The owner-label substring `Infrastructure 'sw'` legitimately
+        # appears in the `to_net` error and is excluded explicitly.
+        assert not any("'sw'" in e.replace("Infrastructure 'sw'", "") and "undefined" in e for e in errors), errors
+
+    def test_acl_both_endpoints_reported_when_both_bogus(self):
+        # When BOTH ``from_net`` and ``to_net`` are unknown, validation
+        # reports both names so the author can fix them in one pass.
+        s = _make_scenario(
+            nodes={"sw": {"type": "switch"}},
+            infrastructure={
+                "sw": {
+                    "count": 1,
+                    "properties": {"cidr": "10.0.0.0/24", "gateway": "10.0.0.1"},
+                    "acls": [
+                        {
+                            "direction": "in",
+                            "from_net": "ghost-from",
+                            "to_net": "ghost-to",
+                            "action": "deny",
+                        }
+                    ],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("ghost-from" in e for e in errors), errors
+        assert any("ghost-to" in e for e in errors), errors
 
 
 class TestFeatureListShorthand:
@@ -733,6 +766,378 @@ class TestVerifyAgents:
                         "accounts": ["hacker"],
                     },
                 }
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+
+class TestAgentParticipantFraming:
+    """ACT-601 — declarative participant framing fields on Agent.
+
+    Verifies semantic validation for the three framing fields that don't
+    already exist on Agent: ``starting_conditions``, ``authority_anchors``,
+    ``operating_scope``. Identity and role are already covered by the
+    pre-existing ``Agent.entity`` and ``Entity.role`` bindings; the
+    ``TestVerifyAgents`` cases above cover those.
+    """
+
+    def _base_scenario_kwargs(self) -> dict:
+        return {
+            "nodes": {
+                "vm": {"type": "vm", "resources": {"ram": "1 gib", "cpu": 1}},
+                "net": {"type": "switch"},
+            },
+            "infrastructure": {
+                "net": {
+                    "count": 1,
+                    "properties": {"cidr": "10.0.0.0/24", "gateway": "10.0.0.1"},
+                },
+                "vm": {"count": 1, "links": ["net"]},
+            },
+            "entities": {"red": {"role": "red"}},
+            "conditions": {
+                "beacon-online": {"command": "/usr/local/bin/check-beacon", "interval": 30},
+            },
+            "relationships": {
+                "red-controls-vm": {
+                    "type": "manages",
+                    "source": "red",
+                    "target": "vm",
+                },
+            },
+        }
+
+    def test_undefined_starting_condition(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "starting_conditions": ["ghost-condition"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("starting_condition 'ghost-condition' not in conditions section" in e for e in errors), errors
+
+    def test_defined_starting_condition(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "starting_conditions": ["beacon-online"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_starting_condition_accepts_variable_placeholder(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["variables"] = {"beacon_ref": {"type": "string", "default": "beacon-online"}}
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "starting_conditions": ["${beacon_ref}"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_starting_condition_accepts_qualified_ref(self):
+        # ADR-020 §6 publishes starting_conditions as accepting bare or
+        # `conditions.<name>` qualified references.
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "starting_conditions": ["conditions.beacon-online"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_qualified_starting_condition_undefined_is_rejected(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "starting_conditions": ["conditions.ghost"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("starting_condition 'conditions.ghost' not in conditions section" in e for e in errors), errors
+
+    def test_undefined_authority_anchor(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "authority_anchors": ["ghost-anchor"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("authority_anchor 'ghost-anchor' does not reference any defined element" in e for e in errors), (
+            errors
+        )
+
+    def test_defined_authority_anchor_entity(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "authority_anchors": ["red"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_defined_authority_anchor_relationship(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "authority_anchors": ["red-controls-vm"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_authority_anchor_accepts_variable_placeholder(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["variables"] = {"authority_ref": {"type": "string", "default": "red"}}
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "authority_anchors": ["${authority_ref}"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_undefined_operating_scope(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["ghost-scope"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'ghost-scope' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_defined_operating_scope(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["net"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_operating_scope_rejects_non_targetable(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["variables"] = {"flag": {"type": "boolean", "default": True}}
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["flag"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("operating_scope 'flag' does not reference any defined targetable element" in e for e in errors), (
+            errors
+        )
+
+    def test_operating_scope_accepts_variable_placeholder(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["variables"] = {"scope_ref": {"type": "string", "default": "net"}}
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["${scope_ref}"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_full_participant_framing_agent_validates(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            accounts={"phished": {"username": "u", "node": "vm"}},
+            agents={
+                "red-agent": {
+                    "entity": "red",
+                    "starting_accounts": ["phished"],
+                    "starting_conditions": ["beacon-online"],
+                    "authority_anchors": ["red", "red-controls-vm"],
+                    "allowed_subnets": ["net"],
+                    "operating_scope": ["net", "vm"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_operating_scope_accepts_service_ref(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["nodes"]["vm"]["services"] = [{"port": 22, "name": "ssh"}]
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["ssh"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_operating_scope_accepts_content_section(self):
+        kwargs = self._base_scenario_kwargs()
+        kwargs["content"] = {
+            "docs": {
+                "type": "dataset",
+                "target": "vm",
+                "items": [{"name": "playbook"}],
+            },
+        }
+        s = _make_scenario(
+            **kwargs,
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["docs", "playbook"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert not errors
+
+    def test_operating_scope_rejects_condition(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["beacon-online"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'beacon-online' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_operating_scope_rejects_relationship(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["red-controls-vm"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'red-controls-vm' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_operating_scope_rejects_account(self):
+        kwargs = self._base_scenario_kwargs()
+        s = _make_scenario(
+            **kwargs,
+            accounts={"phished": {"username": "u", "node": "vm"}},
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["phished"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'phished' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_operating_scope_rejects_switch_as_host(self):
+        # Switch nodes route through the subnet path (via infrastructure),
+        # not the host path. `nodes.<switch>` must NOT validate as a host
+        # operating-scope ref.
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["nodes.net"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'nodes.net' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_operating_scope_rejects_vm_as_subnet(self):
+        # VM-backed infrastructure entries are reachable through the host
+        # path's `nodes.vm` alias, not as a subnet. `infrastructure.vm`
+        # must NOT validate as a subnet operating-scope ref.
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["infrastructure.vm"],
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any(
+            "operating_scope 'infrastructure.vm' does not reference any defined targetable element" in e for e in errors
+        ), errors
+
+    def test_operating_scope_accepts_qualified_host_and_subnet_refs(self):
+        s = _make_scenario(
+            **self._base_scenario_kwargs(),
+            agents={
+                "a1": {
+                    "entity": "red",
+                    "operating_scope": ["nodes.vm", "infrastructure.net"],
+                },
             },
         )
         errors = _validate(s)

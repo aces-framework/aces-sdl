@@ -1894,6 +1894,15 @@ class RuntimeModel:
     agent_specs: dict[str, dict[str, Any]] = field(default_factory=dict)
     relationship_specs: dict[str, dict[str, Any]] = field(default_factory=dict)
     variable_specs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Pre-instantiation `${name}` refs on `nodes.os` and `infrastructure.count`,
+    # keyed by the network/node resource address. Lets the planner reach a
+    # variable's `allowed_values` even after `compile_runtime_model` substitutes
+    # the resolved values onto the corresponding runtime resources. Kept on the
+    # model rather than on the resources themselves so the provenance does not
+    # leak into the backend-facing `resource_payload()` envelope. Inner dict
+    # carries `"os"` and `"count"` keys; missing or `None` values mean the
+    # field was authored as a concrete literal rather than a variable ref.
+    node_variable_refs: dict[str, dict[str, str | None]] = field(default_factory=dict)
     networks: dict[str, NetworkRuntime] = field(default_factory=dict)
     node_deployments: dict[str, NodeRuntime] = field(default_factory=dict)
     feature_bindings: dict[str, FeatureBinding] = field(default_factory=dict)

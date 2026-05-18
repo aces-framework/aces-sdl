@@ -670,6 +670,9 @@ def write_schema_publication_manifest(repo_root: Path, entries: list[dict[str, s
 def test_should_run_full_validation_for_schema_driver_paths() -> None:
     assert should_run_full_validation(["tools/generate_contract_schemas.py"]) is True
     assert should_run_full_validation(["implementations/python/packages/aces_contracts/contracts.py"]) is True
+    # aces_sdl supplies the Scenario Pydantic model exposed by schema_bundle();
+    # a change there must trigger full schema validation just like aces_contracts.
+    assert should_run_full_validation(["implementations/python/packages/aces_sdl/agents.py"]) is True
     assert should_run_full_validation(["contracts/concept-authority/concept-families-v1.json"]) is False
 
 

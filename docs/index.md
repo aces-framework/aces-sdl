@@ -92,8 +92,10 @@ explain/reference/coding-standards
 explain/reference/shared-concept-model
 explain/reference/shared-semantic-integrity
 explain/reference/backend-conformance
+explain/reference/normative-artifact-authority
 explain/reference/assessment-semantics
 explain/reference/objective-semantics
+explain/reference/explicitness-realization-semantics
 ```
 
 ```{toctree}

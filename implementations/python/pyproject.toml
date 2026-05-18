@@ -55,11 +55,12 @@ packages = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "packages"]
+pythonpath = ["src", "packages", "tests"]
 markers = [
     "fuzz: property-based fuzz tests (run with: pytest -m fuzz)",
+    "integration: integration-style tests that read the real repo on disk (run with: pytest -m integration)",
 ]
-addopts = "-m 'not fuzz'"
+addopts = "-m 'not fuzz and not integration'"
 
 [tool.coverage.run]
 source = [

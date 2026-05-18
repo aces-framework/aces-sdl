@@ -8,9 +8,14 @@ constraints, or execution-state semantics matter, while keeping ordinary
 structural work lightweight.
 
 The canonical decision framework is defined by
-[ADR-007](../adrs/adr-007-lightweight-formal-methods-policy.md). This document
-is the contributor-facing source of truth for how to apply that policy in day
-to day implementation and review.
+[ADR-007](../../decisions/adrs/adr-007-lightweight-formal-methods-policy.md),
+with the structural mapping codified in
+[`specs/formal/assurance-policy.yaml`](../../../specs/formal/assurance-policy.yaml)
+(see [ADR-018](../../decisions/adrs/adr-018-classification-based-assurance-policy.md)).
+The YAML is the machine-consumable source of truth for level ids, canonical
+level names, change categories, and required artifacts; the structural gate is
+`tools/check_assurance_policy.py`. This document is the contributor-facing
+prose for how to apply that policy in day to day implementation and review.
 
 ## Semantic Layers
 
