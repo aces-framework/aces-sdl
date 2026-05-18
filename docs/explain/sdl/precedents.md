@@ -71,6 +71,27 @@ the full shape directly.
 | Swappable participant implementations | Agent benchmark stacks, provider/model-selectable eval systems | Concrete agent/policy/script/human-control implementations are treated as apparatus surfaces distinct from SDL roles, processors, and backends |
 
 
+### Participant Semantics Theory
+
+Issue #71 adds a formal participant-semantics design in
+`specs/formal/participant-semantics/` and ADR-022. These precedents inform that
+design without becoming the ACES runtime API or authoring syntax.
+
+| Concern | Primary Sources | What We Adapted |
+| ------- | --------------- | --------------- |
+| Single-agent episode interface | [OpenAI Gym](https://arxiv.org/abs/1606.01540), [Gymnasium](https://arxiv.org/abs/2407.17032) | Actions, observations, rewards, reset, termination, and truncation are explicit semantic concepts rather than incidental adapter methods |
+| Multi-agent environment ordering | [PettingZoo](https://arxiv.org/abs/2009.14471), [OpenSpiel](https://arxiv.org/abs/1908.09453), Markov-game literature | Per-participant histories and information structure are first-class; joint behavior is not collapsed into one global action stream |
+| Partial observability and local history | POMDP, Dec-POMDP, POSG, and imperfect-information game literature | Participant-visible state is a projection with history, uncertainty, latency, and disclosure basis, not world truth |
+| Cyber-specific action/observation discipline | [CybORG](https://arxiv.org/abs/2108.09118), [CyberBattleSim](https://www.microsoft.com/en-us/research/project/cyberbattlesim/), [CyGIL](https://arxiv.org/abs/2304.01244) | Action/effect/observation semantics must disclose simulation, emulation, and realization assumptions instead of assuming transfer across fidelity modes |
+| Adversary behavior under uncertainty | [CALDERA planning and acting](https://www.mitre.org/sites/default/files/2021-11/prs-18-0944-1-automated-adversary-emulation-planning-acting.pdf), [MITRE ATT&CK design](https://www.mitre.org/news-insights/publication/mitre-attck-design-and-philosophy) | Cyber actions may change foothold, knowledge, detection surface, and downstream outcomes; technique labels do not replace action contracts |
+| Causality and temporal ordering | [Lamport ordering](https://systems.cs.columbia.edu/ds2-class/papers/lamport-time.pdf), [Halpern-Pearl structural causality](https://arxiv.org/abs/cs/0011012), HLA time management | Attribution edges require explicit ordering and evidence support; timestamp adjacency is not a causal claim |
+| Checkable scenario semantics | [VSDL](https://arxiv.org/abs/2001.06681), [CRACK](https://iris.imtlucca.it/handle/20.500.11771/15672), [CyRIS](https://www.jaist.ac.jp/~razvan/publications/cyris_facilitating_training.pdf) | Participant semantics inherit the requirement for executable contracts and conformance tests, while staying separate from topology/deployment generation |
+| Agent benchmark task structure | [Cybench](https://arxiv.org/abs/2408.08926), [AutoPenBench](https://arxiv.org/abs/2410.03225) | Task descriptions, starter files, evaluators, subtasks, gold steps, and milestones are treated as participant-view and outcome-interpretation inputs rather than hidden harness details |
+| Integrated adversarial evaluation | [CAIBench](https://arxiv.org/abs/2510.24317) | Offensive, defensive, privacy, and cyber-physical capabilities require role-neutral multi-participant semantics and outcome layers richer than final score |
+| Benchmark validity and overfitting controls | [AI Agents That Matter](https://arxiv.org/abs/2407.01502), [Benchmarking Practices in LLM-driven Offensive Security](https://arxiv.org/abs/2504.10112) | Run/study provenance, holdout discipline, scaffold disclosure, hidden assets, baselines, and cost/resource traces are experimental-instrumentation concerns |
+| DSL language adequacy and evaluation | [Do Software Languages Engineers Evaluate their Languages?](https://arxiv.org/abs/1109.6794), [When and How to Develop Domain-Specific Languages](https://doi.org/10.1145/1118890.1118892), [Domain-Specific Languages: A Systematic Mapping Study](https://doi.org/10.1016/j.infsof.2015.11.001) | Issue #346 treats expressiveness, usability, effectiveness, maintainability, ambiguity, and domain-expert reviewability as evidence-gated language claims |
+
+
 ### From CyRIS
 
 
@@ -135,7 +156,7 @@ for the recurring architectural concerns that show up once scenarios must run
 honestly across simulation, emulation, and live infrastructure.
 
 The primary research set for this area is curated in
-[`research/primary/literature/time-and-simulation/`](../../../research/primary/literature/time-and-simulation/README.md).
+`research/primary/literature/time-and-simulation/`.
 
 | Concern | Primary Sources | What We Adapted |
 | ------- | --------------- | --------------- |

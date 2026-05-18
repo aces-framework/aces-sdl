@@ -10,6 +10,7 @@ Examples:
 - `specs/formal/objectives/`
 - `specs/formal/planner/`
 - `specs/formal/runtime-contracts/`
+- `specs/formal/participant-semantics/`
 
 Cross-domain semantic notes that constrain future phases may also live at the
 top level when they apply across multiple domains, for example

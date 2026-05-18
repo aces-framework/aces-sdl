@@ -49,9 +49,8 @@ an incidental runtime detail. Clock authority, time domains, pacing,
 synchronization, and realized ordering guarantees are part of the broader
 apparatus story, even when the current SDL syntax only exposes a subset of that
 surface through timelines, timeouts, and budget-like controls. The primary
-references collected in
-[`research/primary/literature/time-and-simulation/`](../../../research/primary/literature/time-and-simulation/README.md)
-are the current foundation for that time/clock work.
+references collected in `research/primary/literature/time-and-simulation/` are
+the current foundation for that time/clock work.
 
 ## Stable IDs, Variable Values
 
@@ -132,6 +131,7 @@ accounts:
 - [Parser Behavior](parser.md) — Key normalization, shorthand expansion, SDL-only parsing
 - [Semantic Validation](validation.md) — Cross-reference checks and what the validator enforces
 - [Design Precedents](precedents.md) — Where each SDL element comes from
+- [Academic Lineage](lineage.md) — Primary-source lineage for SDL semantics
 - [Limitations & Future Work](limitations.md) — What the SDL cannot express yet
 - [Testing](testing.md) — How to run unit tests, stress tests, and fuzz tests
 - [Complex Scenario Designs](complex-scenarios.md) — Up-front design briefs for large example exercises
