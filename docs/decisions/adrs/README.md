@@ -45,3 +45,4 @@ Each ADR includes:
 | [017](adr-017-conversation-surface-hardening.md) | Conversation Surface Hardening | accepted | 2026-05-17 |
 | [018](adr-018-classification-based-assurance-policy.md) | Canonical Mapping for the Classification-Based Assurance Policy | accepted | 2026-05-17 |
 | [019](adr-019-normative-authority-boundary-manifest.md) | Canonical Manifest for the Normative Artifact Authority Boundary | accepted | 2026-05-17 |
+| [020](adr-020-declarative-participant-framing-boundaries.md) | Declarative Participant Framing Boundaries | proposed | 2026-05-18 |

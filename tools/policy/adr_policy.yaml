@@ -20,6 +20,7 @@ generated_contracts:
     - implementations/python/packages/aces_contracts
     - implementations/python/packages/aces_backend_protocols
     - implementations/python/packages/aces_processor
+    - implementations/python/packages/aces_sdl
 
 compatibility_layer:
   root: implementations/python/src/aces
