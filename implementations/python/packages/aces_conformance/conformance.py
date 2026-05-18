@@ -25,6 +25,7 @@ from aces_contracts.contracts import (
     OperationReceiptModel,
     OperationStatusModel,
     OrchestrationPlanModel,
+    ParticipantBehaviorHistoryEventModel,
     ParticipantEpisodeHistoryEventModel,
     ParticipantEpisodeStateModel,
     ProvisioningPlanModel,
@@ -42,6 +43,7 @@ from aces_processor.manager import (
 from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
+    ParticipantBehaviorHistoryEvent,
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
     ParticipantEpisodeTerminalReason,
@@ -51,12 +53,15 @@ from aces_processor.models import (
     Severity,
     SnapshotEntry,
     WorkflowExecutionState,
+    iter_participant_behavior_history_violations,
     iter_participant_episode_snapshot_violations,
 )
 from aces_processor.planner import plan
 from aces_processor.registry import RuntimeTarget
 from aces_sdl.parser import parse_sdl
 from pydantic import ValidationError
+
+_SEMANTIC_INVALID_DIAGNOSTIC_CODE = "conformance.semantic-invalid"
 
 
 class BackendCapabilityProfile(str, Enum):
@@ -157,6 +162,10 @@ _EVENT_STREAM_VALIDATORS: dict[str, tuple[type, str]] = {
     "participant-episode-history-event-stream-v1": (
         ParticipantEpisodeHistoryEventModel,
         "participant episode",
+    ),
+    "participant-behavior-history-event-stream-v1": (
+        ParticipantBehaviorHistoryEventModel,
+        "participant behavior",
     ),
 }
 
@@ -416,6 +425,10 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
             participant_address: [event.model_dump(mode="json") for event in history]
             for participant_address, history in validated.participant_episode_history.items()
         },
+        participant_behavior_history={
+            participant_address: [event.model_dump(mode="json") for event in history]
+            for participant_address, history in validated.participant_behavior_history.items()
+        },
         metadata=dict(validated.metadata),
     )
 
@@ -432,7 +445,7 @@ def _participant_episode_snapshot_diagnostics(
     """
 
     return [
-        _diagnostic("conformance.semantic-invalid", address, message)
+        _diagnostic(_SEMANTIC_INVALID_DIAGNOSTIC_CODE, address, message)
         for address, message in iter_participant_episode_snapshot_violations(
             snapshot.participant_episode_results,
             snapshot.participant_episode_history,
@@ -440,73 +453,170 @@ def _participant_episode_snapshot_diagnostics(
     ]
 
 
-def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
+def _participant_behavior_snapshot_references(snapshot: RuntimeSnapshot) -> tuple[set[str], set[str]]:
+    action_contract_addresses: set[str] = set()
+    observation_boundary_addresses: set[str] = set()
+    for entry_address, entry in snapshot.entries.items():
+        for candidate in {entry_address, entry.address}:
+            if candidate.startswith("participant.action-contract."):
+                action_contract_addresses.add(candidate)
+            elif candidate.startswith("participant.observation-boundary."):
+                observation_boundary_addresses.add(candidate)
+    return action_contract_addresses, observation_boundary_addresses
+
+
+def _participant_behavior_history_diagnostics(
+    root_address: str,
+    payload: Any,
+    *,
+    action_contract_addresses: set[str] | None = None,
+    observation_boundary_addresses: set[str] | None = None,
+) -> list[Diagnostic]:
+    history_key = "runtime.snapshot.participant-behavior-history"
     diagnostics: list[Diagnostic] = []
-    if contract_name == "workflow-result-envelope-v1":
+    for address, message in iter_participant_behavior_history_violations(
+        payload,
+        action_contract_addresses=action_contract_addresses,
+        observation_boundary_addresses=observation_boundary_addresses,
+    ):
+        if address.startswith(history_key):
+            diagnostic_address = root_address + address.removeprefix(history_key)
+        else:
+            diagnostic_address = f"{root_address}.{address}"
+        diagnostics.append(_diagnostic(_SEMANTIC_INVALID_DIAGNOSTIC_CODE, diagnostic_address, message))
+    return diagnostics
+
+
+def _participant_behavior_snapshot_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    action_contract_addresses, observation_boundary_addresses = _participant_behavior_snapshot_references(snapshot)
+    for participant_address, history in snapshot.participant_behavior_history.items():
+        diagnostics.extend(
+            _participant_behavior_history_diagnostics(
+                f"runtime.snapshot.participant-behavior-history.{participant_address}",
+                history,
+                action_contract_addresses=action_contract_addresses,
+                observation_boundary_addresses=observation_boundary_addresses,
+            )
+        )
+    return diagnostics
+
+
+def _state_semantic_diagnostics(
+    contract_name: str,
+    payload: Any,
+    state_model: Any,
+    invalid_message: str,
+) -> list[Diagnostic]:
+    try:
+        state_model.from_payload(payload)
+    except (TypeError, ValueError) as exc:
+        return [
+            _diagnostic(
+                _SEMANTIC_INVALID_DIAGNOSTIC_CODE,
+                contract_name,
+                f"{invalid_message}: {exc}",
+            )
+        ]
+    return []
+
+
+def _event_stream_semantic_diagnostics(
+    contract_name: str,
+    payload: Any,
+    event_model: Any,
+    payload_type_message: str,
+    invalid_message: str,
+) -> list[Diagnostic]:
+    if not isinstance(payload, list):
+        return [
+            _diagnostic(
+                _SEMANTIC_INVALID_DIAGNOSTIC_CODE,
+                contract_name,
+                payload_type_message,
+            )
+        ]
+
+    diagnostics: list[Diagnostic] = []
+    for index, event in enumerate(payload):
         try:
-            WorkflowExecutionState.from_payload(payload)
+            event_model.from_payload(event)
         except (TypeError, ValueError) as exc:
             diagnostics.append(
                 _diagnostic(
-                    "conformance.semantic-invalid",
-                    contract_name,
-                    f"workflow result semantics are invalid: {exc}",
+                    _SEMANTIC_INVALID_DIAGNOSTIC_CODE,
+                    f"{contract_name}[{index}]",
+                    f"{invalid_message}: {exc}",
                 )
             )
-        return diagnostics
-    if contract_name == "evaluation-result-envelope-v1":
-        try:
-            EvaluationExecutionState.from_payload(payload)
-        except (TypeError, ValueError) as exc:
-            diagnostics.append(
-                _diagnostic(
-                    "conformance.semantic-invalid",
-                    contract_name,
-                    f"evaluation result semantics are invalid: {exc}",
-                )
-            )
-        return diagnostics
-    if contract_name == "participant-episode-state-envelope-v1":
-        try:
-            ParticipantEpisodeExecutionState.from_payload(payload)
-        except (TypeError, ValueError) as exc:
-            diagnostics.append(
-                _diagnostic(
-                    "conformance.semantic-invalid",
-                    contract_name,
-                    f"participant episode state semantics are invalid: {exc}",
-                )
-            )
-        return diagnostics
-    if contract_name == "participant-episode-history-event-stream-v1":
-        if not isinstance(payload, list):
-            return [
-                _diagnostic(
-                    "conformance.semantic-invalid",
-                    contract_name,
-                    "participant episode history payload must be a list",
-                )
-            ]
+    return diagnostics
+
+
+def _participant_behavior_stream_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    if isinstance(payload, list):
         for index, event in enumerate(payload):
             try:
-                ParticipantEpisodeHistoryEvent.from_payload(event)
+                ParticipantBehaviorHistoryEvent.from_payload(event)
             except (TypeError, ValueError) as exc:
                 diagnostics.append(
                     _diagnostic(
-                        "conformance.semantic-invalid",
+                        _SEMANTIC_INVALID_DIAGNOSTIC_CODE,
                         f"{contract_name}[{index}]",
-                        f"participant episode history event semantics are invalid: {exc}",
+                        f"participant behavior history event semantics are invalid: {exc}",
                     )
                 )
-        return diagnostics
-    if contract_name != "runtime-snapshot-v1":
-        return []
+    diagnostics.extend(_participant_behavior_history_diagnostics(contract_name, payload))
+    return diagnostics
+
+
+def _runtime_snapshot_semantic_diagnostics(payload: Any) -> list[Diagnostic]:
     snapshot = _snapshot_from_envelope(payload)
     return [
         *_workflow_result_contract_diagnostics(snapshot),
         *_evaluation_result_contract_diagnostics(snapshot),
         *_participant_episode_snapshot_diagnostics(snapshot),
+        *_participant_behavior_snapshot_diagnostics(snapshot),
     ]
+
+
+def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
+    if contract_name == "workflow-result-envelope-v1":
+        return _state_semantic_diagnostics(
+            contract_name,
+            payload,
+            WorkflowExecutionState,
+            "workflow result semantics are invalid",
+        )
+    if contract_name == "evaluation-result-envelope-v1":
+        return _state_semantic_diagnostics(
+            contract_name,
+            payload,
+            EvaluationExecutionState,
+            "evaluation result semantics are invalid",
+        )
+    if contract_name == "participant-episode-state-envelope-v1":
+        return _state_semantic_diagnostics(
+            contract_name,
+            payload,
+            ParticipantEpisodeExecutionState,
+            "participant episode state semantics are invalid",
+        )
+    if contract_name == "participant-episode-history-event-stream-v1":
+        return _event_stream_semantic_diagnostics(
+            contract_name,
+            payload,
+            ParticipantEpisodeHistoryEvent,
+            "participant episode history payload must be a list",
+            "participant episode history event semantics are invalid",
+        )
+    if contract_name == "participant-behavior-history-event-stream-v1":
+        return _participant_behavior_stream_diagnostics(contract_name, payload)
+    if contract_name != "runtime-snapshot-v1":
+        return []
+    return _runtime_snapshot_semantic_diagnostics(payload)
 
 
 def run_fixture_suite(
@@ -875,7 +985,7 @@ def _drive_participant_episode_probe(
         snapshot.participant_episode_results,
         snapshot.participant_episode_history,
     ):
-        final_diagnostics.append(_diagnostic("conformance.semantic-invalid", address, message))
+        final_diagnostics.append(_diagnostic(_SEMANTIC_INVALID_DIAGNOSTIC_CODE, address, message))
     cases.append(
         ConformanceCaseResult(
             name="participant-snapshot-consistent",

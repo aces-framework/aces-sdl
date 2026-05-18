@@ -94,6 +94,9 @@ _SEMANTIC_PROFILE_PHASE_ALLOWED_BINDING_SCOPES = {
     "execution": _BACKEND_CONCEPT_BINDING_SCOPES,
 }
 
+_JSON_SCHEMA_KEY = "$schema"
+_JSON_SCHEMA_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
+
 
 class InstantiationRequestModel(ContractModel):
     schema_version: Literal[SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION] = (
@@ -190,6 +193,21 @@ class ParticipantEpisodeHistoryEventModel(ContractModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class ParticipantBehaviorHistoryEventModel(ContractModel):
+    event_type: str
+    timestamp: str
+    participant_address: str
+    episode_id: str
+    action_instance_id: str
+    action_contract_address: str | None = None
+    observation_boundary_address: str | None = None
+    observation_status: str | None = None
+    actor_provenance: str | None = None
+    state_transition_kind: str | None = None
+    post_state_digest: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class PlanOperationModel(ContractModel):
     action: str
     address: str
@@ -232,10 +250,12 @@ class RuntimeSnapshotEnvelopeModel(ContractModel):
     Participant episode surfaces (``participant_episode_results`` and
     ``participant_episode_history``) are both keyed by the stable
     ``participant_address`` of the participant the state/history belongs
-    to. The results map carries the currently-live episode state per
-    participant; prior episodes survive only through the append-only
-    history stream and the ``previous_episode_id`` chain on each state.
-    See ADR-013.
+    to. SEM-208 participant behavior history is keyed the same way and
+    records action, observation, and state-transition events with compiled
+    behavior-contract addresses. The episode results map carries the
+    currently-live episode state per participant; prior episodes survive only
+    through append-only history streams and the ``previous_episode_id`` chain
+    on each state.
     """
 
     schema_version: Literal[RUNTIME_SNAPSHOT_SCHEMA_VERSION] = RUNTIME_SNAPSHOT_SCHEMA_VERSION
@@ -246,6 +266,7 @@ class RuntimeSnapshotEnvelopeModel(ContractModel):
     evaluation_history: dict[str, list[EvaluationHistoryEventModel]] = Field(default_factory=dict)
     participant_episode_results: dict[str, ParticipantEpisodeStateModel] = Field(default_factory=dict)
     participant_episode_history: dict[str, list[ParticipantEpisodeHistoryEventModel]] = Field(default_factory=dict)
+    participant_behavior_history: dict[str, list[ParticipantBehaviorHistoryEventModel]] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -1160,6 +1181,15 @@ def _backend_profile_schema_for_bundle() -> dict[str, Any]:
     return BackendProfileModel.model_json_schema()
 
 
+def _event_stream_schema(title: str, item_schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        _JSON_SCHEMA_KEY: _JSON_SCHEMA_DRAFT_2020_12,
+        "title": title,
+        "type": "array",
+        "items": item_schema,
+    }
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -1179,27 +1209,25 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),
         "runtime-snapshot-v1": RuntimeSnapshotEnvelopeModel.model_json_schema(),
         "workflow-result-envelope-v1": WorkflowExecutionStateModel.model_json_schema(),
-        "workflow-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "WorkflowHistoryEventStream",
-            "type": "array",
-            "items": WorkflowHistoryEventModel.model_json_schema(),
-        },
+        "workflow-history-event-stream-v1": _event_stream_schema(
+            "WorkflowHistoryEventStream",
+            WorkflowHistoryEventModel.model_json_schema(),
+        ),
         "workflow-cancellation-request-v1": WorkflowCancellationRequestModel.model_json_schema(),
         "evaluation-result-envelope-v1": EvaluationResultStateModel.model_json_schema(),
-        "evaluation-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "EvaluationHistoryEventStream",
-            "type": "array",
-            "items": EvaluationHistoryEventModel.model_json_schema(),
-        },
+        "evaluation-history-event-stream-v1": _event_stream_schema(
+            "EvaluationHistoryEventStream",
+            EvaluationHistoryEventModel.model_json_schema(),
+        ),
         "participant-episode-state-envelope-v1": ParticipantEpisodeStateModel.model_json_schema(),
-        "participant-episode-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "ParticipantEpisodeHistoryEventStream",
-            "type": "array",
-            "items": ParticipantEpisodeHistoryEventModel.model_json_schema(),
-        },
+        "participant-episode-history-event-stream-v1": _event_stream_schema(
+            "ParticipantEpisodeHistoryEventStream",
+            ParticipantEpisodeHistoryEventModel.model_json_schema(),
+        ),
+        "participant-behavior-history-event-stream-v1": _event_stream_schema(
+            "ParticipantBehaviorHistoryEventStream",
+            ParticipantBehaviorHistoryEventModel.model_json_schema(),
+        ),
         "operation-receipt-v1": OperationReceiptModel.model_json_schema(),
         "operation-status-v1": OperationStatusModel.model_json_schema(),
     }
@@ -1235,6 +1263,7 @@ __all__ = [
     "OrchestrationPlanModel",
     "OrchestratorCapabilitiesModel",
     "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
+    "ParticipantBehaviorHistoryEventModel",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
     "ParticipantRuntimeCapabilitiesModel",
