@@ -25,6 +25,10 @@ from .semantics.objective_semantics import (
     WindowResourceCatalog,
     analyze_objective_semantics,
 )
+from .semantics.participant_behavior import (
+    ParticipantBehaviorIssue,
+    analyze_participant_behavior,
+)
 from .semantics.workflow import branch_closure, workflow_step_semantic_contract
 
 # Renders an objective-semantics issue (machine-readable code from
@@ -101,6 +105,18 @@ _OBJECTIVE_ISSUE_RENDERERS = {
         lambda i: f"Objective '{i.objective_name}' depends on undefined objective '{i.ref}'"
     ),
     "objective.dependency-cycle": lambda _i: "Objective dependency graph contains a cycle",
+}
+
+_PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS = {
+    "participant.action-contract-unbound": (
+        lambda i: f"Agent '{i.participant_name}' action '{i.ref}' does not reference a declared action_contract"
+    ),
+    "participant.observation-boundary-unbound": (
+        lambda i: (
+            f"Agent '{i.participant_name}' observation_boundary '{i.ref}' "
+            "does not reference a declared observation_boundary"
+        )
+    ),
 }
 
 
@@ -383,6 +399,7 @@ class SemanticValidator:
         self._verify_accounts()
         self._verify_relationships()
         self._verify_agents()
+        self._verify_participant_behavior()
         self._verify_objectives()
         self._verify_workflows()
         self._verify_variables()
@@ -633,6 +650,16 @@ class SemanticValidator:
                     continue
                 self._validate_operating_scope_ref(scope, owner_label=f"Agent '{name}'")
 
+    def _verify_participant_behavior(self) -> None:
+        analysis = analyze_participant_behavior(
+            agents_by_name=self._s.agents,
+            action_contracts=self._s.action_contracts,
+            observation_boundaries=self._s.observation_boundaries,
+            is_unresolved=self._is_unresolved_var,
+        )
+        for issue in analysis.issues:
+            self._err(self._format_participant_behavior_issue(issue))
+
     def _verify_objectives(self) -> None:
         # Declarative-objective semantics — actor binding, target resolution,
         # success interpretation, windows, and dependency ordering (SEM-207).
@@ -669,6 +696,14 @@ class SemanticValidator:
             renderer = _OBJECTIVE_ISSUE_RENDERERS[issue.code]
         except KeyError:  # pragma: no cover - defensive: a new code without a renderer
             raise AssertionError(f"unhandled objective-semantics issue code: {issue.code}") from None
+        return renderer(issue)
+
+    @staticmethod
+    def _format_participant_behavior_issue(issue: ParticipantBehaviorIssue) -> str:
+        try:
+            renderer = _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS[issue.code]
+        except KeyError:  # pragma: no cover - defensive: a new code without a renderer
+            raise AssertionError(f"unhandled participant-behavior issue code: {issue.code}") from None
         return renderer(issue)
 
     def _validate_workflow_predicate(

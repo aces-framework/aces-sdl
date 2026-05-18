@@ -190,6 +190,21 @@ class ParticipantEpisodeHistoryEventModel(ContractModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class ParticipantBehaviorHistoryEventModel(ContractModel):
+    event_type: str
+    timestamp: str
+    participant_address: str
+    episode_id: str
+    action_instance_id: str
+    action_contract_address: str | None = None
+    observation_boundary_address: str | None = None
+    observation_status: str | None = None
+    actor_provenance: str | None = None
+    state_transition_kind: str | None = None
+    post_state_digest: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class PlanOperationModel(ContractModel):
     action: str
     address: str
@@ -232,10 +247,12 @@ class RuntimeSnapshotEnvelopeModel(ContractModel):
     Participant episode surfaces (``participant_episode_results`` and
     ``participant_episode_history``) are both keyed by the stable
     ``participant_address`` of the participant the state/history belongs
-    to. The results map carries the currently-live episode state per
-    participant; prior episodes survive only through the append-only
-    history stream and the ``previous_episode_id`` chain on each state.
-    See ADR-013.
+    to. SEM-208 participant behavior history is keyed the same way and
+    records action, observation, and state-transition events with compiled
+    behavior-contract addresses. The episode results map carries the
+    currently-live episode state per participant; prior episodes survive only
+    through append-only history streams and the ``previous_episode_id`` chain
+    on each state.
     """
 
     schema_version: Literal[RUNTIME_SNAPSHOT_SCHEMA_VERSION] = RUNTIME_SNAPSHOT_SCHEMA_VERSION
@@ -246,6 +263,7 @@ class RuntimeSnapshotEnvelopeModel(ContractModel):
     evaluation_history: dict[str, list[EvaluationHistoryEventModel]] = Field(default_factory=dict)
     participant_episode_results: dict[str, ParticipantEpisodeStateModel] = Field(default_factory=dict)
     participant_episode_history: dict[str, list[ParticipantEpisodeHistoryEventModel]] = Field(default_factory=dict)
+    participant_behavior_history: dict[str, list[ParticipantBehaviorHistoryEventModel]] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -1200,6 +1218,12 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
             "type": "array",
             "items": ParticipantEpisodeHistoryEventModel.model_json_schema(),
         },
+        "participant-behavior-history-event-stream-v1": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "ParticipantBehaviorHistoryEventStream",
+            "type": "array",
+            "items": ParticipantBehaviorHistoryEventModel.model_json_schema(),
+        },
         "operation-receipt-v1": OperationReceiptModel.model_json_schema(),
         "operation-status-v1": OperationStatusModel.model_json_schema(),
     }
@@ -1235,6 +1259,7 @@ __all__ = [
     "OrchestrationPlanModel",
     "OrchestratorCapabilitiesModel",
     "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
+    "ParticipantBehaviorHistoryEventModel",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
     "ParticipantRuntimeCapabilitiesModel",

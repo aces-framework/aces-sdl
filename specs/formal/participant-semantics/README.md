@@ -572,6 +572,22 @@ Minimum future implementation artifacts:
 - cross-stage tests from SDL action declarations to compiled runtime contracts
   and observed participant history.
 
+Current implementation artifacts for the `SEM-208` slice:
+
+- `implementations/python/packages/aces_sdl/participant_behavior.py` defines
+  typed action contracts and observation boundaries;
+- `implementations/python/packages/aces_sdl/semantics/participant_behavior.py`
+  and `implementations/python/packages/aces_sdl/validator.py` fail closed on
+  unbound action-contract and observation-boundary references;
+- `implementations/python/packages/aces_processor/compiler.py` maps authored
+  participants to compiled participant action, observation, and behavior
+  addresses;
+- `implementations/python/packages/aces_processor/models.py` defines
+  participant behavior-history events and validates action/observation/state
+  transition totality over compiled addresses;
+- `implementations/python/tests/test_sem_208_participant_behavior.py` covers
+  the cross-stage SDL-to-runtime behavior-history path.
+
 ## SEM-209 - Multi-Participant Interaction Semantics
 
 `SEM-209` requires semantics for coordination, contention, interference, and

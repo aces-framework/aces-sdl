@@ -70,6 +70,7 @@ def create_stub_manifest(
     if not with_participant_runtime:
         supported_contract_versions.discard("participant-episode-state-envelope-v1")
         supported_contract_versions.discard("participant-episode-history-event-stream-v1")
+        supported_contract_versions.discard("participant-behavior-history-event-stream-v1")
     return BackendManifest(
         name="stub",
         version=_current_backend_version(),

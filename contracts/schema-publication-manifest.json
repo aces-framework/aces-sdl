@@ -46,6 +46,10 @@
       "schema_path": "contracts/schemas/plans/orchestration-plan-v1.json"
     },
     {
+      "contract_id": "participant-behavior-history-event-stream-v1",
+      "schema_path": "contracts/schemas/control-plane/participant-behavior-history-event-stream-v1.json"
+    },
+    {
       "contract_id": "participant-episode-history-event-stream-v1",
       "schema_path": "contracts/schemas/control-plane/participant-episode-history-event-stream-v1.json"
     },

@@ -41,6 +41,9 @@ from .models import (
     NodeRuntime,
     ObjectiveRuntime,
     ObjectiveWindowReferenceRuntime,
+    ParticipantActionContractRuntime,
+    ParticipantBehaviorRuntime,
+    ParticipantObservationBoundaryRuntime,
     RuntimeModel,
     RuntimeTemplate,
     ScriptRuntime,
@@ -103,6 +106,18 @@ def _content_address(name: str) -> str:
 
 def _account_address(name: str) -> str:
     return _address("provision", "account", name)
+
+
+def _action_contract_address(name: str) -> str:
+    return _address("participant", "action-contract", name)
+
+
+def _observation_boundary_address(name: str) -> str:
+    return _address("participant", "observation-boundary", name)
+
+
+def _participant_behavior_address(name: str) -> str:
+    return _address("participant", "behavior", name)
 
 
 def _condition_binding_address(node_name: str, condition_name: str) -> str:
@@ -697,6 +712,78 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
             ordering_dependencies=(target_address,),
             refresh_dependencies=(target_address,),
             spec=_dump(account),
+        )
+
+    action_contracts: dict[str, ParticipantActionContractRuntime] = {}
+    for name, contract in scenario.action_contracts.items():
+        contract_spec = _dump(contract)
+        action_contracts[_action_contract_address(name)] = ParticipantActionContractRuntime(
+            address=_action_contract_address(name),
+            name=name,
+            action_name=name,
+            semantic_version=str(contract_spec.get("semantic_version", "")),
+            lifecycle_state=str(contract_spec.get("lifecycle_state", "")),
+            behavioral_granularity=str(contract_spec.get("behavioral_granularity", "")),
+            spec=contract_spec,
+        )
+
+    observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = {}
+    for name, boundary in scenario.observation_boundaries.items():
+        boundary_spec = _dump(boundary)
+        observation_boundaries[_observation_boundary_address(name)] = ParticipantObservationBoundaryRuntime(
+            address=_observation_boundary_address(name),
+            name=name,
+            boundary_name=name,
+            projection_basis=str(boundary_spec.get("projection_basis", "")),
+            spec=boundary_spec,
+        )
+
+    participant_behaviors: dict[str, ParticipantBehaviorRuntime] = {}
+    for name, agent in scenario.agents.items():
+        action_addresses: list[str] = []
+        if scenario.action_contracts:
+            for action_name in dict.fromkeys(agent.actions):
+                if action_name in scenario.action_contracts:
+                    action_addresses.append(_action_contract_address(action_name))
+                elif action_name:
+                    diagnostics.append(
+                        Diagnostic(
+                            code="participant.action-contract-ref-unbound",
+                            domain="participant",
+                            address=_participant_behavior_address(name),
+                            message=(
+                                f"Reference '{action_name}' does not resolve to a declared participant action contract."
+                            ),
+                        )
+                    )
+        observation_addresses: list[str] = []
+        for boundary_name in dict.fromkeys(agent.observation_boundaries):
+            if boundary_name in scenario.observation_boundaries:
+                observation_addresses.append(_observation_boundary_address(boundary_name))
+            elif boundary_name:
+                diagnostics.append(
+                    Diagnostic(
+                        code="participant.observation-boundary-ref-unbound",
+                        domain="participant",
+                        address=_participant_behavior_address(name),
+                        message=(
+                            f"Reference '{boundary_name}' does not resolve to a declared participant observation boundary."
+                        ),
+                    )
+                )
+        dependency_addresses = _dedupe([*action_addresses, *observation_addresses])
+        participant_behaviors[_participant_behavior_address(name)] = ParticipantBehaviorRuntime(
+            address=_participant_behavior_address(name),
+            name=name,
+            participant_name=name,
+            entity_name=agent.entity,
+            action_contract_addresses=tuple(action_addresses),
+            observation_boundary_addresses=tuple(observation_addresses),
+            refresh_dependencies=dependency_addresses,
+            spec={
+                "agent": _dump(agent),
+                "interpretation_mode": "role-neutral-projection",
+            },
         )
 
     events = {}
@@ -1540,6 +1627,9 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         inject_bindings=inject_bindings,
         content_placements=content_placements,
         account_placements=account_placements,
+        action_contracts=action_contracts,
+        observation_boundaries=observation_boundaries,
+        participant_behaviors=participant_behaviors,
         events=events,
         scripts=scripts,
         stories=stories,

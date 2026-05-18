@@ -157,6 +157,7 @@ def test_fixture_suite_passes_for_full_remote_control_plane_profile():
     contract_names = {case.contract_name for case in report.cases}
     assert "participant-episode-state-envelope-v1" in contract_names
     assert "participant-episode-history-event-stream-v1" in contract_names
+    assert "participant-behavior-history-event-stream-v1" in contract_names
 
 
 def test_runtime_snapshot_semantic_diagnostics_reject_invalid_participant_episode_state():
@@ -238,6 +239,75 @@ def test_runtime_snapshot_semantic_diagnostics_reject_invalid_participant_episod
     assert any("must report sequence_number>0" in diag.message for diag in diagnostics)
 
 
+def test_runtime_snapshot_behavior_history_refs_must_match_snapshot_entries():
+    action_address = "participant.action-contract.scan"
+    missing_boundary_address = "participant.observation-boundary.missing"
+    snapshot_payload = {
+        "schema_version": "runtime-snapshot/v1",
+        "entries": {
+            action_address: {
+                "address": action_address,
+                "domain": "participant",
+                "resource_type": "participant-action-contract",
+                "payload": {},
+                "ordering_dependencies": [],
+                "refresh_dependencies": [],
+                "status": "ready",
+            }
+        },
+        "orchestration_results": {},
+        "orchestration_history": {},
+        "evaluation_results": {},
+        "evaluation_history": {},
+        "participant_episode_results": {},
+        "participant_episode_history": {},
+        "participant_behavior_history": {
+            "participant.red": [
+                {
+                    "event_type": "action_attempted",
+                    "timestamp": "2026-05-18T18:30:00Z",
+                    "participant_address": "participant.red",
+                    "episode_id": "episode-1",
+                    "action_instance_id": "scan-1",
+                    "action_contract_address": action_address,
+                    "actor_provenance": "participant:red",
+                    "details": {},
+                },
+                {
+                    "event_type": "state_transition_recorded",
+                    "timestamp": "2026-05-18T18:30:01Z",
+                    "participant_address": "participant.red",
+                    "episode_id": "episode-1",
+                    "action_instance_id": "scan-1",
+                    "action_contract_address": action_address,
+                    "state_transition_kind": "knowledge-expanded",
+                    "post_state_digest": "sha256:known",
+                    "details": {},
+                },
+                {
+                    "event_type": "observation_emitted",
+                    "timestamp": "2026-05-18T18:30:02Z",
+                    "participant_address": "participant.red",
+                    "episode_id": "episode-1",
+                    "action_instance_id": "scan-1",
+                    "action_contract_address": action_address,
+                    "observation_boundary_address": missing_boundary_address,
+                    "observation_status": "terminal",
+                    "post_state_digest": "sha256:known",
+                    "details": {},
+                },
+            ]
+        },
+        "metadata": {},
+    }
+
+    diagnostics = _semantic_diagnostics("runtime-snapshot-v1", snapshot_payload)
+
+    messages = [diagnostic.message for diagnostic in diagnostics]
+    assert any("unknown observation_boundary_address" in message for message in messages)
+    assert not any("unknown action_contract_address" in message for message in messages)
+
+
 def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_requirements():
     reference_manifest = create_stub_manifest()
     manifest = BackendManifest(
@@ -275,6 +345,7 @@ def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_r
         "operation-receipt-v1",
         "operation-status-v1",
         "orchestration-plan-v1",
+        "participant-behavior-history-event-stream-v1",
         "participant-episode-history-event-stream-v1",
         "participant-episode-state-envelope-v1",
         "provisioning-plan-v1",

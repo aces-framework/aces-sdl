@@ -25,6 +25,7 @@ from aces_contracts.contracts import (
     OperationReceiptModel,
     OperationStatusModel,
     OrchestrationPlanModel,
+    ParticipantBehaviorHistoryEventModel,
     ParticipantEpisodeHistoryEventModel,
     ParticipantEpisodeStateModel,
     ProvisioningPlanModel,
@@ -42,6 +43,7 @@ from aces_processor.manager import (
 from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
+    ParticipantBehaviorHistoryEvent,
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
     ParticipantEpisodeTerminalReason,
@@ -51,6 +53,7 @@ from aces_processor.models import (
     Severity,
     SnapshotEntry,
     WorkflowExecutionState,
+    iter_participant_behavior_history_violations,
     iter_participant_episode_snapshot_violations,
 )
 from aces_processor.planner import plan
@@ -157,6 +160,10 @@ _EVENT_STREAM_VALIDATORS: dict[str, tuple[type, str]] = {
     "participant-episode-history-event-stream-v1": (
         ParticipantEpisodeHistoryEventModel,
         "participant episode",
+    ),
+    "participant-behavior-history-event-stream-v1": (
+        ParticipantBehaviorHistoryEventModel,
+        "participant behavior",
     ),
 }
 
@@ -416,6 +423,10 @@ def _snapshot_from_envelope(payload: dict[str, Any]) -> RuntimeSnapshot:
             participant_address: [event.model_dump(mode="json") for event in history]
             for participant_address, history in validated.participant_episode_history.items()
         },
+        participant_behavior_history={
+            participant_address: [event.model_dump(mode="json") for event in history]
+            for participant_address, history in validated.participant_behavior_history.items()
+        },
         metadata=dict(validated.metadata),
     )
 
@@ -438,6 +449,57 @@ def _participant_episode_snapshot_diagnostics(
             snapshot.participant_episode_history,
         )
     ]
+
+
+def _participant_behavior_snapshot_references(snapshot: RuntimeSnapshot) -> tuple[set[str], set[str]]:
+    action_contract_addresses: set[str] = set()
+    observation_boundary_addresses: set[str] = set()
+    for entry_address, entry in snapshot.entries.items():
+        for candidate in {entry_address, entry.address}:
+            if candidate.startswith("participant.action-contract."):
+                action_contract_addresses.add(candidate)
+            elif candidate.startswith("participant.observation-boundary."):
+                observation_boundary_addresses.add(candidate)
+    return action_contract_addresses, observation_boundary_addresses
+
+
+def _participant_behavior_history_diagnostics(
+    root_address: str,
+    payload: Any,
+    *,
+    action_contract_addresses: set[str] | None = None,
+    observation_boundary_addresses: set[str] | None = None,
+) -> list[Diagnostic]:
+    history_key = "runtime.snapshot.participant-behavior-history"
+    diagnostics: list[Diagnostic] = []
+    for address, message in iter_participant_behavior_history_violations(
+        payload,
+        action_contract_addresses=action_contract_addresses,
+        observation_boundary_addresses=observation_boundary_addresses,
+    ):
+        if address.startswith(history_key):
+            diagnostic_address = root_address + address.removeprefix(history_key)
+        else:
+            diagnostic_address = f"{root_address}.{address}"
+        diagnostics.append(_diagnostic("conformance.semantic-invalid", diagnostic_address, message))
+    return diagnostics
+
+
+def _participant_behavior_snapshot_diagnostics(
+    snapshot: RuntimeSnapshot,
+) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    action_contract_addresses, observation_boundary_addresses = _participant_behavior_snapshot_references(snapshot)
+    for participant_address, history in snapshot.participant_behavior_history.items():
+        diagnostics.extend(
+            _participant_behavior_history_diagnostics(
+                f"runtime.snapshot.participant-behavior-history.{participant_address}",
+                history,
+                action_contract_addresses=action_contract_addresses,
+                observation_boundary_addresses=observation_boundary_addresses,
+            )
+        )
+    return diagnostics
 
 
 def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
@@ -499,6 +561,21 @@ def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
                     )
                 )
         return diagnostics
+    if contract_name == "participant-behavior-history-event-stream-v1":
+        if isinstance(payload, list):
+            for index, event in enumerate(payload):
+                try:
+                    ParticipantBehaviorHistoryEvent.from_payload(event)
+                except (TypeError, ValueError) as exc:
+                    diagnostics.append(
+                        _diagnostic(
+                            "conformance.semantic-invalid",
+                            f"{contract_name}[{index}]",
+                            f"participant behavior history event semantics are invalid: {exc}",
+                        )
+                    )
+        diagnostics.extend(_participant_behavior_history_diagnostics(contract_name, payload))
+        return diagnostics
     if contract_name != "runtime-snapshot-v1":
         return []
     snapshot = _snapshot_from_envelope(payload)
@@ -506,6 +583,7 @@ def _semantic_diagnostics(contract_name: str, payload: Any) -> list[Diagnostic]:
         *_workflow_result_contract_diagnostics(snapshot),
         *_evaluation_result_contract_diagnostics(snapshot),
         *_participant_episode_snapshot_diagnostics(snapshot),
+        *_participant_behavior_snapshot_diagnostics(snapshot),
     ]
 
 

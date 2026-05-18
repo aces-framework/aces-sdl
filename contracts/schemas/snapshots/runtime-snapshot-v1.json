@@ -185,6 +185,117 @@
       "title": "EvaluationResultStateModel",
       "type": "object"
     },
+    "ParticipantBehaviorHistoryEventModel": {
+      "additionalProperties": false,
+      "properties": {
+        "action_contract_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Contract Address"
+        },
+        "action_instance_id": {
+          "title": "Action Instance Id",
+          "type": "string"
+        },
+        "actor_provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor Provenance"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "episode_id": {
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "event_type": {
+          "title": "Event Type",
+          "type": "string"
+        },
+        "observation_boundary_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observation Boundary Address"
+        },
+        "observation_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observation Status"
+        },
+        "participant_address": {
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "post_state_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Post State Digest"
+        },
+        "state_transition_kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State Transition Kind"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_type",
+        "timestamp",
+        "participant_address",
+        "episode_id",
+        "action_instance_id"
+      ],
+      "title": "ParticipantBehaviorHistoryEventModel",
+      "type": "object"
+    },
     "ParticipantEpisodeHistoryEventModel": {
       "additionalProperties": false,
       "properties": {
@@ -578,7 +689,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Published envelope for a live runtime snapshot.\n\nParticipant episode surfaces (``participant_episode_results`` and\n``participant_episode_history``) are both keyed by the stable\n``participant_address`` of the participant the state/history belongs\nto. The results map carries the currently-live episode state per\nparticipant; prior episodes survive only through the append-only\nhistory stream and the ``previous_episode_id`` chain on each state.\nSee ADR-013.",
+  "description": "Published envelope for a live runtime snapshot.\n\nParticipant episode surfaces (``participant_episode_results`` and\n``participant_episode_history``) are both keyed by the stable\n``participant_address`` of the participant the state/history belongs\nto. SEM-208 participant behavior history is keyed the same way and\nrecords action, observation, and state-transition events with compiled\nbehavior-contract addresses. The episode results map carries the\ncurrently-live episode state per participant; prior episodes survive only\nthrough append-only history streams and the ``previous_episode_id`` chain\non each state.",
   "properties": {
     "entries": {
       "additionalProperties": {
@@ -624,6 +735,16 @@
         "$ref": "#/$defs/WorkflowExecutionStateModel"
       },
       "title": "Orchestration Results",
+      "type": "object"
+    },
+    "participant_behavior_history": {
+      "additionalProperties": {
+        "items": {
+          "$ref": "#/$defs/ParticipantBehaviorHistoryEventModel"
+        },
+        "type": "array"
+      },
+      "title": "Participant Behavior History",
       "type": "object"
     },
     "participant_episode_history": {

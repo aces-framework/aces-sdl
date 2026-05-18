@@ -36,6 +36,7 @@ def test_backend_conformance_cli_passes_for_full_remote_control_plane_profile():
     contract_names = {case["contract_name"] for case in payload["cases"]}
     assert "participant-episode-state-envelope-v1" in contract_names
     assert "participant-episode-history-event-stream-v1" in contract_names
+    assert "participant-behavior-history-event-stream-v1" in contract_names
 
 
 def test_backend_conformance_cli_exits_non_zero_when_fixtures_missing(tmp_path: Path):

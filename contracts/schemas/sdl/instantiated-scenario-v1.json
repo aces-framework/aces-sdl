@@ -156,7 +156,7 @@
     },
     "Agent": {
       "additionalProperties": false,
-      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n- ``entity`` links to the entities section (team/role) and supplies\n  identity and role per ADR-020\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure\n- ``starting_conditions`` links to the conditions section, giving the\n  authoring surface a declarative hook for participant-relevant\n  precondition checks (ACT-601)\n- ``authority_anchors`` links to declared SDL elements (entities,\n  relationships, content, etc.) that anchor what the participant is\n  allowed or expected to do in scenario meaning (ACT-601, ADR-020)\n- ``operating_scope`` links to targetable named scenario elements\n  (subnets, hosts, services, content) defining where the participant\n  may act or observe (ACT-601, ADR-020)",
+      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n- ``entity`` links to the entities section (team/role) and supplies\n  identity and role per ADR-020\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure\n- ``starting_conditions`` links to the conditions section, giving the\n  authoring surface a declarative hook for participant-relevant\n  precondition checks (ACT-601)\n- ``authority_anchors`` links to declared SDL elements (entities,\n  relationships, content, etc.) that anchor what the participant is\n  allowed or expected to do in scenario meaning (ACT-601, ADR-020)\n- ``operating_scope`` links to targetable named scenario elements\n  (subnets, hosts, services, content) defining where the participant\n  may act or observe (ACT-601, ADR-020)\n- ``observation_boundaries`` links to declared participant observation\n  boundaries that define participant-specific projections of world and\n  evidence state (SEM-208)",
       "properties": {
         "actions": {
           "items": {
@@ -199,6 +199,13 @@
             }
           ],
           "default": null
+        },
+        "observation_boundaries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Boundaries",
+          "type": "array"
         },
         "operating_scope": {
           "items": {
@@ -685,6 +692,36 @@
       ],
       "title": "ExerciseRole",
       "type": "string"
+    },
+    "ExternalMappingLoss": {
+      "additionalProperties": false,
+      "description": "Loss-labeled mapping from an external vocabulary to ACES semantics.",
+      "properties": {
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "loss_label": {
+          "title": "Loss Label",
+          "type": "string"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "system": {
+          "title": "System",
+          "type": "string"
+        }
+      },
+      "required": [
+        "system",
+        "identifier",
+        "loss_label",
+        "rationale"
+      ],
+      "title": "ExternalMappingLoss",
+      "type": "object"
     },
     "Feature": {
       "additionalProperties": false,
@@ -1431,6 +1468,173 @@
         }
       },
       "title": "ObjectiveWindow",
+      "type": "object"
+    },
+    "ParticipantActionContract": {
+      "additionalProperties": false,
+      "description": "Governed semantic contract for one participant action name.",
+      "properties": {
+        "behavioral_granularity": {
+          "$ref": "#/$defs/ParticipantActionGranularity"
+        },
+        "evidence_expectations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Expectations",
+          "type": "array"
+        },
+        "external_mappings": {
+          "items": {
+            "$ref": "#/$defs/ExternalMappingLoss"
+          },
+          "title": "External Mappings",
+          "type": "array"
+        },
+        "failure_classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failure Classes",
+          "type": "array"
+        },
+        "fidelity_claim": {
+          "title": "Fidelity Claim",
+          "type": "string"
+        },
+        "intended_effects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Intended Effects",
+          "type": "array"
+        },
+        "lifecycle_state": {
+          "$ref": "#/$defs/ParticipantActionLifecycle",
+          "default": "active"
+        },
+        "observation_expectations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Expectations",
+          "type": "array"
+        },
+        "preconditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "procedure_basis": {
+          "title": "Procedure Basis",
+          "type": "string"
+        },
+        "realization_profile": {
+          "title": "Realization Profile",
+          "type": "string"
+        },
+        "semantic_version": {
+          "title": "Semantic Version",
+          "type": "string"
+        },
+        "side_effects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Side Effects",
+          "type": "array"
+        },
+        "state_transition_effects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "State Transition Effects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "semantic_version",
+        "behavioral_granularity",
+        "procedure_basis",
+        "realization_profile",
+        "fidelity_claim"
+      ],
+      "title": "ParticipantActionContract",
+      "type": "object"
+    },
+    "ParticipantActionGranularity": {
+      "description": "Behavioral granularity of a participant action contract.",
+      "enum": [
+        "atomic",
+        "procedure",
+        "aggregate"
+      ],
+      "title": "ParticipantActionGranularity",
+      "type": "string"
+    },
+    "ParticipantActionLifecycle": {
+      "description": "Governance lifecycle for participant action contracts.",
+      "enum": [
+        "draft",
+        "active",
+        "deprecated"
+      ],
+      "title": "ParticipantActionLifecycle",
+      "type": "string"
+    },
+    "ParticipantObservationBoundary": {
+      "additionalProperties": false,
+      "description": "Participant-specific observation projection boundary.",
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "hidden_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hidden Refs",
+          "type": "array"
+        },
+        "latency_profile": {
+          "title": "Latency Profile",
+          "type": "string"
+        },
+        "observable_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observable Refs",
+          "type": "array"
+        },
+        "observer_effects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observer Effects",
+          "type": "array"
+        },
+        "projection_basis": {
+          "title": "Projection Basis",
+          "type": "string"
+        },
+        "redaction_policy": {
+          "title": "Redaction Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection_basis",
+        "redaction_policy",
+        "latency_profile"
+      ],
+      "title": "ParticipantObservationBoundary",
       "type": "object"
     },
     "PasswordStrength": {
@@ -2300,6 +2504,13 @@
       "title": "Accounts",
       "type": "object"
     },
+    "action_contracts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ParticipantActionContract"
+      },
+      "title": "Action Contracts",
+      "type": "object"
+    },
     "agents": {
       "additionalProperties": {
         "$ref": "#/$defs/Agent"
@@ -2416,6 +2627,13 @@
         "$ref": "#/$defs/Objective"
       },
       "title": "Objectives",
+      "type": "object"
+    },
+    "observation_boundaries": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ParticipantObservationBoundary"
+      },
+      "title": "Observation Boundaries",
       "type": "object"
     },
     "relationships": {

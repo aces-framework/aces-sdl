@@ -23,6 +23,7 @@ from .infrastructure import InfraNode
 from .nodes import Node
 from .objectives import Objective
 from .orchestration import Event, Inject, Script, Story, Workflow
+from .participant_behavior import ParticipantActionContract, ParticipantObservationBoundary
 from .relationships import Relationship
 from .scoring import TLO, Evaluation, Goal, Metric
 from .variables import Variable
@@ -116,6 +117,8 @@ class Scenario(SDLModel):
     accounts: dict[str, Account] = Field(default_factory=dict)
     relationships: dict[str, Relationship] = Field(default_factory=dict)
     agents: dict[str, Agent] = Field(default_factory=dict)
+    action_contracts: dict[str, ParticipantActionContract] = Field(default_factory=dict)
+    observation_boundaries: dict[str, ParticipantObservationBoundary] = Field(default_factory=dict)
     objectives: dict[str, Objective] = Field(default_factory=dict)
     workflows: dict[str, Workflow] = Field(default_factory=dict)
     variables: dict[str, Variable] = Field(default_factory=dict)

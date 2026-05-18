@@ -69,6 +69,7 @@ def test_full_remote_profile_includes_participant_episode_contracts():
 
     assert "participant-episode-state-envelope-v1" in profile.required_contracts
     assert "participant-episode-history-event-stream-v1" in profile.required_contracts
+    assert "participant-behavior-history-event-stream-v1" in profile.required_contracts
 
 
 def test_backend_profile_model_rejects_unknown_contract_id():
@@ -111,15 +112,6 @@ def test_published_profiles_match_loader_round_trip(profile_id: str):
 
     assert raw["profile"] == model.profile
     assert raw["required_contracts"] == list(model.required_contracts)
-
-
-def test_published_backend_profiles_files_are_all_loadable():
-    """Repo-policy regression guard: every JSON under contracts/profiles/backend
-    must be loadable by the model. Catches future drift if someone drops a
-    file with a stale shape."""
-
-    for path in BACKEND_PROFILES_ROOT.glob("*.json"):
-        load_backend_profile(path.stem)
 
 
 def test_load_backend_profile_from_path_rejects_identity_mismatch(tmp_path: Path):
