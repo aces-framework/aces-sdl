@@ -235,5 +235,5 @@ so they are tracked by their own requirements, not here.
 | Participant outcome interpretation and derived operational context views | SEM-214, SEM-215 | — | — | planned |
 | Evidence, evaluation, view-boundary, and observability-plane semantics | SEM-216, SEM-224, SEM-225 | — | — | planned |
 | External knowledge bindings semantics | SEM-217 | — | — | planned |
-| Explicitness and realization semantics (binding declarations vs processor/backend realization) | SEM-218 | — | — | planned |
+| Explicitness and realization semantics (binding declarations vs processor/backend realization) | SEM-218 | validation | `specs/formal/realization/explicitness-and-realization.md`, `specs/formal/realization/README.md`, `docs/explain/reference/explicitness-realization-semantics.md`, `implementations/python/packages/aces_contracts/apparatus.py`, `implementations/python/packages/aces_contracts/vocabulary.py`, `implementations/python/packages/aces_contracts/contracts.py`, `implementations/python/packages/aces_backend_protocols/manifest.py`, `implementations/python/tests/test_backend_manifest.py`, `implementations/python/tests/test_processor_manifest.py`, `implementations/python/tests/test_runtime_contracts.py` | partial |
 | Clock, time-domain, advancement/pacing/synchronization, and temporal ordering/causality semantics | SEM-227, SEM-228, SEM-229 | — | — | planned |
