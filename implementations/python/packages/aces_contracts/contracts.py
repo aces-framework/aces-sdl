@@ -94,6 +94,9 @@ _SEMANTIC_PROFILE_PHASE_ALLOWED_BINDING_SCOPES = {
     "execution": _BACKEND_CONCEPT_BINDING_SCOPES,
 }
 
+_JSON_SCHEMA_KEY = "$schema"
+_JSON_SCHEMA_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
+
 
 class InstantiationRequestModel(ContractModel):
     schema_version: Literal[SCENARIO_INSTANTIATION_REQUEST_SCHEMA_VERSION] = (
@@ -1178,6 +1181,15 @@ def _backend_profile_schema_for_bundle() -> dict[str, Any]:
     return BackendProfileModel.model_json_schema()
 
 
+def _event_stream_schema(title: str, item_schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        _JSON_SCHEMA_KEY: _JSON_SCHEMA_DRAFT_2020_12,
+        "title": title,
+        "type": "array",
+        "items": item_schema,
+    }
+
+
 def schema_bundle() -> dict[str, dict[str, Any]]:
     """Return the repo-published JSON Schemas for external contracts."""
 
@@ -1197,33 +1209,25 @@ def schema_bundle() -> dict[str, dict[str, Any]]:
         "evaluation-plan-v1": EvaluationPlanModel.model_json_schema(),
         "runtime-snapshot-v1": RuntimeSnapshotEnvelopeModel.model_json_schema(),
         "workflow-result-envelope-v1": WorkflowExecutionStateModel.model_json_schema(),
-        "workflow-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "WorkflowHistoryEventStream",
-            "type": "array",
-            "items": WorkflowHistoryEventModel.model_json_schema(),
-        },
+        "workflow-history-event-stream-v1": _event_stream_schema(
+            "WorkflowHistoryEventStream",
+            WorkflowHistoryEventModel.model_json_schema(),
+        ),
         "workflow-cancellation-request-v1": WorkflowCancellationRequestModel.model_json_schema(),
         "evaluation-result-envelope-v1": EvaluationResultStateModel.model_json_schema(),
-        "evaluation-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "EvaluationHistoryEventStream",
-            "type": "array",
-            "items": EvaluationHistoryEventModel.model_json_schema(),
-        },
+        "evaluation-history-event-stream-v1": _event_stream_schema(
+            "EvaluationHistoryEventStream",
+            EvaluationHistoryEventModel.model_json_schema(),
+        ),
         "participant-episode-state-envelope-v1": ParticipantEpisodeStateModel.model_json_schema(),
-        "participant-episode-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "ParticipantEpisodeHistoryEventStream",
-            "type": "array",
-            "items": ParticipantEpisodeHistoryEventModel.model_json_schema(),
-        },
-        "participant-behavior-history-event-stream-v1": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "ParticipantBehaviorHistoryEventStream",
-            "type": "array",
-            "items": ParticipantBehaviorHistoryEventModel.model_json_schema(),
-        },
+        "participant-episode-history-event-stream-v1": _event_stream_schema(
+            "ParticipantEpisodeHistoryEventStream",
+            ParticipantEpisodeHistoryEventModel.model_json_schema(),
+        ),
+        "participant-behavior-history-event-stream-v1": _event_stream_schema(
+            "ParticipantBehaviorHistoryEventStream",
+            ParticipantBehaviorHistoryEventModel.model_json_schema(),
+        ),
         "operation-receipt-v1": OperationReceiptModel.model_json_schema(),
         "operation-status-v1": OperationStatusModel.model_json_schema(),
     }

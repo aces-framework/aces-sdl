@@ -30,6 +30,10 @@ from aces_contracts.versions import (
 )
 from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
+_PARTICIPANT_ACTION_CONTRACT_PREFIX = "participant.action-contract."
+_PARTICIPANT_OBSERVATION_BOUNDARY_PREFIX = "participant.observation-boundary."
+_PARTICIPANT_BEHAVIOR_HISTORY_KEY = "runtime.snapshot.participant-behavior-history"
+
 
 class RuntimeDomain(str, Enum):
     """Top-level runtime concern."""
@@ -1572,6 +1576,14 @@ class ParticipantEpisodeHistoryEvent:
             )
 
 
+def _participant_observation_status_from_payload(value: Any) -> ParticipantObservationStatus | None:
+    if isinstance(value, ParticipantObservationStatus):
+        return value
+    if value is None:
+        return None
+    return ParticipantObservationStatus(str(value))
+
+
 @dataclass(frozen=True)
 class ParticipantBehaviorHistoryEvent:
     """Internal normalized participant behavior history event.
@@ -1637,15 +1649,7 @@ class ParticipantBehaviorHistoryEvent:
                 if payload.get("observation_boundary_address") is not None
                 else None
             ),
-            observation_status=(
-                observation_status_raw
-                if isinstance(observation_status_raw, ParticipantObservationStatus)
-                else (
-                    ParticipantObservationStatus(str(observation_status_raw))
-                    if observation_status_raw is not None
-                    else None
-                )
-            ),
+            observation_status=_participant_observation_status_from_payload(observation_status_raw),
             actor_provenance=(
                 str(payload["actor_provenance"]) if payload.get("actor_provenance") is not None else None
             ),
@@ -1675,77 +1679,225 @@ class ParticipantBehaviorHistoryEvent:
         }
 
     def __post_init__(self) -> None:
+        self._validate_common_fields()
+        self._validate_event_type_fields()
+
+    def _validate_common_fields(self) -> None:
         if not isinstance(self.event_type, ParticipantBehaviorHistoryEventType):
             raise TypeError("event_type must be a ParticipantBehaviorHistoryEventType")
-        if not isinstance(self.timestamp, str) or not self.timestamp:
-            raise TypeError("timestamp must be a non-empty string")
-        if not isinstance(self.participant_address, str) or not self.participant_address:
-            raise TypeError("participant_address must be a non-empty string")
-        if not isinstance(self.episode_id, str) or not self.episode_id:
-            raise TypeError("episode_id must be a non-empty string")
-        if not isinstance(self.action_instance_id, str) or not self.action_instance_id:
-            raise TypeError("action_instance_id must be a non-empty string")
-        if self.action_contract_address is not None:
-            if not isinstance(self.action_contract_address, str) or not self.action_contract_address.startswith(
-                "participant.action-contract."
-            ):
-                raise ValueError("action_contract_address must be a compiled participant action contract address")
-        if self.observation_boundary_address is not None:
-            if not isinstance(
-                self.observation_boundary_address, str
-            ) or not self.observation_boundary_address.startswith("participant.observation-boundary."):
-                raise ValueError(
-                    "observation_boundary_address must be a compiled participant observation boundary address"
-                )
+        self._validate_required_string(self.timestamp, "participant behavior timestamp must be a non-empty string")
+        self._validate_required_string(
+            self.participant_address,
+            "participant behavior participant_address must be a non-empty string",
+        )
+        self._validate_required_string(self.episode_id, "participant behavior episode_id must be a non-empty string")
+        self._validate_required_string(self.action_instance_id, "action_instance_id must be a non-empty string")
+        self._validate_optional_address(
+            self.action_contract_address,
+            prefix=_PARTICIPANT_ACTION_CONTRACT_PREFIX,
+            message="action_contract_address must be a compiled participant action contract address",
+        )
+        self._validate_optional_address(
+            self.observation_boundary_address,
+            prefix=_PARTICIPANT_OBSERVATION_BOUNDARY_PREFIX,
+            message="observation_boundary_address must be a compiled participant observation boundary address",
+        )
         if self.observation_status is not None and not isinstance(
             self.observation_status,
             ParticipantObservationStatus,
         ):
             raise TypeError("observation_status must be a ParticipantObservationStatus or None")
-        if self.actor_provenance is not None and (
-            not isinstance(self.actor_provenance, str) or not self.actor_provenance
-        ):
-            raise TypeError("actor_provenance must be a non-empty string or None")
-        if self.state_transition_kind is not None and (
-            not isinstance(self.state_transition_kind, str) or not self.state_transition_kind
-        ):
-            raise TypeError("state_transition_kind must be a non-empty string or None")
-        if self.post_state_digest is not None and (
-            not isinstance(self.post_state_digest, str) or not self.post_state_digest
-        ):
-            raise TypeError("post_state_digest must be a non-empty string or None")
+        self._validate_optional_string(self.actor_provenance, "actor_provenance must be a non-empty string or None")
+        self._validate_optional_string(
+            self.state_transition_kind,
+            "state_transition_kind must be a non-empty string or None",
+        )
+        self._validate_optional_string(self.post_state_digest, "post_state_digest must be a non-empty string or None")
         if not isinstance(self.details, dict):
-            raise TypeError("details must be a dict")
+            raise TypeError("participant behavior details must be a dict")
 
-        if self.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED:
-            if self.action_contract_address is None:
-                raise ValueError("action_attempted events require action_contract_address")
-            if self.actor_provenance is None:
-                raise ValueError("action_attempted events require actor_provenance")
-            if self.observation_boundary_address is not None or self.observation_status is not None:
-                raise ValueError("action_attempted events may not report observation fields")
-            if self.state_transition_kind is not None or self.post_state_digest is not None:
-                raise ValueError("action_attempted events may not report state-transition fields")
-        elif self.event_type == ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED:
-            if self.action_contract_address is None:
-                raise ValueError("state_transition_recorded events require action_contract_address")
-            if self.state_transition_kind is None:
-                raise ValueError("state_transition_recorded events require state_transition_kind")
-            if self.post_state_digest is None:
-                raise ValueError("state_transition_recorded events require post_state_digest")
-            if self.observation_boundary_address is not None or self.observation_status is not None:
-                raise ValueError("state_transition_recorded events may not report observation fields")
-        elif self.event_type == ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
-            if self.action_contract_address is None:
-                raise ValueError("observation_emitted events require action_contract_address")
-            if self.observation_boundary_address is None:
-                raise ValueError("observation_emitted events require observation_boundary_address")
-            if self.observation_status is None:
-                raise ValueError("observation_emitted events require observation_status")
-            if self.observation_status == ParticipantObservationStatus.TERMINAL and self.post_state_digest is None:
-                raise ValueError("terminal observation_emitted events require post_state_digest")
-            if self.state_transition_kind is not None:
-                raise ValueError("observation_emitted events may not report state_transition_kind")
+    @staticmethod
+    def _validate_required_string(value: Any, message: str) -> None:
+        if not isinstance(value, str) or not value:
+            raise TypeError(message)
+
+    @staticmethod
+    def _validate_optional_string(value: Any, message: str) -> None:
+        if value is not None and (not isinstance(value, str) or not value):
+            raise TypeError(message)
+
+    @staticmethod
+    def _validate_optional_address(value: str | None, *, prefix: str, message: str) -> None:
+        if value is not None and (not isinstance(value, str) or not value.startswith(prefix)):
+            raise ValueError(message)
+
+    def _validate_event_type_fields(self) -> None:
+        validators = {
+            ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED: self._validate_action_attempted_fields,
+            ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED: self._validate_state_transition_fields,
+            ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED: self._validate_observation_emitted_fields,
+        }
+        validators[self.event_type]()
+
+    def _validate_action_attempted_fields(self) -> None:
+        if self.action_contract_address is None:
+            raise ValueError("action_attempted events require action_contract_address")
+        if self.actor_provenance is None:
+            raise ValueError("action_attempted events require actor_provenance")
+        if self.observation_boundary_address is not None or self.observation_status is not None:
+            raise ValueError("action_attempted events may not report observation fields")
+        if self.state_transition_kind is not None or self.post_state_digest is not None:
+            raise ValueError("action_attempted events may not report state-transition fields")
+
+    def _validate_state_transition_fields(self) -> None:
+        if self.action_contract_address is None:
+            raise ValueError("state_transition_recorded events require action_contract_address")
+        if self.state_transition_kind is None:
+            raise ValueError("state_transition_recorded events require state_transition_kind")
+        if self.post_state_digest is None:
+            raise ValueError("state_transition_recorded events require post_state_digest")
+        if self.observation_boundary_address is not None or self.observation_status is not None:
+            raise ValueError("state_transition_recorded events may not report observation fields")
+
+    def _validate_observation_emitted_fields(self) -> None:
+        if self.action_contract_address is None:
+            raise ValueError("observation_emitted events require action_contract_address")
+        if self.observation_boundary_address is None:
+            raise ValueError("observation_emitted events require observation_boundary_address")
+        if self.observation_status is None:
+            raise ValueError("observation_emitted events require observation_status")
+        if self.observation_status == ParticipantObservationStatus.TERMINAL and self.post_state_digest is None:
+            raise ValueError("terminal observation_emitted events require post_state_digest")
+        if self.state_transition_kind is not None:
+            raise ValueError("observation_emitted events may not report state_transition_kind")
+
+
+_PARTICIPANT_TERMINAL_OBSERVATION_STATUSES = frozenset(
+    {
+        ParticipantObservationStatus.TERMINAL,
+        ParticipantObservationStatus.ORPHANED_ACTION,
+    }
+)
+
+
+def _participant_behavior_address_violations(
+    event: ParticipantBehaviorHistoryEvent,
+    *,
+    locator: str,
+    action_contract_addresses: set[str] | frozenset[str] | None,
+    observation_boundary_addresses: set[str] | frozenset[str] | None,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    if action_contract_addresses is not None and event.action_contract_address not in action_contract_addresses:
+        violations.append(
+            (
+                locator,
+                (
+                    "participant behavior event references unknown action_contract_address "
+                    f"{event.action_contract_address!r}"
+                ),
+            )
+        )
+    if (
+        observation_boundary_addresses is not None
+        and event.observation_boundary_address is not None
+        and event.observation_boundary_address not in observation_boundary_addresses
+    ):
+        violations.append(
+            (
+                locator,
+                (
+                    "participant behavior event references unknown observation_boundary_address "
+                    f"{event.observation_boundary_address!r}"
+                ),
+            )
+        )
+    return violations
+
+
+def _normalize_participant_behavior_events(
+    participant_behavior_history: list[Any],
+    *,
+    action_contract_addresses: set[str] | frozenset[str] | None,
+    observation_boundary_addresses: set[str] | frozenset[str] | None,
+) -> tuple[list[ParticipantBehaviorHistoryEvent], list[tuple[str, str]]]:
+    normalized_events: list[ParticipantBehaviorHistoryEvent] = []
+    violations: list[tuple[str, str]] = []
+    for index, event in enumerate(participant_behavior_history):
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        if not isinstance(event, Mapping):
+            violations.append((locator, "participant behavior history event must be a mapping"))
+            continue
+        try:
+            normalized = ParticipantBehaviorHistoryEvent.from_payload(event)
+        except (TypeError, ValueError) as exc:
+            violations.append((locator, f"participant behavior history event is invalid: {exc}"))
+            continue
+        violations.extend(
+            _participant_behavior_address_violations(
+                normalized,
+                locator=locator,
+                action_contract_addresses=action_contract_addresses,
+                observation_boundary_addresses=observation_boundary_addresses,
+            )
+        )
+        normalized_events.append(normalized)
+    return normalized_events, violations
+
+
+def _participant_behavior_events_by_action_instance(
+    events: list[ParticipantBehaviorHistoryEvent],
+) -> dict[str, list[ParticipantBehaviorHistoryEvent]]:
+    events_by_action_instance: dict[str, list[ParticipantBehaviorHistoryEvent]] = {}
+    for event in events:
+        events_by_action_instance.setdefault(event.action_instance_id, []).append(event)
+    return events_by_action_instance
+
+
+def _participant_behavior_action_instance_violation(
+    action_instance_id: str,
+    events: list[ParticipantBehaviorHistoryEvent],
+) -> tuple[str, str] | None:
+    attempts = [event for event in events if event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED]
+    observations = [
+        event
+        for event in events
+        if event.event_type == ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED
+        and event.observation_status in _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES
+    ]
+    transitions = [
+        event for event in events if event.event_type == ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED
+    ]
+
+    if len(attempts) > 1:
+        return (action_instance_id, "participant action instance may only have one action_attempted event")
+    if len(attempts) == 0:
+        return (action_instance_id, "participant behavior events require a matching action_attempted event")
+    if len(observations) != 1:
+        return (
+            action_instance_id,
+            "participant action instance requires exactly one terminal observation or orphaned-action observation",
+        )
+    observation = observations[0]
+    if observation.observation_status == ParticipantObservationStatus.ORPHANED_ACTION:
+        return None
+    if len(transitions) != 1:
+        return (action_instance_id, "participant action instance requires exactly one state transition")
+    if observation.post_state_digest != transitions[0].post_state_digest:
+        return (
+            action_instance_id,
+            "terminal observation post_state_digest must match the state transition post_state_digest",
+        )
+    return None
+
+
+def _participant_behavior_action_instance_violations(
+    events: list[ParticipantBehaviorHistoryEvent],
+) -> Iterator[tuple[str, str]]:
+    for action_instance_id, grouped_events in _participant_behavior_events_by_action_instance(events).items():
+        violation = _participant_behavior_action_instance_violation(action_instance_id, grouped_events)
+        if violation is not None:
+            yield violation
 
 
 def iter_participant_behavior_history_violations(
@@ -1761,103 +1913,20 @@ def iter_participant_behavior_history_violations(
     sets are provided, it also rejects references outside those sets.
     """
 
-    history_key = "runtime.snapshot.participant-behavior-history"
     if not isinstance(participant_behavior_history, list):
-        yield (history_key, "participant behavior history must be a list of events")
+        yield (_PARTICIPANT_BEHAVIOR_HISTORY_KEY, "participant behavior history must be a list of events")
         return
 
-    normalized_events: list[ParticipantBehaviorHistoryEvent] = []
-    per_entry_violations = False
-    for index, event in enumerate(participant_behavior_history):
-        locator = f"{history_key}[{index}]"
-        if not isinstance(event, Mapping):
-            yield (locator, "participant behavior history event must be a mapping")
-            per_entry_violations = True
-            continue
-        try:
-            normalized = ParticipantBehaviorHistoryEvent.from_payload(event)
-        except (TypeError, ValueError) as exc:
-            yield (locator, f"participant behavior history event is invalid: {exc}")
-            per_entry_violations = True
-            continue
-        if (
-            action_contract_addresses is not None
-            and normalized.action_contract_address not in action_contract_addresses
-        ):
-            yield (
-                locator,
-                (
-                    "participant behavior event references unknown action_contract_address "
-                    f"{normalized.action_contract_address!r}"
-                ),
-            )
-            per_entry_violations = True
-        if (
-            observation_boundary_addresses is not None
-            and normalized.observation_boundary_address is not None
-            and normalized.observation_boundary_address not in observation_boundary_addresses
-        ):
-            yield (
-                locator,
-                (
-                    "participant behavior event references unknown observation_boundary_address "
-                    f"{normalized.observation_boundary_address!r}"
-                ),
-            )
-            per_entry_violations = True
-        normalized_events.append(normalized)
-
-    if per_entry_violations:
+    normalized_events, entry_violations = _normalize_participant_behavior_events(
+        participant_behavior_history,
+        action_contract_addresses=action_contract_addresses,
+        observation_boundary_addresses=observation_boundary_addresses,
+    )
+    if entry_violations:
+        yield from entry_violations
         return
 
-    events_by_action_instance: dict[str, list[ParticipantBehaviorHistoryEvent]] = {}
-    for event in normalized_events:
-        events_by_action_instance.setdefault(event.action_instance_id, []).append(event)
-
-    for action_instance_id, events in events_by_action_instance.items():
-        attempts = [
-            event for event in events if event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED
-        ]
-        observations = [
-            event
-            for event in events
-            if event.event_type == ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED
-            and event.observation_status
-            in {
-                ParticipantObservationStatus.TERMINAL,
-                ParticipantObservationStatus.ORPHANED_ACTION,
-            }
-        ]
-        transitions = [
-            event
-            for event in events
-            if event.event_type == ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED
-        ]
-
-        if len(attempts) > 1:
-            yield (action_instance_id, "participant action instance may only have one action_attempted event")
-            continue
-        if len(attempts) == 0:
-            yield (action_instance_id, "participant behavior events require a matching action_attempted event")
-            continue
-        if len(observations) != 1:
-            yield (
-                action_instance_id,
-                "participant action instance requires exactly one terminal observation or orphaned-action observation",
-            )
-            continue
-        observation = observations[0]
-        if observation.observation_status == ParticipantObservationStatus.ORPHANED_ACTION:
-            continue
-        if len(transitions) != 1:
-            yield (action_instance_id, "participant action instance requires exactly one state transition")
-            continue
-        transition = transitions[0]
-        if observation.post_state_digest != transition.post_state_digest:
-            yield (
-                action_instance_id,
-                "terminal observation post_state_digest must match the state transition post_state_digest",
-            )
+    yield from _participant_behavior_action_instance_violations(normalized_events)
 
 
 def iter_participant_episode_snapshot_violations(

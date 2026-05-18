@@ -37,6 +37,71 @@ class ParticipantBehaviorAnalysis:
         return bool(self.issues)
 
 
+def _action_references_for_agent(
+    *,
+    participant_name: str,
+    action_names: list[object],
+    action_contracts: Mapping[str, object],
+    is_unresolved: Callable[[object], bool],
+) -> tuple[list[ParticipantBehaviorReference], list[ParticipantBehaviorIssue]]:
+    references: list[ParticipantBehaviorReference] = []
+    issues: list[ParticipantBehaviorIssue] = []
+    for action_name in action_names:
+        if is_unresolved(action_name):
+            continue
+        if action_contracts and action_name not in action_contracts:
+            issues.append(
+                ParticipantBehaviorIssue(
+                    code="participant.action-contract-unbound",
+                    participant_name=participant_name,
+                    ref=str(action_name),
+                )
+            )
+            continue
+        if action_name in action_contracts:
+            references.append(
+                ParticipantBehaviorReference(
+                    participant_name=participant_name,
+                    reference_kind="action_contract",
+                    raw=str(action_name),
+                    canonical_name=str(action_name),
+                )
+            )
+    return references, issues
+
+
+def _observation_boundary_references_for_agent(
+    *,
+    participant_name: str,
+    boundary_names: list[object],
+    observation_boundaries: Mapping[str, object],
+    is_unresolved: Callable[[object], bool],
+) -> tuple[list[ParticipantBehaviorReference], list[ParticipantBehaviorIssue]]:
+    references: list[ParticipantBehaviorReference] = []
+    issues: list[ParticipantBehaviorIssue] = []
+    for boundary_name in boundary_names:
+        if is_unresolved(boundary_name):
+            continue
+        if boundary_name not in observation_boundaries:
+            issues.append(
+                ParticipantBehaviorIssue(
+                    code="participant.observation-boundary-unbound",
+                    participant_name=participant_name,
+                    ref=str(boundary_name),
+                )
+            )
+            continue
+        references.append(
+            ParticipantBehaviorReference(
+                participant_name=participant_name,
+                reference_kind="observation_boundary",
+                raw=str(boundary_name),
+                canonical_name=str(boundary_name),
+            )
+        )
+    return references, issues
+
+
 def analyze_participant_behavior(
     *,
     agents_by_name: Mapping[str, object],
@@ -57,47 +122,21 @@ def analyze_participant_behavior(
     issues: list[ParticipantBehaviorIssue] = []
 
     for participant_name, agent in agents_by_name.items():
-        for action_name in getattr(agent, "actions", []) or []:
-            if is_unresolved(action_name):
-                continue
-            if action_contracts and action_name not in action_contracts:
-                issues.append(
-                    ParticipantBehaviorIssue(
-                        code="participant.action-contract-unbound",
-                        participant_name=participant_name,
-                        ref=action_name,
-                    )
-                )
-                continue
-            if action_name in action_contracts:
-                references.append(
-                    ParticipantBehaviorReference(
-                        participant_name=participant_name,
-                        reference_kind="action_contract",
-                        raw=action_name,
-                        canonical_name=action_name,
-                    )
-                )
-
-        for boundary_name in getattr(agent, "observation_boundaries", []) or []:
-            if is_unresolved(boundary_name):
-                continue
-            if boundary_name not in observation_boundaries:
-                issues.append(
-                    ParticipantBehaviorIssue(
-                        code="participant.observation-boundary-unbound",
-                        participant_name=participant_name,
-                        ref=boundary_name,
-                    )
-                )
-                continue
-            references.append(
-                ParticipantBehaviorReference(
-                    participant_name=participant_name,
-                    reference_kind="observation_boundary",
-                    raw=boundary_name,
-                    canonical_name=boundary_name,
-                )
-            )
+        action_references, action_issues = _action_references_for_agent(
+            participant_name=participant_name,
+            action_names=list(getattr(agent, "actions", []) or []),
+            action_contracts=action_contracts,
+            is_unresolved=is_unresolved,
+        )
+        boundary_references, boundary_issues = _observation_boundary_references_for_agent(
+            participant_name=participant_name,
+            boundary_names=list(getattr(agent, "observation_boundaries", []) or []),
+            observation_boundaries=observation_boundaries,
+            is_unresolved=is_unresolved,
+        )
+        references.extend(action_references)
+        references.extend(boundary_references)
+        issues.extend(action_issues)
+        issues.extend(boundary_issues)
 
     return ParticipantBehaviorAnalysis(references=tuple(references), issues=tuple(issues))
