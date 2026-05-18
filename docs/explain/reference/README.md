@@ -17,3 +17,5 @@ themselves normative specifications or ADRs.
   - Architecture guardrails for `SEM-206` assessment semantics work
 - [objective-semantics.md](objective-semantics.md)
   - Implementer-facing reference for `SEM-207` declarative-objective semantics
+- [explicitness-realization-semantics.md](explicitness-realization-semantics.md)
+  - Architecture guardrails for `SEM-218` explicitness and realization work
