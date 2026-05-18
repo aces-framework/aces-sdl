@@ -16,7 +16,7 @@ from ._errors import SDLValidationError
 from .entities import flatten_entities
 from .infrastructure import SimpleProperties
 from .nodes import MAX_NODE_NAME_LENGTH, NodeType
-from .orchestration import WorkflowPredicate, WorkflowStep, WorkflowStepType
+from .orchestration import Workflow, WorkflowPredicate, WorkflowStep, WorkflowStepType
 from .scenario import Scenario
 from .semantics.assessment import AssessmentIssue, analyze_assessment_pipeline
 from .semantics.objective_semantics import (
@@ -955,6 +955,50 @@ class SemanticValidator:
         available_memo[step_name] = set(result)
         return result
 
+    def _verify_step_terminator_and_compensation(
+        self,
+        *,
+        workflow_name: str,
+        step_name: str,
+        step: WorkflowStep,
+        workflow: Workflow,
+        graph: dict[str, list[str]],
+        workflow_compensation_graph: dict[str, set[str]],
+        compensation_target_workflows: set[str],
+        workflows_with_compensation_steps: set[str],
+    ) -> None:
+        """Shared validation for `on-success`/`on-failure` and `compensate_with`.
+
+        OBJECTIVE and CALL workflow steps both carry the same terminator and
+        compensation-handling shape, so this method centralizes the
+        appended-edge bookkeeping and undefined-workflow error reporting
+        for both call sites.
+        """
+        for field_name, target in (
+            ("on-success", step.on_success),
+            ("on-failure", step.on_failure),
+        ):
+            resolved = self._validate_workflow_target_ref(
+                workflow_name,
+                step_name,
+                field_name,
+                target,
+                workflow.steps,
+            )
+            if resolved is not None:
+                graph[step_name].append(resolved)
+        if step.compensate_with:
+            workflows_with_compensation_steps.add(workflow_name)
+            if not self._is_unresolved_var(step.compensate_with) and step.compensate_with not in self._s.workflows:
+                self._err(
+                    f"Workflow '{workflow_name}' step '{step_name}' "
+                    "references undefined compensation workflow "
+                    f"'{step.compensate_with}'"
+                )
+            elif not self._is_unresolved_var(step.compensate_with):
+                workflow_compensation_graph.setdefault(workflow_name, set()).add(step.compensate_with)
+                compensation_target_workflows.add(step.compensate_with)
+
     def _verify_workflows(self) -> None:
         workflow_call_graph: dict[str, set[str]] = {workflow_name: set() for workflow_name in self._s.workflows}
         workflow_compensation_graph: dict[str, set[str]] = {workflow_name: set() for workflow_name in self._s.workflows}
@@ -982,33 +1026,16 @@ class SemanticValidator:
                             f"Workflow '{workflow_name}' step '{step_name}' "
                             f"references undefined objective '{step.objective}'"
                         )
-                    for field_name, target in (
-                        ("on-success", step.on_success),
-                        ("on-failure", step.on_failure),
-                    ):
-                        resolved = self._validate_workflow_target_ref(
-                            workflow_name,
-                            step_name,
-                            field_name,
-                            target,
-                            workflow.steps,
-                        )
-                        if resolved is not None:
-                            graph[step_name].append(resolved)
-                    if step.compensate_with:
-                        workflows_with_compensation_steps.add(workflow_name)
-                        if (
-                            not self._is_unresolved_var(step.compensate_with)
-                            and step.compensate_with not in self._s.workflows
-                        ):
-                            self._err(
-                                f"Workflow '{workflow_name}' step '{step_name}' "
-                                "references undefined compensation workflow "
-                                f"'{step.compensate_with}'"
-                            )
-                        elif not self._is_unresolved_var(step.compensate_with):
-                            workflow_compensation_graph.setdefault(workflow_name, set()).add(step.compensate_with)
-                            compensation_target_workflows.add(step.compensate_with)
+                    self._verify_step_terminator_and_compensation(
+                        workflow_name=workflow_name,
+                        step_name=step_name,
+                        step=step,
+                        workflow=workflow,
+                        graph=graph,
+                        workflow_compensation_graph=workflow_compensation_graph,
+                        compensation_target_workflows=compensation_target_workflows,
+                        workflows_with_compensation_steps=workflows_with_compensation_steps,
+                    )
 
                 elif step.type == WorkflowStepType.DECISION:
                     predicate_step_refs[step_name] = self._validate_workflow_predicate(
@@ -1132,33 +1159,16 @@ class SemanticValidator:
                         )
                     elif not self._is_unresolved_var(step.workflow):
                         workflow_call_graph.setdefault(workflow_name, set()).add(step.workflow)
-                    for field_name, target in (
-                        ("on-success", step.on_success),
-                        ("on-failure", step.on_failure),
-                    ):
-                        resolved = self._validate_workflow_target_ref(
-                            workflow_name,
-                            step_name,
-                            field_name,
-                            target,
-                            workflow.steps,
-                        )
-                        if resolved is not None:
-                            graph[step_name].append(resolved)
-                    if step.compensate_with:
-                        workflows_with_compensation_steps.add(workflow_name)
-                        if (
-                            not self._is_unresolved_var(step.compensate_with)
-                            and step.compensate_with not in self._s.workflows
-                        ):
-                            self._err(
-                                f"Workflow '{workflow_name}' step '{step_name}' "
-                                "references undefined compensation workflow "
-                                f"'{step.compensate_with}'"
-                            )
-                        elif not self._is_unresolved_var(step.compensate_with):
-                            workflow_compensation_graph.setdefault(workflow_name, set()).add(step.compensate_with)
-                            compensation_target_workflows.add(step.compensate_with)
+                    self._verify_step_terminator_and_compensation(
+                        workflow_name=workflow_name,
+                        step_name=step_name,
+                        step=step,
+                        workflow=workflow,
+                        graph=graph,
+                        workflow_compensation_graph=workflow_compensation_graph,
+                        compensation_target_workflows=compensation_target_workflows,
+                        workflows_with_compensation_steps=workflows_with_compensation_steps,
+                    )
 
                 elif step.type == WorkflowStepType.END:
                     graph[step_name] = []

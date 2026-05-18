@@ -16,7 +16,11 @@ from typing import Any
 from .entities import flatten_entities
 from .scenario import ModuleDescriptor, Scenario
 
-_HASHMAP_SECTIONS = (
+# Canonical list of scenario top-level sections that hold user-defined
+# hashmap keys. Re-exported as both the public ``HASHMAP_SECTIONS`` name
+# (consumed by ``composition.py``) and the private ``_HASHMAP_SECTIONS``
+# alias used within this module.
+HASHMAP_SECTIONS = (
     "nodes",
     "infrastructure",
     "features",
@@ -38,6 +42,7 @@ _HASHMAP_SECTIONS = (
     "objectives",
     "workflows",
 )
+_HASHMAP_SECTIONS = HASHMAP_SECTIONS
 
 
 def _prefix(namespace: str, name: str) -> str:
@@ -181,4 +186,4 @@ def symbol_index(
     }
 
 
-__all__ = ["explicit_exports", "symbol_index"]
+__all__ = ["HASHMAP_SECTIONS", "explicit_exports", "symbol_index"]

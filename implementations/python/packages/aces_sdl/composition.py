@@ -18,6 +18,9 @@ from ._module_provenance import (
     rename_variable_ref,
 )
 from ._module_symbols import (
+    HASHMAP_SECTIONS as _HASHMAP_SECTIONS,
+)
+from ._module_symbols import (
     symbol_index as _symbol_index,
 )
 from .entities import flatten_entities
@@ -29,29 +32,6 @@ from .module_registry import (
 )
 from .parser import _load_normalized_data
 from .scenario import ImportDecl, ModuleDescriptor, Scenario
-
-_HASHMAP_SECTIONS = (
-    "nodes",
-    "infrastructure",
-    "features",
-    "conditions",
-    "vulnerabilities",
-    "metrics",
-    "evaluations",
-    "tlos",
-    "goals",
-    "entities",
-    "injects",
-    "events",
-    "scripts",
-    "stories",
-    "content",
-    "accounts",
-    "relationships",
-    "agents",
-    "objectives",
-    "workflows",
-)
 
 
 def _prefix(namespace: str, name: str) -> str:
