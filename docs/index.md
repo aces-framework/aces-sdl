@@ -47,6 +47,7 @@ explain/sdl/sections
 explain/sdl/parser
 explain/sdl/validation
 explain/sdl/precedents
+explain/sdl/lineage
 explain/sdl/complex-scenarios
 explain/sdl/limitations
 explain/sdl/testing
@@ -81,6 +82,12 @@ decisions/adrs/adr-013-participant-episode-lifecycle-boundaries
 decisions/adrs/adr-014-nox-as-canonical-verification-graph
 decisions/adrs/adr-015-sdl-processor-layering-and-source-file-size-cap
 decisions/adrs/adr-016-semantic-layer-scope-and-coverage-model
+decisions/adrs/adr-017-conversation-surface-hardening
+decisions/adrs/adr-018-classification-based-assurance-policy
+decisions/adrs/adr-019-normative-authority-boundary-manifest
+decisions/adrs/adr-020-declarative-participant-framing-boundaries
+decisions/adrs/adr-021-falsification-first-claim-evidence-gate
+decisions/adrs/adr-022-participant-behavior-and-interaction-semantics
 ```
 
 ```{toctree}

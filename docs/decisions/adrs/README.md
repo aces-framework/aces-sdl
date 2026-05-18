@@ -46,3 +46,5 @@ Each ADR includes:
 | [018](adr-018-classification-based-assurance-policy.md) | Canonical Mapping for the Classification-Based Assurance Policy | accepted | 2026-05-17 |
 | [019](adr-019-normative-authority-boundary-manifest.md) | Canonical Manifest for the Normative Artifact Authority Boundary | accepted | 2026-05-17 |
 | [020](adr-020-declarative-participant-framing-boundaries.md) | Declarative Participant Framing Boundaries | proposed | 2026-05-18 |
+| [021](adr-021-falsification-first-claim-evidence-gate.md) | Falsification-First Claim Evidence Gate | proposed | 2026-05-18 |
+| [022](adr-022-participant-behavior-and-interaction-semantics.md) | Participant Behavior and Interaction Semantics | proposed | 2026-05-18 |
