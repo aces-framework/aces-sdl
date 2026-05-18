@@ -37,16 +37,26 @@ infrastructure:
         s = parse_sdl(sdl)
         assert "vm-1" in s.nodes
 
-    def test_integer_keys_preserved(self):
-        """YAML can have integer keys (e.g., in step numbers)."""
+    def test_integer_keys_in_user_defined_mapping_are_rejected(self):
+        # YAML lets authors write a bare ``1:`` as a key, which yaml.safe_load
+        # parses as an integer. User-defined hashmap keys (node names, role
+        # names, etc.) bypass the field-key normalization pass so the
+        # integer survives until Pydantic. Closed-world ``SDLModel`` rejects
+        # non-string keys; this test pins that contract so a future loosening
+        # of the dict-key types (or a silent coerce-to-string) surfaces as a
+        # test failure rather than a downstream cross-reference bug.
         sdl = """
 name: test
 nodes:
-  sw:
-    type: switch
+  vm:
+    type: vm
+    resources: {ram: 1 gib, cpu: 1}
+    roles:
+      1: admin
 """
-        s = parse_sdl(sdl)
-        assert s.name == "test"
+        with pytest.raises(SDLParseError) as excinfo:
+            parse_sdl(sdl)
+        assert "string" in str(excinfo.value).lower() or "type=string_type" in str(excinfo.value)
 
     def test_non_string_top_level_keys_are_rejected_cleanly(self):
         with pytest.raises(SDLParseError, match="top-level mapping keys must be strings"):
@@ -703,6 +713,175 @@ imports:
         assert "shared.health" in scenario.conditions
         assert "shared.validate" in scenario.objectives
         assert "shared.response" in scenario.workflows
+
+    def test_parse_sdl_file_namespaces_named_qualified_refs(self, tmp_path: Path):
+        # Composition must rewrite section-qualified named refs
+        # (e.g. ``nodes.vm``, ``content.docs.items.playbook``) the same way
+        # it rewrites bare names; the named-ref index added in #70 covers
+        # both forms. The pre-existing relationship and objective rewrite
+        # paths benefit from this fix too. Without it, importing a module
+        # whose author uses a qualified ref leaves the ref pointing at a
+        # nonexistent (or accidentally root-scoped) element after
+        # namespacing.
+        imported = tmp_path / "common.yaml"
+        imported.write_text(
+            """
+name: common
+version: 1.2.0
+nodes:
+  vm:
+    type: vm
+    os: linux
+    resources: {ram: 1 gib, cpu: 1}
+    services:
+      - name: ssh
+        port: 22
+    roles:
+      ops:
+        username: operator
+  net:
+    type: switch
+infrastructure:
+  net:
+    count: 1
+    properties:
+      cidr: 10.0.0.0/24
+      gateway: 10.0.0.1
+  vm:
+    count: 1
+    links: [net]
+entities:
+  blue:
+    role: blue
+conditions:
+  health:
+    command: /bin/true
+    interval: 15
+content:
+  docs:
+    type: dataset
+    target: vm
+    items:
+      - name: playbook
+relationships:
+  blue-controls-vm:
+    type: manages
+    source: entities.blue
+    target: nodes.vm
+agents:
+  blue-agent:
+    entity: blue
+    starting_conditions: [conditions.health, health]
+    authority_anchors: [entities.blue, content.docs.items.playbook]
+    allowed_subnets: [net]
+    operating_scope: [nodes.vm, infrastructure.net, nodes.vm.services.ssh]
+""",
+            encoding="utf-8",
+        )
+        root = tmp_path / "root.yaml"
+        root.write_text(
+            """
+name: root
+imports:
+  - path: common.yaml
+    namespace: shared
+    version: 1.2.0
+""",
+            encoding="utf-8",
+        )
+
+        scenario = parse_sdl_file(root)
+
+        agent = scenario.agents["shared.blue-agent"]
+        # ADR-020 §6 accepts both bare (`health`) and qualified
+        # (`conditions.health`) references in starting_conditions; both
+        # must survive composition with the namespace baked in.
+        assert agent.starting_conditions == ["conditions.shared.health", "shared.health"]
+        assert agent.authority_anchors == ["entities.shared.blue", "content.shared.docs.items.playbook"]
+        assert agent.operating_scope == [
+            "nodes.shared.vm",
+            "infrastructure.shared.net",
+            "nodes.shared.vm.services.ssh",
+        ]
+        rel = scenario.relationships["shared.blue-controls-vm"]
+        assert rel.source == "entities.shared.blue"
+        assert rel.target == "nodes.shared.vm"
+
+    def test_parse_sdl_file_namespaces_agent_participant_framing_fields(self, tmp_path: Path):
+        # ACT-601 / ADR-020: Agent.starting_conditions, .authority_anchors, and
+        # .operating_scope are semantic references and must be rewritten by the
+        # module composition pass when their imported targets are namespaced;
+        # otherwise an `agent.starting_conditions: [health]` from a root
+        # scenario silently breaks (or, worse, accidentally binds to a same-
+        # named root element) once the imported `conditions: health` becomes
+        # `shared.health`.
+        imported = tmp_path / "common.yaml"
+        imported.write_text(
+            """
+name: common
+version: 1.2.0
+nodes:
+  vm:
+    type: vm
+    os: linux
+    resources: {ram: 1 gib, cpu: 1}
+    roles:
+      ops:
+        username: operator
+  net:
+    type: switch
+infrastructure:
+  net:
+    count: 1
+    properties:
+      cidr: 10.0.0.0/24
+      gateway: 10.0.0.1
+  vm:
+    count: 1
+    links: [net]
+entities:
+  blue:
+    role: blue
+conditions:
+  health:
+    command: /bin/true
+    interval: 15
+relationships:
+  blue-controls-vm:
+    type: manages
+    source: blue
+    target: vm
+agents:
+  blue-agent:
+    entity: blue
+    starting_conditions: [health]
+    authority_anchors: [blue, blue-controls-vm]
+    allowed_subnets: [net]
+    operating_scope: [vm, net]
+""",
+            encoding="utf-8",
+        )
+        root = tmp_path / "root.yaml"
+        root.write_text(
+            """
+name: root
+imports:
+  - path: common.yaml
+    namespace: shared
+    version: 1.2.0
+""",
+            encoding="utf-8",
+        )
+
+        scenario = parse_sdl_file(root)
+
+        agent = scenario.agents["shared.blue-agent"]
+        assert agent.starting_conditions == ["shared.health"]
+        assert agent.authority_anchors == ["shared.blue", "shared.blue-controls-vm"]
+        assert agent.operating_scope == ["shared.vm", "shared.net"]
+        # Semantic validation has already run as part of parse_sdl_file; if the
+        # rewrite path were missing, validator would have raised on the
+        # now-bare names that no longer exist after namespacing.
 
     def test_parse_sdl_file_rejects_version_mismatch(self, tmp_path: Path):
         imported = tmp_path / "common.yaml"

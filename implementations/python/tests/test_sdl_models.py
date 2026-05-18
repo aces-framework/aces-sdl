@@ -1054,6 +1054,45 @@ class TestAgent:
         with pytest.raises(ValidationError, match="Agent requires 'entity'"):
             Agent(actions=["Scan"])
 
+    def test_default_framing_lists_are_empty(self):
+        a = Agent(entity="red-team")
+        assert a.starting_conditions == []
+        assert a.authority_anchors == []
+        assert a.operating_scope == []
+
+    def test_starting_conditions_field(self):
+        a = Agent(entity="red-team", starting_conditions=["beacon-online", "vpn-up"])
+        assert a.starting_conditions == ["beacon-online", "vpn-up"]
+
+    def test_authority_anchors_field(self):
+        a = Agent(
+            entity="red-team",
+            authority_anchors=["red-team", "trusts-blue-domain"],
+        )
+        assert a.authority_anchors == ["red-team", "trusts-blue-domain"]
+
+    def test_operating_scope_field(self):
+        a = Agent(
+            entity="red-team",
+            operating_scope=["corp-net", "dmz-net"],
+        )
+        assert a.operating_scope == ["corp-net", "dmz-net"]
+
+    def test_framing_fields_accept_variable_placeholders(self):
+        a = Agent(
+            entity="red-team",
+            starting_conditions=["${beacon_condition}"],
+            authority_anchors=["${authority_ref}"],
+            operating_scope=["${scope_ref}"],
+        )
+        assert a.starting_conditions == ["${beacon_condition}"]
+        assert a.authority_anchors == ["${authority_ref}"]
+        assert a.operating_scope == ["${scope_ref}"]
+
+    def test_unknown_field_rejected(self):
+        with pytest.raises(ValidationError):
+            Agent(entity="red-team", unknown_field=["x"])
+
 
 class TestVariable:
     def test_string_variable(self):

@@ -17,6 +17,9 @@ from ._module_provenance import (
 from ._module_provenance import (
     rename_variable_ref,
 )
+from ._module_symbols import (
+    symbol_index as _symbol_index,
+)
 from .entities import flatten_entities
 from .instantiate import instantiate_scenario
 from .module_registry import (
@@ -63,76 +66,6 @@ def _maybe_rename(name: str, name_map: Mapping[str, str]) -> str:
     if not name or is_variable_ref(name):
         return name
     return name_map.get(name, name)
-
-
-def _explicit_exports(
-    scenario: Scenario,
-    descriptor: ModuleDescriptor,
-) -> dict[str, set[str]]:
-    if scenario.module is None:
-        return {
-            section: set(getattr(scenario, section).keys())
-            for section in _HASHMAP_SECTIONS
-            if getattr(scenario, section)
-        } | {"entities": set(flatten_entities(scenario.entities))}
-    return {section: set(names) for section, names in descriptor.exports.items()} | {
-        "entities": set(descriptor.exports.get("entities", []))
-    }
-
-
-def _symbol_index(
-    scenario: Scenario,
-    *,
-    namespace: str,
-    descriptor: ModuleDescriptor,
-) -> dict[str, dict[str, str] | set[str]]:
-    entities = set(flatten_entities(scenario.entities))
-    exported = _explicit_exports(scenario, descriptor)
-    named: dict[str, str] = {}
-    section_maps: dict[str, dict[str, str]] = {}
-    for section_name in _HASHMAP_SECTIONS:
-        section = getattr(scenario, section_name, {})
-        if isinstance(section, Mapping):
-            section_map = {
-                name: (
-                    _prefix(namespace, name)
-                    if name in exported.get(section_name, set())
-                    else _private_prefix(namespace, name)
-                )
-                for name in section
-            }
-            section_maps[section_name] = section_map
-            named.update(section_map)
-    entity_map = {
-        name: (
-            _prefix(namespace, name) if name in exported.get("entities", set()) else _private_prefix(namespace, name)
-        )
-        for name in entities
-    }
-    named.update(entity_map)
-    return {
-        "nodes": section_maps.get("nodes", {}),
-        "infrastructure": section_maps.get("infrastructure", {}),
-        "features": section_maps.get("features", {}),
-        "conditions": section_maps.get("conditions", {}),
-        "vulnerabilities": section_maps.get("vulnerabilities", {}),
-        "metrics": section_maps.get("metrics", {}),
-        "evaluations": section_maps.get("evaluations", {}),
-        "tlos": section_maps.get("tlos", {}),
-        "goals": section_maps.get("goals", {}),
-        "entities": entity_map,
-        "injects": section_maps.get("injects", {}),
-        "events": section_maps.get("events", {}),
-        "scripts": section_maps.get("scripts", {}),
-        "stories": section_maps.get("stories", {}),
-        "content": section_maps.get("content", {}),
-        "accounts": section_maps.get("accounts", {}),
-        "relationships": section_maps.get("relationships", {}),
-        "agents": section_maps.get("agents", {}),
-        "objectives": section_maps.get("objectives", {}),
-        "workflows": section_maps.get("workflows", {}),
-        "named": named,
-    }
 
 
 def _validate_descriptor_exports(
@@ -320,6 +253,19 @@ def _namespace_payload(
                 ]
             agent["allowed_subnets"] = [
                 _maybe_rename(name, symbols["infrastructure"]) for name in agent.get("allowed_subnets", [])
+            ]
+            # ADR-020 §6 accepts bare or section-qualified condition refs.
+            # symbols["named"] carries both forms after the symbol-index
+            # update, so a single rename handles `health` and
+            # `conditions.health` symmetrically.
+            agent["starting_conditions"] = [
+                _maybe_rename(name, symbols["named"]) for name in agent.get("starting_conditions", [])
+            ]
+            agent["authority_anchors"] = [
+                _maybe_rename(name, symbols["named"]) for name in agent.get("authority_anchors", [])
+            ]
+            agent["operating_scope"] = [
+                _maybe_rename(name, symbols["named"]) for name in agent.get("operating_scope", [])
             ]
     for objective in namespaced.get("objectives", {}).values():
         if not isinstance(objective, dict):

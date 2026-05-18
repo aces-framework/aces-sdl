@@ -394,30 +394,63 @@ Bare refs like `webapp` are valid when they are unambiguous. Any top-level secti
 
 ## Agents
 
-Autonomous scenario participants. Adapted from CybORG CAGE Challenge.
+Autonomous scenario participants. Adapted from CybORG CAGE Challenge. This
+section is also the SDL-authoring surface for declarative participant framing
+(ACT-601, ADR-020) — it covers all five framing facets the language
+guarantees: identity, role, starting conditions, authority anchors, and
+operating scope.
 
 ```yaml
 agents:
   red-agent:
-    entity: red-team                    # references entities section
+    entity: red-team                    # identity + role (via entities.role)
     actions: [Scan, Exploit, Escalate]
     starting_accounts: [phished-user]   # references accounts section
+    starting_conditions: [beacon-online]  # references conditions section
     initial_knowledge:
       hosts: [user0]                    # known at scenario start
       subnets: [user-net]
       services: [ssh]                   # references nodes.*.services[].name
       accounts: [helpdesk-user]         # references accounts section
+    authority_anchors:                  # declared bases for what the participant
+      - red-team                        # may or is expected to do in scenario
+      - red-controls-vm                 # meaning (entities, relationships, ...)
     allowed_subnets: [user-net, corp-net]
+    operating_scope:                    # broader targetable scope beyond subnets
+      - corp-net
+      - user-net
     reward_calculator: HybridImpactPwn
 ```
 
-`entity` is required and must resolve to the `entities` section. `initial_knowledge.hosts` references VM node names, `subnets` references switch-backed infrastructure names, `services` references service names declared in `nodes.*.services`, and `accounts` references entries in the `accounts` section. `allowed_subnets` follows the same switch-backed infrastructure rule.
+`entity` is required and must resolve to the `entities` section; the
+participant's authored identity and role both come from this binding (per
+ADR-020). `initial_knowledge.hosts` references VM node names, `subnets`
+references switch-backed infrastructure names, `services` references service
+names declared in `nodes.*.services`, and `accounts` references entries in the
+`accounts` section. `allowed_subnets` follows the same switch-backed
+infrastructure rule.
 
-This current section is intentionally narrower than the full participant
-architecture now recognized by the ecosystem requirements. Today it primarily
-captures declarative participant framing: who the participant is aligned with,
-what coarse actions it is associated with, and what initial knowledge/scope it
-starts with.
+`starting_conditions` lists names from the `conditions` section, giving the
+authoring surface a declarative hook for participant-relevant precondition
+checks without embedding executable setup commands. `authority_anchors`
+references any declared scenario element (entities, relationships, content,
+nodes, …) that anchors what the participant is allowed or expected to do in
+scenario meaning — these are SDL-level anchors, not control-plane
+authentication or bearer-token identity. `operating_scope` references
+targetable named scenario elements (subnets, hosts, services, content) that
+define the boundary of where the participant may act or observe; it
+generalises `allowed_subnets`, which remains restricted to switch-backed
+infrastructure.
+
+Each of `starting_conditions`, `authority_anchors`, and `operating_scope`
+accepts `${var}` placeholders that resolve through the declared `variables`
+section. Symbol-defining keys (agent names) remain stable identifiers and
+must not be variables.
+
+This section captures the authoring-layer guarantees of ACT-601. Broader
+participant concerns — behavior semantics, visibility, trajectories,
+budgets, verifier/reward — remain owned by separate ecosystem requirements
+(ACT-602, SEM-208, …) that are still planned.
 
 Broader participant concerns are now treated as first-class ecosystem surfaces,
 even where the current SDL syntax does not yet expose their full shape. Those

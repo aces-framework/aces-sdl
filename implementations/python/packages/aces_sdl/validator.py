@@ -260,6 +260,85 @@ class SemanticValidator:
                 filtered[alias] = keep
         return filtered
 
+    def _operating_scope_ref_index(self) -> dict[str, set[str]]:
+        """Build the alias map for ACT-601 ``Agent.operating_scope``.
+
+        ADR-020 §2 defines operating scope as the declarative boundary for
+        where the participant may act or observe — concretely subnets,
+        hosts, services, and content (and content items). The split here
+        mirrors the pre-existing scope-validation patterns:
+
+        - hosts come from ``nodes.*`` but only VM nodes (matches
+          ``initial_knowledge.hosts``).
+        - subnets come from ``infrastructure.*`` but only switch-backed
+          entries (matches ``allowed_subnets``).
+        - services come from declared services on VM nodes.
+        - content references stay open across content sections and items.
+
+        Non-spatial, non-resource elements (conditions, metrics, accounts,
+        relationships, objectives, …) are not scope boundaries even though
+        they appear in the generic targetable index.
+        """
+        index: dict[str, set[str]] = defaultdict(set)
+
+        # Hosts: VM nodes only. Both bare (`vm`) and qualified (`nodes.vm`)
+        # aliases are accepted. Switch nodes go through the subnets path,
+        # never the host path.
+        for node_name, node in self._s.nodes.items():
+            if node.type != NodeType.VM:
+                continue
+            canonical = f"nodes.{node_name}"
+            index[node_name].add(canonical)
+            index[canonical].add(canonical)
+
+        # Subnets: switch-backed infrastructure only. Both bare and
+        # qualified aliases. VM-backed infrastructure entries (which
+        # mirror VM nodes' names) go through the host path's `nodes.*`
+        # alias, not here.
+        for infra_name, _infra in self._s.infrastructure.items():
+            if not self._is_switch_node(infra_name):
+                continue
+            canonical = f"infrastructure.{infra_name}"
+            index[infra_name].add(canonical)
+            index[canonical].add(canonical)
+
+        # Services: qualified `nodes.<vm>.services.<svc>` refs plus bare
+        # service names. The service-ref helper only emits names declared
+        # on VM nodes (a service on a switch is meaningless), so no extra
+        # filtering is needed here.
+        for ref in self._qualified_service_refs():
+            index[ref].add(ref)
+            tail = ref.rsplit(".", 1)[-1]
+            if tail:
+                index[tail].add(ref)
+
+        # Content: sections and items keep the unrestricted aliasing from
+        # the targetable index; ADR-020 does not split content by sub-type.
+        for content_name in self._s.content:
+            canonical = f"content.{content_name}"
+            index[content_name].add(canonical)
+            index[canonical].add(canonical)
+        for content_name, content in self._s.content.items():
+            for item in content.items:
+                if not item.name:
+                    continue
+                canonical = f"content.{content_name}.items.{item.name}"
+                index[item.name].add(canonical)
+                index[canonical].add(canonical)
+
+        return {alias: set(candidates) for alias, candidates in index.items()}
+
+    def _validate_operating_scope_ref(self, ref: str, *, owner_label: str) -> None:
+        """Validate ``operating_scope`` against the spatial/resource index."""
+        index = self._operating_scope_ref_index()
+        candidates = index.get(ref)
+        if not candidates:
+            self._err(f"{owner_label} operating_scope '{ref}' does not reference any defined targetable element")
+            return
+        if len(candidates) > 1:
+            choices = ", ".join(sorted(candidates))
+            self._err(f"{owner_label} operating_scope '{ref}' is ambiguous; use one of: {choices}")
+
     def _validate_named_ref(
         self,
         ref: str,
@@ -530,6 +609,29 @@ class SemanticValidator:
                         continue
                     if acct_name not in self._s.accounts:
                         self._err(f"Agent '{name}' initial_knowledge account '{acct_name}' not in accounts section")
+            for cond_name in agent.starting_conditions:
+                if self._is_unresolved_var(cond_name):
+                    continue
+                # ADR-020 §6 publishes starting_conditions as accepting bare
+                # (`health`) or section-qualified (`conditions.health`)
+                # references. Strip the `conditions.` prefix when present so
+                # both forms resolve against the same dict.
+                bare_name = cond_name.removeprefix("conditions.")
+                if bare_name not in self._s.conditions:
+                    self._err(f"Agent '{name}' starting_condition '{cond_name}' not in conditions section")
+            for anchor in agent.authority_anchors:
+                if self._is_unresolved_var(anchor):
+                    continue
+                self._validate_named_ref(
+                    anchor,
+                    owner_label=f"Agent '{name}'",
+                    ref_label="authority_anchor",
+                    targetable=False,
+                )
+            for scope in agent.operating_scope:
+                if self._is_unresolved_var(scope):
+                    continue
+                self._validate_operating_scope_ref(scope, owner_label=f"Agent '{name}'")
 
     def _verify_objectives(self) -> None:
         # Declarative-objective semantics — actor binding, target resolution,
