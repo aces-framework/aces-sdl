@@ -2100,13 +2100,19 @@ def _participant_behavior_transition_anchor_violation(
     action_attempts: Mapping[str, int],
     state_transitions: Mapping[str, int],
     observations: Mapping[tuple[str, str | None], int],
+    episode_close_resolved: bool,
 ) -> tuple[str, str] | None:
     event_type = str(transition.get("history_event_type", ""))
     action_instance_id = transition.get("action_instance_id")
     transition_id = str(transition.get("transition_id", ""))
     locator = f"{boundary_address}.view_transitions.{transition_id}"
     if event_type == "episode_close":
-        return None
+        if episode_close_resolved:
+            return None
+        return (
+            locator,
+            "visibility transition anchor does not resolve to a terminal participant episode history event",
+        )
     if not isinstance(action_instance_id, str) or not action_instance_id:
         return (locator, "visibility transition anchors require action_instance_id")
     event_indexes = {
@@ -2126,8 +2132,13 @@ def _participant_behavior_transition_anchor_violations(
     events: list[ParticipantBehaviorHistoryEvent],
     *,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
+    participant_episode_history: Any = None,
 ) -> Iterator[tuple[str, str]]:
     action_attempts, state_transitions, observations = _participant_behavior_history_anchor_indexes(events)
+    episode_close_resolved = _participant_behavior_episode_close_resolved(
+        events,
+        participant_episode_history=participant_episode_history,
+    )
     for boundary_address, boundary in observation_boundaries.items():
         for transition in boundary.view_transitions:
             violation = _participant_behavior_transition_anchor_violation(
@@ -2136,9 +2147,38 @@ def _participant_behavior_transition_anchor_violations(
                 action_attempts=action_attempts,
                 state_transitions=state_transitions,
                 observations=observations,
+                episode_close_resolved=episode_close_resolved,
             )
             if violation is not None:
                 yield violation
+
+
+def _participant_behavior_episode_close_resolved(
+    events: list[ParticipantBehaviorHistoryEvent],
+    *,
+    participant_episode_history: Any,
+) -> bool:
+    if not isinstance(participant_episode_history, list):
+        return False
+    participant_addresses = {event.participant_address for event in events}
+    episode_ids = {event.episode_id for event in events}
+    if not participant_addresses or not episode_ids:
+        return False
+    closed_episode_ids: set[str] = set()
+    for event in participant_episode_history:
+        if not isinstance(event, Mapping):
+            continue
+        try:
+            normalized = ParticipantEpisodeHistoryEvent.from_payload(event)
+        except (TypeError, ValueError):
+            continue
+        if normalized.participant_address not in participant_addresses:
+            continue
+        if normalized.episode_id not in episode_ids:
+            continue
+        if normalized.event_type in _PARTICIPANT_EPISODE_TERMINAL_EVENTS:
+            closed_episode_ids.add(normalized.episode_id)
+    return episode_ids <= closed_episode_ids
 
 
 def _participant_behavior_observation_effective_order(
@@ -2372,6 +2412,7 @@ def iter_participant_behavior_history_violations(
     action_contract_addresses: set[str] | frozenset[str] | None,
     observation_boundary_addresses: set[str] | frozenset[str] | None,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime] | None = None,
+    participant_episode_history: Any = None,
 ) -> Iterator[tuple[str, str]]:
     """Yield every SEM-208 behavior-history invariant violation.
 
@@ -2404,6 +2445,7 @@ def iter_participant_behavior_history_violations(
         yield from _participant_behavior_transition_anchor_violations(
             normalized_events,
             observation_boundaries=observation_boundaries,
+            participant_episode_history=participant_episode_history,
         )
         yield from _participant_behavior_observation_visibility_violations(
             normalized_events,

@@ -20,6 +20,7 @@ from aces_sdl.participant_behavior import ParticipantInteractionClass
 T0 = "2026-05-18T18:30:00Z"
 T1 = "2026-05-18T18:30:05Z"
 T2 = "2026-05-18T18:30:10Z"
+T3 = "2026-05-18T18:30:15Z"
 PARTICIPANT_ADDRESS = "participant.behavior.red-agent"
 ACTION_ADDRESS = "participant.action-contract.scan"
 OBSERVATION_ADDRESS = "participant.observation-boundary.red-view"
@@ -73,6 +74,35 @@ def _complete_behavior_history_payloads(
         post_state_digest=POST_STATE_DIGEST,
     )
     return [action.to_payload(), transition.to_payload(), observation.to_payload()]
+
+
+def _completed_episode_history_payloads(
+    *,
+    participant_address: str = PARTICIPANT_ADDRESS,
+    episode_id: str = "episode-1",
+) -> list[dict[str, object]]:
+    return [
+        {
+            "event_type": "episode_initialized",
+            "timestamp": T0,
+            "participant_address": participant_address,
+            "episode_id": episode_id,
+            "sequence_number": 0,
+            "terminal_reason": None,
+            "control_action": "initialize",
+            "details": {},
+        },
+        {
+            "event_type": "episode_completed",
+            "timestamp": T3,
+            "participant_address": participant_address,
+            "episode_id": episode_id,
+            "sequence_number": 0,
+            "terminal_reason": "completed",
+            "control_action": None,
+            "details": {},
+        },
+    ]
 
 
 def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -> str:
@@ -1043,6 +1073,7 @@ def test_behavior_history_rejects_observation_details_that_expose_hidden_truth()
             action_contract_addresses={ACTION_ADDRESS},
             observation_boundary_addresses={OBSERVATION_ADDRESS},
             observation_boundaries=model.observation_boundaries,
+            participant_episode_history=_completed_episode_history_payloads(),
         )
     )
 
@@ -1089,6 +1120,7 @@ def test_behavior_history_rejects_future_episode_close_disclosure_in_observation
             action_contract_addresses={ACTION_ADDRESS},
             observation_boundary_addresses={OBSERVATION_ADDRESS},
             observation_boundaries=model.observation_boundaries,
+            participant_episode_history=_completed_episode_history_payloads(),
         )
     )
 
@@ -1099,6 +1131,48 @@ def test_behavior_history_rejects_future_episode_close_disclosure_in_observation
                 "observation visible_refs may only contain participant-visible refs at effective_order 30: "
                 "'content.private-answer-key' has disposition 'hidden'"
             ),
+        )
+    ]
+
+
+def test_behavior_history_rejects_unresolved_episode_close_transition_anchor():
+    scenario = _scenario_yaml().replace(
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: terminal observation latency",
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: terminal observation latency\n"
+        "      - transition-id: disclose-answer-key\n"
+        "        transition-kind: disclosure\n"
+        "        information-ref: content.private-answer-key\n"
+        "        trigger: episode close adjudication\n"
+        "        effective-from: episode-close\n"
+        "        effective-order: 100\n"
+        "        history-event-type: episode_close\n"
+        "        from-disposition: hidden\n"
+        "        to-disposition: disclosed\n"
+        "        disclosure-rule: reveal answer key after episode close\n"
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: post-run adjudication latency",
+    )
+    model = compile_runtime_model(parse_sdl(scenario))
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            _complete_behavior_history_payloads(ACTION_INSTANCE),
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+            observation_boundaries=model.observation_boundaries,
+            participant_episode_history=[],
+        )
+    )
+
+    assert violations == [
+        (
+            "participant.observation-boundary.red-view.view_transitions.disclose-answer-key",
+            "visibility transition anchor does not resolve to a terminal participant episode history event",
         )
     ]
 

@@ -675,10 +675,13 @@ Implemented transition discipline:
   discovery, inference, disclosure, concealment, and deception are read from
   those snapshots rather than from lifetime aggregate fields;
 - runtime participant observation details that declare visible, disclosed, or
-  evidence refs are checked against the compiled `V_p,t` snapshot at their
-  `effective_order`, so future disclosure cannot justify earlier visibility;
+  evidence refs are checked against the compiled `V_p,t` snapshot derived from
+  behavior-history anchors at or before the observation event, so future
+  disclosure cannot justify earlier visibility;
 - conformance diagnostics reject transition anchors that do not resolve to the
-  corresponding participant behavior-history event.
+  corresponding participant behavior-history event; `episode_close` transitions
+  resolve against terminal participant-episode history and do not authorize
+  in-episode observation payloads.
 
 Current implementation artifacts for the `SEM-210` slice:
 
@@ -706,6 +709,12 @@ Current implementation artifacts for the `SEM-210` slice:
   evidence-only rule, cannot be inferred or disclosed through static metadata,
   and cannot be justified by a transition whose temporal order or runtime
   anchor is invalid.
+
+This implementation slice enforces the reference-level visibility relation for
+observation detail refs. The complete observation payload apparatus (`payload`,
+capture basis, loss, redaction, latency, observer effects, and evidence-capture
+adequacy) remains owned by the downstream observation/evidence requirements
+listed in ADR-022 rather than being silently claimed by `SEM-210`.
 
 ## SEM-211 - Preconditions, Effects, And Failure Semantics
 

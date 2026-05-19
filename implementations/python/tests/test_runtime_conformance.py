@@ -393,6 +393,148 @@ def test_runtime_snapshot_behavior_history_validates_joint_action_order_across_p
     )
 
 
+def test_runtime_snapshot_behavior_visibility_validation_is_participant_local():
+    action_address = "participant.action-contract.scan"
+    red_boundary = "participant.observation-boundary.red-view"
+    blue_boundary = "participant.observation-boundary.blue-view"
+    red_participant = "participant.behavior.red-agent"
+    blue_participant = "participant.behavior.blue-agent"
+
+    def _snapshot_entry(address: str, resource_type: str, payload: dict[str, object]) -> dict[str, object]:
+        return {
+            "address": address,
+            "domain": "participant",
+            "resource_type": resource_type,
+            "payload": payload,
+            "ordering_dependencies": [],
+            "refresh_dependencies": [],
+            "status": "ready",
+        }
+
+    def _boundary_payload(transition_id: str, action_instance_id: str) -> dict[str, object]:
+        return {
+            "name": transition_id,
+            "boundary_name": transition_id,
+            "projection_basis": "participant-local projection",
+            "hidden_refs": ["nodes.web"],
+            "observable_refs": [],
+            "evidence_refs": ["evidence.scan-output"],
+            "disclosed_refs": [],
+            "evidence_only_refs": [],
+            "discovered_refs": [],
+            "inferred_refs": [],
+            "concealed_refs": [],
+            "deceptive_refs": [],
+            "view_transitions": [
+                {
+                    "transition_id": transition_id,
+                    "history_event_type": "observation_emitted",
+                    "action_instance_id": action_instance_id,
+                    "effective_order": 10,
+                }
+            ],
+            "view_relation_timeline": [
+                {
+                    "transition_id": "initial",
+                    "effective_order": -1,
+                    "view_relation": {"nodes.web": "hidden"},
+                },
+                {
+                    "transition_id": transition_id,
+                    "effective_order": 10,
+                    "view_relation": {"nodes.web": "discovered"},
+                },
+            ],
+            "realized_view_disclosure": "terminal scan result only",
+            "spec": {},
+        }
+
+    def _participant_payload(boundary_address: str) -> dict[str, object]:
+        return {
+            "participant_name": "agent",
+            "entity_name": "team",
+            "action_contract_addresses": [action_address],
+            "observation_boundary_addresses": [boundary_address],
+            "interpretation_mode": "role-neutral-projection",
+            "spec": {},
+        }
+
+    def _behavior_history(
+        participant_address: str,
+        action_instance_id: str,
+        boundary_address: str,
+    ) -> list[dict[str, object]]:
+        return [
+            {
+                "event_type": "action_attempted",
+                "timestamp": "2026-05-18T18:30:00Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "actor_provenance": participant_address,
+                "details": {},
+            },
+            {
+                "event_type": "state_transition_recorded",
+                "timestamp": "2026-05-18T18:30:01Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "state_transition_kind": "knowledge-expanded",
+                "post_state_digest": f"sha256:{action_instance_id}",
+                "details": {},
+            },
+            {
+                "event_type": "observation_emitted",
+                "timestamp": "2026-05-18T18:30:02Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "observation_boundary_address": boundary_address,
+                "observation_status": "terminal",
+                "post_state_digest": f"sha256:{action_instance_id}",
+                "details": {"visible_refs": ["nodes.web"]},
+            },
+        ]
+
+    snapshot_payload = {
+        "schema_version": "runtime-snapshot/v1",
+        "entries": {
+            action_address: _snapshot_entry(action_address, "participant-action-contract", {}),
+            red_boundary: _snapshot_entry(
+                red_boundary, "participant-observation-boundary", _boundary_payload("red-discover", "red-scan")
+            ),
+            blue_boundary: _snapshot_entry(
+                blue_boundary, "participant-observation-boundary", _boundary_payload("blue-discover", "blue-scan")
+            ),
+            red_participant: _snapshot_entry(
+                red_participant, "participant-behavior", _participant_payload(red_boundary)
+            ),
+            blue_participant: _snapshot_entry(
+                blue_participant, "participant-behavior", _participant_payload(blue_boundary)
+            ),
+        },
+        "orchestration_results": {},
+        "orchestration_history": {},
+        "evaluation_results": {},
+        "evaluation_history": {},
+        "participant_episode_results": {},
+        "participant_episode_history": {},
+        "participant_behavior_history": {
+            red_participant: _behavior_history(red_participant, "red-scan", red_boundary),
+            blue_participant: _behavior_history(blue_participant, "blue-scan", blue_boundary),
+        },
+        "metadata": {},
+    }
+
+    diagnostics = _semantic_diagnostics("runtime-snapshot-v1", snapshot_payload)
+
+    assert diagnostics == []
+
+
 def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_requirements():
     reference_manifest = create_stub_manifest()
     manifest = BackendManifest(
