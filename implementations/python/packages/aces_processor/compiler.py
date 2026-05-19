@@ -85,6 +85,88 @@ def _dedupe_by_value(items: list[Any]) -> tuple[Any, ...]:
     return tuple(item for _, item in sorted(ordered.items()))
 
 
+def _transition_refs(
+    view_transitions: list[Any],
+    *,
+    transition_kinds: set[str],
+) -> tuple[str, ...]:
+    return _dedupe(
+        [
+            str(transition.get("information_ref", ""))
+            for transition in view_transitions
+            if isinstance(transition, dict)
+            and transition.get("information_ref")
+            and transition.get("transition_kind") in transition_kinds
+        ]
+    )
+
+
+def _first_transition_from_dispositions(view_transitions: list[Any]) -> dict[str, str]:
+    first_from_dispositions: dict[str, str] = {}
+    for transition in view_transitions:
+        if not isinstance(transition, dict):
+            continue
+        information_ref = transition.get("information_ref")
+        from_disposition = transition.get("from_disposition")
+        if information_ref and from_disposition and str(information_ref) not in first_from_dispositions:
+            first_from_dispositions[str(information_ref)] = str(from_disposition)
+    return first_from_dispositions
+
+
+def _initial_view_relation(
+    *,
+    view_rules: list[Any],
+    first_from_dispositions: dict[str, str],
+) -> dict[str, str]:
+    view_relation: dict[str, str] = {}
+    for rule in view_rules:
+        if not isinstance(rule, dict):
+            continue
+        information_ref = rule.get("information_ref")
+        disposition = rule.get("disposition")
+        if not information_ref or not disposition:
+            continue
+        ref = str(information_ref)
+        view_relation[ref] = first_from_dispositions.get(ref, str(disposition))
+    return view_relation
+
+
+def _compile_view_relation_timeline(
+    *,
+    view_rules: list[Any],
+    view_transitions: list[Any],
+) -> tuple[dict[str, Any], ...]:
+    view_relation = _initial_view_relation(
+        view_rules=view_rules,
+        first_from_dispositions=_first_transition_from_dispositions(view_transitions),
+    )
+    timeline: list[dict[str, Any]] = [
+        {
+            "transition_id": "initial",
+            "effective_from": "initial",
+            "view_relation": dict(sorted(view_relation.items())),
+        }
+    ]
+    for transition in view_transitions:
+        if not isinstance(transition, dict):
+            continue
+        information_ref = transition.get("information_ref")
+        to_disposition = transition.get("to_disposition")
+        if not information_ref or not to_disposition:
+            continue
+        view_relation[str(information_ref)] = str(to_disposition)
+        timeline.append(
+            {
+                "transition_id": str(transition.get("transition_id") or ""),
+                "transition_kind": str(transition.get("transition_kind") or ""),
+                "information_ref": str(information_ref),
+                "effective_from": str(transition.get("effective_from") or ""),
+                "view_relation": dict(sorted(view_relation.items())),
+            }
+        )
+    return tuple(timeline)
+
+
 def _template_address(kind: str, name: str) -> str:
     return _address("template", kind, name)
 
@@ -885,11 +967,50 @@ def _compile_observation_boundaries(scenario: InstantiatedScenario) -> dict[str,
     observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = {}
     for name, boundary in scenario.observation_boundaries.items():
         boundary_spec = _dump(boundary)
+        view_rules = boundary_spec.get("view_rules", [])
+        view_transitions = boundary_spec.get("view_transitions", [])
+        rule_disclosed_refs = [
+            str(rule.get("information_ref", ""))
+            for rule in view_rules
+            if isinstance(rule, dict)
+            and rule.get("information_ref")
+            and rule.get("disposition") == "disclosed"
+            and rule.get("disclosure_rule")
+        ]
+        transition_disclosed_refs = _transition_refs(view_transitions, transition_kinds={"disclosure"})
+        disclosed_refs = _dedupe([*rule_disclosed_refs, *transition_disclosed_refs])
+        evidence_only_refs = _dedupe(
+            [
+                str(rule.get("information_ref", ""))
+                for rule in view_rules
+                if isinstance(rule, dict) and rule.get("information_ref") and rule.get("disposition") == "evidence_only"
+            ]
+        )
+        discovered_refs = _transition_refs(view_transitions, transition_kinds={"discovery"})
+        inferred_refs = _transition_refs(view_transitions, transition_kinds={"inference"})
+        concealed_refs = _transition_refs(view_transitions, transition_kinds={"concealment", "revocation"})
+        deceptive_refs = _transition_refs(view_transitions, transition_kinds={"deception"})
+        view_relation_timeline = _compile_view_relation_timeline(
+            view_rules=view_rules,
+            view_transitions=view_transitions,
+        )
         observation_boundaries[_observation_boundary_address(name)] = ParticipantObservationBoundaryRuntime(
             address=_observation_boundary_address(name),
             name=name,
             boundary_name=name,
             projection_basis=str(boundary_spec.get("projection_basis", "")),
+            hidden_refs=tuple(str(ref) for ref in boundary_spec.get("hidden_refs", [])),
+            observable_refs=tuple(str(ref) for ref in boundary_spec.get("observable_refs", [])),
+            evidence_refs=tuple(str(ref) for ref in boundary_spec.get("evidence_refs", [])),
+            disclosed_refs=disclosed_refs,
+            evidence_only_refs=evidence_only_refs,
+            discovered_refs=discovered_refs,
+            inferred_refs=inferred_refs,
+            concealed_refs=concealed_refs,
+            deceptive_refs=deceptive_refs,
+            view_transitions=tuple(dict(transition) for transition in view_transitions if isinstance(transition, dict)),
+            view_relation_timeline=view_relation_timeline,
+            realized_view_disclosure=str(boundary_spec.get("realized_view_disclosure") or ""),
             spec=boundary_spec,
         )
     return observation_boundaries

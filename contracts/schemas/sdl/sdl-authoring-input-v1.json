@@ -1591,6 +1591,27 @@
       "title": "ParticipantActionLifecycle",
       "type": "string"
     },
+    "ParticipantInformationBoundaryClass": {
+      "description": "SEM-210 classes for participant information-boundary objects.",
+      "enum": [
+        "observable_resource",
+        "telemetry_stream",
+        "tool_output",
+        "instruction",
+        "public_task_statement",
+        "starter_file",
+        "scaffold_instruction",
+        "subtask_guidance",
+        "hidden_truth",
+        "private_answer_key",
+        "canary",
+        "holdout_variant",
+        "adjudication_material",
+        "archival_evidence"
+      ],
+      "title": "ParticipantInformationBoundaryClass",
+      "type": "string"
+    },
     "ParticipantInteractionClass": {
       "description": "SEM-209 interaction classes for multi-participant behavior.",
       "enum": [
@@ -1680,9 +1701,35 @@
           "title": "Projection Basis",
           "type": "string"
         },
+        "realized_view_disclosure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realized View Disclosure"
+        },
         "redaction_policy": {
           "title": "Redaction Policy",
           "type": "string"
+        },
+        "view_rules": {
+          "items": {
+            "$ref": "#/$defs/ParticipantViewRule"
+          },
+          "title": "View Rules",
+          "type": "array"
+        },
+        "view_transitions": {
+          "items": {
+            "$ref": "#/$defs/ParticipantViewTransition"
+          },
+          "title": "View Transitions",
+          "type": "array"
         }
       },
       "required": [
@@ -1692,6 +1739,233 @@
       ],
       "title": "ParticipantObservationBoundary",
       "type": "object"
+    },
+    "ParticipantViewDisposition": {
+      "description": "SEM-210 visibility disposition for one information object.",
+      "enum": [
+        "observable",
+        "hidden",
+        "evidence_only",
+        "discovered",
+        "inferred",
+        "disclosed",
+        "concealed",
+        "deceptive"
+      ],
+      "title": "ParticipantViewDisposition",
+      "type": "string"
+    },
+    "ParticipantViewRule": {
+      "additionalProperties": false,
+      "description": "Visibility rule for one participant information-boundary object.",
+      "properties": {
+        "boundary_class": {
+          "$ref": "#/$defs/ParticipantInformationBoundaryClass"
+        },
+        "certainty": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certainty"
+        },
+        "disclosure_rule": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disclosure Rule"
+        },
+        "disposition": {
+          "$ref": "#/$defs/ParticipantViewDisposition"
+        },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "information_ref": {
+          "title": "Information Ref",
+          "type": "string"
+        },
+        "latency_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Profile"
+        },
+        "realized_backend_disclosure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realized Backend Disclosure"
+        },
+        "visibility_basis": {
+          "title": "Visibility Basis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "information_ref",
+        "boundary_class",
+        "disposition",
+        "visibility_basis"
+      ],
+      "title": "ParticipantViewRule",
+      "type": "object"
+    },
+    "ParticipantViewTransition": {
+      "additionalProperties": false,
+      "description": "Time-indexed SEM-210 transition over a participant view relation.",
+      "properties": {
+        "certainty": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certainty"
+        },
+        "disclosure_rule": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disclosure Rule"
+        },
+        "effective_from": {
+          "title": "Effective From",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "from_disposition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParticipantViewDisposition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "information_ref": {
+          "title": "Information Ref",
+          "type": "string"
+        },
+        "latency_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Profile"
+        },
+        "realized_backend_disclosure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realized Backend Disclosure"
+        },
+        "to_disposition": {
+          "$ref": "#/$defs/ParticipantViewDisposition"
+        },
+        "transition_id": {
+          "title": "Transition Id",
+          "type": "string"
+        },
+        "transition_kind": {
+          "$ref": "#/$defs/ParticipantViewTransitionKind"
+        },
+        "trigger": {
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "transition_id",
+        "transition_kind",
+        "information_ref",
+        "trigger",
+        "effective_from",
+        "to_disposition"
+      ],
+      "title": "ParticipantViewTransition",
+      "type": "object"
+    },
+    "ParticipantViewTransitionKind": {
+      "description": "SEM-210 state transitions that alter participant visibility over time.",
+      "enum": [
+        "discovery",
+        "inference",
+        "concealment",
+        "disclosure",
+        "revocation",
+        "deception"
+      ],
+      "title": "ParticipantViewTransitionKind",
+      "type": "string"
     },
     "PasswordStrength": {
       "description": "How resistant the account password is to cracking.",

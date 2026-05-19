@@ -129,6 +129,8 @@ ownership:
     - contracts/fixtures
     - CHANGELOG.md
   semantics-expansion:
+    - contracts/schemas/sdl
+    - docs/explain/reference
     - implementations/python/packages/aces_processor
     - implementations/python/packages/aces_sdl
     - implementations/python/tests

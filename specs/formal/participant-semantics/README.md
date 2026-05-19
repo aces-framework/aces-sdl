@@ -671,6 +671,31 @@ Minimum future implementation artifacts:
 - tests proving that hidden truth cannot appear in participant observations
   unless explicitly disclosed.
 
+Current implementation artifacts for the `SEM-210` slice:
+
+- `implementations/python/packages/aces_sdl/participant_behavior.py` defines
+  participant information-boundary classes, view dispositions, explicit view
+  rules, time-indexed view transitions, realized-view disclosure metadata, and
+  observation-boundary hidden, observable, and evidence-only reference
+  separation;
+- `implementations/python/packages/aces_sdl/semantics/participant_behavior.py`
+  and `implementations/python/packages/aces_sdl/validator.py` continue to
+  fail closed on unbound participant observation-boundary references, view-rule
+  references, and view-transition evidence references;
+- `implementations/python/packages/aces_processor/compiler.py` carries hidden,
+  observable, discovered, inferred, concealed, disclosed, deceptive,
+  evidence-only, and realized-view disclosure metadata into compiled
+  participant observation boundaries, including a `view_relation_timeline`
+  snapshot series for `V_p,t`;
+- `implementations/python/packages/aces_processor/models.py` exposes the
+  compiled visibility metadata for runtime planning, snapshots, and
+  conformance consumers;
+- `implementations/python/tests/test_sem_208_participant_behavior.py` covers
+  leakage fixtures proving hidden truth cannot enter participant observations
+  without an explicit disclosure rule, cannot be used as evidence without an
+  evidence-only rule, and cannot be inferred or disclosed through static
+  metadata that lacks a matching time-indexed transition.
+
 ## SEM-211 - Preconditions, Effects, And Failure Semantics
 
 `SEM-211` requires semantics for action applicability, effects, side effects,

@@ -357,6 +357,18 @@ class ParticipantObservationBoundaryRuntime(ResolvedResource):
 
     boundary_name: str = ""
     projection_basis: str = ""
+    hidden_refs: tuple[str, ...] = ()
+    observable_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    disclosed_refs: tuple[str, ...] = ()
+    evidence_only_refs: tuple[str, ...] = ()
+    discovered_refs: tuple[str, ...] = ()
+    inferred_refs: tuple[str, ...] = ()
+    concealed_refs: tuple[str, ...] = ()
+    deceptive_refs: tuple[str, ...] = ()
+    view_transitions: tuple[dict[str, Any], ...] = ()
+    view_relation_timeline: tuple[dict[str, Any], ...] = ()
+    realized_view_disclosure: str = ""
 
 
 @dataclass(frozen=True)
