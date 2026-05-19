@@ -661,15 +661,24 @@ Design commitments:
 - participant-visible artifacts and adjudication/evidence artifacts are
   separated.
 
-Minimum future implementation artifacts:
+Implemented transition discipline:
 
-- view-boundary contract or semantic helper;
-- validation for hidden truth and participant exposure declarations;
-- leakage and holdout fixtures proving private benchmark material cannot cross
-  into participant-visible observations without an explicit disclosure rule;
-- evidence/provenance disclosure fields for realized views;
-- tests proving that hidden truth cannot appear in participant observations
-  unless explicitly disclosed.
+- `view_rules` define the initial view relation `V_p,0`; a transition
+  `from_disposition` must match that current relation and cannot redefine the
+  initial state;
+- every `view_transition` carries an explicit integer `effective_order`, an
+  `effective_from` label, a behavior-history anchor
+  (`history_event_type`, plus `action_instance_id` except for `episode_close`),
+  non-empty `evidence_refs`, `certainty`, and `latency_profile`;
+- compiled participant observation boundaries sort transitions by
+  `effective_order` and publish `view_relation_timeline` snapshots; dynamic
+  discovery, inference, disclosure, concealment, and deception are read from
+  those snapshots rather than from lifetime aggregate fields;
+- runtime participant observation details that declare visible, disclosed, or
+  evidence refs are checked against the compiled `V_p,t` snapshot at their
+  `effective_order`, so future disclosure cannot justify earlier visibility;
+- conformance diagnostics reject transition anchors that do not resolve to the
+  corresponding participant behavior-history event.
 
 Current implementation artifacts for the `SEM-210` slice:
 
@@ -685,16 +694,18 @@ Current implementation artifacts for the `SEM-210` slice:
 - `implementations/python/packages/aces_processor/compiler.py` carries hidden,
   observable, discovered, inferred, concealed, disclosed, deceptive,
   evidence-only, and realized-view disclosure metadata into compiled
-  participant observation boundaries, including a `view_relation_timeline`
-  snapshot series for `V_p,t`;
+  participant observation boundaries, including an ordered
+  `view_relation_timeline` snapshot series for `V_p,t`;
 - `implementations/python/packages/aces_processor/models.py` exposes the
   compiled visibility metadata for runtime planning, snapshots, and
-  conformance consumers;
+  conformance consumers, and validates observation detail refs against the
+  corresponding timeline snapshot;
 - `implementations/python/tests/test_sem_208_participant_behavior.py` covers
   leakage fixtures proving hidden truth cannot enter participant observations
   without an explicit disclosure rule, cannot be used as evidence without an
-  evidence-only rule, and cannot be inferred or disclosed through static
-  metadata that lacks a matching time-indexed transition.
+  evidence-only rule, cannot be inferred or disclosed through static metadata,
+  and cannot be justified by a transition whose temporal order or runtime
+  anchor is invalid.
 
 ## SEM-211 - Preconditions, Effects, And Failure Semantics
 

@@ -47,6 +47,7 @@ from aces_processor.models import (
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
     ParticipantEpisodeTerminalReason,
+    ParticipantObservationBoundaryRuntime,
     RuntimeDomain,
     RuntimeSnapshot,
     RuntimeSnapshotEnvelope,
@@ -454,16 +455,40 @@ def _participant_episode_snapshot_diagnostics(
     ]
 
 
-def _participant_behavior_snapshot_references(snapshot: RuntimeSnapshot) -> tuple[set[str], set[str]]:
+def _participant_behavior_snapshot_references(
+    snapshot: RuntimeSnapshot,
+) -> tuple[set[str], set[str], dict[str, ParticipantObservationBoundaryRuntime]]:
     action_contract_addresses: set[str] = set()
     observation_boundary_addresses: set[str] = set()
+    observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = {}
     for entry_address, entry in snapshot.entries.items():
         for candidate in {entry_address, entry.address}:
             if candidate.startswith("participant.action-contract."):
                 action_contract_addresses.add(candidate)
             elif candidate.startswith("participant.observation-boundary."):
                 observation_boundary_addresses.add(candidate)
-    return action_contract_addresses, observation_boundary_addresses
+                observation_boundaries[candidate] = ParticipantObservationBoundaryRuntime(
+                    address=candidate,
+                    name=str(entry.payload.get("name", "")),
+                    boundary_name=str(entry.payload.get("boundary_name", "")),
+                    projection_basis=str(entry.payload.get("projection_basis", "")),
+                    hidden_refs=tuple(str(ref) for ref in entry.payload.get("hidden_refs", ())),
+                    observable_refs=tuple(str(ref) for ref in entry.payload.get("observable_refs", ())),
+                    evidence_refs=tuple(str(ref) for ref in entry.payload.get("evidence_refs", ())),
+                    disclosed_refs=tuple(str(ref) for ref in entry.payload.get("disclosed_refs", ())),
+                    evidence_only_refs=tuple(str(ref) for ref in entry.payload.get("evidence_only_refs", ())),
+                    discovered_refs=tuple(str(ref) for ref in entry.payload.get("discovered_refs", ())),
+                    inferred_refs=tuple(str(ref) for ref in entry.payload.get("inferred_refs", ())),
+                    concealed_refs=tuple(str(ref) for ref in entry.payload.get("concealed_refs", ())),
+                    deceptive_refs=tuple(str(ref) for ref in entry.payload.get("deceptive_refs", ())),
+                    view_transitions=tuple(dict(item) for item in entry.payload.get("view_transitions", ())),
+                    view_relation_timeline=tuple(
+                        dict(item) for item in entry.payload.get("view_relation_timeline", ())
+                    ),
+                    realized_view_disclosure=str(entry.payload.get("realized_view_disclosure", "")),
+                    spec=dict(entry.payload.get("spec", {})),
+                )
+    return action_contract_addresses, observation_boundary_addresses, observation_boundaries
 
 
 def _participant_behavior_history_diagnostics(
@@ -472,6 +497,7 @@ def _participant_behavior_history_diagnostics(
     *,
     action_contract_addresses: set[str] | None = None,
     observation_boundary_addresses: set[str] | None = None,
+    observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] | None = None,
 ) -> list[Diagnostic]:
     history_key = "runtime.snapshot.participant-behavior-history"
     diagnostics: list[Diagnostic] = []
@@ -479,6 +505,7 @@ def _participant_behavior_history_diagnostics(
         payload,
         action_contract_addresses=action_contract_addresses,
         observation_boundary_addresses=observation_boundary_addresses,
+        observation_boundaries=observation_boundaries,
     ):
         if address.startswith(history_key):
             diagnostic_address = root_address + address.removeprefix(history_key)
@@ -492,7 +519,9 @@ def _participant_behavior_snapshot_diagnostics(
     snapshot: RuntimeSnapshot,
 ) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    action_contract_addresses, observation_boundary_addresses = _participant_behavior_snapshot_references(snapshot)
+    action_contract_addresses, observation_boundary_addresses, observation_boundaries = (
+        _participant_behavior_snapshot_references(snapshot)
+    )
     for participant_address, history in snapshot.participant_behavior_history.items():
         diagnostics.extend(
             _participant_behavior_history_diagnostics(
@@ -500,6 +529,7 @@ def _participant_behavior_snapshot_diagnostics(
                 history,
                 action_contract_addresses=action_contract_addresses,
                 observation_boundary_addresses=observation_boundary_addresses,
+                observation_boundaries=observation_boundaries,
             )
         )
     for address, message in iter_participant_behavior_joint_action_violations(snapshot.participant_behavior_history):

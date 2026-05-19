@@ -1755,6 +1755,17 @@
       "title": "ParticipantViewDisposition",
       "type": "string"
     },
+    "ParticipantViewHistoryEventType": {
+      "description": "Behavior-history event that realizes a SEM-210 visibility transition.",
+      "enum": [
+        "action_attempted",
+        "state_transition_recorded",
+        "observation_emitted",
+        "episode_close"
+      ],
+      "title": "ParticipantViewHistoryEventType",
+      "type": "string"
+    },
     "ParticipantViewRule": {
       "additionalProperties": false,
       "description": "Visibility rule for one participant information-boundary object.",
@@ -1854,7 +1865,7 @@
       "additionalProperties": false,
       "description": "Time-indexed SEM-210 transition over a participant view relation.",
       "properties": {
-        "certainty": {
+        "action_instance_id": {
           "anyOf": [
             {
               "type": "string"
@@ -1864,7 +1875,11 @@
             }
           ],
           "default": null,
-          "title": "Certainty"
+          "title": "Action Instance Id"
+        },
+        "certainty": {
+          "title": "Certainty",
+          "type": "string"
         },
         "disclosure_rule": {
           "anyOf": [
@@ -1882,6 +1897,10 @@
           "title": "Effective From",
           "type": "string"
         },
+        "effective_order": {
+          "title": "Effective Order",
+          "type": "integer"
+        },
         "evidence_refs": {
           "items": {
             "type": "string"
@@ -1890,31 +1909,18 @@
           "type": "array"
         },
         "from_disposition": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ParticipantViewDisposition"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "$ref": "#/$defs/ParticipantViewDisposition"
+        },
+        "history_event_type": {
+          "$ref": "#/$defs/ParticipantViewHistoryEventType"
         },
         "information_ref": {
           "title": "Information Ref",
           "type": "string"
         },
         "latency_profile": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Latency Profile"
+          "title": "Latency Profile",
+          "type": "string"
         },
         "realized_backend_disclosure": {
           "anyOf": [
@@ -1949,7 +1955,12 @@
         "information_ref",
         "trigger",
         "effective_from",
-        "to_disposition"
+        "effective_order",
+        "history_event_type",
+        "from_disposition",
+        "to_disposition",
+        "certainty",
+        "latency_profile"
       ],
       "title": "ParticipantViewTransition",
       "type": "object"

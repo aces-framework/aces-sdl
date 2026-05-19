@@ -80,6 +80,15 @@ class ParticipantViewTransitionKind(str, Enum):
     DECEPTION = "deception"
 
 
+class ParticipantViewHistoryEventType(str, Enum):
+    """Behavior-history event that realizes a SEM-210 visibility transition."""
+
+    ACTION_ATTEMPTED = "action_attempted"
+    STATE_TRANSITION_RECORDED = "state_transition_recorded"
+    OBSERVATION_EMITTED = "observation_emitted"
+    EPISODE_CLOSE = "episode_close"
+
+
 _SENSITIVE_BOUNDARY_CLASSES = frozenset(
     {
         ParticipantInformationBoundaryClass.HIDDEN_TRUTH,
@@ -108,19 +117,6 @@ _VIEW_TRANSITION_TARGETS = {
         {ParticipantViewDisposition.HIDDEN, ParticipantViewDisposition.CONCEALED}
     ),
     ParticipantViewTransitionKind.DECEPTION: frozenset({ParticipantViewDisposition.DECEPTIVE}),
-}
-
-_VIEW_RULE_REQUIRED_TRANSITIONS = {
-    ParticipantViewDisposition.DISCOVERED: frozenset({ParticipantViewTransitionKind.DISCOVERY}),
-    ParticipantViewDisposition.INFERRED: frozenset({ParticipantViewTransitionKind.INFERENCE}),
-    ParticipantViewDisposition.DISCLOSED: frozenset({ParticipantViewTransitionKind.DISCLOSURE}),
-    ParticipantViewDisposition.CONCEALED: frozenset(
-        {
-            ParticipantViewTransitionKind.CONCEALMENT,
-            ParticipantViewTransitionKind.REVOCATION,
-        }
-    ),
-    ParticipantViewDisposition.DECEPTIVE: frozenset({ParticipantViewTransitionKind.DECEPTION}),
 }
 
 
@@ -283,22 +279,40 @@ class ParticipantViewTransition(SDLModel):
     information_ref: str
     trigger: str
     effective_from: str
+    effective_order: int
+    history_event_type: ParticipantViewHistoryEventType
+    action_instance_id: str | None = None
+    from_disposition: ParticipantViewDisposition
     to_disposition: ParticipantViewDisposition
-    from_disposition: ParticipantViewDisposition | None = None
     disclosure_rule: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
-    certainty: str | None = None
-    latency_profile: str | None = None
+    certainty: str
+    latency_profile: str
     realized_backend_disclosure: str | None = None
 
-    @field_validator("transition_id", "information_ref", "trigger", "effective_from")
+    @field_validator(
+        "transition_id",
+        "information_ref",
+        "trigger",
+        "effective_from",
+        "action_instance_id",
+        "certainty",
+        "latency_profile",
+    )
     @classmethod
-    def _require_non_empty(cls, value: str) -> str:
-        if not value.strip():
+    def _require_non_empty(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
             raise ValueError("participant view transition fields must be non-empty")
         return value
 
-    @field_validator("disclosure_rule", "certainty", "latency_profile", "realized_backend_disclosure")
+    @field_validator("effective_order")
+    @classmethod
+    def _require_non_negative_effective_order(cls, value: int) -> int:
+        if isinstance(value, bool) or value < 0:
+            raise ValueError("participant view transition effective_order must be a non-negative integer")
+        return value
+
+    @field_validator("disclosure_rule", "realized_backend_disclosure")
     @classmethod
     def _require_optional_non_empty(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
@@ -323,6 +337,15 @@ class ParticipantViewTransition(SDLModel):
             raise ValueError("participant view transitions must alter disposition")
         if self.transition_kind == ParticipantViewTransitionKind.DISCLOSURE and not self.disclosure_rule:
             raise ValueError("disclosure transitions require disclosure_rule")
+        if not self.evidence_refs:
+            raise ValueError("participant view transitions require evidence_refs")
+        if (
+            self.history_event_type == ParticipantViewHistoryEventType.EPISODE_CLOSE
+            and self.action_instance_id is not None
+        ):
+            raise ValueError("episode_close visibility transitions must not set action_instance_id")
+        if self.history_event_type != ParticipantViewHistoryEventType.EPISODE_CLOSE and self.action_instance_id is None:
+            raise ValueError("non-episode-close visibility transitions require action_instance_id")
         return self
 
 
@@ -362,15 +385,23 @@ def _transition_kinds_by_ref(
 ) -> dict[str, set[ParticipantViewTransitionKind]]:
     transition_ids: set[str] = set()
     duplicate_transition_ids: set[str] = set()
+    effective_orders: set[int] = set()
+    duplicate_effective_orders: set[int] = set()
     by_ref: dict[str, set[ParticipantViewTransitionKind]] = {}
     for transition in view_transitions:
         if transition.transition_id in transition_ids:
             duplicate_transition_ids.add(transition.transition_id)
         transition_ids.add(transition.transition_id)
+        if transition.effective_order in effective_orders:
+            duplicate_effective_orders.add(transition.effective_order)
+        effective_orders.add(transition.effective_order)
         by_ref.setdefault(transition.information_ref, set()).add(transition.transition_kind)
     if duplicate_transition_ids:
         joined = ", ".join(sorted(duplicate_transition_ids))
         raise ValueError(f"view_transitions require unique transition_id values: {joined}")
+    if duplicate_effective_orders:
+        joined = ", ".join(str(order) for order in sorted(duplicate_effective_orders))
+        raise ValueError(f"view_transitions require unique effective_order values: {joined}")
     return by_ref
 
 
@@ -387,39 +418,6 @@ def _validate_transitions_have_view_rules(
     if transitions_without_rules:
         joined = ", ".join(transitions_without_rules)
         raise ValueError(f"view_transitions require matching view_rules: {joined}")
-
-
-def _validate_dynamic_view_rules(
-    *,
-    view_rules: list[ParticipantViewRule],
-    transition_kinds_by_ref: dict[str, set[ParticipantViewTransitionKind]],
-) -> None:
-    disclosure_transitions = {
-        ref
-        for ref, transition_kinds in transition_kinds_by_ref.items()
-        if ParticipantViewTransitionKind.DISCLOSURE in transition_kinds
-    }
-    missing_disclosure_transitions = sorted(
-        rule.information_ref
-        for rule in view_rules
-        if rule.disposition == ParticipantViewDisposition.DISCLOSED
-        and rule.information_ref not in disclosure_transitions
-    )
-    if missing_disclosure_transitions:
-        joined = ", ".join(missing_disclosure_transitions)
-        raise ValueError(f"disclosed view_rules require matching disclosure view_transitions: {joined}")
-
-    missing_dynamic_transitions: list[str] = []
-    for rule in view_rules:
-        required_transition_kinds = _VIEW_RULE_REQUIRED_TRANSITIONS.get(rule.disposition)
-        if (
-            required_transition_kinds
-            and not transition_kinds_by_ref.get(rule.information_ref, set()) & required_transition_kinds
-        ):
-            missing_dynamic_transitions.append(f"{rule.information_ref}:{rule.disposition.value}")
-    if missing_dynamic_transitions:
-        joined = ", ".join(sorted(missing_dynamic_transitions))
-        raise ValueError(f"dynamic view_rules require matching view_transitions: {joined}")
 
 
 def _validate_sensitive_transition_disclosures(
@@ -439,24 +437,11 @@ def _validate_sensitive_transition_disclosures(
         )
 
 
-def _first_from_dispositions(
-    view_transitions: list[ParticipantViewTransition],
-) -> dict[str, ParticipantViewDisposition]:
-    first_from_dispositions: dict[str, ParticipantViewDisposition] = {}
-    for transition in view_transitions:
-        if transition.from_disposition is not None and transition.information_ref not in first_from_dispositions:
-            first_from_dispositions[transition.information_ref] = transition.from_disposition
-    return first_from_dispositions
-
-
 def _initial_view_relation(
     *,
     view_rules: list[ParticipantViewRule],
-    first_from_dispositions: dict[str, ParticipantViewDisposition],
 ) -> dict[str, ParticipantViewDisposition]:
-    return {
-        rule.information_ref: first_from_dispositions.get(rule.information_ref, rule.disposition) for rule in view_rules
-    }
+    return {rule.information_ref: rule.disposition for rule in view_rules}
 
 
 def _validate_view_transition_sequence(
@@ -464,18 +449,13 @@ def _validate_view_transition_sequence(
     view_rules: list[ParticipantViewRule],
     view_transitions: list[ParticipantViewTransition],
 ) -> None:
-    relation = _initial_view_relation(
-        view_rules=view_rules,
-        first_from_dispositions=_first_from_dispositions(view_transitions),
-    )
-    for transition in view_transitions:
-        if transition.from_disposition is not None:
-            relation.setdefault(transition.information_ref, transition.from_disposition)
-            if relation[transition.information_ref] != transition.from_disposition:
-                raise ValueError(
-                    f"view_transition '{transition.transition_id}' from_disposition "
-                    f"does not match current disposition for {transition.information_ref}"
-                )
+    relation = _initial_view_relation(view_rules=view_rules)
+    for transition in sorted(view_transitions, key=lambda item: item.effective_order):
+        if relation[transition.information_ref] != transition.from_disposition:
+            raise ValueError(
+                f"view_transition '{transition.transition_id}' from_disposition "
+                f"does not match current disposition for {transition.information_ref}"
+            )
         if relation.get(transition.information_ref) == transition.to_disposition:
             raise ValueError(
                 f"view_transition '{transition.transition_id}' does not alter disposition for "
@@ -516,14 +496,10 @@ class ParticipantObservationBoundary(SDLModel):
     def _validate_projection(self) -> "ParticipantObservationBoundary":
         _validate_projection_refs(self)
         view_rules_by_ref = _view_rules_by_ref(self.view_rules)
-        transition_kinds_by_ref = _transition_kinds_by_ref(self.view_transitions)
+        _transition_kinds_by_ref(self.view_transitions)
         _validate_transitions_have_view_rules(
             view_transitions=self.view_transitions,
             view_rules_by_ref=view_rules_by_ref,
-        )
-        _validate_dynamic_view_rules(
-            view_rules=self.view_rules,
-            transition_kinds_by_ref=transition_kinds_by_ref,
         )
         _validate_sensitive_transition_disclosures(
             view_transitions=self.view_transitions,

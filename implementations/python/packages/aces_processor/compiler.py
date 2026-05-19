@@ -85,39 +85,10 @@ def _dedupe_by_value(items: list[Any]) -> tuple[Any, ...]:
     return tuple(item for _, item in sorted(ordered.items()))
 
 
-def _transition_refs(
-    view_transitions: list[Any],
-    *,
-    transition_kinds: set[str],
-) -> tuple[str, ...]:
-    return _dedupe(
-        [
-            str(transition.get("information_ref", ""))
-            for transition in view_transitions
-            if isinstance(transition, dict)
-            and transition.get("information_ref")
-            and transition.get("transition_kind") in transition_kinds
-        ]
-    )
+_VISIBLE_VIEW_DISPOSITIONS = frozenset({"observable", "discovered", "inferred", "disclosed", "deceptive"})
 
 
-def _first_transition_from_dispositions(view_transitions: list[Any]) -> dict[str, str]:
-    first_from_dispositions: dict[str, str] = {}
-    for transition in view_transitions:
-        if not isinstance(transition, dict):
-            continue
-        information_ref = transition.get("information_ref")
-        from_disposition = transition.get("from_disposition")
-        if information_ref and from_disposition and str(information_ref) not in first_from_dispositions:
-            first_from_dispositions[str(information_ref)] = str(from_disposition)
-    return first_from_dispositions
-
-
-def _initial_view_relation(
-    *,
-    view_rules: list[Any],
-    first_from_dispositions: dict[str, str],
-) -> dict[str, str]:
+def _initial_view_relation(*, view_rules: list[Any]) -> dict[str, str]:
     view_relation: dict[str, str] = {}
     for rule in view_rules:
         if not isinstance(rule, dict):
@@ -127,8 +98,59 @@ def _initial_view_relation(
         if not information_ref or not disposition:
             continue
         ref = str(information_ref)
-        view_relation[ref] = first_from_dispositions.get(ref, str(disposition))
+        view_relation[ref] = str(disposition)
     return view_relation
+
+
+def _view_relation_refs(view_relation: dict[str, str], dispositions: set[str] | frozenset[str]) -> tuple[str, ...]:
+    return tuple(ref for ref, disposition in sorted(view_relation.items()) if disposition in dispositions)
+
+
+def _view_relation_snapshot(
+    *,
+    transition_id: str,
+    effective_from: str,
+    effective_order: int,
+    view_relation: dict[str, str],
+    transition: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    snapshot = {
+        "transition_id": transition_id,
+        "effective_from": effective_from,
+        "effective_order": effective_order,
+        "view_relation": dict(sorted(view_relation.items())),
+        "visible_refs": _view_relation_refs(view_relation, _VISIBLE_VIEW_DISPOSITIONS),
+        "hidden_refs": _view_relation_refs(view_relation, {"hidden"}),
+        "evidence_only_refs": _view_relation_refs(view_relation, {"evidence_only"}),
+        "disclosed_refs": _view_relation_refs(view_relation, {"disclosed"}),
+        "discovered_refs": _view_relation_refs(view_relation, {"discovered"}),
+        "inferred_refs": _view_relation_refs(view_relation, {"inferred"}),
+        "concealed_refs": _view_relation_refs(view_relation, {"concealed"}),
+        "deceptive_refs": _view_relation_refs(view_relation, {"deceptive"}),
+    }
+    if transition is not None:
+        snapshot.update(
+            {
+                "transition_kind": str(transition.get("transition_kind") or ""),
+                "information_ref": str(transition.get("information_ref") or ""),
+                "history_event_type": str(transition.get("history_event_type") or ""),
+                "action_instance_id": (
+                    str(transition.get("action_instance_id"))
+                    if transition.get("action_instance_id") is not None
+                    else ""
+                ),
+            }
+        )
+    return snapshot
+
+
+def _ordered_view_transitions(view_transitions: list[Any]) -> tuple[dict[str, Any], ...]:
+    return tuple(
+        sorted(
+            (dict(transition) for transition in view_transitions if isinstance(transition, dict)),
+            key=lambda transition: int(transition.get("effective_order", 0)),
+        )
+    )
 
 
 def _compile_view_relation_timeline(
@@ -136,33 +158,29 @@ def _compile_view_relation_timeline(
     view_rules: list[Any],
     view_transitions: list[Any],
 ) -> tuple[dict[str, Any], ...]:
-    view_relation = _initial_view_relation(
-        view_rules=view_rules,
-        first_from_dispositions=_first_transition_from_dispositions(view_transitions),
-    )
+    view_relation = _initial_view_relation(view_rules=view_rules)
     timeline: list[dict[str, Any]] = [
-        {
-            "transition_id": "initial",
-            "effective_from": "initial",
-            "view_relation": dict(sorted(view_relation.items())),
-        }
+        _view_relation_snapshot(
+            transition_id="initial",
+            effective_from="initial",
+            effective_order=-1,
+            view_relation=view_relation,
+        )
     ]
-    for transition in view_transitions:
-        if not isinstance(transition, dict):
-            continue
+    for transition in _ordered_view_transitions(view_transitions):
         information_ref = transition.get("information_ref")
         to_disposition = transition.get("to_disposition")
         if not information_ref or not to_disposition:
             continue
         view_relation[str(information_ref)] = str(to_disposition)
         timeline.append(
-            {
-                "transition_id": str(transition.get("transition_id") or ""),
-                "transition_kind": str(transition.get("transition_kind") or ""),
-                "information_ref": str(information_ref),
-                "effective_from": str(transition.get("effective_from") or ""),
-                "view_relation": dict(sorted(view_relation.items())),
-            }
+            _view_relation_snapshot(
+                transition_id=str(transition.get("transition_id") or ""),
+                effective_from=str(transition.get("effective_from") or ""),
+                effective_order=int(transition.get("effective_order", 0)),
+                view_relation=view_relation,
+                transition=transition,
+            )
         )
     return tuple(timeline)
 
@@ -969,31 +987,18 @@ def _compile_observation_boundaries(scenario: InstantiatedScenario) -> dict[str,
         boundary_spec = _dump(boundary)
         view_rules = boundary_spec.get("view_rules", [])
         view_transitions = boundary_spec.get("view_transitions", [])
-        rule_disclosed_refs = [
-            str(rule.get("information_ref", ""))
-            for rule in view_rules
-            if isinstance(rule, dict)
-            and rule.get("information_ref")
-            and rule.get("disposition") == "disclosed"
-            and rule.get("disclosure_rule")
-        ]
-        transition_disclosed_refs = _transition_refs(view_transitions, transition_kinds={"disclosure"})
-        disclosed_refs = _dedupe([*rule_disclosed_refs, *transition_disclosed_refs])
-        evidence_only_refs = _dedupe(
-            [
-                str(rule.get("information_ref", ""))
-                for rule in view_rules
-                if isinstance(rule, dict) and rule.get("information_ref") and rule.get("disposition") == "evidence_only"
-            ]
-        )
-        discovered_refs = _transition_refs(view_transitions, transition_kinds={"discovery"})
-        inferred_refs = _transition_refs(view_transitions, transition_kinds={"inference"})
-        concealed_refs = _transition_refs(view_transitions, transition_kinds={"concealment", "revocation"})
-        deceptive_refs = _transition_refs(view_transitions, transition_kinds={"deception"})
+        initial_view_relation = _initial_view_relation(view_rules=view_rules)
+        disclosed_refs = _view_relation_refs(initial_view_relation, {"disclosed"})
+        evidence_only_refs = _view_relation_refs(initial_view_relation, {"evidence_only"})
+        discovered_refs = _view_relation_refs(initial_view_relation, {"discovered"})
+        inferred_refs = _view_relation_refs(initial_view_relation, {"inferred"})
+        concealed_refs = _view_relation_refs(initial_view_relation, {"concealed"})
+        deceptive_refs = _view_relation_refs(initial_view_relation, {"deceptive"})
         view_relation_timeline = _compile_view_relation_timeline(
             view_rules=view_rules,
             view_transitions=view_transitions,
         )
+        ordered_view_transitions = _ordered_view_transitions(view_transitions)
         observation_boundaries[_observation_boundary_address(name)] = ParticipantObservationBoundaryRuntime(
             address=_observation_boundary_address(name),
             name=name,
@@ -1008,7 +1013,7 @@ def _compile_observation_boundaries(scenario: InstantiatedScenario) -> dict[str,
             inferred_refs=inferred_refs,
             concealed_refs=concealed_refs,
             deceptive_refs=deceptive_refs,
-            view_transitions=tuple(dict(transition) for transition in view_transitions if isinstance(transition, dict)),
+            view_transitions=ordered_view_transitions,
             view_relation_timeline=view_relation_timeline,
             realized_view_disclosure=str(boundary_spec.get("realized_view_disclosure") or ""),
             spec=boundary_spec,
