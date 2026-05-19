@@ -361,6 +361,10 @@ def _validate_projection_refs(boundary: "ParticipantObservationBoundary") -> Non
         for rule in boundary.view_rules
         if rule.disposition == ParticipantViewDisposition.EVIDENCE_ONLY
     }
+    observable_evidence_only_refs = sorted(set(boundary.observable_refs) & evidence_only_refs)
+    if observable_evidence_only_refs:
+        joined = ", ".join(observable_evidence_only_refs)
+        raise ValueError(f"evidence_only refs must not also be observable_refs; use evidence_refs instead: {joined}")
     evidence_leaks = sorted((set(boundary.evidence_refs) & set(boundary.hidden_refs)) - evidence_only_refs)
     if evidence_leaks:
         joined = ", ".join(evidence_leaks)

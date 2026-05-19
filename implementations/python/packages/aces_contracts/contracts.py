@@ -194,6 +194,12 @@ class ParticipantEpisodeHistoryEventModel(ContractModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class ParticipantObservationDetailsModel(ContractModel):
+    visible_refs: list[NonEmptyString] = Field(default_factory=list)
+    disclosed_refs: list[NonEmptyString] = Field(default_factory=list)
+    evidence_refs: list[NonEmptyString] = Field(default_factory=list)
+
+
 class ParticipantBehaviorHistoryEventModel(ContractModel):
     event_type: str
     timestamp: str
@@ -211,7 +217,7 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     interaction_class: ParticipantInteractionClass | None = None
     interaction_ref: str | None = None
     shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
-    details: dict[str, Any] = Field(default_factory=dict)
+    details: ParticipantObservationDetailsModel = Field(default_factory=ParticipantObservationDetailsModel)
 
 
 class PlanOperationModel(ContractModel):
@@ -1188,12 +1194,17 @@ def _backend_profile_schema_for_bundle() -> dict[str, Any]:
 
 
 def _event_stream_schema(title: str, item_schema: dict[str, Any]) -> dict[str, Any]:
-    return {
+    item_schema = dict(item_schema)
+    defs = item_schema.pop("$defs", None)
+    schema = {
         _JSON_SCHEMA_KEY: _JSON_SCHEMA_DRAFT_2020_12,
         "title": title,
         "type": "array",
         "items": item_schema,
     }
+    if defs:
+        schema["$defs"] = defs
+    return schema
 
 
 def schema_bundle() -> dict[str, dict[str, Any]]:

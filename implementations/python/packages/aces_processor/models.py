@@ -1657,6 +1657,16 @@ class ParticipantBehaviorHistoryEvent:
             shared_state_refs_raw = ()
         if not isinstance(shared_state_refs_raw, (list, tuple)):
             raise TypeError("shared_state_refs must be a list of strings")
+        details_raw = payload.get("details", {})
+        if details_raw is None:
+            details_raw = {}
+        if not isinstance(details_raw, Mapping):
+            raise TypeError("participant behavior details must be a mapping")
+        details = dict(details_raw)
+        for empty_ref_key in ("visible_refs", "disclosed_refs", "evidence_refs"):
+            value = details.get(empty_ref_key)
+            if isinstance(value, (list, tuple)) and not value:
+                details.pop(empty_ref_key)
         return cls(
             event_type=(
                 event_type_raw
@@ -1700,7 +1710,7 @@ class ParticipantBehaviorHistoryEvent:
             ),
             interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
             shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
-            details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
+            details=details,
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -1874,6 +1884,7 @@ _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES = frozenset(
 )
 _PARTICIPANT_VISIBLE_VIEW_DISPOSITIONS = frozenset({"observable", "discovered", "inferred", "disclosed", "deceptive"})
 _PARTICIPANT_OBSERVATION_DETAIL_REF_KEYS = ("visible_refs", "disclosed_refs", "evidence_refs")
+_PARTICIPANT_OBSERVATION_DETAIL_KEYS = frozenset(_PARTICIPANT_OBSERVATION_DETAIL_REF_KEYS)
 
 
 def _participant_behavior_detail_refs(
@@ -1896,17 +1907,27 @@ def _participant_behavior_detail_refs(
     return refs, []
 
 
-def _participant_behavior_detail_effective_order(
+def _participant_behavior_detail_shape_violations(
     event: ParticipantBehaviorHistoryEvent,
     *,
     locator: str,
-) -> tuple[int | None, list[tuple[str, str]]]:
-    value = event.details.get("effective_order")
-    if value is None:
-        return None, [(locator, "observation details with visibility refs require effective_order")]
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        return None, [(locator, "observation details effective_order must be a non-negative integer")]
-    return value, []
+) -> list[tuple[str, str]]:
+    if not event.details:
+        return []
+    violations: list[tuple[str, str]] = []
+    if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+        violations.append((locator, "participant behavior details are only allowed on observation_emitted events"))
+    unsupported_keys = sorted(str(key) for key in event.details if key not in _PARTICIPANT_OBSERVATION_DETAIL_KEYS)
+    if unsupported_keys:
+        allowed = ", ".join(_PARTICIPANT_OBSERVATION_DETAIL_REF_KEYS)
+        unsupported = ", ".join(unsupported_keys)
+        violations.append(
+            (
+                locator,
+                f"observation details may only contain {allowed}; unsupported fields: {unsupported}",
+            )
+        )
+    return violations
 
 
 def _participant_behavior_view_relation_at_order(
@@ -2033,68 +2054,52 @@ def _participant_behavior_visibility_detail_violations(
     ]
 
 
-def _participant_behavior_observation_visibility_violations(
-    events: list[ParticipantBehaviorHistoryEvent],
-    *,
-    observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
-) -> Iterator[tuple[str, str]]:
-    for index, event in enumerate(events):
-        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
-            continue
-        boundary = observation_boundaries.get(event.observation_boundary_address or "")
-        if boundary is None:
-            continue
-        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
-        detail_refs, violations = _participant_behavior_observation_detail_refs(event, locator=locator)
-        if violations:
-            yield from violations
-            continue
-        if not any(detail_refs.values()):
-            continue
-        effective_order, violations = _participant_behavior_detail_effective_order(event, locator=locator)
-        if violations:
-            yield from violations
-            continue
-        assert effective_order is not None
-        relation = _participant_behavior_view_relation_at_order(boundary, effective_order=effective_order)
-        yield from _participant_behavior_visibility_detail_violations(
-            locator=locator,
-            detail_refs=detail_refs,
-            boundary=boundary,
-            relation=relation,
-            effective_order=effective_order,
-        )
-
-
-def _participant_behavior_history_anchor_sets(
+def _participant_behavior_history_anchor_indexes(
     events: Iterable[ParticipantBehaviorHistoryEvent],
-) -> tuple[set[str], set[str], set[tuple[str, str | None]]]:
-    return (
-        {
-            event.action_instance_id
-            for event in events
-            if event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED
-        },
-        {
-            event.action_instance_id
-            for event in events
-            if event.event_type == ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED
-        },
-        {
-            (event.action_instance_id, event.observation_boundary_address)
-            for event in events
-            if event.event_type == ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED
-        },
-    )
+) -> tuple[dict[str, int], dict[str, int], dict[tuple[str, str | None], int]]:
+    action_attempts: dict[str, int] = {}
+    state_transitions: dict[str, int] = {}
+    observations: dict[tuple[str, str | None], int] = {}
+    for index, event in enumerate(events):
+        if event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED:
+            action_attempts.setdefault(event.action_instance_id, index)
+        elif event.event_type == ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED:
+            state_transitions.setdefault(event.action_instance_id, index)
+        elif event.event_type == ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            observations.setdefault((event.action_instance_id, event.observation_boundary_address), index)
+    return action_attempts, state_transitions, observations
+
+
+def _participant_behavior_transition_anchor_index(
+    *,
+    transition: Mapping[str, Any],
+    boundary_address: str,
+    action_attempts: Mapping[str, int],
+    state_transitions: Mapping[str, int],
+    observations: Mapping[tuple[str, str | None], int],
+) -> int | None:
+    event_type = str(transition.get("history_event_type", ""))
+    if event_type == "episode_close":
+        return None
+    action_instance_id = transition.get("action_instance_id")
+    if not isinstance(action_instance_id, str) or not action_instance_id:
+        return None
+    if event_type == "action_attempted":
+        return action_attempts.get(action_instance_id)
+    if event_type == "state_transition_recorded":
+        return state_transitions.get(action_instance_id)
+    if event_type == "observation_emitted":
+        return observations.get((action_instance_id, boundary_address))
+    return None
 
 
 def _participant_behavior_transition_anchor_violation(
     *,
     transition: Mapping[str, Any],
     boundary_address: str,
-    action_attempts: set[str],
-    state_transitions: set[str],
-    observations: set[tuple[str, str | None]],
+    action_attempts: Mapping[str, int],
+    state_transitions: Mapping[str, int],
+    observations: Mapping[tuple[str, str | None], int],
 ) -> tuple[str, str] | None:
     event_type = str(transition.get("history_event_type", ""))
     action_instance_id = transition.get("action_instance_id")
@@ -2122,7 +2127,7 @@ def _participant_behavior_transition_anchor_violations(
     *,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
 ) -> Iterator[tuple[str, str]]:
-    action_attempts, state_transitions, observations = _participant_behavior_history_anchor_sets(events)
+    action_attempts, state_transitions, observations = _participant_behavior_history_anchor_indexes(events)
     for boundary_address, boundary in observation_boundaries.items():
         for transition in boundary.view_transitions:
             violation = _participant_behavior_transition_anchor_violation(
@@ -2134,6 +2139,79 @@ def _participant_behavior_transition_anchor_violations(
             )
             if violation is not None:
                 yield violation
+
+
+def _participant_behavior_observation_effective_order(
+    *,
+    observation_index: int,
+    boundary_address: str,
+    boundary: ParticipantObservationBoundaryRuntime,
+    action_attempts: Mapping[str, int],
+    state_transitions: Mapping[str, int],
+    observations: Mapping[tuple[str, str | None], int],
+) -> int:
+    effective_order = -1
+    for transition in boundary.view_transitions:
+        order = transition.get("effective_order")
+        if not isinstance(order, int) or isinstance(order, bool):
+            continue
+        anchor_index = _participant_behavior_transition_anchor_index(
+            transition=transition,
+            boundary_address=boundary_address,
+            action_attempts=action_attempts,
+            state_transitions=state_transitions,
+            observations=observations,
+        )
+        if anchor_index is None or anchor_index > observation_index:
+            continue
+        effective_order = max(effective_order, order)
+    return effective_order
+
+
+def _participant_behavior_detail_shape_violations_for_events(
+    events: list[ParticipantBehaviorHistoryEvent],
+) -> Iterator[tuple[str, str]]:
+    for index, event in enumerate(events):
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        yield from _participant_behavior_detail_shape_violations(event, locator=locator)
+
+
+def _participant_behavior_observation_visibility_violations(
+    events: list[ParticipantBehaviorHistoryEvent],
+    *,
+    observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
+) -> Iterator[tuple[str, str]]:
+    action_attempts, state_transitions, observations = _participant_behavior_history_anchor_indexes(events)
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        boundary_address = event.observation_boundary_address or ""
+        boundary = observation_boundaries.get(boundary_address)
+        if boundary is None:
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        detail_refs, violations = _participant_behavior_observation_detail_refs(event, locator=locator)
+        if violations:
+            yield from violations
+            continue
+        if not any(detail_refs.values()):
+            continue
+        effective_order = _participant_behavior_observation_effective_order(
+            observation_index=index,
+            boundary_address=boundary_address,
+            boundary=boundary,
+            action_attempts=action_attempts,
+            state_transitions=state_transitions,
+            observations=observations,
+        )
+        relation = _participant_behavior_view_relation_at_order(boundary, effective_order=effective_order)
+        yield from _participant_behavior_visibility_detail_violations(
+            locator=locator,
+            detail_refs=detail_refs,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
 
 
 def _participant_behavior_address_violations(
@@ -2319,6 +2397,7 @@ def iter_participant_behavior_history_violations(
         yield from entry_violations
         return
 
+    yield from _participant_behavior_detail_shape_violations_for_events(normalized_events)
     yield from _participant_behavior_action_instance_violations(normalized_events)
     yield from _participant_behavior_joint_action_order_violations(normalized_events)
     if observation_boundaries is not None:

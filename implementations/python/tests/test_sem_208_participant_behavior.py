@@ -114,7 +114,7 @@ def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -
         observation-boundaries:
           red-view:
             projection-basis: participant-local projection over observed services
-            observable-refs: [evidence.scan-output]
+            observable-refs: []
             hidden-refs: [nodes.web, content.private-answer-key]
             evidence-refs: [evidence.scan-output]
             redaction-policy: hidden refs never project without explicit disclosure
@@ -241,7 +241,7 @@ def test_compiler_maps_participant_behavior_to_runtime_addresses():
     assert contract.shared_state_refs == ("nodes.web.services.http",)
     boundary = model.observation_boundaries[OBSERVATION_ADDRESS]
     assert boundary.hidden_refs == ("nodes.web", "content.private-answer-key")
-    assert boundary.observable_refs == ("evidence.scan-output",)
+    assert boundary.observable_refs == ()
     assert boundary.evidence_only_refs == ("evidence.scan-output",)
     assert boundary.discovered_refs == ()
     assert boundary.view_transitions[0]["transition_id"] == "discover-web-service"
@@ -335,8 +335,8 @@ def test_view_relation_timeline_tracks_inference_and_concealment_transitions():
 
 def test_hidden_truth_cannot_be_observed_without_explicit_disclosure_rule():
     scenario = _scenario_yaml().replace(
-        "observable-refs: [evidence.scan-output]",
-        "observable-refs: [evidence.scan-output, content.private-answer-key]",
+        "observable-refs: []",
+        "observable-refs: [content.private-answer-key]",
     )
 
     with pytest.raises(SDLParseError) as excinfo:
@@ -345,6 +345,21 @@ def test_hidden_truth_cannot_be_observed_without_explicit_disclosure_rule():
     assert (
         "hidden_refs must not also be observable_refs; use a disclosed view_rule instead: content.private-answer-key"
     ) in str(excinfo.value)
+
+
+def test_evidence_only_refs_cannot_be_boundary_observable_refs():
+    scenario = _scenario_yaml().replace(
+        "observable-refs: []",
+        "observable-refs: [evidence.scan-output]",
+    )
+
+    with pytest.raises(SDLParseError) as excinfo:
+        parse_sdl(scenario)
+
+    assert (
+        "evidence_only refs must not also be observable_refs; use evidence_refs instead: evidence.scan-output"
+        in str(excinfo.value)
+    )
 
 
 def test_hidden_truth_disclosure_is_separate_from_observable_projection():
@@ -384,8 +399,8 @@ def test_hidden_truth_disclosure_is_separate_from_observable_projection():
 def test_hidden_truth_disclosure_does_not_make_observable_refs_safe():
     scenario = _scenario_yaml()
     scenario = scenario.replace(
-        "observable-refs: [evidence.scan-output]",
-        "observable-refs: [evidence.scan-output, content.private-answer-key]",
+        "observable-refs: []",
+        "observable-refs: [content.private-answer-key]",
     ).replace(
         "      - information-ref: content.private-answer-key\n"
         "        boundary-class: private_answer_key\n"
@@ -1018,7 +1033,6 @@ def test_behavior_history_rejects_observation_details_that_expose_hidden_truth()
     model = compile_runtime_model(parse_sdl(_scenario_yaml()))
     events = _complete_behavior_history_payloads(ACTION_INSTANCE)
     events[2]["details"] = {
-        "effective_order": 30,
         "visible_refs": ["nodes.web", "content.private-answer-key"],
         "evidence_refs": ["evidence.scan-output"],
     }
@@ -1039,6 +1053,122 @@ def test_behavior_history_rejects_observation_details_that_expose_hidden_truth()
                 "observation visible_refs may only contain participant-visible refs at effective_order 30: "
                 "'content.private-answer-key' has disposition 'hidden'"
             ),
+        )
+    ]
+
+
+def test_behavior_history_rejects_future_episode_close_disclosure_in_observation_details():
+    scenario = _scenario_yaml().replace(
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: terminal observation latency",
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: terminal observation latency\n"
+        "      - transition-id: disclose-answer-key\n"
+        "        transition-kind: disclosure\n"
+        "        information-ref: content.private-answer-key\n"
+        "        trigger: episode close adjudication\n"
+        "        effective-from: episode-close\n"
+        "        effective-order: 100\n"
+        "        history-event-type: episode_close\n"
+        "        from-disposition: hidden\n"
+        "        to-disposition: disclosed\n"
+        "        disclosure-rule: reveal answer key after episode close\n"
+        "        evidence-refs: [evidence.scan-output]\n"
+        "        certainty: high\n"
+        "        latency-profile: post-run adjudication latency",
+    )
+    model = compile_runtime_model(parse_sdl(scenario))
+    events = _complete_behavior_history_payloads(ACTION_INSTANCE)
+    events[2]["details"] = {"visible_refs": ["content.private-answer-key"]}
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            (
+                "observation visible_refs may only contain participant-visible refs at effective_order 30: "
+                "'content.private-answer-key' has disposition 'hidden'"
+            ),
+        )
+    ]
+
+
+def test_behavior_history_rejects_nested_observation_details_payload_side_channel():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    events = _complete_behavior_history_payloads(ACTION_INSTANCE)
+    events[2]["details"] = {"payload": {"visible_refs": ["content.private-answer-key"]}}
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "observation details may only contain visible_refs, disclosed_refs, evidence_refs; unsupported fields: payload",
+        )
+    ]
+
+
+def test_behavior_history_rejects_caller_supplied_observation_effective_order():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    events = _complete_behavior_history_payloads(ACTION_INSTANCE)
+    events[2]["details"] = {
+        "effective_order": 100,
+        "visible_refs": ["nodes.web"],
+    }
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            (
+                "observation details may only contain visible_refs, disclosed_refs, evidence_refs; "
+                "unsupported fields: effective_order"
+            ),
+        )
+    ]
+
+
+def test_behavior_history_rejects_details_on_non_observation_events():
+    events = _complete_behavior_history_payloads(ACTION_INSTANCE)
+    events[0]["details"] = {"visible_refs": ["nodes.web"]}
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[0]",
+            "participant behavior details are only allowed on observation_emitted events",
         )
     ]
 
@@ -1175,6 +1305,12 @@ def test_behavior_history_schema_is_published_as_closed_world_contract():
 
     schema = generated["participant-behavior-history-event-stream-v1"]
     event_schema = schema["items"]
+    details_schema = event_schema["properties"]["details"]
+    if "$ref" in details_schema:
+        schema_defs = event_schema.get("$defs", schema.get("$defs", {}))
+        details_schema = schema_defs[details_schema["$ref"].rsplit("/", 1)[-1]]
 
     assert event_schema["additionalProperties"] is False
     assert "ParticipantBehaviorHistoryEventModel" in event_schema["title"]
+    assert details_schema["additionalProperties"] is False
+    assert set(details_schema["properties"]) == {"visible_refs", "disclosed_refs", "evidence_refs"}
