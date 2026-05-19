@@ -611,7 +611,35 @@ Minimum future implementation artifacts:
 - runtime provenance fields for realized order and conflict semantics;
 - property or differential tests for serializable vs non-serializable backend
   behavior;
-- validation for shared-state target references once action contracts exist.
+- explicit simultaneity and conflict-resolution claims for backends that do
+  not serialize joint action attempts.
+
+Current implementation artifacts for the `SEM-209` slice:
+
+- `implementations/python/packages/aces_sdl/participant_behavior.py` defines
+  interaction classes, target references, related actions, and shared-state
+  references on action contracts;
+- `implementations/python/packages/aces_sdl/semantics/participant_behavior.py`
+  and `implementations/python/packages/aces_sdl/validator.py` fail closed on
+  unbound related actions, interaction targets, and shared-state references;
+- `implementations/python/packages/aces_processor/compiler.py` carries declared
+  interaction classes and shared-state references into compiled participant
+  action contracts;
+- `implementations/python/packages/aces_processor/models.py` records
+  `joint_action_set_id`, `realized_order`, interaction class, interaction
+  reference, and shared-state references in participant behavior history, and
+  rejects duplicate realized orders within one joint action set;
+- `implementations/python/packages/aces_conformance/conformance.py` applies the
+  joint-action ordering invariant across participant-local histories in runtime
+  snapshots.
+
+This implementation follows the lineage above without adopting a framework
+API: PettingZoo and OpenSpiel motivate preserving participant-local histories
+and joint behavior as first-class data, while Lamport ordering motivates
+recording realized order as provenance rather than treating timestamp adjacency
+as causality. Cyber-agent systems motivate explicit action targets and
+shared-state effects, but technique/tool labels remain external mappings, not
+the ACES interaction semantics themselves.
 
 ## SEM-210 - Visibility And Information-Boundary Semantics
 

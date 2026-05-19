@@ -23,6 +23,7 @@ class ParticipantBehaviorIssue:
     code: str
     participant_name: str
     ref: str
+    action_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -102,6 +103,29 @@ def _observation_boundary_references_for_agent(
     return references, issues
 
 
+def _interaction_references_for_action_contracts(
+    *,
+    action_contracts: Mapping[str, object],
+    is_unresolved: Callable[[object], bool],
+) -> list[ParticipantBehaviorIssue]:
+    issues: list[ParticipantBehaviorIssue] = []
+    for action_name, action_contract in action_contracts.items():
+        for interaction in getattr(action_contract, "interactions", []) or []:
+            for related_action in getattr(interaction, "related_actions", []) or []:
+                if is_unresolved(related_action):
+                    continue
+                if related_action not in action_contracts:
+                    issues.append(
+                        ParticipantBehaviorIssue(
+                            code="participant.interaction-action-unbound",
+                            participant_name="",
+                            action_name=str(action_name),
+                            ref=str(related_action),
+                        )
+                    )
+    return issues
+
+
 def analyze_participant_behavior(
     *,
     agents_by_name: Mapping[str, object],
@@ -138,5 +162,12 @@ def analyze_participant_behavior(
         references.extend(boundary_references)
         issues.extend(action_issues)
         issues.extend(boundary_issues)
+
+    issues.extend(
+        _interaction_references_for_action_contracts(
+            action_contracts=action_contracts,
+            is_unresolved=is_unresolved,
+        )
+    )
 
     return ParticipantBehaviorAnalysis(references=tuple(references), issues=tuple(issues))

@@ -8,6 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
+from aces_sdl.participant_behavior import ParticipantInteractionClass
 from aces_sdl.scenario import InstantiatedScenario, Scenario
 from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler, model_validator
 from pydantic.json_schema import JsonSchemaValue
@@ -205,6 +206,11 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     actor_provenance: str | None = None
     state_transition_kind: str | None = None
     post_state_digest: str | None = None
+    joint_action_set_id: str | None = None
+    realized_order: int | None = Field(default=None, ge=0)
+    interaction_class: ParticipantInteractionClass | None = None
+    interaction_ref: str | None = None
+    shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
     details: dict[str, Any] = Field(default_factory=dict)
 
 

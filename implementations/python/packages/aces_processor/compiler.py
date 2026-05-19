@@ -851,6 +851,22 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
     action_contracts: dict[str, ParticipantActionContractRuntime] = {}
     for name, contract in scenario.action_contracts.items():
         contract_spec = _dump(contract)
+        interactions = contract_spec.get("interactions", [])
+        interaction_classes = _dedupe(
+            [
+                str(interaction.get("interaction_class", ""))
+                for interaction in interactions
+                if isinstance(interaction, dict) and interaction.get("interaction_class")
+            ]
+        )
+        shared_state_refs = _dedupe(
+            [
+                str(ref)
+                for interaction in interactions
+                if isinstance(interaction, dict)
+                for ref in interaction.get("shared_state_refs", [])
+            ]
+        )
         action_contracts[_action_contract_address(name)] = ParticipantActionContractRuntime(
             address=_action_contract_address(name),
             name=name,
@@ -858,6 +874,8 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
             semantic_version=str(contract_spec.get("semantic_version", "")),
             lifecycle_state=str(contract_spec.get("lifecycle_state", "")),
             behavioral_granularity=str(contract_spec.get("behavioral_granularity", "")),
+            interaction_classes=interaction_classes,
+            shared_state_refs=shared_state_refs,
             spec=contract_spec,
         )
     return action_contracts

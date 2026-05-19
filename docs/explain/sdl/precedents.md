@@ -91,6 +91,12 @@ design without becoming the ACES runtime API or authoring syntax.
 | Benchmark validity and overfitting controls | [AI Agents That Matter](https://arxiv.org/abs/2407.01502), [Benchmarking Practices in LLM-driven Offensive Security](https://arxiv.org/abs/2504.10112) | Run/study provenance, holdout discipline, scaffold disclosure, hidden assets, baselines, and cost/resource traces are experimental-instrumentation concerns |
 | DSL language adequacy and evaluation | [Do Software Languages Engineers Evaluate their Languages?](https://arxiv.org/abs/1109.6794), [When and How to Develop Domain-Specific Languages](https://doi.org/10.1145/1118890.1118892), [Domain-Specific Languages: A Systematic Mapping Study](https://doi.org/10.1016/j.infsof.2015.11.001) | Issue #346 treats expressiveness, usability, effectiveness, maintainability, ambiguity, and domain-expert reviewability as evidence-gated language claims |
 
+For the `SEM-209` implementation slice, ACES represents framework-neutral
+joint-action declarations and realized-order provenance. PettingZoo/OpenSpiel
+inform participant-local histories and joint behavior, Lamport informs ordering
+without causal overclaim, and cyber-agent systems motivate explicit target and
+shared-state references without making framework/tool APIs the SDL authority.
+
 
 ### From CyRIS
 

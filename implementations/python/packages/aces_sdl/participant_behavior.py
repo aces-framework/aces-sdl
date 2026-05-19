@@ -1,4 +1,4 @@
-"""Participant behavior contract models (SEM-208).
+"""Participant behavior contract models (SEM-208, SEM-209).
 
 The legacy ``agents.*.actions`` list remains the authoring reference list.
 These models provide the governed source of truth those names resolve to when
@@ -28,6 +28,15 @@ class ParticipantActionGranularity(str, Enum):
     AGGREGATE = "aggregate"
 
 
+class ParticipantInteractionClass(str, Enum):
+    """SEM-209 interaction classes for multi-participant behavior."""
+
+    COORDINATION = "coordination"
+    CONTENTION = "contention"
+    INTERFERENCE = "interference"
+    SHARED_STATE_CHANGE = "shared_state_change"
+
+
 class ExternalMappingLoss(SDLModel):
     """Loss-labeled mapping from an external vocabulary to ACES semantics."""
 
@@ -42,6 +51,53 @@ class ExternalMappingLoss(SDLModel):
         if not value.strip():
             raise ValueError("external mapping fields must be non-empty")
         return value
+
+
+class ParticipantInteractionDeclaration(SDLModel):
+    """Declared interaction semantics for a participant action contract."""
+
+    interaction_class: ParticipantInteractionClass
+    target: str
+    rationale: str
+    related_actions: list[str] = Field(default_factory=list)
+    shared_state_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("target", "rationale")
+    @classmethod
+    def _require_non_empty(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("participant interaction fields must be non-empty")
+        return value
+
+    @field_validator("related_actions", "shared_state_refs")
+    @classmethod
+    def _require_non_empty_items(cls, values: list[str]) -> list[str]:
+        for value in values:
+            if not value.strip():
+                raise ValueError("participant interaction references must be non-empty")
+        return values
+
+    @model_validator(mode="after")
+    def _validate_sem209_class_payload(self) -> "ParticipantInteractionDeclaration":
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.COORDINATION,
+                ParticipantInteractionClass.INTERFERENCE,
+            }
+            and not self.related_actions
+        ):
+            raise ValueError(f"{self.interaction_class.value} interactions require related_actions")
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.CONTENTION,
+                ParticipantInteractionClass.SHARED_STATE_CHANGE,
+            }
+            and not self.shared_state_refs
+        ):
+            raise ValueError(f"{self.interaction_class.value} interactions require shared_state_refs")
+        return self
 
 
 class ParticipantActionContract(SDLModel):
@@ -60,6 +116,7 @@ class ParticipantActionContract(SDLModel):
     observation_expectations: list[str] = Field(default_factory=list)
     evidence_expectations: list[str] = Field(default_factory=list)
     failure_classes: list[str] = Field(default_factory=list)
+    interactions: list[ParticipantInteractionDeclaration] = Field(default_factory=list)
     external_mappings: list[ExternalMappingLoss] = Field(default_factory=list)
 
     @field_validator(

@@ -54,6 +54,7 @@ from aces_processor.models import (
     SnapshotEntry,
     WorkflowExecutionState,
     iter_participant_behavior_history_violations,
+    iter_participant_behavior_joint_action_violations,
     iter_participant_episode_snapshot_violations,
 )
 from aces_processor.planner import plan
@@ -499,6 +500,14 @@ def _participant_behavior_snapshot_diagnostics(
                 history,
                 action_contract_addresses=action_contract_addresses,
                 observation_boundary_addresses=observation_boundary_addresses,
+            )
+        )
+    for address, message in iter_participant_behavior_joint_action_violations(snapshot.participant_behavior_history):
+        diagnostics.append(
+            _diagnostic(
+                _SEMANTIC_INVALID_DIAGNOSTIC_CODE,
+                f"runtime.snapshot.participant-behavior-history.{address}",
+                message,
             )
         )
     return diagnostics

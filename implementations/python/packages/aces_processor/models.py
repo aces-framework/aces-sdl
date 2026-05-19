@@ -28,6 +28,7 @@ from aces_contracts.versions import (
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
+from aces_sdl.participant_behavior import ParticipantInteractionClass
 from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
 _PARTICIPANT_ACTION_CONTRACT_PREFIX = "participant.action-contract."
@@ -346,6 +347,8 @@ class ParticipantActionContractRuntime(ResolvedResource):
     semantic_version: str = ""
     lifecycle_state: str = ""
     behavioral_granularity: str = ""
+    interaction_classes: tuple[str, ...] = ()
+    shared_state_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1605,6 +1608,11 @@ class ParticipantBehaviorHistoryEvent:
     actor_provenance: str | None = None
     state_transition_kind: str | None = None
     post_state_digest: str | None = None
+    joint_action_set_id: str | None = None
+    realized_order: int | None = None
+    interaction_class: ParticipantInteractionClass | None = None
+    interaction_ref: str | None = None
+    shared_state_refs: tuple[str, ...] = ()
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -1631,6 +1639,12 @@ class ParticipantBehaviorHistoryEvent:
             )
         event_type_raw = payload.get("event_type")
         observation_status_raw = payload.get("observation_status")
+        interaction_class_raw = payload.get("interaction_class")
+        shared_state_refs_raw = payload.get("shared_state_refs", ())
+        if shared_state_refs_raw is None:
+            shared_state_refs_raw = ()
+        if not isinstance(shared_state_refs_raw, (list, tuple)):
+            raise TypeError("shared_state_refs must be a list of strings")
         return cls(
             event_type=(
                 event_type_raw
@@ -1659,6 +1673,21 @@ class ParticipantBehaviorHistoryEvent:
             post_state_digest=(
                 str(payload["post_state_digest"]) if payload.get("post_state_digest") is not None else None
             ),
+            joint_action_set_id=(
+                str(payload["joint_action_set_id"]) if payload.get("joint_action_set_id") is not None else None
+            ),
+            realized_order=payload.get("realized_order"),
+            interaction_class=(
+                None
+                if interaction_class_raw is None
+                else (
+                    interaction_class_raw
+                    if isinstance(interaction_class_raw, ParticipantInteractionClass)
+                    else ParticipantInteractionClass(str(interaction_class_raw))
+                )
+            ),
+            interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
+            shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
             details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
         )
 
@@ -1675,6 +1704,11 @@ class ParticipantBehaviorHistoryEvent:
             "actor_provenance": self.actor_provenance,
             "state_transition_kind": self.state_transition_kind,
             "post_state_digest": self.post_state_digest,
+            "joint_action_set_id": self.joint_action_set_id,
+            "realized_order": self.realized_order,
+            "interaction_class": self.interaction_class.value if self.interaction_class is not None else None,
+            "interaction_ref": self.interaction_ref,
+            "shared_state_refs": list(self.shared_state_refs),
             "details": dict(self.details),
         }
 
@@ -1713,6 +1747,24 @@ class ParticipantBehaviorHistoryEvent:
             "state_transition_kind must be a non-empty string or None",
         )
         self._validate_optional_string(self.post_state_digest, "post_state_digest must be a non-empty string or None")
+        self._validate_optional_string(
+            self.joint_action_set_id,
+            "joint_action_set_id must be a non-empty string or None",
+        )
+        if self.realized_order is not None and (
+            not isinstance(self.realized_order, int) or isinstance(self.realized_order, bool) or self.realized_order < 0
+        ):
+            raise TypeError("realized_order must be a non-negative integer or None")
+        if self.interaction_class is not None and not isinstance(self.interaction_class, ParticipantInteractionClass):
+            raise TypeError("interaction_class must be a ParticipantInteractionClass or None")
+        self._validate_optional_string(self.interaction_ref, "interaction_ref must be a non-empty string or None")
+        if not isinstance(self.shared_state_refs, tuple):
+            raise TypeError("shared_state_refs must be a tuple")
+        for ref in self.shared_state_refs:
+            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
+        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
+            raise ValueError("shared_state_refs entries must be unique")
+        self._validate_interaction_fields()
         if not isinstance(self.details, dict):
             raise TypeError("participant behavior details must be a dict")
 
@@ -1738,6 +1790,36 @@ class ParticipantBehaviorHistoryEvent:
             ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED: self._validate_observation_emitted_fields,
         }
         validators[self.event_type]()
+
+    def _validate_interaction_fields(self) -> None:
+        if self.joint_action_set_id is None and self.realized_order is not None:
+            raise ValueError("realized_order requires joint_action_set_id")
+        if self.joint_action_set_id is not None and self.realized_order is None:
+            raise ValueError("joint_action_set_id requires realized_order")
+        if self.interaction_class is None:
+            if self.interaction_ref is not None:
+                raise ValueError("interaction_ref requires interaction_class")
+            return
+        if self.joint_action_set_id is None:
+            raise ValueError("interaction_class requires joint_action_set_id and realized_order")
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.COORDINATION,
+                ParticipantInteractionClass.INTERFERENCE,
+            }
+            and self.interaction_ref is None
+        ):
+            raise ValueError(f"{self.interaction_class.value} events require interaction_ref")
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.CONTENTION,
+                ParticipantInteractionClass.SHARED_STATE_CHANGE,
+            }
+            and not self.shared_state_refs
+        ):
+            raise ValueError(f"{self.interaction_class.value} events require shared_state_refs")
 
     def _validate_action_attempted_fields(self) -> None:
         if self.action_contract_address is None:
@@ -1900,6 +1982,38 @@ def _participant_behavior_action_instance_violations(
             yield violation
 
 
+def _participant_behavior_joint_action_order_violations(
+    events: Iterable[ParticipantBehaviorHistoryEvent],
+) -> Iterator[tuple[str, str]]:
+    attempts_by_joint_set: dict[str, list[ParticipantBehaviorHistoryEvent]] = {}
+    for event in events:
+        if (
+            event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED
+            and event.joint_action_set_id is not None
+        ):
+            attempts_by_joint_set.setdefault(event.joint_action_set_id, []).append(event)
+
+    for joint_action_set_id, attempts in sorted(attempts_by_joint_set.items()):
+        attempts_by_order: dict[int, list[ParticipantBehaviorHistoryEvent]] = {}
+        for event in attempts:
+            if event.realized_order is None:
+                continue
+            attempts_by_order.setdefault(event.realized_order, []).append(event)
+        for realized_order, duplicate_attempts in sorted(attempts_by_order.items()):
+            if len(duplicate_attempts) <= 1:
+                continue
+            instances = ", ".join(
+                sorted(f"{event.participant_address}/{event.action_instance_id}" for event in duplicate_attempts)
+            )
+            yield (
+                f"joint-action-set.{joint_action_set_id}",
+                (
+                    f"joint action set realized_order {realized_order} is assigned to "
+                    f"multiple action_attempted events: {instances}"
+                ),
+            )
+
+
 def iter_participant_behavior_history_violations(
     participant_behavior_history: Any,
     *,
@@ -1927,6 +2041,32 @@ def iter_participant_behavior_history_violations(
         return
 
     yield from _participant_behavior_action_instance_violations(normalized_events)
+    yield from _participant_behavior_joint_action_order_violations(normalized_events)
+
+
+def iter_participant_behavior_joint_action_violations(
+    participant_behavior_history_by_participant: Any,
+) -> Iterator[tuple[str, str]]:
+    """Yield SEM-209 joint-action ordering violations across participant histories."""
+
+    if not isinstance(participant_behavior_history_by_participant, Mapping):
+        yield (_PARTICIPANT_BEHAVIOR_HISTORY_KEY, "participant behavior histories must be a mapping")
+        return
+
+    normalized_events: list[ParticipantBehaviorHistoryEvent] = []
+    for history in participant_behavior_history_by_participant.values():
+        if not isinstance(history, list):
+            continue
+        participant_events, entry_violations = _normalize_participant_behavior_events(
+            history,
+            action_contract_addresses=None,
+            observation_boundary_addresses=None,
+        )
+        if entry_violations:
+            continue
+        normalized_events.extend(participant_events)
+
+    yield from _participant_behavior_joint_action_order_violations(normalized_events)
 
 
 def iter_participant_episode_snapshot_violations(

@@ -117,6 +117,12 @@ _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS = {
             "does not reference a declared observation_boundary"
         )
     ),
+    "participant.interaction-action-unbound": (
+        lambda i: (
+            f"Action contract '{i.action_name}' interaction related_action '{i.ref}' "
+            "does not reference a declared action_contract"
+        )
+    ),
 }
 
 
@@ -226,6 +232,8 @@ class SemanticValidator:
             ("content", self._s.content, True),
             ("accounts", self._s.accounts, True),
             ("agents", self._s.agents, True),
+            ("action_contracts", self._s.action_contracts, True),
+            ("observation_boundaries", self._s.observation_boundaries, True),
             ("objectives", self._s.objectives, True),
             ("workflows", self._s.workflows, True),
             ("relationships", self._s.relationships, True),
@@ -659,6 +667,28 @@ class SemanticValidator:
         )
         for issue in analysis.issues:
             self._err(self._format_participant_behavior_issue(issue))
+        self._verify_participant_interaction_refs()
+
+    def _verify_participant_interaction_refs(self) -> None:
+        for action_name, action_contract in self._s.action_contracts.items():
+            for index, interaction in enumerate(action_contract.interactions):
+                owner_label = f"Action contract '{action_name}' interaction[{index}]"
+                if not self._is_unresolved_var(interaction.target):
+                    self._validate_named_ref(
+                        interaction.target,
+                        owner_label=owner_label,
+                        ref_label="target",
+                        targetable=True,
+                    )
+                for ref in interaction.shared_state_refs:
+                    if self._is_unresolved_var(ref):
+                        continue
+                    self._validate_named_ref(
+                        ref,
+                        owner_label=owner_label,
+                        ref_label="shared_state_ref",
+                        targetable=True,
+                    )
 
     def _verify_objectives(self) -> None:
         # Declarative-objective semantics — actor binding, target resolution,
