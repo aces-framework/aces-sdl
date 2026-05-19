@@ -1930,25 +1930,80 @@ def _participant_behavior_detail_shape_violations(
     return violations
 
 
-def _participant_behavior_view_relation_at_order(
+def _participant_behavior_timeline_relations(
     boundary: ParticipantObservationBoundaryRuntime,
-    *,
-    effective_order: int,
-) -> dict[str, str]:
-    relation: dict[str, str] = {}
-    selected_order = -2
+) -> tuple[tuple[int, dict[str, str]], ...]:
+    relations: list[tuple[int, dict[str, str]]] = []
     for snapshot in boundary.view_relation_timeline:
         order = snapshot.get("effective_order")
-        if not isinstance(order, int) or isinstance(order, bool):
-            continue
-        if order > effective_order or order < selected_order:
-            continue
         raw_relation = snapshot.get("view_relation", {})
-        if not isinstance(raw_relation, Mapping):
+        if not isinstance(order, int) or isinstance(order, bool) or not isinstance(raw_relation, Mapping):
             continue
-        relation = {str(ref): str(disposition) for ref, disposition in raw_relation.items()}
-        selected_order = order
-    return relation
+        relations.append((order, {str(ref): str(disposition) for ref, disposition in raw_relation.items()}))
+    return tuple(sorted(relations, key=lambda item: item[0]))
+
+
+def _participant_behavior_initial_view_relation(
+    boundary: ParticipantObservationBoundaryRuntime,
+) -> dict[str, str]:
+    initial_relation: dict[str, str] = {}
+    for order, relation in _participant_behavior_timeline_relations(boundary):
+        if order > -1:
+            break
+        initial_relation = dict(relation)
+    return initial_relation
+
+
+def _participant_behavior_view_relation_deltas_by_order(
+    boundary: ParticipantObservationBoundaryRuntime,
+) -> dict[int, dict[str, str]]:
+    deltas: dict[int, dict[str, str]] = {}
+    previous_relation: dict[str, str] | None = None
+    for order, relation in _participant_behavior_timeline_relations(boundary):
+        if previous_relation is None:
+            previous_relation = relation
+            continue
+        deltas[order] = {
+            ref: disposition for ref, disposition in relation.items() if previous_relation.get(ref) != disposition
+        }
+        previous_relation = relation
+    return deltas
+
+
+def _participant_behavior_transition_effective_order(transition: Mapping[str, Any]) -> int | None:
+    order = transition.get("effective_order")
+    if not isinstance(order, int) or isinstance(order, bool):
+        return None
+    return order
+
+
+def _participant_behavior_transition_delta(
+    transition: Mapping[str, Any],
+    *,
+    deltas_by_order: Mapping[int, Mapping[str, str]],
+) -> dict[str, str]:
+    information_ref = transition.get("information_ref")
+    to_disposition = transition.get("to_disposition")
+    if isinstance(information_ref, str) and information_ref and isinstance(to_disposition, str) and to_disposition:
+        return {information_ref: to_disposition}
+    order = _participant_behavior_transition_effective_order(transition)
+    if order is None:
+        return {}
+    return dict(deltas_by_order.get(order, {}))
+
+
+def _participant_behavior_transition_matches_relation(
+    transition: Mapping[str, Any],
+    *,
+    relation: Mapping[str, str],
+) -> bool:
+    information_ref = transition.get("information_ref")
+    from_disposition = transition.get("from_disposition")
+    if not isinstance(information_ref, str) or not information_ref:
+        return True
+    if not isinstance(from_disposition, str) or not from_disposition:
+        return True
+    return relation.get(information_ref) == from_disposition
 
 
 def _participant_behavior_observation_detail_refs(
@@ -2181,7 +2236,7 @@ def _participant_behavior_episode_close_resolved(
     return episode_ids <= closed_episode_ids
 
 
-def _participant_behavior_observation_effective_order(
+def _participant_behavior_observation_effective_relation(
     *,
     observation_index: int,
     boundary_address: str,
@@ -2189,11 +2244,20 @@ def _participant_behavior_observation_effective_order(
     action_attempts: Mapping[str, int],
     state_transitions: Mapping[str, int],
     observations: Mapping[tuple[str, str | None], int],
-) -> int:
+) -> tuple[dict[str, str], int]:
+    relation = _participant_behavior_initial_view_relation(boundary)
+    deltas_by_order = _participant_behavior_view_relation_deltas_by_order(boundary)
     effective_order = -1
-    for transition in boundary.view_transitions:
-        order = transition.get("effective_order")
-        if not isinstance(order, int) or isinstance(order, bool):
+    for transition in sorted(
+        boundary.view_transitions,
+        key=lambda item: (
+            _participant_behavior_transition_effective_order(item)
+            if _participant_behavior_transition_effective_order(item) is not None
+            else -1
+        ),
+    ):
+        order = _participant_behavior_transition_effective_order(transition)
+        if order is None:
             continue
         anchor_index = _participant_behavior_transition_anchor_index(
             transition=transition,
@@ -2204,8 +2268,11 @@ def _participant_behavior_observation_effective_order(
         )
         if anchor_index is None or anchor_index > observation_index:
             continue
+        if not _participant_behavior_transition_matches_relation(transition, relation=relation):
+            continue
+        relation.update(_participant_behavior_transition_delta(transition, deltas_by_order=deltas_by_order))
         effective_order = max(effective_order, order)
-    return effective_order
+    return relation, effective_order
 
 
 def _participant_behavior_detail_shape_violations_for_events(
@@ -2236,7 +2303,7 @@ def _participant_behavior_observation_visibility_violations(
             continue
         if not any(detail_refs.values()):
             continue
-        effective_order = _participant_behavior_observation_effective_order(
+        relation, effective_order = _participant_behavior_observation_effective_relation(
             observation_index=index,
             boundary_address=boundary_address,
             boundary=boundary,
@@ -2244,7 +2311,6 @@ def _participant_behavior_observation_visibility_violations(
             state_transitions=state_transitions,
             observations=observations,
         )
-        relation = _participant_behavior_view_relation_at_order(boundary, effective_order=effective_order)
         yield from _participant_behavior_visibility_detail_violations(
             locator=locator,
             detail_refs=detail_refs,
@@ -2294,6 +2360,7 @@ def _normalize_participant_behavior_events(
     *,
     action_contract_addresses: set[str] | frozenset[str] | None,
     observation_boundary_addresses: set[str] | frozenset[str] | None,
+    expected_participant_address: str | None = None,
 ) -> tuple[list[ParticipantBehaviorHistoryEvent], list[tuple[str, str]]]:
     normalized_events: list[ParticipantBehaviorHistoryEvent] = []
     violations: list[tuple[str, str]] = []
@@ -2306,6 +2373,17 @@ def _normalize_participant_behavior_events(
             normalized = ParticipantBehaviorHistoryEvent.from_payload(event)
         except (TypeError, ValueError) as exc:
             violations.append((locator, f"participant behavior history event is invalid: {exc}"))
+            continue
+        if expected_participant_address is not None and normalized.participant_address != expected_participant_address:
+            violations.append(
+                (
+                    locator,
+                    (
+                        f"participant behavior history event outer key {expected_participant_address!r} "
+                        f"does not match inner participant_address {normalized.participant_address!r}"
+                    ),
+                )
+            )
             continue
         violations.extend(
             _participant_behavior_address_violations(
@@ -2413,6 +2491,7 @@ def iter_participant_behavior_history_violations(
     observation_boundary_addresses: set[str] | frozenset[str] | None,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime] | None = None,
     participant_episode_history: Any = None,
+    expected_participant_address: str | None = None,
 ) -> Iterator[tuple[str, str]]:
     """Yield every SEM-208 behavior-history invariant violation.
 
@@ -2433,6 +2512,7 @@ def iter_participant_behavior_history_violations(
         participant_behavior_history,
         action_contract_addresses=action_contract_addresses,
         observation_boundary_addresses=observation_boundary_addresses,
+        expected_participant_address=expected_participant_address,
     )
     if entry_violations:
         yield from entry_violations

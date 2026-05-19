@@ -538,6 +538,7 @@ def _participant_behavior_history_diagnostics(
     observation_boundary_addresses: set[str] | None = None,
     observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] | None = None,
     participant_episode_history: Any = None,
+    expected_participant_address: str | None = None,
 ) -> list[Diagnostic]:
     history_key = "runtime.snapshot.participant-behavior-history"
     diagnostics: list[Diagnostic] = []
@@ -547,6 +548,7 @@ def _participant_behavior_history_diagnostics(
         observation_boundary_addresses=observation_boundary_addresses,
         observation_boundaries=observation_boundaries,
         participant_episode_history=participant_episode_history,
+        expected_participant_address=expected_participant_address,
     ):
         if address.startswith(history_key):
             diagnostic_address = root_address + address.removeprefix(history_key)
@@ -593,6 +595,7 @@ def _participant_behavior_snapshot_diagnostics(
                 observation_boundary_addresses=participant_known_boundary_addresses,
                 observation_boundaries=participant_boundaries,
                 participant_episode_history=snapshot.participant_episode_history.get(participant_address),
+                expected_participant_address=participant_address,
             )
         )
     for address, message in iter_participant_behavior_joint_action_violations(snapshot.participant_behavior_history):

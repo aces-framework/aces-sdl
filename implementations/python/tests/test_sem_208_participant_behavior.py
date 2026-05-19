@@ -10,6 +10,7 @@ from aces_processor.compiler import compile_runtime_model
 from aces_processor.models import (
     ParticipantBehaviorHistoryEvent,
     ParticipantBehaviorHistoryEventType,
+    ParticipantObservationBoundaryRuntime,
     ParticipantObservationStatus,
     iter_participant_behavior_history_violations,
 )
@@ -1173,6 +1174,88 @@ def test_behavior_history_rejects_unresolved_episode_close_transition_anchor():
         (
             "participant.observation-boundary.red-view.view_transitions.disclose-answer-key",
             "visibility transition anchor does not resolve to a terminal participant episode history event",
+        )
+    ]
+
+
+def test_behavior_history_does_not_import_unanchored_lower_order_transition_snapshot():
+    boundary = ParticipantObservationBoundaryRuntime(
+        address=OBSERVATION_ADDRESS,
+        name="red-view",
+        boundary_name="red-view",
+        projection_basis="participant-local projection over observed services",
+        hidden_refs=("content.private-answer-key", "nodes.web"),
+        evidence_refs=("evidence.scan-output",),
+        view_transitions=(
+            {
+                "transition_id": "disclose-answer-key",
+                "history_event_type": "observation_emitted",
+                "action_instance_id": "late-scan",
+                "information_ref": "content.private-answer-key",
+                "from_disposition": "hidden",
+                "to_disposition": "disclosed",
+                "effective_order": 10,
+            },
+            {
+                "transition_id": "discover-web-service",
+                "history_event_type": "observation_emitted",
+                "action_instance_id": "early-scan",
+                "information_ref": "nodes.web",
+                "from_disposition": "hidden",
+                "to_disposition": "discovered",
+                "effective_order": 20,
+            },
+        ),
+        view_relation_timeline=(
+            {
+                "transition_id": "initial",
+                "effective_order": -1,
+                "view_relation": {
+                    "content.private-answer-key": "hidden",
+                    "nodes.web": "hidden",
+                },
+            },
+            {
+                "transition_id": "disclose-answer-key",
+                "effective_order": 10,
+                "view_relation": {
+                    "content.private-answer-key": "disclosed",
+                    "nodes.web": "hidden",
+                },
+            },
+            {
+                "transition_id": "discover-web-service",
+                "effective_order": 20,
+                "view_relation": {
+                    "content.private-answer-key": "disclosed",
+                    "nodes.web": "discovered",
+                },
+            },
+        ),
+        spec={},
+    )
+    events = [
+        *_complete_behavior_history_payloads("early-scan"),
+        *_complete_behavior_history_payloads("late-scan"),
+    ]
+    events[2]["details"] = {"visible_refs": ["content.private-answer-key", "nodes.web"]}
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+            observation_boundaries={OBSERVATION_ADDRESS: boundary},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            (
+                "observation visible_refs may only contain participant-visible refs at effective_order 20: "
+                "'content.private-answer-key' has disposition 'hidden'"
+            ),
         )
     ]
 
