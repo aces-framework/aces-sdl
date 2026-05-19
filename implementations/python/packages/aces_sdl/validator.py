@@ -117,6 +117,12 @@ _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS = {
             "does not reference a declared observation_boundary"
         )
     ),
+    "participant.interaction-action-unbound": (
+        lambda i: (
+            f"Action contract '{i.action_name}' interaction related_action '{i.ref}' "
+            "does not reference a declared action_contract"
+        )
+    ),
 }
 
 

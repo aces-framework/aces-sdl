@@ -28,6 +28,7 @@ from aces_contracts.versions import (
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
+from aces_sdl.participant_behavior import ParticipantInteractionClass
 from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
 _PARTICIPANT_ACTION_CONTRACT_PREFIX = "participant.action-contract."
@@ -346,6 +347,8 @@ class ParticipantActionContractRuntime(ResolvedResource):
     semantic_version: str = ""
     lifecycle_state: str = ""
     behavioral_granularity: str = ""
+    interaction_classes: tuple[str, ...] = ()
+    shared_state_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1605,6 +1608,11 @@ class ParticipantBehaviorHistoryEvent:
     actor_provenance: str | None = None
     state_transition_kind: str | None = None
     post_state_digest: str | None = None
+    joint_action_set_id: str | None = None
+    realized_order: int | None = None
+    interaction_class: ParticipantInteractionClass | None = None
+    interaction_ref: str | None = None
+    shared_state_refs: tuple[str, ...] = ()
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -1631,6 +1639,7 @@ class ParticipantBehaviorHistoryEvent:
             )
         event_type_raw = payload.get("event_type")
         observation_status_raw = payload.get("observation_status")
+        interaction_class_raw = payload.get("interaction_class")
         return cls(
             event_type=(
                 event_type_raw
@@ -1659,6 +1668,21 @@ class ParticipantBehaviorHistoryEvent:
             post_state_digest=(
                 str(payload["post_state_digest"]) if payload.get("post_state_digest") is not None else None
             ),
+            joint_action_set_id=(
+                str(payload["joint_action_set_id"]) if payload.get("joint_action_set_id") is not None else None
+            ),
+            realized_order=payload.get("realized_order"),
+            interaction_class=(
+                None
+                if interaction_class_raw is None
+                else (
+                    interaction_class_raw
+                    if isinstance(interaction_class_raw, ParticipantInteractionClass)
+                    else ParticipantInteractionClass(str(interaction_class_raw))
+                )
+            ),
+            interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
+            shared_state_refs=tuple(str(ref) for ref in payload.get("shared_state_refs", ())),
             details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
         )
 
@@ -1675,6 +1699,11 @@ class ParticipantBehaviorHistoryEvent:
             "actor_provenance": self.actor_provenance,
             "state_transition_kind": self.state_transition_kind,
             "post_state_digest": self.post_state_digest,
+            "joint_action_set_id": self.joint_action_set_id,
+            "realized_order": self.realized_order,
+            "interaction_class": self.interaction_class.value if self.interaction_class is not None else None,
+            "interaction_ref": self.interaction_ref,
+            "shared_state_refs": list(self.shared_state_refs),
             "details": dict(self.details),
         }
 
@@ -1713,6 +1742,24 @@ class ParticipantBehaviorHistoryEvent:
             "state_transition_kind must be a non-empty string or None",
         )
         self._validate_optional_string(self.post_state_digest, "post_state_digest must be a non-empty string or None")
+        self._validate_optional_string(
+            self.joint_action_set_id,
+            "joint_action_set_id must be a non-empty string or None",
+        )
+        if self.realized_order is not None and (
+            not isinstance(self.realized_order, int) or isinstance(self.realized_order, bool) or self.realized_order < 0
+        ):
+            raise TypeError("realized_order must be a non-negative integer or None")
+        if self.interaction_class is not None and not isinstance(self.interaction_class, ParticipantInteractionClass):
+            raise TypeError("interaction_class must be a ParticipantInteractionClass or None")
+        self._validate_optional_string(self.interaction_ref, "interaction_ref must be a non-empty string or None")
+        if not isinstance(self.shared_state_refs, tuple):
+            raise TypeError("shared_state_refs must be a tuple")
+        for ref in self.shared_state_refs:
+            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
+        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
+            raise ValueError("shared_state_refs entries must be unique")
+        self._validate_interaction_fields()
         if not isinstance(self.details, dict):
             raise TypeError("participant behavior details must be a dict")
 
@@ -1738,6 +1785,36 @@ class ParticipantBehaviorHistoryEvent:
             ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED: self._validate_observation_emitted_fields,
         }
         validators[self.event_type]()
+
+    def _validate_interaction_fields(self) -> None:
+        if self.joint_action_set_id is None and self.realized_order is not None:
+            raise ValueError("realized_order requires joint_action_set_id")
+        if self.joint_action_set_id is not None and self.realized_order is None:
+            raise ValueError("joint_action_set_id requires realized_order")
+        if self.interaction_class is None:
+            if self.interaction_ref is not None:
+                raise ValueError("interaction_ref requires interaction_class")
+            return
+        if self.joint_action_set_id is None:
+            raise ValueError("interaction_class requires joint_action_set_id and realized_order")
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.COORDINATION,
+                ParticipantInteractionClass.INTERFERENCE,
+            }
+            and self.interaction_ref is None
+        ):
+            raise ValueError(f"{self.interaction_class.value} events require interaction_ref")
+        if (
+            self.interaction_class
+            in {
+                ParticipantInteractionClass.CONTENTION,
+                ParticipantInteractionClass.SHARED_STATE_CHANGE,
+            }
+            and not self.shared_state_refs
+        ):
+            raise ValueError(f"{self.interaction_class.value} events require shared_state_refs")
 
     def _validate_action_attempted_fields(self) -> None:
         if self.action_contract_address is None:

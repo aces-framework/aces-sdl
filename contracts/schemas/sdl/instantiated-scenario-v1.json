@@ -1509,6 +1509,13 @@
           "title": "Intended Effects",
           "type": "array"
         },
+        "interactions": {
+          "items": {
+            "$ref": "#/$defs/ParticipantInteractionDeclaration"
+          },
+          "title": "Interactions",
+          "type": "array"
+        },
         "lifecycle_state": {
           "$ref": "#/$defs/ParticipantActionLifecycle",
           "default": "active"
@@ -1583,6 +1590,55 @@
       ],
       "title": "ParticipantActionLifecycle",
       "type": "string"
+    },
+    "ParticipantInteractionClass": {
+      "description": "SEM-209 interaction classes for multi-participant behavior.",
+      "enum": [
+        "coordination",
+        "contention",
+        "interference",
+        "shared_state_change"
+      ],
+      "title": "ParticipantInteractionClass",
+      "type": "string"
+    },
+    "ParticipantInteractionDeclaration": {
+      "additionalProperties": false,
+      "description": "Declared interaction semantics for a participant action contract.",
+      "properties": {
+        "interaction_class": {
+          "$ref": "#/$defs/ParticipantInteractionClass"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "related_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Actions",
+          "type": "array"
+        },
+        "shared_state_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shared State Refs",
+          "type": "array"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "interaction_class",
+        "target",
+        "rationale"
+      ],
+      "title": "ParticipantInteractionDeclaration",
+      "type": "object"
     },
     "ParticipantObservationBoundary": {
       "additionalProperties": false,

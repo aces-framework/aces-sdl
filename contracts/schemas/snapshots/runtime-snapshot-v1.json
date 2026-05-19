@@ -229,6 +229,41 @@
           "title": "Event Type",
           "type": "string"
         },
+        "interaction_class": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParticipantInteractionClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interaction_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interaction Ref"
+        },
+        "joint_action_set_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Joint Action Set Id"
+        },
         "observation_boundary_address": {
           "anyOf": [
             {
@@ -268,6 +303,27 @@
           ],
           "default": null,
           "title": "Post State Digest"
+        },
+        "realized_order": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realized Order"
+        },
+        "shared_state_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shared State Refs",
+          "type": "array"
         },
         "state_transition_kind": {
           "anyOf": [
@@ -444,6 +500,17 @@
       ],
       "title": "ParticipantEpisodeStateModel",
       "type": "object"
+    },
+    "ParticipantInteractionClass": {
+      "description": "SEM-209 interaction classes for multi-participant behavior.",
+      "enum": [
+        "coordination",
+        "contention",
+        "interference",
+        "shared_state_change"
+      ],
+      "title": "ParticipantInteractionClass",
+      "type": "string"
     },
     "SnapshotEntryModel": {
       "additionalProperties": false,

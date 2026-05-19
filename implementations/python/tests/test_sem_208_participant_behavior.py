@@ -15,6 +15,7 @@ from aces_processor.models import (
 )
 from aces_sdl._errors import SDLValidationError
 from aces_sdl.parser import parse_sdl
+from aces_sdl.participant_behavior import ParticipantInteractionClass
 
 T0 = "2026-05-18T18:30:00Z"
 T1 = "2026-05-18T18:30:05Z"
@@ -47,6 +48,11 @@ def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -
             observation-expectations: [terminal scan result]
             evidence-expectations: [tool output]
             failure-classes: [target_unreachable]
+            interactions:
+              - interaction-class: shared_state_change
+                target: nodes.web.services.http
+                rationale: scan reads and updates participant-visible service knowledge
+                shared-state-refs: [participant.knowledge.services]
             external-mappings:
               - system: attack
                 identifier: T1046
@@ -75,6 +81,7 @@ def test_participant_behavior_contracts_parse_and_validate():
 
     assert scenario.action_contracts["scan"].semantic_version == "1.0.0"
     assert scenario.action_contracts["scan"].lifecycle_state.value == "active"
+    assert scenario.action_contracts["scan"].interactions[0].interaction_class.value == "shared_state_change"
     assert scenario.observation_boundaries["red-view"].projection_basis.startswith("participant-local")
     assert scenario.agents["red-agent"].observation_boundaries == ["red-view"]
 
@@ -96,11 +103,28 @@ def test_agent_observation_boundaries_must_resolve_to_declared_boundaries():
     )
 
 
+def test_participant_interactions_must_resolve_related_action_contracts():
+    scenario = _scenario_yaml().replace(
+        "        shared-state-refs: [participant.knowledge.services]",
+        ("        related-actions: [coordinate]\n        shared-state-refs: [participant.knowledge.services]"),
+    )
+
+    with pytest.raises(SDLValidationError) as excinfo:
+        parse_sdl(scenario)
+
+    assert (
+        "Action contract 'scan' interaction related_action 'coordinate' does not reference a declared action_contract"
+    ) in str(excinfo.value)
+
+
 def test_compiler_maps_participant_behavior_to_runtime_addresses():
     model = compile_runtime_model(parse_sdl(_scenario_yaml()))
 
     assert set(model.action_contracts) == {ACTION_ADDRESS}
     assert set(model.observation_boundaries) == {OBSERVATION_ADDRESS}
+    contract = model.action_contracts[ACTION_ADDRESS]
+    assert contract.interaction_classes == ("shared_state_change",)
+    assert contract.shared_state_refs == ("participant.knowledge.services",)
 
     binding = model.participant_behaviors[PARTICIPANT_ADDRESS]
     assert binding.participant_name == "red-agent"
@@ -120,6 +144,10 @@ def test_behavior_history_events_round_trip_with_compiled_addresses():
         action_instance_id=ACTION_INSTANCE,
         action_contract_address=ACTION_ADDRESS,
         actor_provenance="participant:red-agent",
+        joint_action_set_id="joint-0001",
+        realized_order=0,
+        interaction_class=ParticipantInteractionClass.SHARED_STATE_CHANGE,
+        shared_state_refs=("participant.knowledge.services",),
     )
 
     assert ParticipantBehaviorHistoryEvent.from_payload(event.to_payload()) == event
@@ -133,6 +161,36 @@ def test_behavior_history_events_round_trip_with_compiled_addresses():
             action_instance_id=ACTION_INSTANCE,
             action_contract_address="scan",
             actor_provenance="participant:red-agent",
+        )
+
+
+def test_behavior_history_requires_realized_order_for_joint_action_sets():
+    with pytest.raises(ValueError, match="joint_action_set_id requires realized_order"):
+        ParticipantBehaviorHistoryEvent(
+            event_type=ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED,
+            timestamp=T0,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            actor_provenance="participant:red-agent",
+            joint_action_set_id="joint-0001",
+        )
+
+
+def test_behavior_history_requires_shared_state_refs_for_shared_state_interactions():
+    with pytest.raises(ValueError, match="shared_state_change events require shared_state_refs"):
+        ParticipantBehaviorHistoryEvent(
+            event_type=ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED,
+            timestamp=T0,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            actor_provenance="participant:red-agent",
+            joint_action_set_id="joint-0001",
+            realized_order=0,
+            interaction_class=ParticipantInteractionClass.SHARED_STATE_CHANGE,
         )
 
 
