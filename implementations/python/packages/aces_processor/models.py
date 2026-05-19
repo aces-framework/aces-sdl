@@ -1640,6 +1640,11 @@ class ParticipantBehaviorHistoryEvent:
         event_type_raw = payload.get("event_type")
         observation_status_raw = payload.get("observation_status")
         interaction_class_raw = payload.get("interaction_class")
+        shared_state_refs_raw = payload.get("shared_state_refs", ())
+        if shared_state_refs_raw is None:
+            shared_state_refs_raw = ()
+        if not isinstance(shared_state_refs_raw, (list, tuple)):
+            raise TypeError("shared_state_refs must be a list of strings")
         return cls(
             event_type=(
                 event_type_raw
@@ -1682,7 +1687,7 @@ class ParticipantBehaviorHistoryEvent:
                 )
             ),
             interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
-            shared_state_refs=tuple(str(ref) for ref in payload.get("shared_state_refs", ())),
+            shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
             details=dict(payload.get("details", {})) if isinstance(payload.get("details", {}), Mapping) else {},
         )
 
@@ -1977,6 +1982,38 @@ def _participant_behavior_action_instance_violations(
             yield violation
 
 
+def _participant_behavior_joint_action_order_violations(
+    events: Iterable[ParticipantBehaviorHistoryEvent],
+) -> Iterator[tuple[str, str]]:
+    attempts_by_joint_set: dict[str, list[ParticipantBehaviorHistoryEvent]] = {}
+    for event in events:
+        if (
+            event.event_type == ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED
+            and event.joint_action_set_id is not None
+        ):
+            attempts_by_joint_set.setdefault(event.joint_action_set_id, []).append(event)
+
+    for joint_action_set_id, attempts in sorted(attempts_by_joint_set.items()):
+        attempts_by_order: dict[int, list[ParticipantBehaviorHistoryEvent]] = {}
+        for event in attempts:
+            if event.realized_order is None:
+                continue
+            attempts_by_order.setdefault(event.realized_order, []).append(event)
+        for realized_order, duplicate_attempts in sorted(attempts_by_order.items()):
+            if len(duplicate_attempts) <= 1:
+                continue
+            instances = ", ".join(
+                sorted(f"{event.participant_address}/{event.action_instance_id}" for event in duplicate_attempts)
+            )
+            yield (
+                f"joint-action-set.{joint_action_set_id}",
+                (
+                    f"joint action set realized_order {realized_order} is assigned to "
+                    f"multiple action_attempted events: {instances}"
+                ),
+            )
+
+
 def iter_participant_behavior_history_violations(
     participant_behavior_history: Any,
     *,
@@ -2004,6 +2041,32 @@ def iter_participant_behavior_history_violations(
         return
 
     yield from _participant_behavior_action_instance_violations(normalized_events)
+    yield from _participant_behavior_joint_action_order_violations(normalized_events)
+
+
+def iter_participant_behavior_joint_action_violations(
+    participant_behavior_history_by_participant: Any,
+) -> Iterator[tuple[str, str]]:
+    """Yield SEM-209 joint-action ordering violations across participant histories."""
+
+    if not isinstance(participant_behavior_history_by_participant, Mapping):
+        yield (_PARTICIPANT_BEHAVIOR_HISTORY_KEY, "participant behavior histories must be a mapping")
+        return
+
+    normalized_events: list[ParticipantBehaviorHistoryEvent] = []
+    for history in participant_behavior_history_by_participant.values():
+        if not isinstance(history, list):
+            continue
+        participant_events, entry_violations = _normalize_participant_behavior_events(
+            history,
+            action_contract_addresses=None,
+            observation_boundary_addresses=None,
+        )
+        if entry_violations:
+            continue
+        normalized_events.extend(participant_events)
+
+    yield from _participant_behavior_joint_action_order_violations(normalized_events)
 
 
 def iter_participant_episode_snapshot_violations(

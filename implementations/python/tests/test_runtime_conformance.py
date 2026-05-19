@@ -308,6 +308,91 @@ def test_runtime_snapshot_behavior_history_refs_must_match_snapshot_entries():
     assert not any("unknown action_contract_address" in message for message in messages)
 
 
+def test_runtime_snapshot_behavior_history_validates_joint_action_order_across_participants():
+    action_address = "participant.action-contract.scan"
+    boundary_address = "participant.observation-boundary.red-view"
+
+    def _snapshot_entry(address: str, resource_type: str) -> dict[str, object]:
+        return {
+            "address": address,
+            "domain": "participant",
+            "resource_type": resource_type,
+            "payload": {},
+            "ordering_dependencies": [],
+            "refresh_dependencies": [],
+            "status": "ready",
+        }
+
+    def _behavior_history(participant_address: str, action_instance_id: str) -> list[dict[str, object]]:
+        return [
+            {
+                "event_type": "action_attempted",
+                "timestamp": "2026-05-18T18:30:00Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "actor_provenance": f"participant:{participant_address.rsplit('.', 1)[-1]}",
+                "joint_action_set_id": "joint-0001",
+                "realized_order": 0,
+                "interaction_class": "shared_state_change",
+                "shared_state_refs": ["nodes.web.services.http"],
+                "details": {},
+            },
+            {
+                "event_type": "state_transition_recorded",
+                "timestamp": "2026-05-18T18:30:01Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "state_transition_kind": "knowledge-expanded",
+                "post_state_digest": f"sha256:{action_instance_id}",
+                "details": {},
+            },
+            {
+                "event_type": "observation_emitted",
+                "timestamp": "2026-05-18T18:30:02Z",
+                "participant_address": participant_address,
+                "episode_id": "episode-1",
+                "action_instance_id": action_instance_id,
+                "action_contract_address": action_address,
+                "observation_boundary_address": boundary_address,
+                "observation_status": "terminal",
+                "post_state_digest": f"sha256:{action_instance_id}",
+                "details": {},
+            },
+        ]
+
+    snapshot_payload = {
+        "schema_version": "runtime-snapshot/v1",
+        "entries": {
+            action_address: _snapshot_entry(action_address, "participant-action-contract"),
+            boundary_address: _snapshot_entry(boundary_address, "participant-observation-boundary"),
+        },
+        "orchestration_results": {},
+        "orchestration_history": {},
+        "evaluation_results": {},
+        "evaluation_history": {},
+        "participant_episode_results": {},
+        "participant_episode_history": {},
+        "participant_behavior_history": {
+            "participant.red": _behavior_history("participant.red", "scan-red-1"),
+            "participant.blue": _behavior_history("participant.blue", "scan-blue-1"),
+        },
+        "metadata": {},
+    }
+
+    diagnostics = _semantic_diagnostics("runtime-snapshot-v1", snapshot_payload)
+
+    assert any(
+        diagnostic.code == "conformance.semantic-invalid"
+        and diagnostic.address == "runtime.snapshot.participant-behavior-history.joint-action-set.joint-0001"
+        and "realized_order 0 is assigned to multiple action_attempted events" in diagnostic.message
+        for diagnostic in diagnostics
+    )
+
+
 def test_target_conformance_fails_when_declared_contracts_do_not_cover_profile_requirements():
     reference_manifest = create_stub_manifest()
     manifest = BackendManifest(

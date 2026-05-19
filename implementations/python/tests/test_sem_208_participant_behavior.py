@@ -27,10 +27,63 @@ ACTION_INSTANCE = "scan-0001"
 POST_STATE_DIGEST = "sha256:fb2f5a36c0d7d2a0"
 
 
+def _complete_behavior_history_payloads(
+    action_instance_id: str,
+    *,
+    realized_order: int | None = None,
+    participant_address: str = PARTICIPANT_ADDRESS,
+) -> list[dict[str, object]]:
+    action_kwargs = {}
+    if realized_order is not None:
+        action_kwargs = {
+            "joint_action_set_id": "joint-0001",
+            "realized_order": realized_order,
+            "interaction_class": ParticipantInteractionClass.SHARED_STATE_CHANGE,
+            "shared_state_refs": ("nodes.web.services.http",),
+        }
+    action = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.ACTION_ATTEMPTED,
+        timestamp=T0,
+        participant_address=participant_address,
+        episode_id="episode-1",
+        action_instance_id=action_instance_id,
+        action_contract_address=ACTION_ADDRESS,
+        actor_provenance=f"participant:{participant_address.rsplit('.', 1)[-1]}",
+        **action_kwargs,
+    )
+    transition = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.STATE_TRANSITION_RECORDED,
+        timestamp=T1,
+        participant_address=participant_address,
+        episode_id="episode-1",
+        action_instance_id=action_instance_id,
+        action_contract_address=ACTION_ADDRESS,
+        state_transition_kind="participant_knowledge_expanded",
+        post_state_digest=POST_STATE_DIGEST,
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T2,
+        participant_address=participant_address,
+        episode_id="episode-1",
+        action_instance_id=action_instance_id,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest=POST_STATE_DIGEST,
+    )
+    return [action.to_payload(), transition.to_payload(), observation.to_payload()]
+
+
 def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -> str:
     return textwrap.dedent(
         f"""
         name: sem-208
+        nodes:
+          web:
+            type: VM
+            resources: {{ram: 1 GiB, cpu: 1}}
+            services: [{{port: 80, name: http}}]
         entities:
           red-team:
             role: red
@@ -52,7 +105,7 @@ def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -
               - interaction-class: shared_state_change
                 target: nodes.web.services.http
                 rationale: scan reads and updates participant-visible service knowledge
-                shared-state-refs: [participant.knowledge.services]
+                shared-state-refs: [nodes.web.services.http]
             external-mappings:
               - system: attack
                 identifier: T1046
@@ -105,8 +158,8 @@ def test_agent_observation_boundaries_must_resolve_to_declared_boundaries():
 
 def test_participant_interactions_must_resolve_related_action_contracts():
     scenario = _scenario_yaml().replace(
-        "        shared-state-refs: [participant.knowledge.services]",
-        ("        related-actions: [coordinate]\n        shared-state-refs: [participant.knowledge.services]"),
+        "        shared-state-refs: [nodes.web.services.http]",
+        ("        related-actions: [coordinate]\n        shared-state-refs: [nodes.web.services.http]"),
     )
 
     with pytest.raises(SDLValidationError) as excinfo:
@@ -117,6 +170,36 @@ def test_participant_interactions_must_resolve_related_action_contracts():
     ) in str(excinfo.value)
 
 
+def test_participant_interactions_must_resolve_targets():
+    scenario = _scenario_yaml().replace(
+        "target: nodes.web.services.http",
+        "target: nodes.missing.services.http",
+    )
+
+    with pytest.raises(SDLValidationError) as excinfo:
+        parse_sdl(scenario)
+
+    assert (
+        "Action contract 'scan' interaction[0] target 'nodes.missing.services.http' "
+        "does not reference any defined targetable element"
+    ) in str(excinfo.value)
+
+
+def test_participant_interactions_must_resolve_shared_state_refs():
+    scenario = _scenario_yaml().replace(
+        "shared-state-refs: [nodes.web.services.http]",
+        "shared-state-refs: [nodes.missing.services.http]",
+    )
+
+    with pytest.raises(SDLValidationError) as excinfo:
+        parse_sdl(scenario)
+
+    assert (
+        "Action contract 'scan' interaction[0] shared_state_ref 'nodes.missing.services.http' "
+        "does not reference any defined targetable element"
+    ) in str(excinfo.value)
+
+
 def test_compiler_maps_participant_behavior_to_runtime_addresses():
     model = compile_runtime_model(parse_sdl(_scenario_yaml()))
 
@@ -124,7 +207,7 @@ def test_compiler_maps_participant_behavior_to_runtime_addresses():
     assert set(model.observation_boundaries) == {OBSERVATION_ADDRESS}
     contract = model.action_contracts[ACTION_ADDRESS]
     assert contract.interaction_classes == ("shared_state_change",)
-    assert contract.shared_state_refs == ("participant.knowledge.services",)
+    assert contract.shared_state_refs == ("nodes.web.services.http",)
 
     binding = model.participant_behaviors[PARTICIPANT_ADDRESS]
     assert binding.participant_name == "red-agent"
@@ -147,7 +230,7 @@ def test_behavior_history_events_round_trip_with_compiled_addresses():
         joint_action_set_id="joint-0001",
         realized_order=0,
         interaction_class=ParticipantInteractionClass.SHARED_STATE_CHANGE,
-        shared_state_refs=("participant.knowledge.services",),
+        shared_state_refs=("nodes.web.services.http",),
     )
 
     assert ParticipantBehaviorHistoryEvent.from_payload(event.to_payload()) == event
@@ -192,6 +275,25 @@ def test_behavior_history_requires_shared_state_refs_for_shared_state_interactio
             realized_order=0,
             interaction_class=ParticipantInteractionClass.SHARED_STATE_CHANGE,
         )
+
+
+def test_behavior_history_payload_rejects_string_shared_state_refs():
+    payload = {
+        "event_type": "action_attempted",
+        "timestamp": T0,
+        "participant_address": PARTICIPANT_ADDRESS,
+        "episode_id": "episode-1",
+        "action_instance_id": ACTION_INSTANCE,
+        "action_contract_address": ACTION_ADDRESS,
+        "actor_provenance": "participant:red-agent",
+        "joint_action_set_id": "joint-0001",
+        "realized_order": 0,
+        "interaction_class": "shared_state_change",
+        "shared_state_refs": "nodes.web.services.http",
+    }
+
+    with pytest.raises(TypeError, match="shared_state_refs must be a list of strings"):
+        ParticipantBehaviorHistoryEvent.from_payload(payload)
 
 
 def test_behavior_history_requires_terminal_observation_for_action_instance():
@@ -263,6 +365,31 @@ def test_behavior_history_pairs_state_transition_and_terminal_observation():
         )
         == []
     )
+
+
+def test_behavior_history_rejects_duplicate_realized_order_in_joint_action_set():
+    events = [
+        *_complete_behavior_history_payloads("scan-0001", realized_order=0),
+        *_complete_behavior_history_payloads("scan-0002", realized_order=0),
+    ]
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            events,
+            action_contract_addresses={ACTION_ADDRESS},
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "joint-action-set.joint-0001",
+            (
+                "joint action set realized_order 0 is assigned to multiple action_attempted events: "
+                f"{PARTICIPANT_ADDRESS}/scan-0001, {PARTICIPANT_ADDRESS}/scan-0002"
+            ),
+        )
+    ]
 
 
 def test_behavior_history_rejects_state_transition_observation_digest_mismatch():
