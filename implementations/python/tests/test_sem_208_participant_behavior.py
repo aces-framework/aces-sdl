@@ -126,12 +126,51 @@ def _scenario_yaml(*, actions: str = "[scan]", boundaries: str = "[red-view]") -
             procedure-basis: nmap service discovery
             realization-profile: backend-declared
             fidelity-claim: records participant discovery intent and terminal observation
-            preconditions: [authority-in-scope]
-            intended-effects: [discover network services]
+            preconditions:
+              - precondition-id: authority-in-scope
+                precondition-class: authority
+                description: red participant is authorized to scan the web service
+                support-refs: [agents.red-agent, nodes.web.services.http]
+              - precondition-id: target-service-present
+                precondition-class: target
+                description: target service exists in the participant action scope
+                support-refs: [nodes.web.services.http]
+              - precondition-id: backend-can-realize-scan
+                precondition-class: realization
+                description: backend can realize the scan action contract
+                support-refs: [backend.participant-runtime]
+            effects:
+              - effect-id: discover-network-services
+                effect-class: intended_effect
+                description: discover network services
+                target-refs: [nodes.web.services.http]
+              - effect-id: participant-service-knowledge-update
+                effect-class: side_effect
+                description: participant-local service knowledge changes
+                target-refs: [nodes.web.services.http]
+              - effect-id: terminal-scan-observation
+                effect-class: observation_effect
+                description: terminal scan observation
+                evidence-refs: [evidence.scan-output]
+              - effect-id: participant-view-discovers-node
+                effect-class: visibility_effect
+                description: participant view marks the web node discovered
+                target-refs: [nodes.web]
+              - effect-id: scan-output-evidence
+                effect-class: evidence_effect
+                description: scan output is retained as evidence
+                evidence-refs: [evidence.scan-output]
+              - effect-id: no-hidden-truth-effect
+                effect-class: no_effect
+                description: scan does not disclose hidden adjudication material
             state-transition-effects: [participant knowledge expands]
             observation-expectations: [terminal scan result]
             evidence-expectations: [tool output]
-            failure-classes: [target_unreachable]
+            failure-classes: [target_unavailable, precondition_unsatisfied, backend_error, unknown]
+            backend-failure-mappings:
+              - backend-error-code: backend.target-unreachable
+                failure-class: target_unavailable
+                diagnostic: backend target unreachable
             interactions:
               - interaction-class: shared_state_change
                 target: nodes.web.services.http
@@ -1462,12 +1501,14 @@ def test_behavior_history_schema_is_published_as_closed_world_contract():
 
     schema = generated["participant-behavior-history-event-stream-v1"]
     event_schema = schema["items"]
+    schema_defs = event_schema.get("$defs", schema.get("$defs", {}))
     details_schema = event_schema["properties"]["details"]
     if "$ref" in details_schema:
-        schema_defs = event_schema.get("$defs", schema.get("$defs", {}))
         details_schema = schema_defs[details_schema["$ref"].rsplit("/", 1)[-1]]
 
     assert event_schema["additionalProperties"] is False
     assert "ParticipantBehaviorHistoryEventModel" in event_schema["title"]
+    assert "action_result" in event_schema["properties"]
+    assert "ParticipantActionResultModel" in schema_defs
     assert details_schema["additionalProperties"] is False
     assert set(details_schema["properties"]) == {"visible_refs", "disclosed_refs", "evidence_refs"}

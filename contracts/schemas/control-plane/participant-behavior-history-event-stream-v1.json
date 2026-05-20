@@ -1,5 +1,267 @@
 {
   "$defs": {
+    "ParticipantActionEffectResultModel": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/ParticipantEffectClass"
+        },
+        "effect_id": {
+          "minLength": 1,
+          "title": "Effect Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "target_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Target Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "effect_id",
+        "effect_class",
+        "description"
+      ],
+      "title": "ParticipantActionEffectResultModel",
+      "type": "object"
+    },
+    "ParticipantActionPreconditionResultModel": {
+      "additionalProperties": false,
+      "properties": {
+        "action_contract_address": {
+          "minLength": 1,
+          "title": "Action Contract Address",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "episode_id": {
+          "minLength": 1,
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "observation_point": {
+          "minLength": 1,
+          "title": "Observation Point",
+          "type": "string"
+        },
+        "participant_address": {
+          "minLength": 1,
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "precondition_class": {
+          "$ref": "#/$defs/ParticipantPreconditionClass"
+        },
+        "precondition_id": {
+          "minLength": 1,
+          "title": "Precondition Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "satisfied",
+            "unsatisfied",
+            "unresolved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "support_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Support Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "precondition_id",
+        "precondition_class",
+        "status",
+        "participant_address",
+        "episode_id",
+        "action_contract_address",
+        "observation_point"
+      ],
+      "title": "ParticipantActionPreconditionResultModel",
+      "type": "object"
+    },
+    "ParticipantActionResultModel": {
+      "additionalProperties": false,
+      "properties": {
+        "action_contract_address": {
+          "minLength": 1,
+          "title": "Action Contract Address",
+          "type": "string"
+        },
+        "action_instance_id": {
+          "minLength": 1,
+          "title": "Action Instance Id",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/ParticipantActionEffectResultModel"
+          },
+          "title": "Effects",
+          "type": "array"
+        },
+        "episode_id": {
+          "minLength": 1,
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "failure_class": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParticipantFailureClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observation_point": {
+          "minLength": 1,
+          "title": "Observation Point",
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "participant_address": {
+          "minLength": 1,
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "preconditions": {
+          "items": {
+            "$ref": "#/$defs/ParticipantActionPreconditionResultModel"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "withheld",
+            "succeeded",
+            "failed",
+            "partial_success",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "participant_address",
+        "episode_id",
+        "action_instance_id",
+        "action_contract_address",
+        "observation_point"
+      ],
+      "title": "ParticipantActionResultModel",
+      "type": "object"
+    },
+    "ParticipantEffectClass": {
+      "description": "SEM-211 effect classes for participant action results.",
+      "enum": [
+        "intended_effect",
+        "side_effect",
+        "observation_effect",
+        "visibility_effect",
+        "detection_effect",
+        "evidence_effect",
+        "no_effect",
+        "unknown_effect"
+      ],
+      "title": "ParticipantEffectClass",
+      "type": "string"
+    },
+    "ParticipantFailureClass": {
+      "description": "SEM-211 portable failure classes for participant action attempts.",
+      "enum": [
+        "precondition_unsatisfied",
+        "unsupported_action",
+        "target_unavailable",
+        "authority_denied",
+        "resource_exhausted",
+        "timeout",
+        "interrupted",
+        "contention_lost",
+        "partial_success",
+        "unsafe_withheld",
+        "backend_error",
+        "unknown"
+      ],
+      "title": "ParticipantFailureClass",
+      "type": "string"
+    },
     "ParticipantInteractionClass": {
       "description": "SEM-209 interaction classes for multi-participant behavior.",
       "enum": [
@@ -41,6 +303,21 @@
       },
       "title": "ParticipantObservationDetailsModel",
       "type": "object"
+    },
+    "ParticipantPreconditionClass": {
+      "description": "SEM-211 precondition classes for participant action applicability.",
+      "enum": [
+        "authority",
+        "capability",
+        "target",
+        "knowledge",
+        "resource",
+        "temporal",
+        "interaction",
+        "realization"
+      ],
+      "title": "ParticipantPreconditionClass",
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -62,6 +339,17 @@
       "action_instance_id": {
         "title": "Action Instance Id",
         "type": "string"
+      },
+      "action_result": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ParticipantActionResultModel"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
       },
       "actor_provenance": {
         "anyOf": [

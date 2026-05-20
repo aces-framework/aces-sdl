@@ -8,7 +8,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from aces_sdl.participant_behavior import ParticipantInteractionClass
+from aces_sdl.participant_behavior import (
+    ParticipantEffectClass,
+    ParticipantFailureClass,
+    ParticipantInteractionClass,
+    ParticipantPreconditionClass,
+)
 from aces_sdl.scenario import InstantiatedScenario, Scenario
 from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler, model_validator
 from pydantic.json_schema import JsonSchemaValue
@@ -200,6 +205,43 @@ class ParticipantObservationDetailsModel(ContractModel):
     evidence_refs: list[NonEmptyString] = Field(default_factory=list)
 
 
+class ParticipantActionPreconditionResultModel(ContractModel):
+    precondition_id: NonEmptyString
+    precondition_class: ParticipantPreconditionClass
+    status: Literal["satisfied", "unsatisfied", "unresolved"]
+    participant_address: NonEmptyString
+    episode_id: NonEmptyString
+    action_contract_address: NonEmptyString
+    observation_point: NonEmptyString
+    support_refs: list[NonEmptyString] = Field(default_factory=list)
+    evidence_refs: list[NonEmptyString] = Field(default_factory=list)
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
+class ParticipantActionEffectResultModel(ContractModel):
+    effect_id: NonEmptyString
+    effect_class: ParticipantEffectClass
+    description: NonEmptyString
+    target_refs: list[NonEmptyString] = Field(default_factory=list)
+    evidence_refs: list[NonEmptyString] = Field(default_factory=list)
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
+class ParticipantActionResultModel(ContractModel):
+    status: Literal["accepted", "rejected", "withheld", "succeeded", "failed", "partial_success", "unknown"]
+    participant_address: NonEmptyString
+    episode_id: NonEmptyString
+    action_instance_id: NonEmptyString
+    action_contract_address: NonEmptyString
+    observation_point: NonEmptyString
+    preconditions: list[ParticipantActionPreconditionResultModel] = Field(default_factory=list)
+    effects: list[ParticipantActionEffectResultModel] = Field(default_factory=list)
+    failure_class: ParticipantFailureClass | None = None
+    observations: list[NonEmptyString] = Field(default_factory=list)
+    evidence_refs: list[NonEmptyString] = Field(default_factory=list)
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
 class ParticipantBehaviorHistoryEventModel(ContractModel):
     event_type: str
     timestamp: str
@@ -217,6 +259,7 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     interaction_class: ParticipantInteractionClass | None = None
     interaction_ref: str | None = None
     shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
+    action_result: ParticipantActionResultModel | None = None
     details: ParticipantObservationDetailsModel = Field(default_factory=ParticipantObservationDetailsModel)
 
 
@@ -1280,6 +1323,9 @@ __all__ = [
     "OrchestrationPlanModel",
     "OrchestratorCapabilitiesModel",
     "PARTICIPANT_EPISODE_STATE_SCHEMA_VERSION",
+    "ParticipantActionEffectResultModel",
+    "ParticipantActionPreconditionResultModel",
+    "ParticipantActionResultModel",
     "ParticipantBehaviorHistoryEventModel",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",

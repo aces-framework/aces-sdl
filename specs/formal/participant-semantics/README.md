@@ -761,13 +761,31 @@ Failure classes:
 - `backend_error`;
 - `unknown`.
 
-Minimum future implementation artifacts:
+Current implementation artifacts for the `SEM-211` slice:
 
-- controlled failure vocabulary;
-- typed action result contract;
-- diagnostics mapping backend errors to portable failure classes;
-- tests that invalid preconditions fail closed and do not produce silent
-  backend-local execution.
+- `implementations/python/packages/aces_sdl/participant_action_semantics.py`
+  defines controlled precondition, effect, and portable failure vocabularies
+  plus typed action-contract declarations and backend failure mappings;
+- `implementations/python/packages/aces_sdl/participant_behavior.py` embeds
+  those typed declarations in governed participant action contracts;
+- `implementations/python/packages/aces_processor/compiler.py` carries the
+  typed precondition classes, effect classes, failure classes, and backend
+  failure mappings into compiled participant action contracts;
+- `implementations/python/packages/aces_processor/models.py` defines typed
+  action precondition results, action effect results, action results,
+  fail-closed validation for unsatisfied or unresolved preconditions, behavior
+  history action-result embedding, compiled-contract validation for declared
+  effects and failure classes, and backend diagnostic mapping to portable
+  failure classes;
+- `implementations/python/packages/aces_contracts/contracts.py` publishes the
+  action-result payload shape in the participant behavior-history and runtime
+  snapshot schemas;
+- `implementations/python/tests/test_sem_211_participant_action_semantics.py`
+  covers positive contract compilation, controlled vocabulary rejection,
+  fail-closed unresolved preconditions, portable failure round-tripping,
+  participant-scope mismatch rejection, undeclared effect/failure-class
+  counterexamples, required terminal action results, and backend diagnostic
+  mapping.
 
 ## SEM-212 - Causality And Attribution Semantics
 

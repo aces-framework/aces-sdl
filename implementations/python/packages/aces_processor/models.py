@@ -28,7 +28,12 @@ from aces_contracts.versions import (
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
-from aces_sdl.participant_behavior import ParticipantInteractionClass
+from aces_sdl.participant_behavior import (
+    ParticipantEffectClass,
+    ParticipantFailureClass,
+    ParticipantInteractionClass,
+    ParticipantPreconditionClass,
+)
 from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
 _PARTICIPANT_ACTION_CONTRACT_PREFIX = "participant.action-contract."
@@ -204,6 +209,26 @@ class ParticipantObservationStatus(str, Enum):
     ORPHANED_ACTION = "orphaned_action"
 
 
+class ParticipantActionPreconditionStatus(str, Enum):
+    """Runtime resolution state for one SEM-211 action precondition."""
+
+    SATISFIED = "satisfied"
+    UNSATISFIED = "unsatisfied"
+    UNRESOLVED = "unresolved"
+
+
+class ParticipantActionResultStatus(str, Enum):
+    """Portable local status for a SEM-211 participant action attempt."""
+
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    WITHHELD = "withheld"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    PARTIAL_SUCCESS = "partial_success"
+    UNKNOWN = "unknown"
+
+
 _PARTICIPANT_EPISODE_TERMINAL_EVENTS: dict[
     ParticipantEpisodeHistoryEventType,
     ParticipantEpisodeTerminalReason,
@@ -347,8 +372,174 @@ class ParticipantActionContractRuntime(ResolvedResource):
     semantic_version: str = ""
     lifecycle_state: str = ""
     behavioral_granularity: str = ""
+    precondition_classes: tuple[str, ...] = ()
+    effect_classes: tuple[str, ...] = ()
+    failure_classes: tuple[str, ...] = ()
+    backend_failure_mappings: tuple[dict[str, str], ...] = ()
     interaction_classes: tuple[str, ...] = ()
     shared_state_refs: tuple[str, ...] = ()
+
+
+def map_backend_diagnostic_to_participant_failure(
+    diagnostic: Diagnostic | Mapping[str, Any] | str,
+    contract: ParticipantActionContractRuntime,
+) -> ParticipantFailureClass:
+    """Map a backend diagnostic to a portable SEM-211 failure class."""
+
+    if isinstance(diagnostic, Diagnostic):
+        code = diagnostic.code
+    elif isinstance(diagnostic, Mapping):
+        code = str(diagnostic.get("code", ""))
+    else:
+        code = str(diagnostic)
+
+    for mapping in contract.backend_failure_mappings:
+        if mapping.get("backend_error_code") == code:
+            return ParticipantFailureClass(str(mapping.get("failure_class", ParticipantFailureClass.UNKNOWN.value)))
+    return ParticipantFailureClass.BACKEND_ERROR if code else ParticipantFailureClass.UNKNOWN
+
+
+def _as_string_set(value: Any) -> set[str]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        return set()
+    return {str(item) for item in value if isinstance(item, str) and item}
+
+
+def _contract_sem211_precondition_refs(
+    contract: ParticipantActionContractRuntime,
+) -> dict[tuple[str, str], dict[str, set[str]]]:
+    preconditions = contract.spec.get("preconditions", ())
+    if isinstance(preconditions, (str, bytes, Mapping)) or not isinstance(preconditions, Iterable):
+        return {}
+    refs: dict[tuple[str, str], dict[str, set[str]]] = {}
+    for item in preconditions:
+        if not isinstance(item, Mapping) or not item.get("precondition_id") or not item.get("precondition_class"):
+            continue
+        key = (str(item.get("precondition_id", "")), str(item.get("precondition_class", "")))
+        refs[key] = {
+            "support_refs": _as_string_set(item.get("support_refs", ())),
+            "evidence_refs": _as_string_set(item.get("evidence_refs", ())),
+        }
+    return refs
+
+
+def _contract_sem211_effect_refs(
+    contract: ParticipantActionContractRuntime,
+) -> dict[tuple[str, str], dict[str, set[str]]]:
+    effects = contract.spec.get("effects", ())
+    if isinstance(effects, (str, bytes, Mapping)) or not isinstance(effects, Iterable):
+        return {}
+    refs: dict[tuple[str, str], dict[str, set[str]]] = {}
+    for item in effects:
+        if not isinstance(item, Mapping) or not item.get("effect_id") or not item.get("effect_class"):
+            continue
+        key = (str(item.get("effect_id", "")), str(item.get("effect_class", "")))
+        refs[key] = {
+            "target_refs": _as_string_set(item.get("target_refs", ())),
+            "evidence_refs": _as_string_set(item.get("evidence_refs", ())),
+        }
+    return refs
+
+
+def _contract_uses_sem211_action_results(contract: ParticipantActionContractRuntime) -> bool:
+    return bool(contract.precondition_classes or contract.effect_classes or contract.failure_classes)
+
+
+def validate_participant_action_result_contract(
+    result: "ParticipantActionResult",
+    contract: ParticipantActionContractRuntime,
+) -> list[str]:
+    """Return SEM-211 contract violations for one typed action result."""
+
+    violations: list[str] = []
+    if result.action_contract_address != contract.address:
+        violations.append(
+            "action_result action_contract_address "
+            f"{result.action_contract_address!r} does not match compiled action contract {contract.address!r}"
+        )
+        return violations
+
+    declared_precondition_classes = set(contract.precondition_classes)
+    declared_effect_classes = set(contract.effect_classes)
+    declared_failure_classes = set(contract.failure_classes)
+    declared_precondition_refs = _contract_sem211_precondition_refs(contract)
+    declared_effect_refs = _contract_sem211_effect_refs(contract)
+    declared_preconditions = set(declared_precondition_refs)
+    declared_effects = set(declared_effect_refs)
+    reported_preconditions: set[tuple[str, str]] = set()
+
+    for precondition in result.preconditions:
+        precondition_key = (precondition.precondition_id, precondition.precondition_class.value)
+        reported_preconditions.add(precondition_key)
+        if precondition.precondition_class.value not in declared_precondition_classes:
+            violations.append(
+                f"action_result precondition {precondition.precondition_id!r} uses undeclared "
+                f"precondition_class {precondition.precondition_class.value!r}"
+            )
+        if declared_preconditions and precondition_key not in declared_preconditions:
+            violations.append(
+                f"action_result precondition {precondition.precondition_id!r}/"
+                f"{precondition.precondition_class.value!r} is not declared by {contract.address}"
+            )
+        declared_refs = declared_precondition_refs.get(precondition_key)
+        if declared_refs is not None:
+            undeclared_support_refs = set(precondition.support_refs) - declared_refs["support_refs"]
+            undeclared_evidence_refs = set(precondition.evidence_refs) - declared_refs["evidence_refs"]
+            for ref in sorted(undeclared_support_refs):
+                violations.append(
+                    f"action_result precondition {precondition.precondition_id!r} reports undeclared "
+                    f"support_ref {ref!r}"
+                )
+            for ref in sorted(undeclared_evidence_refs):
+                violations.append(
+                    f"action_result precondition {precondition.precondition_id!r} reports undeclared "
+                    f"evidence_ref {ref!r}"
+                )
+    for precondition_id, precondition_class in sorted(declared_preconditions - reported_preconditions):
+        violations.append(
+            f"action_result is missing declared precondition {precondition_id!r}/"
+            f"{precondition_class!r} for {contract.address}"
+        )
+
+    for effect in result.effects:
+        effect_key = (effect.effect_id, effect.effect_class.value)
+        if effect.effect_class.value not in declared_effect_classes:
+            violations.append(
+                f"action_result effect {effect.effect_id!r} uses undeclared effect_class {effect.effect_class.value!r}"
+            )
+        if declared_effects and effect_key not in declared_effects:
+            violations.append(
+                f"action_result effect {effect.effect_id!r}/"
+                f"{effect.effect_class.value!r} is not declared by {contract.address}"
+            )
+        declared_refs = declared_effect_refs.get(effect_key)
+        if declared_refs is not None:
+            undeclared_target_refs = set(effect.target_refs) - declared_refs["target_refs"]
+            undeclared_evidence_refs = set(effect.evidence_refs) - declared_refs["evidence_refs"]
+            for ref in sorted(undeclared_target_refs):
+                violations.append(f"action_result effect {effect.effect_id!r} reports undeclared target_ref {ref!r}")
+            for ref in sorted(undeclared_evidence_refs):
+                violations.append(f"action_result effect {effect.effect_id!r} reports undeclared evidence_ref {ref!r}")
+
+    declared_result_evidence_refs = {
+        ref for declared_refs in declared_precondition_refs.values() for ref in declared_refs["evidence_refs"]
+    } | {ref for declared_refs in declared_effect_refs.values() for ref in declared_refs["evidence_refs"]}
+    reported_result_evidence_refs = {
+        ref for precondition in result.preconditions for ref in precondition.evidence_refs
+    } | {ref for effect in result.effects for ref in effect.evidence_refs}
+    if declared_precondition_refs or declared_effect_refs:
+        for ref in sorted(set(result.evidence_refs) - declared_result_evidence_refs):
+            violations.append(f"action_result reports undeclared evidence_ref {ref!r}")
+        for ref in sorted(set(result.evidence_refs) & declared_result_evidence_refs - reported_result_evidence_refs):
+            violations.append(
+                f"action_result evidence_ref {ref!r} is not grounded in reported precondition or effect evidence_refs"
+            )
+
+    if result.failure_class is not None and result.failure_class.value not in declared_failure_classes:
+        violations.append(
+            f"action_result failure_class {result.failure_class.value!r} is not declared by {contract.address}"
+        )
+    return violations
 
 
 @dataclass(frozen=True)
@@ -1599,6 +1790,401 @@ def _participant_observation_status_from_payload(value: Any) -> ParticipantObser
     return ParticipantObservationStatus(str(value))
 
 
+def _validate_required_string(value: Any, message: str) -> None:
+    if not isinstance(value, str) or not value:
+        raise TypeError(message)
+
+
+def _validate_optional_string(value: Any, message: str) -> None:
+    if value is not None and (not isinstance(value, str) or not value):
+        raise TypeError(message)
+
+
+def _validate_optional_address(value: str | None, *, prefix: str, message: str) -> None:
+    if value is not None and (not isinstance(value, str) or not value.startswith(prefix)):
+        raise ValueError(message)
+
+
+def _validate_required_address(value: str, *, prefix: str, message: str) -> None:
+    if not isinstance(value, str) or not value.startswith(prefix):
+        raise ValueError(message)
+
+
+def _tuple_of_non_empty_strings(value: Any, *, field_name: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError(f"{field_name} must be a list of strings")
+    values = tuple(value)
+    refs = tuple(str(item) for item in values if isinstance(item, str) and item)
+    if len(refs) != len(values):
+        raise TypeError(f"{field_name} entries must be non-empty strings")
+    if len(set(refs)) != len(refs):
+        raise ValueError(f"{field_name} entries must be unique")
+    return refs
+
+
+def _observation_point_matches_action_instance(observation_point: str, action_instance_id: str) -> bool:
+    return action_instance_id in observation_point.split(":")
+
+
+@dataclass(frozen=True)
+class ParticipantActionPreconditionResult:
+    """Resolved applicability state for one typed SEM-211 precondition."""
+
+    precondition_id: str
+    precondition_class: ParticipantPreconditionClass
+    status: ParticipantActionPreconditionStatus
+    participant_address: str
+    episode_id: str
+    action_contract_address: str
+    observation_point: str
+    support_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantActionPreconditionResult":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant action precondition result must be a mapping")
+        missing = [
+            key
+            for key in (
+                "precondition_id",
+                "precondition_class",
+                "status",
+                "participant_address",
+                "episode_id",
+                "action_contract_address",
+                "observation_point",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError("participant action precondition result is missing required fields: " + ", ".join(missing))
+        precondition_class_raw = payload.get("precondition_class")
+        status_raw = payload.get("status")
+        return cls(
+            precondition_id=str(payload.get("precondition_id")),
+            precondition_class=(
+                precondition_class_raw
+                if isinstance(precondition_class_raw, ParticipantPreconditionClass)
+                else ParticipantPreconditionClass(str(precondition_class_raw))
+            ),
+            status=(
+                status_raw
+                if isinstance(status_raw, ParticipantActionPreconditionStatus)
+                else ParticipantActionPreconditionStatus(str(status_raw))
+            ),
+            participant_address=str(payload.get("participant_address")),
+            episode_id=str(payload.get("episode_id")),
+            action_contract_address=str(payload.get("action_contract_address")),
+            observation_point=str(payload.get("observation_point")),
+            support_refs=_tuple_of_non_empty_strings(payload.get("support_refs", ()), field_name="support_refs"),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs", ()), field_name="evidence_refs"),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "precondition_id": self.precondition_id,
+            "precondition_class": self.precondition_class.value,
+            "status": self.status.value,
+            "participant_address": self.participant_address,
+            "episode_id": self.episode_id,
+            "action_contract_address": self.action_contract_address,
+            "observation_point": self.observation_point,
+            "support_refs": list(self.support_refs),
+            "evidence_refs": list(self.evidence_refs),
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(
+            self.precondition_id,
+            "precondition_id must be a non-empty string",
+        )
+        if not isinstance(self.precondition_class, ParticipantPreconditionClass):
+            raise TypeError("precondition_class must be a ParticipantPreconditionClass")
+        if not isinstance(self.status, ParticipantActionPreconditionStatus):
+            raise TypeError("status must be a ParticipantActionPreconditionStatus")
+        _validate_required_string(
+            self.participant_address,
+            "participant action precondition participant_address must be a non-empty string",
+        )
+        _validate_required_string(
+            self.episode_id,
+            "participant action precondition episode_id must be a non-empty string",
+        )
+        _validate_required_address(
+            self.action_contract_address,
+            prefix=_PARTICIPANT_ACTION_CONTRACT_PREFIX,
+            message="action_contract_address must be a compiled participant action contract address",
+        )
+        _validate_required_string(
+            self.observation_point,
+            "observation_point must be a non-empty string",
+        )
+        _tuple_of_non_empty_strings(self.support_refs, field_name="support_refs")
+        _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+
+
+@dataclass(frozen=True)
+class ParticipantActionEffectResult:
+    """Realized effect entry for a SEM-211 participant action result."""
+
+    effect_id: str
+    effect_class: ParticipantEffectClass
+    description: str
+    target_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantActionEffectResult":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant action effect result must be a mapping")
+        missing = [key for key in ("effect_id", "effect_class", "description") if key not in payload]
+        if missing:
+            raise ValueError("participant action effect result is missing required fields: " + ", ".join(missing))
+        effect_class_raw = payload.get("effect_class")
+        return cls(
+            effect_id=str(payload.get("effect_id")),
+            effect_class=(
+                effect_class_raw
+                if isinstance(effect_class_raw, ParticipantEffectClass)
+                else ParticipantEffectClass(str(effect_class_raw))
+            ),
+            description=str(payload.get("description")),
+            target_refs=_tuple_of_non_empty_strings(payload.get("target_refs", ()), field_name="target_refs"),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs", ()), field_name="evidence_refs"),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "effect_id": self.effect_id,
+            "effect_class": self.effect_class.value,
+            "description": self.description,
+            "target_refs": list(self.target_refs),
+            "evidence_refs": list(self.evidence_refs),
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(self.effect_id, "effect_id must be a non-empty string")
+        if not isinstance(self.effect_class, ParticipantEffectClass):
+            raise TypeError("effect_class must be a ParticipantEffectClass")
+        _validate_required_string(
+            self.description,
+            "participant action effect description must be a non-empty string",
+        )
+        _tuple_of_non_empty_strings(self.target_refs, field_name="target_refs")
+        _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+        if self.effect_class not in {ParticipantEffectClass.NO_EFFECT, ParticipantEffectClass.UNKNOWN_EFFECT}:
+            if not self.target_refs and not self.evidence_refs:
+                raise ValueError(f"{self.effect_class.value} effects require target_refs or evidence_refs")
+
+
+_PARTICIPANT_ACTION_FAILURE_STATUSES = frozenset(
+    {
+        ParticipantActionResultStatus.REJECTED,
+        ParticipantActionResultStatus.WITHHELD,
+        ParticipantActionResultStatus.FAILED,
+        ParticipantActionResultStatus.PARTIAL_SUCCESS,
+        ParticipantActionResultStatus.UNKNOWN,
+    }
+)
+_PARTICIPANT_ACTION_SUCCESS_STATUSES = frozenset(
+    {
+        ParticipantActionResultStatus.ACCEPTED,
+        ParticipantActionResultStatus.SUCCEEDED,
+        ParticipantActionResultStatus.PARTIAL_SUCCESS,
+    }
+)
+_PARTICIPANT_ACTION_TERMINAL_EFFECT_STATUSES = frozenset(
+    {
+        ParticipantActionResultStatus.SUCCEEDED,
+        ParticipantActionResultStatus.PARTIAL_SUCCESS,
+    }
+)
+
+
+@dataclass(frozen=True)
+class ParticipantActionResult:
+    """Typed SEM-211 local result for a participant action attempt."""
+
+    status: ParticipantActionResultStatus
+    participant_address: str
+    episode_id: str
+    action_instance_id: str
+    action_contract_address: str
+    observation_point: str
+    preconditions: tuple[ParticipantActionPreconditionResult, ...] = ()
+    effects: tuple[ParticipantActionEffectResult, ...] = ()
+    failure_class: ParticipantFailureClass | None = None
+    observations: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantActionResult":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant action result must be a mapping")
+        missing = [
+            key
+            for key in (
+                "status",
+                "participant_address",
+                "episode_id",
+                "action_instance_id",
+                "action_contract_address",
+                "observation_point",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError("participant action result is missing required fields: " + ", ".join(missing))
+        status_raw = payload.get("status")
+        failure_raw = payload.get("failure_class")
+        preconditions_raw = payload.get("preconditions", ())
+        effects_raw = payload.get("effects", ())
+        if isinstance(preconditions_raw, (str, bytes, Mapping)) or not isinstance(preconditions_raw, Iterable):
+            raise TypeError("preconditions must be a list of participant action precondition results")
+        if isinstance(effects_raw, (str, bytes, Mapping)) or not isinstance(effects_raw, Iterable):
+            raise TypeError("effects must be a list of participant action effect results")
+        return cls(
+            status=(
+                status_raw
+                if isinstance(status_raw, ParticipantActionResultStatus)
+                else ParticipantActionResultStatus(str(status_raw))
+            ),
+            participant_address=str(payload.get("participant_address")),
+            episode_id=str(payload.get("episode_id")),
+            action_instance_id=str(payload.get("action_instance_id")),
+            action_contract_address=str(payload.get("action_contract_address")),
+            observation_point=str(payload.get("observation_point")),
+            preconditions=tuple(ParticipantActionPreconditionResult.from_payload(item) for item in preconditions_raw),
+            effects=tuple(ParticipantActionEffectResult.from_payload(item) for item in effects_raw),
+            failure_class=(
+                None
+                if failure_raw is None
+                else (
+                    failure_raw
+                    if isinstance(failure_raw, ParticipantFailureClass)
+                    else ParticipantFailureClass(str(failure_raw))
+                )
+            ),
+            observations=_tuple_of_non_empty_strings(payload.get("observations", ()), field_name="observations"),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs", ()), field_name="evidence_refs"),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "participant_address": self.participant_address,
+            "episode_id": self.episode_id,
+            "action_instance_id": self.action_instance_id,
+            "action_contract_address": self.action_contract_address,
+            "observation_point": self.observation_point,
+            "preconditions": [item.to_payload() for item in self.preconditions],
+            "effects": [item.to_payload() for item in self.effects],
+            "failure_class": self.failure_class.value if self.failure_class is not None else None,
+            "observations": list(self.observations),
+            "evidence_refs": list(self.evidence_refs),
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ParticipantActionResultStatus):
+            raise TypeError("status must be a ParticipantActionResultStatus")
+        _validate_required_string(
+            self.participant_address,
+            "participant action result participant_address must be a non-empty string",
+        )
+        _validate_required_string(
+            self.episode_id,
+            "participant action result episode_id must be a non-empty string",
+        )
+        _validate_required_string(
+            self.action_instance_id,
+            "participant action result action_instance_id must be a non-empty string",
+        )
+        _validate_required_address(
+            self.action_contract_address,
+            prefix=_PARTICIPANT_ACTION_CONTRACT_PREFIX,
+            message="action_contract_address must be a compiled participant action contract address",
+        )
+        _validate_required_string(
+            self.observation_point,
+            "observation_point must be a non-empty string",
+        )
+        if not _observation_point_matches_action_instance(self.observation_point, self.action_instance_id):
+            raise ValueError("action result observation_point must be anchored to action_instance_id")
+        if not isinstance(self.preconditions, tuple):
+            raise TypeError("preconditions must be a tuple")
+        if not self.preconditions:
+            raise ValueError("participant action results require precondition results")
+        if any(not isinstance(item, ParticipantActionPreconditionResult) for item in self.preconditions):
+            raise TypeError("preconditions must contain ParticipantActionPreconditionResult values")
+        if len({item.precondition_id for item in self.preconditions}) != len(self.preconditions):
+            raise ValueError("precondition result ids must be unique")
+        if not isinstance(self.effects, tuple):
+            raise TypeError("effects must be a tuple")
+        if any(not isinstance(item, ParticipantActionEffectResult) for item in self.effects):
+            raise TypeError("effects must contain ParticipantActionEffectResult values")
+        if len({item.effect_id for item in self.effects}) != len(self.effects):
+            raise ValueError("effect result ids must be unique")
+        if self.failure_class is not None and not isinstance(self.failure_class, ParticipantFailureClass):
+            raise TypeError("failure_class must be a ParticipantFailureClass or None")
+        _tuple_of_non_empty_strings(self.observations, field_name="observations")
+        _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+        self._validate_scope()
+        self._validate_fail_closed()
+
+    def _validate_scope(self) -> None:
+        for precondition in self.preconditions:
+            if precondition.participant_address != self.participant_address:
+                raise ValueError("precondition participant_address must match action result participant_address")
+            if precondition.episode_id != self.episode_id:
+                raise ValueError("precondition episode_id must match action result episode_id")
+            if precondition.action_contract_address != self.action_contract_address:
+                raise ValueError(
+                    "precondition action_contract_address must match action result action_contract_address"
+                )
+            if not _observation_point_matches_action_instance(precondition.observation_point, self.action_instance_id):
+                raise ValueError("precondition observation_point must be anchored to action result action_instance_id")
+
+    def _validate_fail_closed(self) -> None:
+        blocked = [
+            item
+            for item in self.preconditions
+            if item.status
+            in {
+                ParticipantActionPreconditionStatus.UNSATISFIED,
+                ParticipantActionPreconditionStatus.UNRESOLVED,
+            }
+        ]
+        if blocked and self.status in _PARTICIPANT_ACTION_SUCCESS_STATUSES:
+            raise ValueError("unsatisfied or unresolved preconditions fail closed")
+        if blocked and self.failure_class is None:
+            raise ValueError("unsatisfied or unresolved preconditions require a portable failure_class")
+        if self.status == ParticipantActionResultStatus.SUCCEEDED:
+            if self.failure_class is not None:
+                raise ValueError("succeeded action results may not report failure_class")
+        if self.status == ParticipantActionResultStatus.ACCEPTED and self.failure_class is not None:
+            raise ValueError("accepted action results may not report failure_class")
+        if self.status in _PARTICIPANT_ACTION_TERMINAL_EFFECT_STATUSES:
+            if not self.effects:
+                raise ValueError(f"{self.status.value} action results require declared effects")
+        if self.status in _PARTICIPANT_ACTION_FAILURE_STATUSES and self.failure_class is None:
+            raise ValueError(f"{self.status.value} action results require a portable failure_class")
+
+
 @dataclass(frozen=True)
 class ParticipantBehaviorHistoryEvent:
     """Internal normalized participant behavior history event.
@@ -1625,6 +2211,7 @@ class ParticipantBehaviorHistoryEvent:
     interaction_class: ParticipantInteractionClass | None = None
     interaction_ref: str | None = None
     shared_state_refs: tuple[str, ...] = ()
+    action_result: ParticipantActionResult | None = None
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -1653,6 +2240,7 @@ class ParticipantBehaviorHistoryEvent:
         observation_status_raw = payload.get("observation_status")
         interaction_class_raw = payload.get("interaction_class")
         shared_state_refs_raw = payload.get("shared_state_refs", ())
+        action_result_raw = payload.get("action_result")
         if shared_state_refs_raw is None:
             shared_state_refs_raw = ()
         if not isinstance(shared_state_refs_raw, (list, tuple)):
@@ -1710,6 +2298,15 @@ class ParticipantBehaviorHistoryEvent:
             ),
             interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
             shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
+            action_result=(
+                None
+                if action_result_raw is None
+                else (
+                    action_result_raw
+                    if isinstance(action_result_raw, ParticipantActionResult)
+                    else ParticipantActionResult.from_payload(action_result_raw)
+                )
+            ),
             details=details,
         )
 
@@ -1731,6 +2328,7 @@ class ParticipantBehaviorHistoryEvent:
             "interaction_class": self.interaction_class.value if self.interaction_class is not None else None,
             "interaction_ref": self.interaction_ref,
             "shared_state_refs": list(self.shared_state_refs),
+            "action_result": self.action_result.to_payload() if self.action_result is not None else None,
             "details": dict(self.details),
         }
 
@@ -1787,6 +2385,8 @@ class ParticipantBehaviorHistoryEvent:
         if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
             raise ValueError("shared_state_refs entries must be unique")
         self._validate_interaction_fields()
+        if self.action_result is not None and not isinstance(self.action_result, ParticipantActionResult):
+            raise TypeError("action_result must be a ParticipantActionResult or None")
         if not isinstance(self.details, dict):
             raise TypeError("participant behavior details must be a dict")
 
@@ -1852,6 +2452,8 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("action_attempted events may not report observation fields")
         if self.state_transition_kind is not None or self.post_state_digest is not None:
             raise ValueError("action_attempted events may not report state-transition fields")
+        if self.action_result is not None:
+            raise ValueError("action_attempted events may not report action_result")
 
     def _validate_state_transition_fields(self) -> None:
         if self.action_contract_address is None:
@@ -1862,6 +2464,8 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("state_transition_recorded events require post_state_digest")
         if self.observation_boundary_address is not None or self.observation_status is not None:
             raise ValueError("state_transition_recorded events may not report observation fields")
+        if self.action_result is not None:
+            raise ValueError("state_transition_recorded events may not report action_result")
 
     def _validate_observation_emitted_fields(self) -> None:
         if self.action_contract_address is None:
@@ -1874,6 +2478,25 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("terminal observation_emitted events require post_state_digest")
         if self.state_transition_kind is not None:
             raise ValueError("observation_emitted events may not report state_transition_kind")
+        if self.action_result is not None:
+            self._validate_action_result_scope()
+
+    def _validate_action_result_scope(self) -> None:
+        if self.action_result is None:
+            return
+        if self.action_result.participant_address != self.participant_address:
+            raise ValueError("action_result participant_address must match event participant_address")
+        if self.action_result.episode_id != self.episode_id:
+            raise ValueError("action_result episode_id must match event episode_id")
+        if self.action_result.action_instance_id != self.action_instance_id:
+            raise ValueError("action_result action_instance_id must match event action_instance_id")
+        if self.action_result.action_contract_address != self.action_contract_address:
+            raise ValueError("action_result action_contract_address must match event action_contract_address")
+        if (
+            self.observation_status in _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES
+            and self.action_result.status == ParticipantActionResultStatus.ACCEPTED
+        ):
+            raise ValueError("terminal observation action_result must report a terminal status")
 
 
 _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES = frozenset(
@@ -2109,6 +2732,142 @@ def _participant_behavior_visibility_detail_violations(
     ]
 
 
+def _participant_behavior_action_result_visible_ref_violations(
+    *,
+    locator: str,
+    owner_label: str,
+    field_name: str,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    owner_prefix = f" {owner_label}" if owner_label else ""
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if disposition is None:
+            continue
+        if disposition in _PARTICIPANT_VISIBLE_VIEW_DISPOSITIONS:
+            continue
+        violations.append(
+            (
+                locator,
+                (
+                    f"action_result{owner_prefix} {field_name} {ref!r} is not participant-visible "
+                    f"at effective_order {effective_order}: disposition {disposition!r}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_action_result_evidence_ref_violations(
+    *,
+    locator: str,
+    owner_label: str,
+    field_name: str,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    owner_prefix = f" {owner_label}" if owner_label else ""
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if ref in boundary.evidence_refs or disposition == "evidence_only":
+            continue
+        suffix = f": disposition {disposition!r}" if disposition is not None else ""
+        violations.append(
+            (
+                locator,
+                (
+                    f"action_result{owner_prefix} {field_name} {ref!r} is not authorized evidence "
+                    f"at effective_order {effective_order}{suffix}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_action_result_ref_authorization_violations(
+    *,
+    event: ParticipantBehaviorHistoryEvent,
+    locator: str,
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    if event.action_result is None:
+        return []
+    violations: list[tuple[str, str]] = []
+    for precondition in event.action_result.preconditions:
+        owner_label = f"precondition {precondition.precondition_id!r}"
+        violations.extend(
+            _participant_behavior_action_result_visible_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="support_ref",
+                refs=precondition.support_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_action_result_evidence_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="evidence_ref",
+                refs=precondition.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+    for effect in event.action_result.effects:
+        owner_label = f"effect {effect.effect_id!r}"
+        violations.extend(
+            _participant_behavior_action_result_visible_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="target_ref",
+                refs=effect.target_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_action_result_evidence_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="evidence_ref",
+                refs=effect.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+    violations.extend(
+        _participant_behavior_action_result_evidence_ref_violations(
+            locator=locator,
+            owner_label="",
+            field_name="evidence_ref",
+            refs=event.action_result.evidence_refs,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+    )
+    return violations
+
+
 def _participant_behavior_history_anchor_indexes(
     events: Iterable[ParticipantBehaviorHistoryEvent],
 ) -> tuple[dict[str, int], dict[str, int], dict[tuple[str, str | None], int]]:
@@ -2320,6 +3079,39 @@ def _participant_behavior_observation_visibility_violations(
         )
 
 
+def _participant_behavior_action_result_ref_authorization_violations_for_events(
+    events: list[ParticipantBehaviorHistoryEvent],
+    *,
+    observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
+) -> Iterator[tuple[str, str]]:
+    action_attempts, state_transitions, observations = _participant_behavior_history_anchor_indexes(events)
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        if event.action_result is None:
+            continue
+        boundary_address = event.observation_boundary_address or ""
+        boundary = observation_boundaries.get(boundary_address)
+        if boundary is None:
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        relation, effective_order = _participant_behavior_observation_effective_relation(
+            observation_index=index,
+            boundary_address=boundary_address,
+            boundary=boundary,
+            action_attempts=action_attempts,
+            state_transitions=state_transitions,
+            observations=observations,
+        )
+        yield from _participant_behavior_action_result_ref_authorization_violations(
+            event=event,
+            locator=locator,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+
+
 def _participant_behavior_address_violations(
     event: ParticipantBehaviorHistoryEvent,
     *,
@@ -2353,6 +3145,31 @@ def _participant_behavior_address_violations(
             )
         )
     return violations
+
+
+def _participant_behavior_action_result_contract_violations(
+    events: Iterable[ParticipantBehaviorHistoryEvent],
+    *,
+    action_contracts: Mapping[str, ParticipantActionContractRuntime],
+) -> Iterator[tuple[str, str]]:
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        if event.observation_status not in _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES:
+            continue
+        action_contract_address = event.action_contract_address or ""
+        contract = action_contracts.get(action_contract_address)
+        if contract is None or not _contract_uses_sem211_action_results(contract):
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        if event.action_result is None:
+            yield (
+                locator,
+                f"terminal observation must carry SEM-211 action_result for {action_contract_address}",
+            )
+            continue
+        for violation in validate_participant_action_result_contract(event.action_result, contract):
+            yield (locator, violation)
 
 
 def _normalize_participant_behavior_events(
@@ -2488,6 +3305,7 @@ def iter_participant_behavior_history_violations(
     participant_behavior_history: Any,
     *,
     action_contract_addresses: set[str] | frozenset[str] | None,
+    action_contracts: Mapping[str, ParticipantActionContractRuntime] | None = None,
     observation_boundary_addresses: set[str] | frozenset[str] | None,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime] | None = None,
     participant_episode_history: Any = None,
@@ -2499,7 +3317,8 @@ def iter_participant_behavior_history_violations(
     paired with the state transition digest it reports. When compiled address
     sets are provided, it also rejects references outside those sets. When
     compiled observation boundaries are provided, SEM-210 observation details
-    are checked against the time-indexed participant view relation.
+    and SEM-211 action-result references are checked against the time-indexed
+    participant view relation.
     """
 
     if not isinstance(participant_behavior_history, list):
@@ -2521,6 +3340,11 @@ def iter_participant_behavior_history_violations(
     yield from _participant_behavior_detail_shape_violations_for_events(normalized_events)
     yield from _participant_behavior_action_instance_violations(normalized_events)
     yield from _participant_behavior_joint_action_order_violations(normalized_events)
+    if action_contracts is not None:
+        yield from _participant_behavior_action_result_contract_violations(
+            normalized_events,
+            action_contracts=action_contracts,
+        )
     if observation_boundaries is not None:
         yield from _participant_behavior_transition_anchor_violations(
             normalized_events,
@@ -2528,6 +3352,10 @@ def iter_participant_behavior_history_violations(
             participant_episode_history=participant_episode_history,
         )
         yield from _participant_behavior_observation_visibility_violations(
+            normalized_events,
+            observation_boundaries=observation_boundaries,
+        )
+        yield from _participant_behavior_action_result_ref_authorization_violations_for_events(
             normalized_events,
             observation_boundaries=observation_boundaries,
         )
