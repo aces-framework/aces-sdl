@@ -6,6 +6,7 @@ import textwrap
 
 import pytest
 from aces_processor.compiler import compile_runtime_model
+from aces_processor.control_plane_store import LocalControlPlaneStore
 from aces_processor.models import (
     Diagnostic,
     ParticipantActionEffectResult,
@@ -16,6 +17,7 @@ from aces_processor.models import (
     ParticipantBehaviorHistoryEvent,
     ParticipantBehaviorHistoryEventType,
     ParticipantObservationStatus,
+    RuntimeSnapshot,
     iter_participant_behavior_history_violations,
     map_backend_diagnostic_to_participant_failure,
 )
@@ -177,6 +179,16 @@ def _satisfied_preconditions(
             observation_point="episode-step:scan-0001:attempt",
             support_refs=("nodes.web.services.http",),
         ),
+        ParticipantActionPreconditionResult(
+            precondition_id="backend-can-realize-scan",
+            precondition_class=ParticipantPreconditionClass.REALIZATION,
+            status=ParticipantActionPreconditionStatus.SATISFIED,
+            participant_address=participant_address,
+            episode_id="episode-1",
+            action_contract_address=ACTION_ADDRESS,
+            observation_point="episode-step:scan-0001:attempt",
+            support_refs=("backend.participant-runtime",),
+        ),
     )
 
 
@@ -304,6 +316,21 @@ def test_successful_action_result_requires_declared_effects():
         )
 
 
+def test_partial_success_action_result_requires_declared_effects():
+    with pytest.raises(ValueError, match="partial_success action results require declared effects"):
+        ParticipantActionResult(
+            status=ParticipantActionResultStatus.PARTIAL_SUCCESS,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            observation_point="episode-step:scan-0001:terminal-observation",
+            preconditions=_satisfied_preconditions(),
+            effects=(),
+            failure_class=ParticipantFailureClass.PARTIAL_SUCCESS,
+        )
+
+
 def test_side_effect_results_require_target_or_evidence_refs():
     with pytest.raises(ValueError, match="side_effect effects require target_refs or evidence_refs"):
         ParticipantActionEffectResult(
@@ -354,6 +381,33 @@ def test_terminal_observation_action_result_must_match_behavior_event_scope():
     )
 
     with pytest.raises(ValueError, match="action_result participant_address must match event participant_address"):
+        ParticipantBehaviorHistoryEvent(
+            event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+            timestamp=T0,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            observation_boundary_address=OBSERVATION_ADDRESS,
+            observation_status=ParticipantObservationStatus.TERMINAL,
+            post_state_digest="sha256:scan",
+            action_result=result,
+        )
+
+
+def test_terminal_observation_rejects_nonterminal_accepted_action_result():
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.ACCEPTED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:attempt-accepted",
+        preconditions=_satisfied_preconditions(),
+        effects=(),
+    )
+
+    with pytest.raises(ValueError, match="terminal observation action_result must report a terminal status"):
         ParticipantBehaviorHistoryEvent(
             event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
             timestamp=T0,
@@ -419,6 +473,71 @@ def test_terminal_observation_requires_sem_211_action_result_when_contract_avail
         (
             "runtime.snapshot.participant-behavior-history[2]",
             f"terminal observation must carry SEM-211 action_result for {ACTION_ADDRESS}",
+        )
+    ]
+
+
+def test_action_result_must_report_every_declared_precondition():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions()[:2],
+        effects=_declared_effects(),
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            [
+                {
+                    "event_type": "action_attempted",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "actor_provenance": "participant:red-agent",
+                    "details": {},
+                },
+                {
+                    "event_type": "state_transition_recorded",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "state_transition_kind": "participant_knowledge_expanded",
+                    "post_state_digest": "sha256:scan",
+                    "details": {},
+                },
+                observation.to_payload(),
+            ],
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            f"action_result is missing declared precondition 'backend-can-realize-scan'/'realization' for {ACTION_ADDRESS}",
         )
     ]
 
@@ -519,7 +638,7 @@ def test_action_result_failure_class_must_be_declared_by_compiled_contract():
         action_instance_id=ACTION_INSTANCE,
         action_contract_address=ACTION_ADDRESS,
         observation_point="episode-step:scan-0001:attempt",
-        preconditions=(unresolved,),
+        preconditions=(*_satisfied_preconditions()[:2], unresolved),
         effects=(),
         failure_class=ParticipantFailureClass.AUTHORITY_DENIED,
         diagnostics=("backend rejected action outside portable contract",),
@@ -593,3 +712,42 @@ def test_backend_diagnostic_mapping_returns_portable_failure_class():
         )
         == ParticipantFailureClass.BACKEND_ERROR
     )
+
+
+def test_local_control_plane_store_preserves_participant_behavior_history(tmp_path):
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=_declared_effects(),
+        evidence_refs=("evidence.scan-output",),
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+    snapshot = RuntimeSnapshot(
+        participant_behavior_history={
+            PARTICIPANT_ADDRESS: [
+                observation.to_payload(),
+            ]
+        }
+    )
+    store = LocalControlPlaneStore(tmp_path / "control-plane")
+
+    store.save_snapshot(snapshot)
+    loaded = store.load_snapshot()
+
+    assert loaded.participant_behavior_history == snapshot.participant_behavior_history

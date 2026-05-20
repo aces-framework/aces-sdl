@@ -89,6 +89,10 @@ def _snapshot_payload(snapshot: RuntimeSnapshot) -> dict[str, Any]:
             participant_address: list(events)
             for participant_address, events in snapshot.participant_episode_history.items()
         },
+        "participant_behavior_history": {
+            participant_address: list(events)
+            for participant_address, events in snapshot.participant_behavior_history.items()
+        },
         "metadata": dict(snapshot.metadata),
     }
 
@@ -120,6 +124,10 @@ def _snapshot_from_payload(payload: dict[str, Any]) -> RuntimeSnapshot:
         participant_episode_history={
             participant_address: list(events)
             for participant_address, events in payload.get("participant_episode_history", {}).items()
+        },
+        participant_behavior_history={
+            participant_address: list(events)
+            for participant_address, events in payload.get("participant_behavior_history", {}).items()
         },
         metadata=dict(payload.get("metadata", {})),
     )

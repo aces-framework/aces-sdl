@@ -444,9 +444,11 @@ def validate_participant_action_result_contract(
     declared_failure_classes = set(contract.failure_classes)
     declared_preconditions = _contract_sem211_preconditions(contract)
     declared_effects = _contract_sem211_effects(contract)
+    reported_preconditions: set[tuple[str, str]] = set()
 
     for precondition in result.preconditions:
         precondition_key = (precondition.precondition_id, precondition.precondition_class.value)
+        reported_preconditions.add(precondition_key)
         if precondition.precondition_class.value not in declared_precondition_classes:
             violations.append(
                 f"action_result precondition {precondition.precondition_id!r} uses undeclared "
@@ -457,6 +459,11 @@ def validate_participant_action_result_contract(
                 f"action_result precondition {precondition.precondition_id!r}/"
                 f"{precondition.precondition_class.value!r} is not declared by {contract.address}"
             )
+    for precondition_id, precondition_class in sorted(declared_preconditions - reported_preconditions):
+        violations.append(
+            f"action_result is missing declared precondition {precondition_id!r}/"
+            f"{precondition_class!r} for {contract.address}"
+        )
 
     for effect in result.effects:
         effect_key = (effect.effect_id, effect.effect_class.value)
@@ -1930,6 +1937,12 @@ _PARTICIPANT_ACTION_SUCCESS_STATUSES = frozenset(
         ParticipantActionResultStatus.PARTIAL_SUCCESS,
     }
 )
+_PARTICIPANT_ACTION_TERMINAL_EFFECT_STATUSES = frozenset(
+    {
+        ParticipantActionResultStatus.SUCCEEDED,
+        ParticipantActionResultStatus.PARTIAL_SUCCESS,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -2092,8 +2105,11 @@ class ParticipantActionResult:
         if self.status == ParticipantActionResultStatus.SUCCEEDED:
             if self.failure_class is not None:
                 raise ValueError("succeeded action results may not report failure_class")
+        if self.status == ParticipantActionResultStatus.ACCEPTED and self.failure_class is not None:
+            raise ValueError("accepted action results may not report failure_class")
+        if self.status in _PARTICIPANT_ACTION_TERMINAL_EFFECT_STATUSES:
             if not self.effects:
-                raise ValueError("succeeded action results require declared effects")
+                raise ValueError(f"{self.status.value} action results require declared effects")
         if self.status in _PARTICIPANT_ACTION_FAILURE_STATUSES and self.failure_class is None:
             raise ValueError(f"{self.status.value} action results require a portable failure_class")
 
@@ -2405,6 +2421,11 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("action_result action_instance_id must match event action_instance_id")
         if self.action_result.action_contract_address != self.action_contract_address:
             raise ValueError("action_result action_contract_address must match event action_contract_address")
+        if (
+            self.observation_status in _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES
+            and self.action_result.status == ParticipantActionResultStatus.ACCEPTED
+        ):
+            raise ValueError("terminal observation action_result must report a terminal status")
 
 
 _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES = frozenset(
