@@ -10,6 +10,14 @@ from enum import Enum
 from pydantic import Field, field_validator, model_validator
 
 from ._base import SDLModel
+from .participant_action_semantics import (
+    ParticipantActionEffect,
+    ParticipantActionPrecondition,
+    ParticipantBackendFailureMapping,
+    ParticipantEffectClass,  # noqa: F401 - re-exported for existing participant behavior imports
+    ParticipantFailureClass,
+    ParticipantPreconditionClass,  # noqa: F401 - re-exported for existing participant behavior imports
+)
 
 
 class ParticipantActionLifecycle(str, Enum):
@@ -192,13 +200,13 @@ class ParticipantActionContract(SDLModel):
     procedure_basis: str
     realization_profile: str
     fidelity_claim: str
-    preconditions: list[str] = Field(default_factory=list)
-    intended_effects: list[str] = Field(default_factory=list)
-    side_effects: list[str] = Field(default_factory=list)
+    preconditions: list[ParticipantActionPrecondition] = Field(default_factory=list)
+    effects: list[ParticipantActionEffect] = Field(default_factory=list)
     state_transition_effects: list[str] = Field(default_factory=list)
     observation_expectations: list[str] = Field(default_factory=list)
     evidence_expectations: list[str] = Field(default_factory=list)
-    failure_classes: list[str] = Field(default_factory=list)
+    failure_classes: list[ParticipantFailureClass] = Field(default_factory=list)
+    backend_failure_mappings: list[ParticipantBackendFailureMapping] = Field(default_factory=list)
     interactions: list[ParticipantInteractionDeclaration] = Field(default_factory=list)
     external_mappings: list[ExternalMappingLoss] = Field(default_factory=list)
 
@@ -213,6 +221,48 @@ class ParticipantActionContract(SDLModel):
         if not value.strip():
             raise ValueError("participant action contract fields must be non-empty")
         return value
+
+    @field_validator(
+        "state_transition_effects",
+        "observation_expectations",
+        "evidence_expectations",
+    )
+    @classmethod
+    def _require_non_empty_items(cls, values: list[str]) -> list[str]:
+        for value in values:
+            if not value.strip():
+                raise ValueError("participant action contract list entries must be non-empty")
+        if len(set(values)) != len(values):
+            raise ValueError("participant action contract list entries must be unique")
+        return values
+
+    @model_validator(mode="after")
+    def _validate_sem211_payload(self) -> "ParticipantActionContract":
+        if not self.preconditions:
+            raise ValueError("participant action contracts require typed preconditions")
+        if not self.effects:
+            raise ValueError("participant action contracts require typed effects")
+        if not self.failure_classes:
+            raise ValueError("participant action contracts require controlled failure_classes")
+        precondition_ids = [item.precondition_id for item in self.preconditions]
+        if len(set(precondition_ids)) != len(precondition_ids):
+            raise ValueError("participant action precondition_id values must be unique")
+        effect_ids = [item.effect_id for item in self.effects]
+        if len(set(effect_ids)) != len(effect_ids):
+            raise ValueError("participant action effect_id values must be unique")
+        if len(set(self.failure_classes)) != len(self.failure_classes):
+            raise ValueError("participant action failure_classes must be unique")
+        mapped_codes = [mapping.backend_error_code for mapping in self.backend_failure_mappings]
+        if len(set(mapped_codes)) != len(mapped_codes):
+            raise ValueError("participant backend_failure_mappings backend_error_code values must be unique")
+        declared_failures = set(self.failure_classes)
+        for mapping in self.backend_failure_mappings:
+            if mapping.failure_class not in declared_failures:
+                raise ValueError(
+                    f"backend failure mapping {mapping.backend_error_code!r} "
+                    f"uses undeclared failure_class {mapping.failure_class.value!r}"
+                )
+        return self
 
 
 class ParticipantViewRule(SDLModel):

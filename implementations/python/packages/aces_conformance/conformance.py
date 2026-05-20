@@ -44,6 +44,7 @@ from aces_processor.manager import (
 from aces_processor.models import (
     Diagnostic,
     EvaluationExecutionState,
+    ParticipantActionContractRuntime,
     ParticipantBehaviorHistoryEvent,
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
@@ -460,12 +461,14 @@ def _participant_behavior_snapshot_references(
     snapshot: RuntimeSnapshot,
 ) -> tuple[
     set[str],
+    dict[str, ParticipantActionContractRuntime],
     set[str],
     dict[str, ParticipantObservationBoundaryRuntime],
     dict[str, set[str]],
     dict[str, set[str]],
 ]:
     action_contract_addresses: set[str] = set()
+    action_contracts: dict[str, ParticipantActionContractRuntime] = {}
     observation_boundary_addresses: set[str] = set()
     observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = {}
     participant_action_addresses: dict[str, set[str]] = {}
@@ -474,6 +477,29 @@ def _participant_behavior_snapshot_references(
         for candidate in {entry_address, entry.address}:
             if candidate.startswith("participant.action-contract."):
                 action_contract_addresses.add(candidate)
+                action_contracts[candidate] = ParticipantActionContractRuntime(
+                    address=candidate,
+                    name=str(entry.payload.get("name", "")),
+                    action_name=str(entry.payload.get("action_name", "")),
+                    semantic_version=str(entry.payload.get("semantic_version", "")),
+                    lifecycle_state=str(entry.payload.get("lifecycle_state", "")),
+                    behavioral_granularity=str(entry.payload.get("behavioral_granularity", "")),
+                    precondition_classes=tuple(str(item) for item in entry.payload.get("precondition_classes", ())),
+                    effect_classes=tuple(str(item) for item in entry.payload.get("effect_classes", ())),
+                    failure_classes=tuple(str(item) for item in entry.payload.get("failure_classes", ())),
+                    backend_failure_mappings=tuple(
+                        dict(item)
+                        for item in entry.payload.get("backend_failure_mappings", ())
+                        if isinstance(item, Mapping)
+                    ),
+                    interaction_classes=tuple(str(item) for item in entry.payload.get("interaction_classes", ())),
+                    shared_state_refs=tuple(str(item) for item in entry.payload.get("shared_state_refs", ())),
+                    spec=(
+                        dict(entry.payload.get("spec", {}))
+                        if isinstance(entry.payload.get("spec", {}), Mapping)
+                        else {}
+                    ),
+                )
             elif candidate.startswith("participant.observation-boundary."):
                 observation_boundary_addresses.add(candidate)
                 observation_boundaries[candidate] = ParticipantObservationBoundaryRuntime(
@@ -510,6 +536,7 @@ def _participant_behavior_snapshot_references(
                 }
     return (
         action_contract_addresses,
+        action_contracts,
         observation_boundary_addresses,
         observation_boundaries,
         participant_action_addresses,
@@ -535,6 +562,7 @@ def _participant_behavior_history_diagnostics(
     payload: Any,
     *,
     action_contract_addresses: set[str] | None = None,
+    action_contracts: dict[str, ParticipantActionContractRuntime] | None = None,
     observation_boundary_addresses: set[str] | None = None,
     observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] | None = None,
     participant_episode_history: Any = None,
@@ -545,6 +573,7 @@ def _participant_behavior_history_diagnostics(
     for address, message in iter_participant_behavior_history_violations(
         payload,
         action_contract_addresses=action_contract_addresses,
+        action_contracts=action_contracts,
         observation_boundary_addresses=observation_boundary_addresses,
         observation_boundaries=observation_boundaries,
         participant_episode_history=participant_episode_history,
@@ -564,6 +593,7 @@ def _participant_behavior_snapshot_diagnostics(
     diagnostics: list[Diagnostic] = []
     (
         action_contract_addresses,
+        action_contracts,
         observation_boundary_addresses,
         observation_boundaries,
         participant_action_addresses,
@@ -592,6 +622,7 @@ def _participant_behavior_snapshot_diagnostics(
                     if has_participant_action_binding
                     else action_contract_addresses
                 ),
+                action_contracts=action_contracts,
                 observation_boundary_addresses=participant_known_boundary_addresses,
                 observation_boundaries=participant_boundaries,
                 participant_episode_history=snapshot.participant_episode_history.get(participant_address),

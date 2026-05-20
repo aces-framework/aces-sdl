@@ -1474,8 +1474,22 @@
       "additionalProperties": false,
       "description": "Governed semantic contract for one participant action name.",
       "properties": {
+        "backend_failure_mappings": {
+          "items": {
+            "$ref": "#/$defs/ParticipantBackendFailureMapping"
+          },
+          "title": "Backend Failure Mappings",
+          "type": "array"
+        },
         "behavioral_granularity": {
           "$ref": "#/$defs/ParticipantActionGranularity"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/ParticipantActionEffect"
+          },
+          "title": "Effects",
+          "type": "array"
         },
         "evidence_expectations": {
           "items": {
@@ -1493,7 +1507,7 @@
         },
         "failure_classes": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/ParticipantFailureClass"
           },
           "title": "Failure Classes",
           "type": "array"
@@ -1501,13 +1515,6 @@
         "fidelity_claim": {
           "title": "Fidelity Claim",
           "type": "string"
-        },
-        "intended_effects": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Intended Effects",
-          "type": "array"
         },
         "interactions": {
           "items": {
@@ -1529,7 +1536,7 @@
         },
         "preconditions": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/ParticipantActionPrecondition"
           },
           "title": "Preconditions",
           "type": "array"
@@ -1545,13 +1552,6 @@
         "semantic_version": {
           "title": "Semantic Version",
           "type": "string"
-        },
-        "side_effects": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Side Effects",
-          "type": "array"
         },
         "state_transition_effects": {
           "items": {
@@ -1569,6 +1569,44 @@
         "fidelity_claim"
       ],
       "title": "ParticipantActionContract",
+      "type": "object"
+    },
+    "ParticipantActionEffect": {
+      "additionalProperties": false,
+      "description": "Typed SEM-211 effect declaration on an action contract.",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/ParticipantEffectClass"
+        },
+        "effect_id": {
+          "title": "Effect Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "target_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "effect_id",
+        "effect_class",
+        "description"
+      ],
+      "title": "ParticipantActionEffect",
       "type": "object"
     },
     "ParticipantActionGranularity": {
@@ -1589,6 +1627,102 @@
         "deprecated"
       ],
       "title": "ParticipantActionLifecycle",
+      "type": "string"
+    },
+    "ParticipantActionPrecondition": {
+      "additionalProperties": false,
+      "description": "Typed SEM-211 applicability precondition on an action contract.",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "precondition_class": {
+          "$ref": "#/$defs/ParticipantPreconditionClass"
+        },
+        "precondition_id": {
+          "title": "Precondition Id",
+          "type": "string"
+        },
+        "support_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Support Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "precondition_id",
+        "precondition_class",
+        "description"
+      ],
+      "title": "ParticipantActionPrecondition",
+      "type": "object"
+    },
+    "ParticipantBackendFailureMapping": {
+      "additionalProperties": false,
+      "description": "Mapping from a backend diagnostic code to a portable SEM-211 failure.",
+      "properties": {
+        "backend_error_code": {
+          "title": "Backend Error Code",
+          "type": "string"
+        },
+        "diagnostic": {
+          "title": "Diagnostic",
+          "type": "string"
+        },
+        "failure_class": {
+          "$ref": "#/$defs/ParticipantFailureClass"
+        }
+      },
+      "required": [
+        "backend_error_code",
+        "failure_class",
+        "diagnostic"
+      ],
+      "title": "ParticipantBackendFailureMapping",
+      "type": "object"
+    },
+    "ParticipantEffectClass": {
+      "description": "SEM-211 effect classes for participant action results.",
+      "enum": [
+        "intended_effect",
+        "side_effect",
+        "observation_effect",
+        "visibility_effect",
+        "detection_effect",
+        "evidence_effect",
+        "no_effect",
+        "unknown_effect"
+      ],
+      "title": "ParticipantEffectClass",
+      "type": "string"
+    },
+    "ParticipantFailureClass": {
+      "description": "SEM-211 portable failure classes for participant action attempts.",
+      "enum": [
+        "precondition_unsatisfied",
+        "unsupported_action",
+        "target_unavailable",
+        "authority_denied",
+        "resource_exhausted",
+        "timeout",
+        "interrupted",
+        "contention_lost",
+        "partial_success",
+        "unsafe_withheld",
+        "backend_error",
+        "unknown"
+      ],
+      "title": "ParticipantFailureClass",
       "type": "string"
     },
     "ParticipantInformationBoundaryClass": {
@@ -1739,6 +1873,21 @@
       ],
       "title": "ParticipantObservationBoundary",
       "type": "object"
+    },
+    "ParticipantPreconditionClass": {
+      "description": "SEM-211 precondition classes for participant action applicability.",
+      "enum": [
+        "authority",
+        "capability",
+        "target",
+        "knowledge",
+        "resource",
+        "temporal",
+        "interaction",
+        "realization"
+      ],
+      "title": "ParticipantPreconditionClass",
+      "type": "string"
     },
     "ParticipantViewDisposition": {
       "description": "SEM-210 visibility disposition for one information object.",

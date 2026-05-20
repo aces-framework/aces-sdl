@@ -967,6 +967,30 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
                 for ref in interaction.get("shared_state_refs", [])
             ]
         )
+        precondition_classes = _dedupe(
+            [
+                str(precondition.get("precondition_class", ""))
+                for precondition in contract_spec.get("preconditions", [])
+                if isinstance(precondition, dict) and precondition.get("precondition_class")
+            ]
+        )
+        effect_classes = _dedupe(
+            [
+                str(effect.get("effect_class", ""))
+                for effect in contract_spec.get("effects", [])
+                if isinstance(effect, dict) and effect.get("effect_class")
+            ]
+        )
+        failure_classes = _dedupe(str(failure_class) for failure_class in contract_spec.get("failure_classes", []))
+        backend_failure_mappings = tuple(
+            {
+                "backend_error_code": str(mapping.get("backend_error_code", "")),
+                "failure_class": str(mapping.get("failure_class", "")),
+                "diagnostic": str(mapping.get("diagnostic", "")),
+            }
+            for mapping in contract_spec.get("backend_failure_mappings", [])
+            if isinstance(mapping, dict)
+        )
         action_contracts[_action_contract_address(name)] = ParticipantActionContractRuntime(
             address=_action_contract_address(name),
             name=name,
@@ -974,6 +998,10 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
             semantic_version=str(contract_spec.get("semantic_version", "")),
             lifecycle_state=str(contract_spec.get("lifecycle_state", "")),
             behavioral_granularity=str(contract_spec.get("behavioral_granularity", "")),
+            precondition_classes=precondition_classes,
+            effect_classes=effect_classes,
+            failure_classes=failure_classes,
+            backend_failure_mappings=backend_failure_mappings,
             interaction_classes=interaction_classes,
             shared_state_refs=shared_state_refs,
             spec=contract_spec,
