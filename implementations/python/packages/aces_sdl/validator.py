@@ -123,6 +123,30 @@ _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS = {
             "does not reference a declared action_contract"
         )
     ),
+    "participant.view-rule-ref-unbound": (
+        lambda i: (
+            f"Observation boundary '{i.boundary_name}' view_rule information_ref '{i.ref}' "
+            "is not declared by observable_refs, hidden_refs, or evidence_refs"
+        )
+    ),
+    "participant.view-rule-evidence-unbound": (
+        lambda i: (
+            f"Observation boundary '{i.boundary_name}' view_rule evidence_ref '{i.ref}' "
+            "is not declared by evidence_refs"
+        )
+    ),
+    "participant.view-transition-ref-unbound": (
+        lambda i: (
+            f"Observation boundary '{i.boundary_name}' view_transition '{i.transition_id}' "
+            f"information_ref '{i.ref}' is not declared by observable_refs, hidden_refs, or evidence_refs"
+        )
+    ),
+    "participant.view-transition-evidence-unbound": (
+        lambda i: (
+            f"Observation boundary '{i.boundary_name}' view_transition '{i.transition_id}' "
+            f"evidence_ref '{i.ref}' is not declared by evidence_refs"
+        )
+    ),
 }
 
 

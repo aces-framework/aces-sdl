@@ -661,15 +661,60 @@ Design commitments:
 - participant-visible artifacts and adjudication/evidence artifacts are
   separated.
 
-Minimum future implementation artifacts:
+Implemented transition discipline:
 
-- view-boundary contract or semantic helper;
-- validation for hidden truth and participant exposure declarations;
-- leakage and holdout fixtures proving private benchmark material cannot cross
-  into participant-visible observations without an explicit disclosure rule;
-- evidence/provenance disclosure fields for realized views;
-- tests proving that hidden truth cannot appear in participant observations
-  unless explicitly disclosed.
+- `view_rules` define the initial view relation `V_p,0`; a transition
+  `from_disposition` must match that current relation and cannot redefine the
+  initial state;
+- every `view_transition` carries an explicit integer `effective_order`, an
+  `effective_from` label, a behavior-history anchor
+  (`history_event_type`, plus `action_instance_id` except for `episode_close`),
+  non-empty `evidence_refs`, `certainty`, and `latency_profile`;
+- compiled participant observation boundaries sort transitions by
+  `effective_order` and publish `view_relation_timeline` snapshots; dynamic
+  discovery, inference, disclosure, concealment, and deception are read from
+  those snapshots rather than from lifetime aggregate fields;
+- runtime participant observation details that declare visible, disclosed, or
+  evidence refs are checked against the compiled `V_p,t` snapshot derived from
+  behavior-history anchors at or before the observation event, so future
+  disclosure cannot justify earlier visibility;
+- conformance diagnostics reject transition anchors that do not resolve to the
+  corresponding participant behavior-history event; `episode_close` transitions
+  resolve against terminal participant-episode history and do not authorize
+  in-episode observation payloads.
+
+Current implementation artifacts for the `SEM-210` slice:
+
+- `implementations/python/packages/aces_sdl/participant_behavior.py` defines
+  participant information-boundary classes, view dispositions, explicit view
+  rules, time-indexed view transitions, realized-view disclosure metadata, and
+  observation-boundary hidden, observable, and evidence-only reference
+  separation;
+- `implementations/python/packages/aces_sdl/semantics/participant_behavior.py`
+  and `implementations/python/packages/aces_sdl/validator.py` continue to
+  fail closed on unbound participant observation-boundary references, view-rule
+  references, and view-transition evidence references;
+- `implementations/python/packages/aces_processor/compiler.py` carries hidden,
+  observable, discovered, inferred, concealed, disclosed, deceptive,
+  evidence-only, and realized-view disclosure metadata into compiled
+  participant observation boundaries, including an ordered
+  `view_relation_timeline` snapshot series for `V_p,t`;
+- `implementations/python/packages/aces_processor/models.py` exposes the
+  compiled visibility metadata for runtime planning, snapshots, and
+  conformance consumers, and validates observation detail refs against the
+  corresponding timeline snapshot;
+- `implementations/python/tests/test_sem_208_participant_behavior.py` covers
+  leakage fixtures proving hidden truth cannot enter participant observations
+  without an explicit disclosure rule, cannot be used as evidence without an
+  evidence-only rule, cannot be inferred or disclosed through static metadata,
+  and cannot be justified by a transition whose temporal order or runtime
+  anchor is invalid.
+
+This implementation slice enforces the reference-level visibility relation for
+observation detail refs. The complete observation payload apparatus (`payload`,
+capture basis, loss, redaction, latency, observer effects, and evidence-capture
+adequacy) remains owned by the downstream observation/evidence requirements
+listed in ADR-022 rather than being silently claimed by `SEM-210`.
 
 ## SEM-211 - Preconditions, Effects, And Failure Semantics
 

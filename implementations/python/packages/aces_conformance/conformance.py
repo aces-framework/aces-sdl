@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -47,6 +48,7 @@ from aces_processor.models import (
     ParticipantEpisodeExecutionState,
     ParticipantEpisodeHistoryEvent,
     ParticipantEpisodeTerminalReason,
+    ParticipantObservationBoundaryRuntime,
     RuntimeDomain,
     RuntimeSnapshot,
     RuntimeSnapshotEnvelope,
@@ -454,16 +456,78 @@ def _participant_episode_snapshot_diagnostics(
     ]
 
 
-def _participant_behavior_snapshot_references(snapshot: RuntimeSnapshot) -> tuple[set[str], set[str]]:
+def _participant_behavior_snapshot_references(
+    snapshot: RuntimeSnapshot,
+) -> tuple[
+    set[str],
+    set[str],
+    dict[str, ParticipantObservationBoundaryRuntime],
+    dict[str, set[str]],
+    dict[str, set[str]],
+]:
     action_contract_addresses: set[str] = set()
     observation_boundary_addresses: set[str] = set()
+    observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = {}
+    participant_action_addresses: dict[str, set[str]] = {}
+    participant_observation_boundary_addresses: dict[str, set[str]] = {}
     for entry_address, entry in snapshot.entries.items():
         for candidate in {entry_address, entry.address}:
             if candidate.startswith("participant.action-contract."):
                 action_contract_addresses.add(candidate)
             elif candidate.startswith("participant.observation-boundary."):
                 observation_boundary_addresses.add(candidate)
-    return action_contract_addresses, observation_boundary_addresses
+                observation_boundaries[candidate] = ParticipantObservationBoundaryRuntime(
+                    address=candidate,
+                    name=str(entry.payload.get("name", "")),
+                    boundary_name=str(entry.payload.get("boundary_name", "")),
+                    projection_basis=str(entry.payload.get("projection_basis", "")),
+                    hidden_refs=tuple(str(ref) for ref in entry.payload.get("hidden_refs", ())),
+                    observable_refs=tuple(str(ref) for ref in entry.payload.get("observable_refs", ())),
+                    evidence_refs=tuple(str(ref) for ref in entry.payload.get("evidence_refs", ())),
+                    disclosed_refs=tuple(str(ref) for ref in entry.payload.get("disclosed_refs", ())),
+                    evidence_only_refs=tuple(str(ref) for ref in entry.payload.get("evidence_only_refs", ())),
+                    discovered_refs=tuple(str(ref) for ref in entry.payload.get("discovered_refs", ())),
+                    inferred_refs=tuple(str(ref) for ref in entry.payload.get("inferred_refs", ())),
+                    concealed_refs=tuple(str(ref) for ref in entry.payload.get("concealed_refs", ())),
+                    deceptive_refs=tuple(str(ref) for ref in entry.payload.get("deceptive_refs", ())),
+                    view_transitions=tuple(dict(item) for item in entry.payload.get("view_transitions", ())),
+                    view_relation_timeline=tuple(
+                        dict(item) for item in entry.payload.get("view_relation_timeline", ())
+                    ),
+                    realized_view_disclosure=str(entry.payload.get("realized_view_disclosure", "")),
+                    spec=dict(entry.payload.get("spec", {})),
+                )
+            elif candidate.startswith("participant.behavior."):
+                participant_action_addresses[candidate] = {
+                    str(address)
+                    for address in entry.payload.get("action_contract_addresses", ())
+                    if isinstance(address, str) and address
+                }
+                participant_observation_boundary_addresses[candidate] = {
+                    str(address)
+                    for address in entry.payload.get("observation_boundary_addresses", ())
+                    if isinstance(address, str) and address
+                }
+    return (
+        action_contract_addresses,
+        observation_boundary_addresses,
+        observation_boundaries,
+        participant_action_addresses,
+        participant_observation_boundary_addresses,
+    )
+
+
+def _participant_history_observation_boundary_addresses(history: Any) -> set[str]:
+    if not isinstance(history, list):
+        return set()
+    addresses: set[str] = set()
+    for event in history:
+        if not isinstance(event, Mapping):
+            continue
+        address = event.get("observation_boundary_address")
+        if isinstance(address, str) and address:
+            addresses.add(address)
+    return addresses
 
 
 def _participant_behavior_history_diagnostics(
@@ -472,6 +536,9 @@ def _participant_behavior_history_diagnostics(
     *,
     action_contract_addresses: set[str] | None = None,
     observation_boundary_addresses: set[str] | None = None,
+    observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] | None = None,
+    participant_episode_history: Any = None,
+    expected_participant_address: str | None = None,
 ) -> list[Diagnostic]:
     history_key = "runtime.snapshot.participant-behavior-history"
     diagnostics: list[Diagnostic] = []
@@ -479,6 +546,9 @@ def _participant_behavior_history_diagnostics(
         payload,
         action_contract_addresses=action_contract_addresses,
         observation_boundary_addresses=observation_boundary_addresses,
+        observation_boundaries=observation_boundaries,
+        participant_episode_history=participant_episode_history,
+        expected_participant_address=expected_participant_address,
     ):
         if address.startswith(history_key):
             diagnostic_address = root_address + address.removeprefix(history_key)
@@ -492,14 +562,40 @@ def _participant_behavior_snapshot_diagnostics(
     snapshot: RuntimeSnapshot,
 ) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    action_contract_addresses, observation_boundary_addresses = _participant_behavior_snapshot_references(snapshot)
+    (
+        action_contract_addresses,
+        observation_boundary_addresses,
+        observation_boundaries,
+        participant_action_addresses,
+        participant_observation_boundary_addresses,
+    ) = _participant_behavior_snapshot_references(snapshot)
     for participant_address, history in snapshot.participant_behavior_history.items():
+        has_participant_action_binding = participant_address in participant_action_addresses
+        has_participant_boundary_binding = participant_address in participant_observation_boundary_addresses
+        participant_boundary_addresses = participant_observation_boundary_addresses.get(participant_address)
+        if participant_boundary_addresses is None:
+            participant_boundary_addresses = _participant_history_observation_boundary_addresses(history)
+        participant_known_boundary_addresses = (
+            participant_boundary_addresses if has_participant_boundary_binding else observation_boundary_addresses
+        )
+        participant_boundaries = {
+            address: observation_boundaries[address]
+            for address in sorted(participant_boundary_addresses)
+            if address in observation_boundaries
+        }
         diagnostics.extend(
             _participant_behavior_history_diagnostics(
                 f"runtime.snapshot.participant-behavior-history.{participant_address}",
                 history,
-                action_contract_addresses=action_contract_addresses,
-                observation_boundary_addresses=observation_boundary_addresses,
+                action_contract_addresses=(
+                    participant_action_addresses[participant_address]
+                    if has_participant_action_binding
+                    else action_contract_addresses
+                ),
+                observation_boundary_addresses=participant_known_boundary_addresses,
+                observation_boundaries=participant_boundaries,
+                participant_episode_history=snapshot.participant_episode_history.get(participant_address),
+                expected_participant_address=participant_address,
             )
         )
     for address, message in iter_participant_behavior_joint_action_violations(snapshot.participant_behavior_history):

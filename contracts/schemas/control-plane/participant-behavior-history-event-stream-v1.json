@@ -1,19 +1,50 @@
 {
+  "$defs": {
+    "ParticipantInteractionClass": {
+      "description": "SEM-209 interaction classes for multi-participant behavior.",
+      "enum": [
+        "coordination",
+        "contention",
+        "interference",
+        "shared_state_change"
+      ],
+      "title": "ParticipantInteractionClass",
+      "type": "string"
+    },
+    "ParticipantObservationDetailsModel": {
+      "additionalProperties": false,
+      "properties": {
+        "disclosed_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Disclosed Refs",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "visible_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Visible Refs",
+          "type": "array"
+        }
+      },
+      "title": "ParticipantObservationDetailsModel",
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "items": {
-    "$defs": {
-      "ParticipantInteractionClass": {
-        "description": "SEM-209 interaction classes for multi-participant behavior.",
-        "enum": [
-          "coordination",
-          "contention",
-          "interference",
-          "shared_state_change"
-        ],
-        "title": "ParticipantInteractionClass",
-        "type": "string"
-      }
-    },
     "additionalProperties": false,
     "properties": {
       "action_contract_address": {
@@ -45,9 +76,7 @@
         "title": "Actor Provenance"
       },
       "details": {
-        "additionalProperties": true,
-        "title": "Details",
-        "type": "object"
+        "$ref": "#/$defs/ParticipantObservationDetailsModel"
       },
       "episode_id": {
         "title": "Episode Id",
