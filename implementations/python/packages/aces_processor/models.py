@@ -3317,7 +3317,8 @@ def iter_participant_behavior_history_violations(
     paired with the state transition digest it reports. When compiled address
     sets are provided, it also rejects references outside those sets. When
     compiled observation boundaries are provided, SEM-210 observation details
-    are checked against the time-indexed participant view relation.
+    and SEM-211 action-result references are checked against the time-indexed
+    participant view relation.
     """
 
     if not isinstance(participant_behavior_history, list):
