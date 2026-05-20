@@ -521,12 +521,19 @@ def validate_participant_action_result_contract(
             for ref in sorted(undeclared_evidence_refs):
                 violations.append(f"action_result effect {effect.effect_id!r} reports undeclared evidence_ref {ref!r}")
 
-    if declared_effect_refs:
-        declared_effect_evidence_refs = {
-            ref for declared_refs in declared_effect_refs.values() for ref in declared_refs["evidence_refs"]
-        }
-        for ref in sorted(set(result.evidence_refs) - declared_effect_evidence_refs):
+    declared_result_evidence_refs = {
+        ref for declared_refs in declared_precondition_refs.values() for ref in declared_refs["evidence_refs"]
+    } | {ref for declared_refs in declared_effect_refs.values() for ref in declared_refs["evidence_refs"]}
+    reported_result_evidence_refs = {
+        ref for precondition in result.preconditions for ref in precondition.evidence_refs
+    } | {ref for effect in result.effects for ref in effect.evidence_refs}
+    if declared_precondition_refs or declared_effect_refs:
+        for ref in sorted(set(result.evidence_refs) - declared_result_evidence_refs):
             violations.append(f"action_result reports undeclared evidence_ref {ref!r}")
+        for ref in sorted(set(result.evidence_refs) & declared_result_evidence_refs - reported_result_evidence_refs):
+            violations.append(
+                f"action_result evidence_ref {ref!r} is not grounded in reported precondition or effect evidence_refs"
+            )
 
     if result.failure_class is not None and result.failure_class.value not in declared_failure_classes:
         violations.append(
@@ -2725,6 +2732,142 @@ def _participant_behavior_visibility_detail_violations(
     ]
 
 
+def _participant_behavior_action_result_visible_ref_violations(
+    *,
+    locator: str,
+    owner_label: str,
+    field_name: str,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    owner_prefix = f" {owner_label}" if owner_label else ""
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if disposition is None:
+            continue
+        if disposition in _PARTICIPANT_VISIBLE_VIEW_DISPOSITIONS:
+            continue
+        violations.append(
+            (
+                locator,
+                (
+                    f"action_result{owner_prefix} {field_name} {ref!r} is not participant-visible "
+                    f"at effective_order {effective_order}: disposition {disposition!r}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_action_result_evidence_ref_violations(
+    *,
+    locator: str,
+    owner_label: str,
+    field_name: str,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    owner_prefix = f" {owner_label}" if owner_label else ""
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if ref in boundary.evidence_refs or disposition == "evidence_only":
+            continue
+        suffix = f": disposition {disposition!r}" if disposition is not None else ""
+        violations.append(
+            (
+                locator,
+                (
+                    f"action_result{owner_prefix} {field_name} {ref!r} is not authorized evidence "
+                    f"at effective_order {effective_order}{suffix}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_action_result_ref_authorization_violations(
+    *,
+    event: ParticipantBehaviorHistoryEvent,
+    locator: str,
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    if event.action_result is None:
+        return []
+    violations: list[tuple[str, str]] = []
+    for precondition in event.action_result.preconditions:
+        owner_label = f"precondition {precondition.precondition_id!r}"
+        violations.extend(
+            _participant_behavior_action_result_visible_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="support_ref",
+                refs=precondition.support_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_action_result_evidence_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="evidence_ref",
+                refs=precondition.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+    for effect in event.action_result.effects:
+        owner_label = f"effect {effect.effect_id!r}"
+        violations.extend(
+            _participant_behavior_action_result_visible_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="target_ref",
+                refs=effect.target_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_action_result_evidence_ref_violations(
+                locator=locator,
+                owner_label=owner_label,
+                field_name="evidence_ref",
+                refs=effect.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+    violations.extend(
+        _participant_behavior_action_result_evidence_ref_violations(
+            locator=locator,
+            owner_label="",
+            field_name="evidence_ref",
+            refs=event.action_result.evidence_refs,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+    )
+    return violations
+
+
 def _participant_behavior_history_anchor_indexes(
     events: Iterable[ParticipantBehaviorHistoryEvent],
 ) -> tuple[dict[str, int], dict[str, int], dict[tuple[str, str | None], int]]:
@@ -2930,6 +3073,39 @@ def _participant_behavior_observation_visibility_violations(
         yield from _participant_behavior_visibility_detail_violations(
             locator=locator,
             detail_refs=detail_refs,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+
+
+def _participant_behavior_action_result_ref_authorization_violations_for_events(
+    events: list[ParticipantBehaviorHistoryEvent],
+    *,
+    observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime],
+) -> Iterator[tuple[str, str]]:
+    action_attempts, state_transitions, observations = _participant_behavior_history_anchor_indexes(events)
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        if event.action_result is None:
+            continue
+        boundary_address = event.observation_boundary_address or ""
+        boundary = observation_boundaries.get(boundary_address)
+        if boundary is None:
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        relation, effective_order = _participant_behavior_observation_effective_relation(
+            observation_index=index,
+            boundary_address=boundary_address,
+            boundary=boundary,
+            action_attempts=action_attempts,
+            state_transitions=state_transitions,
+            observations=observations,
+        )
+        yield from _participant_behavior_action_result_ref_authorization_violations(
+            event=event,
+            locator=locator,
             boundary=boundary,
             relation=relation,
             effective_order=effective_order,
@@ -3175,6 +3351,10 @@ def iter_participant_behavior_history_violations(
             participant_episode_history=participant_episode_history,
         )
         yield from _participant_behavior_observation_visibility_violations(
+            normalized_events,
+            observation_boundaries=observation_boundaries,
+        )
+        yield from _participant_behavior_action_result_ref_authorization_violations_for_events(
             normalized_events,
             observation_boundaries=observation_boundaries,
         )

@@ -209,6 +209,68 @@ def _declared_effects() -> tuple[ParticipantActionEffectResult, ...]:
     )
 
 
+def _history_payloads_for_action_result(result: ParticipantActionResult) -> list[dict[str, object]]:
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+    return [
+        {
+            "event_type": "action_attempted",
+            "timestamp": T0,
+            "participant_address": PARTICIPANT_ADDRESS,
+            "episode_id": "episode-1",
+            "action_instance_id": ACTION_INSTANCE,
+            "action_contract_address": ACTION_ADDRESS,
+            "actor_provenance": "participant:red-agent",
+            "details": {},
+        },
+        {
+            "event_type": "state_transition_recorded",
+            "timestamp": T0,
+            "participant_address": PARTICIPANT_ADDRESS,
+            "episode_id": "episode-1",
+            "action_instance_id": ACTION_INSTANCE,
+            "action_contract_address": ACTION_ADDRESS,
+            "state_transition_kind": "participant_knowledge_expanded",
+            "post_state_digest": "sha256:scan",
+            "details": {},
+        },
+        observation.to_payload(),
+    ]
+
+
+def _scenario_with_hidden_action_result_ref() -> str:
+    scenario = _scenario_yaml().replace(
+        "hidden-refs: [nodes.web]",
+        "hidden-refs: [nodes.web, content.private-answer-key]",
+    )
+    return scenario.replace(
+        "              - information-ref: evidence.scan-output\n"
+        "                boundary-class: archival_evidence\n"
+        "                disposition: evidence_only\n"
+        "                visibility-basis: archival run evidence reference\n"
+        "                evidence-refs: [evidence.scan-output]",
+        "              - information-ref: content.private-answer-key\n"
+        "                boundary-class: private_answer_key\n"
+        "                disposition: hidden\n"
+        "                visibility-basis: adjudication-only hidden truth\n"
+        "              - information-ref: evidence.scan-output\n"
+        "                boundary-class: archival_evidence\n"
+        "                disposition: evidence_only\n"
+        "                visibility-basis: archival run evidence reference\n"
+        "                evidence-refs: [evidence.scan-output]",
+    )
+
+
 def test_action_contract_declares_sem_211_classes_and_compiles_them():
     scenario = parse_sdl(_scenario_yaml())
 
@@ -914,6 +976,182 @@ def test_action_result_summary_evidence_refs_must_be_declared_by_contract():
         (
             "runtime.snapshot.participant-behavior-history[2]",
             "action_result reports undeclared evidence_ref 'content.private-answer-key'",
+        )
+    ]
+
+
+def test_action_result_summary_evidence_refs_must_be_grounded_in_reported_results():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=(
+            ParticipantActionEffectResult(
+                effect_id="discover-http-service",
+                effect_class=ParticipantEffectClass.INTENDED_EFFECT,
+                description="participant discovered the web HTTP service",
+                target_refs=("nodes.web.services.http",),
+            ),
+        ),
+        evidence_refs=("evidence.scan-output",),
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            _history_payloads_for_action_result(result),
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result evidence_ref 'evidence.scan-output' is not grounded in reported precondition or "
+            "effect evidence_refs",
+        )
+    ]
+
+
+def test_action_result_refs_must_be_authorized_by_observation_boundary():
+    scenario = _scenario_with_hidden_action_result_ref().replace(
+        "support-refs: [agents.red-agent, nodes.web.services.http]",
+        "support-refs: [agents.red-agent, nodes.web.services.http, content.private-answer-key]",
+    )
+    model = compile_runtime_model(parse_sdl(scenario))
+    hidden_authority = ParticipantActionPreconditionResult(
+        precondition_id="authority-in-scope",
+        precondition_class=ParticipantPreconditionClass.AUTHORITY,
+        status=ParticipantActionPreconditionStatus.SATISFIED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:attempt",
+        support_refs=("content.private-answer-key",),
+    )
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=(
+            hidden_authority,
+            *_satisfied_preconditions()[1:],
+        ),
+        effects=_declared_effects(),
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            _history_payloads_for_action_result(result),
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses=None,
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result precondition 'authority-in-scope' support_ref 'content.private-answer-key' is not "
+            "participant-visible at effective_order 30: disposition 'hidden'",
+        )
+    ]
+
+
+def test_action_result_effect_targets_must_be_authorized_by_observation_boundary():
+    scenario = _scenario_with_hidden_action_result_ref().replace(
+        "        target-refs: [nodes.web.services.http]\n      - effect-id: terminal-scan-observation",
+        "        target-refs: [nodes.web.services.http, content.private-answer-key]\n"
+        "      - effect-id: terminal-scan-observation",
+    )
+    model = compile_runtime_model(parse_sdl(scenario))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=(
+            ParticipantActionEffectResult(
+                effect_id="scan-shared-knowledge-update",
+                effect_class=ParticipantEffectClass.SIDE_EFFECT,
+                description="participant-local service knowledge is updated",
+                target_refs=("content.private-answer-key",),
+            ),
+        ),
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            _history_payloads_for_action_result(result),
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses=None,
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result effect 'scan-shared-knowledge-update' target_ref 'content.private-answer-key' is not "
+            "participant-visible at effective_order 30: disposition 'hidden'",
+        )
+    ]
+
+
+def test_action_result_evidence_refs_must_be_authorized_by_observation_boundary():
+    scenario = _scenario_with_hidden_action_result_ref().replace(
+        "evidence-refs: [evidence.scan-output]",
+        "evidence-refs: [evidence.scan-output, content.private-answer-key]",
+        1,
+    )
+    model = compile_runtime_model(parse_sdl(scenario))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=(
+            ParticipantActionEffectResult(
+                effect_id="terminal-scan-observation",
+                effect_class=ParticipantEffectClass.OBSERVATION_EFFECT,
+                description="terminal scan observation emitted",
+                evidence_refs=("content.private-answer-key",),
+            ),
+        ),
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            _history_payloads_for_action_result(result),
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses=None,
+            observation_boundaries=model.observation_boundaries,
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result effect 'terminal-scan-observation' evidence_ref 'content.private-answer-key' is not "
+            "authorized evidence at effective_order 30: disposition 'hidden'",
         )
     ]
 
