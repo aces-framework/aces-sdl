@@ -399,26 +399,46 @@ def map_backend_diagnostic_to_participant_failure(
     return ParticipantFailureClass.BACKEND_ERROR if code else ParticipantFailureClass.UNKNOWN
 
 
-def _contract_sem211_preconditions(contract: ParticipantActionContractRuntime) -> set[tuple[str, str]]:
+def _as_string_set(value: Any) -> set[str]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        return set()
+    return {str(item) for item in value if isinstance(item, str) and item}
+
+
+def _contract_sem211_precondition_refs(
+    contract: ParticipantActionContractRuntime,
+) -> dict[tuple[str, str], dict[str, set[str]]]:
     preconditions = contract.spec.get("preconditions", ())
     if isinstance(preconditions, (str, bytes, Mapping)) or not isinstance(preconditions, Iterable):
-        return set()
-    return {
-        (str(item.get("precondition_id", "")), str(item.get("precondition_class", "")))
-        for item in preconditions
-        if isinstance(item, Mapping) and item.get("precondition_id") and item.get("precondition_class")
-    }
+        return {}
+    refs: dict[tuple[str, str], dict[str, set[str]]] = {}
+    for item in preconditions:
+        if not isinstance(item, Mapping) or not item.get("precondition_id") or not item.get("precondition_class"):
+            continue
+        key = (str(item.get("precondition_id", "")), str(item.get("precondition_class", "")))
+        refs[key] = {
+            "support_refs": _as_string_set(item.get("support_refs", ())),
+            "evidence_refs": _as_string_set(item.get("evidence_refs", ())),
+        }
+    return refs
 
 
-def _contract_sem211_effects(contract: ParticipantActionContractRuntime) -> set[tuple[str, str]]:
+def _contract_sem211_effect_refs(
+    contract: ParticipantActionContractRuntime,
+) -> dict[tuple[str, str], dict[str, set[str]]]:
     effects = contract.spec.get("effects", ())
     if isinstance(effects, (str, bytes, Mapping)) or not isinstance(effects, Iterable):
-        return set()
-    return {
-        (str(item.get("effect_id", "")), str(item.get("effect_class", "")))
-        for item in effects
-        if isinstance(item, Mapping) and item.get("effect_id") and item.get("effect_class")
-    }
+        return {}
+    refs: dict[tuple[str, str], dict[str, set[str]]] = {}
+    for item in effects:
+        if not isinstance(item, Mapping) or not item.get("effect_id") or not item.get("effect_class"):
+            continue
+        key = (str(item.get("effect_id", "")), str(item.get("effect_class", "")))
+        refs[key] = {
+            "target_refs": _as_string_set(item.get("target_refs", ())),
+            "evidence_refs": _as_string_set(item.get("evidence_refs", ())),
+        }
+    return refs
 
 
 def _contract_uses_sem211_action_results(contract: ParticipantActionContractRuntime) -> bool:
@@ -442,8 +462,10 @@ def validate_participant_action_result_contract(
     declared_precondition_classes = set(contract.precondition_classes)
     declared_effect_classes = set(contract.effect_classes)
     declared_failure_classes = set(contract.failure_classes)
-    declared_preconditions = _contract_sem211_preconditions(contract)
-    declared_effects = _contract_sem211_effects(contract)
+    declared_precondition_refs = _contract_sem211_precondition_refs(contract)
+    declared_effect_refs = _contract_sem211_effect_refs(contract)
+    declared_preconditions = set(declared_precondition_refs)
+    declared_effects = set(declared_effect_refs)
     reported_preconditions: set[tuple[str, str]] = set()
 
     for precondition in result.preconditions:
@@ -459,6 +481,20 @@ def validate_participant_action_result_contract(
                 f"action_result precondition {precondition.precondition_id!r}/"
                 f"{precondition.precondition_class.value!r} is not declared by {contract.address}"
             )
+        declared_refs = declared_precondition_refs.get(precondition_key)
+        if declared_refs is not None:
+            undeclared_support_refs = set(precondition.support_refs) - declared_refs["support_refs"]
+            undeclared_evidence_refs = set(precondition.evidence_refs) - declared_refs["evidence_refs"]
+            for ref in sorted(undeclared_support_refs):
+                violations.append(
+                    f"action_result precondition {precondition.precondition_id!r} reports undeclared "
+                    f"support_ref {ref!r}"
+                )
+            for ref in sorted(undeclared_evidence_refs):
+                violations.append(
+                    f"action_result precondition {precondition.precondition_id!r} reports undeclared "
+                    f"evidence_ref {ref!r}"
+                )
     for precondition_id, precondition_class in sorted(declared_preconditions - reported_preconditions):
         violations.append(
             f"action_result is missing declared precondition {precondition_id!r}/"
@@ -476,6 +512,21 @@ def validate_participant_action_result_contract(
                 f"action_result effect {effect.effect_id!r}/"
                 f"{effect.effect_class.value!r} is not declared by {contract.address}"
             )
+        declared_refs = declared_effect_refs.get(effect_key)
+        if declared_refs is not None:
+            undeclared_target_refs = set(effect.target_refs) - declared_refs["target_refs"]
+            undeclared_evidence_refs = set(effect.evidence_refs) - declared_refs["evidence_refs"]
+            for ref in sorted(undeclared_target_refs):
+                violations.append(f"action_result effect {effect.effect_id!r} reports undeclared target_ref {ref!r}")
+            for ref in sorted(undeclared_evidence_refs):
+                violations.append(f"action_result effect {effect.effect_id!r} reports undeclared evidence_ref {ref!r}")
+
+    if declared_effect_refs:
+        declared_effect_evidence_refs = {
+            ref for declared_refs in declared_effect_refs.values() for ref in declared_refs["evidence_refs"]
+        }
+        for ref in sorted(set(result.evidence_refs) - declared_effect_evidence_refs):
+            violations.append(f"action_result reports undeclared evidence_ref {ref!r}")
 
     if result.failure_class is not None and result.failure_class.value not in declared_failure_classes:
         violations.append(
@@ -1747,6 +1798,11 @@ def _validate_optional_address(value: str | None, *, prefix: str, message: str) 
         raise ValueError(message)
 
 
+def _validate_required_address(value: str, *, prefix: str, message: str) -> None:
+    if not isinstance(value, str) or not value.startswith(prefix):
+        raise ValueError(message)
+
+
 def _tuple_of_non_empty_strings(value: Any, *, field_name: str) -> tuple[str, ...]:
     if value is None:
         return ()
@@ -1759,6 +1815,10 @@ def _tuple_of_non_empty_strings(value: Any, *, field_name: str) -> tuple[str, ..
     if len(set(refs)) != len(refs):
         raise ValueError(f"{field_name} entries must be unique")
     return refs
+
+
+def _observation_point_matches_action_instance(observation_point: str, action_instance_id: str) -> bool:
+    return action_instance_id in observation_point.split(":")
 
 
 @dataclass(frozen=True)
@@ -1849,7 +1909,7 @@ class ParticipantActionPreconditionResult:
             self.episode_id,
             "participant action precondition episode_id must be a non-empty string",
         )
-        _validate_optional_address(
+        _validate_required_address(
             self.action_contract_address,
             prefix=_PARTICIPANT_ACTION_CONTRACT_PREFIX,
             message="action_contract_address must be a compiled participant action contract address",
@@ -2046,7 +2106,7 @@ class ParticipantActionResult:
             self.action_instance_id,
             "participant action result action_instance_id must be a non-empty string",
         )
-        _validate_optional_address(
+        _validate_required_address(
             self.action_contract_address,
             prefix=_PARTICIPANT_ACTION_CONTRACT_PREFIX,
             message="action_contract_address must be a compiled participant action contract address",
@@ -2055,6 +2115,8 @@ class ParticipantActionResult:
             self.observation_point,
             "observation_point must be a non-empty string",
         )
+        if not _observation_point_matches_action_instance(self.observation_point, self.action_instance_id):
+            raise ValueError("action result observation_point must be anchored to action_instance_id")
         if not isinstance(self.preconditions, tuple):
             raise TypeError("preconditions must be a tuple")
         if not self.preconditions:
@@ -2087,6 +2149,8 @@ class ParticipantActionResult:
                 raise ValueError(
                     "precondition action_contract_address must match action result action_contract_address"
                 )
+            if not _observation_point_matches_action_instance(precondition.observation_point, self.action_instance_id):
+                raise ValueError("precondition observation_point must be anchored to action result action_instance_id")
 
     def _validate_fail_closed(self) -> None:
         blocked = [

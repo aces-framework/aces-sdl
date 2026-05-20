@@ -395,6 +395,75 @@ def test_terminal_observation_action_result_must_match_behavior_event_scope():
         )
 
 
+def test_action_result_requires_concrete_action_contract_address():
+    with pytest.raises(
+        ValueError, match="action_contract_address must be a compiled participant action contract address"
+    ):
+        ParticipantActionPreconditionResult(
+            precondition_id="authority-in-scope",
+            precondition_class=ParticipantPreconditionClass.AUTHORITY,
+            status=ParticipantActionPreconditionStatus.SATISFIED,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_contract_address=None,
+            observation_point="episode-step:scan-0001:attempt",
+            support_refs=("agents.red-agent",),
+        )
+
+    with pytest.raises(
+        ValueError, match="action_contract_address must be a compiled participant action contract address"
+    ):
+        ParticipantActionResult(
+            status=ParticipantActionResultStatus.ACCEPTED,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=None,
+            observation_point="episode-step:scan-0001:attempt",
+            preconditions=_satisfied_preconditions(),
+            effects=(),
+        )
+
+
+def test_action_result_observation_points_must_anchor_to_action_instance():
+    with pytest.raises(ValueError, match="action result observation_point must be anchored to action_instance_id"):
+        ParticipantActionResult(
+            status=ParticipantActionResultStatus.ACCEPTED,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            observation_point="episode-step:scan-9999:attempt",
+            preconditions=_satisfied_preconditions(),
+            effects=(),
+        )
+
+    stale_precondition = ParticipantActionPreconditionResult(
+        precondition_id="authority-in-scope",
+        precondition_class=ParticipantPreconditionClass.AUTHORITY,
+        status=ParticipantActionPreconditionStatus.SATISFIED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-9999:attempt",
+        support_refs=("agents.red-agent",),
+    )
+    with pytest.raises(ValueError, match="precondition observation_point must be anchored"):
+        ParticipantActionResult(
+            status=ParticipantActionResultStatus.ACCEPTED,
+            participant_address=PARTICIPANT_ADDRESS,
+            episode_id="episode-1",
+            action_instance_id=ACTION_INSTANCE,
+            action_contract_address=ACTION_ADDRESS,
+            observation_point="episode-step:scan-0001:attempt",
+            preconditions=(
+                stale_precondition,
+                *_satisfied_preconditions()[1:],
+            ),
+            effects=(),
+        )
+
+
 def test_terminal_observation_rejects_nonterminal_accepted_action_result():
     result = ParticipantActionResult(
         status=ParticipantActionResultStatus.ACCEPTED,
@@ -542,6 +611,91 @@ def test_action_result_must_report_every_declared_precondition():
     ]
 
 
+def test_action_result_precondition_refs_must_be_declared_by_contract():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    hidden_authority = ParticipantActionPreconditionResult(
+        precondition_id="authority-in-scope",
+        precondition_class=ParticipantPreconditionClass.AUTHORITY,
+        status=ParticipantActionPreconditionStatus.SATISFIED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:attempt",
+        support_refs=("content.private-answer-key",),
+        evidence_refs=("content.private-answer-key",),
+    )
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=(
+            hidden_authority,
+            *_satisfied_preconditions()[1:],
+        ),
+        effects=_declared_effects(),
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            [
+                {
+                    "event_type": "action_attempted",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "actor_provenance": "participant:red-agent",
+                    "details": {},
+                },
+                {
+                    "event_type": "state_transition_recorded",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "state_transition_kind": "participant_knowledge_expanded",
+                    "post_state_digest": "sha256:scan",
+                    "details": {},
+                },
+                observation.to_payload(),
+            ],
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result precondition 'authority-in-scope' reports undeclared support_ref "
+            "'content.private-answer-key'",
+        ),
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result precondition 'authority-in-scope' reports undeclared evidence_ref "
+            "'content.private-answer-key'",
+        ),
+    ]
+
+
 def test_action_result_effects_must_be_declared_by_compiled_contract():
     model = compile_runtime_model(parse_sdl(_scenario_yaml()))
     result = ParticipantActionResult(
@@ -616,6 +770,151 @@ def test_action_result_effects_must_be_declared_by_compiled_contract():
             "runtime.snapshot.participant-behavior-history[2]",
             f"action_result effect 'undeclared-detection-change'/'detection_effect' is not declared by {ACTION_ADDRESS}",
         ),
+    ]
+
+
+def test_action_result_effect_refs_must_be_declared_by_contract():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=(
+            ParticipantActionEffectResult(
+                effect_id="scan-shared-knowledge-update",
+                effect_class=ParticipantEffectClass.SIDE_EFFECT,
+                description="participant-local service knowledge is updated",
+                target_refs=("content.private-answer-key",),
+                evidence_refs=("content.private-answer-key",),
+            ),
+        ),
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            [
+                {
+                    "event_type": "action_attempted",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "actor_provenance": "participant:red-agent",
+                    "details": {},
+                },
+                {
+                    "event_type": "state_transition_recorded",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "state_transition_kind": "participant_knowledge_expanded",
+                    "post_state_digest": "sha256:scan",
+                    "details": {},
+                },
+                observation.to_payload(),
+            ],
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result effect 'scan-shared-knowledge-update' reports undeclared target_ref "
+            "'content.private-answer-key'",
+        ),
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result effect 'scan-shared-knowledge-update' reports undeclared evidence_ref "
+            "'content.private-answer-key'",
+        ),
+    ]
+
+
+def test_action_result_summary_evidence_refs_must_be_declared_by_contract():
+    model = compile_runtime_model(parse_sdl(_scenario_yaml()))
+    result = ParticipantActionResult(
+        status=ParticipantActionResultStatus.SUCCEEDED,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_point="episode-step:scan-0001:terminal-observation",
+        preconditions=_satisfied_preconditions(),
+        effects=_declared_effects(),
+        evidence_refs=("content.private-answer-key",),
+    )
+    observation = ParticipantBehaviorHistoryEvent(
+        event_type=ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED,
+        timestamp=T0,
+        participant_address=PARTICIPANT_ADDRESS,
+        episode_id="episode-1",
+        action_instance_id=ACTION_INSTANCE,
+        action_contract_address=ACTION_ADDRESS,
+        observation_boundary_address=OBSERVATION_ADDRESS,
+        observation_status=ParticipantObservationStatus.TERMINAL,
+        post_state_digest="sha256:scan",
+        action_result=result,
+    )
+
+    violations = list(
+        iter_participant_behavior_history_violations(
+            [
+                {
+                    "event_type": "action_attempted",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "actor_provenance": "participant:red-agent",
+                    "details": {},
+                },
+                {
+                    "event_type": "state_transition_recorded",
+                    "timestamp": T0,
+                    "participant_address": PARTICIPANT_ADDRESS,
+                    "episode_id": "episode-1",
+                    "action_instance_id": ACTION_INSTANCE,
+                    "action_contract_address": ACTION_ADDRESS,
+                    "state_transition_kind": "participant_knowledge_expanded",
+                    "post_state_digest": "sha256:scan",
+                    "details": {},
+                },
+                observation.to_payload(),
+            ],
+            action_contract_addresses=set(model.action_contracts),
+            action_contracts=model.action_contracts,
+            observation_boundary_addresses={OBSERVATION_ADDRESS},
+        )
+    )
+
+    assert violations == [
+        (
+            "runtime.snapshot.participant-behavior-history[2]",
+            "action_result reports undeclared evidence_ref 'content.private-answer-key'",
+        )
     ]
 
 
