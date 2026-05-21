@@ -514,6 +514,110 @@ nodes:
         assert user.uid == 999
         assert user.no_login is True
 
+    def test_runtime_network_realization_parses_with_kebab_keys(self):
+        sdl = """
+name: techvault-network-realization
+nodes:
+  aptl-dmz:
+    type: switch
+  techvault-webapp:
+    type: vm
+    os: linux
+    runtime:
+      network:
+        description: Docker network realization observed by harness inspection.
+        hostname: techvault-webapp
+        domainname: techvault.local
+        endpoints:
+          - network: aptl-dmz
+            network-id: net-a1b2c3d4e5f6
+            network-id-stability: stable
+            endpoint-id: ep-1a2b3c4d5e6f
+            endpoint-id-stability: ephemeral
+            backend-generated: true
+            ip-address: 172.20.0.20
+            ip-prefix-length: "24"
+            gateway: 172.20.0.1
+            mac-address: 02:42:ac:14:00:14
+            aliases: [aptl-webapp, webapp]
+            dns-names: [aptl-webapp, webapp]
+            generated-dns-names: [a1b2c3d4e5f6]
+            backend:
+              driver: bridge
+              ipam-driver: default
+              driver-options:
+                com.docker.network.bridge.name: br-dmz
+              ipam-options:
+                com.docker.network.driver.mtu: "1500"
+        published-ports:
+          - container-port: "8080"
+            protocol: tcp
+            host-ip: 127.0.0.1
+            host-port: "8080"
+infrastructure:
+  aptl-dmz:
+    properties:
+      cidr: 172.20.0.0/24
+      gateway: 172.20.0.1
+"""
+        scenario = parse_sdl(sdl)
+        network = scenario.nodes["techvault-webapp"].runtime.network
+        assert network is not None
+        assert network.hostname == "techvault-webapp"
+        assert network.domainname == "techvault.local"
+        endpoint = network.endpoints[0]
+        assert endpoint.network == "aptl-dmz"
+        assert endpoint.network_id == "net-a1b2c3d4e5f6"
+        assert endpoint.network_id_stability == "stable"
+        assert endpoint.endpoint_id_stability == "ephemeral"
+        assert endpoint.backend_generated is True
+        assert endpoint.ip_address == "172.20.0.20"
+        assert endpoint.ip_prefix_length == 24
+        assert endpoint.gateway == "172.20.0.1"
+        assert endpoint.mac_address == "02:42:ac:14:00:14"
+        assert endpoint.aliases == ["aptl-webapp", "webapp"]
+        assert endpoint.dns_names == ["aptl-webapp", "webapp"]
+        assert endpoint.generated_dns_names == ["a1b2c3d4e5f6"]
+        # Backend-native option keys are preserved verbatim (not key-normalized).
+        assert endpoint.backend.driver == "bridge"
+        assert endpoint.backend.driver_options == {"com.docker.network.bridge.name": "br-dmz"}
+        assert endpoint.backend.ipam_options == {"com.docker.network.driver.mtu": "1500"}
+        binding = network.published_ports[0]
+        assert binding.container_port == 8080
+        assert binding.host_ip == "127.0.0.1"
+        assert binding.host_port == 8080
+        assert binding.protocol == "tcp"
+
+    def test_runtime_network_ip_variable_substitutes_on_instantiation(self):
+        sdl = """
+name: techvault-network-variable
+variables:
+  webapp_ip:
+    type: string
+    required: true
+nodes:
+  aptl-dmz:
+    type: switch
+  techvault-webapp:
+    type: vm
+    os: linux
+    runtime:
+      network:
+        endpoints:
+          - network: aptl-dmz
+            ip-address: ${webapp_ip}
+infrastructure:
+  aptl-dmz:
+    properties:
+      cidr: 172.20.0.0/24
+      gateway: 172.20.0.1
+"""
+        raw = parse_sdl(sdl)
+        assert raw.nodes["techvault-webapp"].runtime.network.endpoints[0].ip_address == "${webapp_ip}"
+        instantiated = instantiate_scenario(raw, parameters={"webapp_ip": "172.20.0.20"})
+        endpoint = instantiated.nodes["techvault-webapp"].runtime.network.endpoints[0]
+        assert endpoint.ip_address == "172.20.0.20"
+
     def test_source_build_provenance_parses_with_kebab_keys(self):
         sdl = """
 name: techvault-build-provenance

@@ -3109,6 +3109,17 @@
           "title": "Mounts",
           "type": "array"
         },
+        "network": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNetworkRealization"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "operational_policy": {
           "anyOf": [
             {
@@ -4272,6 +4283,243 @@
       "title": "RuntimeNamespaceConfiguration",
       "type": "object"
     },
+    "RuntimeNetworkBackendDetail": {
+      "additionalProperties": false,
+      "description": "Observed backend network driver and IPAM detail for an endpoint's network.\n\n``driver_options`` and ``ipam_options`` are the bounded extension seam for\nbackend-native key/value facts; raw backend inspect payloads are not stored.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "driver": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNetworkDriver"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "other",
+          "title": "Driver"
+        },
+        "driver_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Driver Options",
+          "type": "object"
+        },
+        "ipam_driver": {
+          "default": "",
+          "title": "Ipam Driver",
+          "type": "string"
+        },
+        "ipam_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Ipam Options",
+          "type": "object"
+        }
+      },
+      "title": "RuntimeNetworkBackendDetail",
+      "type": "object"
+    },
+    "RuntimeNetworkDriver": {
+      "description": "Observed backend network driver class for a realized network.",
+      "enum": [
+        "bridge",
+        "overlay",
+        "host",
+        "ipvlan",
+        "macvlan",
+        "none",
+        "other"
+      ],
+      "title": "RuntimeNetworkDriver",
+      "type": "string"
+    },
+    "RuntimeNetworkEndpoint": {
+      "additionalProperties": false,
+      "description": "An observed container network endpoint (per-network attachment).\n\n``network`` references a declared switch-backed infrastructure network by\nname. Per-network ``aliases``, observed ``dns_names``, and backend-generated\n``generated_dns_names`` are kept as three distinct lists; generated names\nare not stable scenario identity.",
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "backend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNetworkBackendDetail"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "backend_generated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backend Generated"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "dns_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dns Names",
+          "type": "array"
+        },
+        "endpoint_id": {
+          "default": "",
+          "title": "Endpoint Id",
+          "type": "string"
+        },
+        "endpoint_id_stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNetworkIdStability"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Endpoint Id Stability"
+        },
+        "gateway": {
+          "default": "",
+          "title": "Gateway",
+          "type": "string"
+        },
+        "generated_dns_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Generated Dns Names",
+          "type": "array"
+        },
+        "ip_address": {
+          "default": "",
+          "title": "Ip Address",
+          "type": "string"
+        },
+        "ip_prefix_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ip Prefix Length"
+        },
+        "mac_address": {
+          "default": "",
+          "title": "Mac Address",
+          "type": "string"
+        },
+        "network": {
+          "title": "Network",
+          "type": "string"
+        },
+        "network_id": {
+          "default": "",
+          "title": "Network Id",
+          "type": "string"
+        },
+        "network_id_stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNetworkIdStability"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Network Id Stability"
+        }
+      },
+      "required": [
+        "network"
+      ],
+      "title": "RuntimeNetworkEndpoint",
+      "type": "object"
+    },
+    "RuntimeNetworkIdStability": {
+      "description": "Stability class for a backend-generated network or endpoint identifier.\n\nDistinct from :class:`RuntimeFilesystemStability`: filesystem stability and\nbackend-identifier stability are different concepts (ADR-025).",
+      "enum": [
+        "stable",
+        "ephemeral",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeNetworkIdStability",
+      "type": "string"
+    },
+    "RuntimeNetworkRealization": {
+      "additionalProperties": false,
+      "description": "Observed container network realization facts for a node.\n\n``hostname`` and ``domainname`` are the container's network identity facts,\nkept distinct from per-network aliases and DNS names.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "domainname": {
+          "default": "",
+          "title": "Domainname",
+          "type": "string"
+        },
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/RuntimeNetworkEndpoint"
+          },
+          "title": "Endpoints",
+          "type": "array"
+        },
+        "hostname": {
+          "default": "",
+          "title": "Hostname",
+          "type": "string"
+        },
+        "published_ports": {
+          "items": {
+            "$ref": "#/$defs/RuntimePublishedPort"
+          },
+          "title": "Published Ports",
+          "type": "array"
+        }
+      },
+      "title": "RuntimeNetworkRealization",
+      "type": "object"
+    },
     "RuntimeOperationalPolicy": {
       "additionalProperties": false,
       "description": "Observed restart and resource-limit policy for a runtime node.",
@@ -4538,6 +4786,58 @@
       ],
       "title": "RuntimeProcessRole",
       "type": "string"
+    },
+    "RuntimePublishedPort": {
+      "additionalProperties": false,
+      "description": "An observed host-published port binding for a container endpoint.\n\nHost IP, host port, container port, and protocol are kept distinct; this is\na runtime/host exposure fact, not a node service declaration (ADR-025).",
+      "properties": {
+        "container_port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Container Port"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "host_ip": {
+          "default": "",
+          "title": "Host Ip",
+          "type": "string"
+        },
+        "host_port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host Port"
+        },
+        "protocol": {
+          "default": "tcp",
+          "title": "Protocol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "container_port"
+      ],
+      "title": "RuntimePublishedPort",
+      "type": "object"
     },
     "RuntimeResourceLimits": {
       "additionalProperties": false,

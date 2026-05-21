@@ -36,6 +36,14 @@ from .runtime_identity import (
     RuntimeSudoPrincipalKind,
     RuntimeSudoRule,
 )
+from .runtime_network import (
+    RuntimeNetworkBackendDetail,
+    RuntimeNetworkDriver,
+    RuntimeNetworkEndpoint,
+    RuntimeNetworkIdStability,
+    RuntimeNetworkRealization,
+    RuntimePublishedPort,
+)
 from .runtime_values import (
     absolute_path_or_var as _absolute_path_or_var,
 )
@@ -85,12 +93,18 @@ __all__ = [
     "RuntimeMountPropagation",
     "RuntimeMountSourceKind",
     "RuntimeNamespaceConfiguration",
+    "RuntimeNetworkBackendDetail",
+    "RuntimeNetworkDriver",
+    "RuntimeNetworkEndpoint",
+    "RuntimeNetworkIdStability",
+    "RuntimeNetworkRealization",
     "RuntimeOperationalPolicy",
     "RuntimePackage",
     "RuntimePackageVulnerabilityFinding",
     "RuntimePackageVulnerabilitySeverity",
     "RuntimeProcessIdentity",
     "RuntimeProcessRole",
+    "RuntimePublishedPort",
     "RuntimeResourceLimits",
     "RuntimeRestartPolicy",
     "RuntimeSensitivityClassification",
@@ -500,6 +514,7 @@ class RuntimeConfiguration(SDLModel):
     container: RuntimeContainerConfiguration | None = None
     health: RuntimeHealthObservation | None = None
     local_identity: RuntimeLocalIdentityInventory | None = None
+    network: RuntimeNetworkRealization | None = None
     packages: list[RuntimePackage] = Field(default_factory=list)
     dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
     package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)
