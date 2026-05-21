@@ -72,6 +72,32 @@ nodes:
         command: ./shufflebackend
         user: root
         working-directory: /app
+      processes:
+        - name: supervisord
+          pid: 1
+          command: supervisord -n
+          role: supervisor
+        - name: gunicorn
+          parent-pid: 1
+          command: [gunicorn, app:app]
+          role: worker
+      environment:
+        - name: TECHVAULT_ADMIN_PASSWORD
+          value-classification: redacted
+          provenance: operator
+        - name: SCENARIO_FIXTURE_TOKEN
+          value: fixture-token
+          value-classification: secret-fixture
+          provenance: compose
+      linux-capabilities:
+        required: [CAP_NET_ADMIN]
+        effective: CAP_NET_ADMIN
+      operational-policy:
+        restart: unless-stopped
+        resource-limits:
+          memory: 512 MiB
+          cpu: 0.5
+          pids: 128
       packages:
         - manager: apk
           name: musl
@@ -97,9 +123,31 @@ nodes:
         assert runtime["local_control_interfaces"][0]["path"] == "/run/docker.sock"
         assert runtime["process"]["pid"] == 1
         assert runtime["process"]["command"] == ["./shufflebackend"]
+        assert runtime["processes"][0]["name"] == "supervisord"
+        assert runtime["processes"][1]["parent_pid"] == 1
+        assert runtime["environment"][0]["name"] == "TECHVAULT_ADMIN_PASSWORD"
+        assert runtime["environment"][0]["value_classification"] == "redacted"
+        assert runtime["environment"][1]["value_classification"] == "secret_fixture"
+        assert runtime["linux_capabilities"]["required"] == ["CAP_NET_ADMIN"]
+        assert runtime["linux_capabilities"]["effective"] == ["CAP_NET_ADMIN"]
+        assert runtime["operational_policy"]["restart"] == "unless_stopped"
+        assert runtime["operational_policy"]["resource_limits"]["memory"] == 512 * 1048576
+        assert runtime["operational_policy"]["resource_limits"]["cpu"] == 0.5
+        assert runtime["operational_policy"]["resource_limits"]["pids"] == 128
         assert runtime["packages"][0]["manager"] == "apk"
+        assert runtime["packages"][0]["name"] == "musl"
+        assert runtime["packages"][0]["version"] == "1.2.4-r2"
         assert runtime["dependency_manifests"][0]["ecosystem"] == "go"
+        assert runtime["dependency_manifests"][0]["path"] == "/app/go.mod"
+        assert runtime["dependency_manifests"][0]["format"] == "go-module"
+        assert runtime["package_vulnerabilities"][0]["id"] == "CVE-2026-12345"
+        assert runtime["package_vulnerabilities"][0]["package_name"] == "musl"
+        assert runtime["package_vulnerabilities"][0]["installed_version"] == "1.2.4-r2"
+        assert runtime["package_vulnerabilities"][0]["fixed_version"] == "1.2.5-r0"
+        assert runtime["package_vulnerabilities"][0]["severity"] == "high"
         assert runtime["package_vulnerabilities"][0]["scanner"] == "trivy"
+        assert runtime["package_vulnerabilities"][0]["image_digest"] == "sha256:abc123"
+        assert runtime["package_vulnerabilities"][0]["scan_time"] == "2026-05-20T12:00:00Z"
         assert not model.diagnostics
 
     def test_feature_binding_tracks_same_node_dependencies(self):
@@ -689,9 +737,14 @@ imports:
         expanded_model = compile_runtime_model(parse_sdl_file(root))
         flat_model = compile_runtime_model(flat)
 
+        assert not expanded_model.diagnostics
+        assert not flat_model.diagnostics
         assert expanded_model.workflows.keys() == flat_model.workflows.keys()
         assert expanded_model.objectives.keys() == flat_model.objectives.keys()
         assert expanded_model.condition_bindings.keys() == flat_model.condition_bindings.keys()
+        workflow = expanded_model.workflows["orchestration.workflow.shared.response"]
+        assert workflow.referenced_objective_addresses == ("evaluation.objective.shared.validate",)
+        assert workflow.control_steps["run"].objective_address == "evaluation.objective.shared.validate"
 
     def test_workflow_switch_call_and_timeout_compile_to_explicit_contracts(self):
         model = compile_runtime_model(

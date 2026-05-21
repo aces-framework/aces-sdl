@@ -2496,6 +2496,47 @@
       "title": "Role",
       "type": "object"
     },
+    "RuntimeCapabilityPolicy": {
+      "additionalProperties": false,
+      "description": "Linux/container capability policy observed for a runtime node.",
+      "properties": {
+        "add": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Add",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "drop": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Drop",
+          "type": "array"
+        },
+        "effective": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Effective",
+          "type": "array"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required",
+          "type": "array"
+        }
+      },
+      "title": "RuntimeCapabilityPolicy",
+      "type": "object"
+    },
     "RuntimeConfiguration": {
       "additionalProperties": false,
       "description": "Observed runtime configuration facts attached to a VM node.",
@@ -2506,6 +2547,24 @@
           },
           "title": "Dependency Manifests",
           "type": "array"
+        },
+        "environment": {
+          "items": {
+            "$ref": "#/$defs/RuntimeEnvironmentVariable"
+          },
+          "title": "Environment",
+          "type": "array"
+        },
+        "linux_capabilities": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeCapabilityPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "local_control_interfaces": {
           "items": {
@@ -2520,6 +2579,17 @@
           },
           "title": "Mounts",
           "type": "array"
+        },
+        "operational_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeOperationalPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "package_vulnerabilities": {
           "items": {
@@ -2545,6 +2615,13 @@
             }
           ],
           "default": null
+        },
+        "processes": {
+          "items": {
+            "$ref": "#/$defs/RuntimeProcessIdentity"
+          },
+          "title": "Processes",
+          "type": "array"
         }
       },
       "title": "RuntimeConfiguration",
@@ -2660,6 +2737,85 @@
       "title": "RuntimeDependencyManifest",
       "type": "object"
     },
+    "RuntimeEnvironmentValueClassification": {
+      "description": "Sensitivity classification for an observed runtime environment value.",
+      "enum": [
+        "plain",
+        "redacted",
+        "secret_fixture",
+        "unknown"
+      ],
+      "title": "RuntimeEnvironmentValueClassification",
+      "type": "string"
+    },
+    "RuntimeEnvironmentVariable": {
+      "additionalProperties": false,
+      "description": "Observed runtime environment variable with provenance and sensitivity.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeEnvironmentVariableProvenance"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Provenance"
+        },
+        "source": {
+          "default": "",
+          "title": "Source",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        },
+        "value_classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeEnvironmentValueClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Value Classification"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RuntimeEnvironmentVariable",
+      "type": "object"
+    },
+    "RuntimeEnvironmentVariableProvenance": {
+      "description": "Origin class for an observed runtime environment variable.",
+      "enum": [
+        "compose",
+        "image",
+        "operator",
+        "container",
+        "runtime",
+        "other",
+        "unknown"
+      ],
+      "title": "RuntimeEnvironmentVariableProvenance",
+      "type": "string"
+    },
     "RuntimeMount": {
       "additionalProperties": false,
       "description": "A filesystem mount observed on a runtime node.",
@@ -2727,6 +2883,42 @@
       ],
       "title": "RuntimeMountSourceKind",
       "type": "string"
+    },
+    "RuntimeOperationalPolicy": {
+      "additionalProperties": false,
+      "description": "Observed restart and resource-limit policy for a runtime node.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "resource_limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeResourceLimits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "restart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeRestartPolicy"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Restart"
+        }
+      },
+      "title": "RuntimeOperationalPolicy",
+      "type": "object"
     },
     "RuntimePackage": {
       "additionalProperties": false,
@@ -2863,10 +3055,47 @@
           "title": "Command",
           "type": "array"
         },
+        "command_redacted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Command Redacted"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
         "group": {
           "default": "",
           "title": "Group",
           "type": "string"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent_pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Pid"
         },
         "pid": {
           "anyOf": [
@@ -2883,6 +3112,18 @@
           "default": null,
           "title": "Pid"
         },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeProcessRole"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "other",
+          "title": "Role"
+        },
         "user": {
           "default": "",
           "title": "User",
@@ -2896,6 +3137,120 @@
       },
       "title": "RuntimeProcessIdentity",
       "type": "object"
+    },
+    "RuntimeProcessRole": {
+      "description": "Observed role of a process in a runtime process set.",
+      "enum": [
+        "primary",
+        "supervisor",
+        "worker",
+        "sidecar",
+        "agent",
+        "other"
+      ],
+      "title": "RuntimeProcessRole",
+      "type": "string"
+    },
+    "RuntimeResourceLimits": {
+      "additionalProperties": false,
+      "description": "Observed runtime/cgroup resource limits for a node.",
+      "properties": {
+        "cpu": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cpu"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory"
+        },
+        "memory_swap": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory Swap"
+        },
+        "open_files": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Open Files"
+        },
+        "pids": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pids"
+        }
+      },
+      "title": "RuntimeResourceLimits",
+      "type": "object"
+    },
+    "RuntimeRestartPolicy": {
+      "description": "Portable restart policy classification observed at runtime.",
+      "enum": [
+        "no",
+        "always",
+        "on_failure",
+        "unless_stopped",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeRestartPolicy",
+      "type": "string"
     },
     "Script": {
       "additionalProperties": false,

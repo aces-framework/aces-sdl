@@ -4,7 +4,6 @@ Ports the OCR SDL Node/VM/Switch/Resources/Role structs with
 backend-agnostic Source references.
 """
 
-import re
 from enum import Enum
 
 from pydantic import Field, field_validator, model_validator
@@ -13,101 +12,64 @@ from ._base import (
     SDLModel,
     is_variable_ref,
     normalize_enum_value,
-    parse_bool_or_var,
     parse_enum_or_var,
     parse_int_or_var,
 )
 from ._source import Source
+from .runtime_configuration import (
+    RuntimeCapabilityPolicy,
+    RuntimeConfiguration,
+    RuntimeControlInterface,
+    RuntimeControlInterfaceAccess,
+    RuntimeControlInterfaceKind,
+    RuntimeEnvironmentValueClassification,
+    RuntimeEnvironmentVariable,
+    RuntimeEnvironmentVariableProvenance,
+    RuntimeMount,
+    RuntimeMountSourceKind,
+    RuntimeOperationalPolicy,
+    RuntimePackage,
+    RuntimePackageVulnerabilityFinding,
+    RuntimePackageVulnerabilitySeverity,
+    RuntimeProcessIdentity,
+    RuntimeProcessRole,
+    RuntimeResourceLimits,
+    RuntimeRestartPolicy,
+    parse_ram,
+)
+
+__all__ = [
+    "AssetValue",
+    "AssetValueLevel",
+    "MAX_NODE_NAME_LENGTH",
+    "Node",
+    "NodeType",
+    "OSFamily",
+    "Resources",
+    "Role",
+    "RuntimeCapabilityPolicy",
+    "RuntimeConfiguration",
+    "RuntimeControlInterface",
+    "RuntimeControlInterfaceAccess",
+    "RuntimeControlInterfaceKind",
+    "RuntimeEnvironmentValueClassification",
+    "RuntimeEnvironmentVariable",
+    "RuntimeEnvironmentVariableProvenance",
+    "RuntimeMount",
+    "RuntimeMountSourceKind",
+    "RuntimeOperationalPolicy",
+    "RuntimePackage",
+    "RuntimePackageVulnerabilityFinding",
+    "RuntimePackageVulnerabilitySeverity",
+    "RuntimeProcessIdentity",
+    "RuntimeProcessRole",
+    "RuntimeResourceLimits",
+    "RuntimeRestartPolicy",
+    "ServicePort",
+    "parse_ram",
+]
 
 MAX_NODE_NAME_LENGTH = 35
-
-_BYTE_UNITS = {
-    "b": 1,
-    "kb": 1_000,
-    "kib": 1_024,
-    "mb": 1_000_000,
-    "mib": 1_048_576,
-    "gb": 1_000_000_000,
-    "gib": 1_073_741_824,
-    "tb": 1_000_000_000_000,
-    "tib": 1_099_511_627_776,
-}
-
-_RAM_PATTERN = re.compile(
-    r"^\s*(\d+(?:\.\d+)?)\s*(" + "|".join(_BYTE_UNITS) + r")\s*$",
-    re.IGNORECASE,
-)
-_WINDOWS_NAMED_PIPE_PREFIXES = ("\\\\.\\pipe\\", "\\\\?\\pipe\\")
-
-
-def _absolute_path_or_var(value: str, *, field_name: str) -> str:
-    if is_variable_ref(value):
-        return value
-    if not isinstance(value, str):
-        raise ValueError(f"{field_name} must be a string")
-    if not value.startswith("/"):
-        raise ValueError(f"{field_name} must be an absolute path")
-    return value
-
-
-def _is_windows_named_pipe(value: str) -> bool:
-    return isinstance(value, str) and value.lower().startswith(_WINDOWS_NAMED_PIPE_PREFIXES)
-
-
-def _control_interface_path_or_var(value: str, *, field_name: str) -> str:
-    if is_variable_ref(value):
-        return value
-    if not isinstance(value, str):
-        raise ValueError(f"{field_name} must be a string")
-    if value.startswith("/") or _is_windows_named_pipe(value):
-        return value
-    raise ValueError(f"{field_name} must be an absolute path or Windows named pipe")
-
-
-def _parse_runtime_enum_or_var(value, enum_cls: type[Enum], *, field_name: str):
-    if value is None or is_variable_ref(value):
-        return value
-    if isinstance(value, enum_cls):
-        return value
-    if isinstance(value, str):
-        normalized = value.lower().replace("-", "_")
-        try:
-            return enum_cls(normalized)
-        except ValueError as e:
-            allowed = ", ".join(member.value for member in enum_cls)
-            raise ValueError(f"{field_name} must be one of: {allowed}") from e
-    raise ValueError(f"{field_name} must be a string")
-
-
-def parse_ram(value: str | int) -> int | str:
-    """Parse a human-readable RAM string to bytes.
-
-    Accepts bare integers (treated as bytes) or strings like
-    ``"4 GiB"``, ``"2048 MiB"``, ``"512mb"``.
-    """
-    if is_variable_ref(value):
-        return value
-    if isinstance(value, bool):
-        raise ValueError("RAM must be a positive integer or human-readable size")
-    if isinstance(value, int):
-        if value < 1:
-            raise ValueError("RAM must be >= 1 byte")
-        return value
-    value_str = str(value).strip()
-    if value_str.isdigit():
-        parsed = int(value_str)
-        if parsed < 1:
-            raise ValueError("RAM must be >= 1 byte")
-        return parsed
-    match = _RAM_PATTERN.match(value_str)
-    if not match:
-        raise ValueError(f"Invalid RAM value: {value_str!r}. Use a number with a unit (e.g., '4 GiB', '2048 MiB').")
-    amount = float(match.group(1))
-    unit = match.group(2).lower()
-    parsed = int(amount * _BYTE_UNITS[unit])
-    if parsed < 1:
-        raise ValueError("RAM must be >= 1 byte")
-    return parsed
 
 
 class NodeType(str, Enum):
@@ -202,199 +164,6 @@ class ServicePort(SDLModel):
     @classmethod
     def parse_port_value(cls, v: int | str) -> int | str:
         return parse_int_or_var(v, minimum=1, maximum=65535, field_name="port")
-
-
-class RuntimeMountSourceKind(str, Enum):
-    """Portable source kind for a runtime filesystem mount."""
-
-    VOLUME = "volume"
-    BIND = "bind"
-    TMPFS = "tmpfs"
-    IMAGE = "image"
-    OTHER = "other"
-
-
-class RuntimeControlInterfaceKind(str, Enum):
-    """Path-local control interface shape observed at runtime."""
-
-    UNIX_SOCKET = "unix_socket"
-    NAMED_PIPE = "named_pipe"
-    FILE = "file"
-    OTHER = "other"
-
-
-class RuntimeControlInterfaceAccess(str, Enum):
-    """Observed local-control access mode."""
-
-    READ_ONLY = "read_only"
-    READ_WRITE = "read_write"
-    UNKNOWN = "unknown"
-
-
-class RuntimePackageVulnerabilitySeverity(str, Enum):
-    """Scanner-derived package finding severity."""
-
-    UNKNOWN = "unknown"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-
-class RuntimeMount(SDLModel):
-    """A filesystem mount observed on a runtime node."""
-
-    target: str
-    source: str = ""
-    source_kind: RuntimeMountSourceKind | str = RuntimeMountSourceKind.OTHER
-    read_only: bool | str = False
-    options: list[str] = Field(default_factory=list)
-    description: str = ""
-
-    @field_validator("target")
-    @classmethod
-    def validate_target(cls, v: str) -> str:
-        return _absolute_path_or_var(v, field_name="target")
-
-    @field_validator("source_kind", mode="before")
-    @classmethod
-    def normalize_source_kind(cls, v: RuntimeMountSourceKind | str) -> RuntimeMountSourceKind | str:
-        return _parse_runtime_enum_or_var(v, RuntimeMountSourceKind, field_name="source_kind")
-
-    @field_validator("read_only", mode="before")
-    @classmethod
-    def parse_read_only(cls, v: bool | str) -> bool | str:
-        return parse_bool_or_var(v, field_name="read_only")
-
-
-class RuntimeControlInterface(SDLModel):
-    """A non-network local control API exposed inside a runtime node."""
-
-    path: str
-    kind: RuntimeControlInterfaceKind | str = RuntimeControlInterfaceKind.UNIX_SOCKET
-    protocol: str = ""
-    bind_source: str = ""
-    access: RuntimeControlInterfaceAccess | str = RuntimeControlInterfaceAccess.UNKNOWN
-    description: str = ""
-
-    @field_validator("path")
-    @classmethod
-    def validate_path(cls, v: str) -> str:
-        return _control_interface_path_or_var(v, field_name="path")
-
-    @field_validator("bind_source")
-    @classmethod
-    def validate_bind_source(cls, v: str) -> str:
-        return _control_interface_path_or_var(v, field_name="bind_source") if v else v
-
-    @field_validator("kind", mode="before")
-    @classmethod
-    def normalize_kind(cls, v: RuntimeControlInterfaceKind | str) -> RuntimeControlInterfaceKind | str:
-        return _parse_runtime_enum_or_var(v, RuntimeControlInterfaceKind, field_name="kind")
-
-    @field_validator("access", mode="before")
-    @classmethod
-    def normalize_access(cls, v: RuntimeControlInterfaceAccess | str) -> RuntimeControlInterfaceAccess | str:
-        return _parse_runtime_enum_or_var(v, RuntimeControlInterfaceAccess, field_name="access")
-
-    @model_validator(mode="after")
-    def validate_named_pipe_kind(self) -> "RuntimeControlInterface":
-        if is_variable_ref(self.kind):
-            return self
-        has_windows_named_pipe_endpoint = _is_windows_named_pipe(self.path) or _is_windows_named_pipe(self.bind_source)
-        if has_windows_named_pipe_endpoint and self.kind != RuntimeControlInterfaceKind.NAMED_PIPE:
-            raise ValueError("Windows named pipe paths require kind 'named_pipe'")
-        return self
-
-
-class RuntimeProcessIdentity(SDLModel):
-    """Observed process identity for a runtime node."""
-
-    pid: int | str | None = None
-    command: list[str] = Field(default_factory=list)
-    user: str = ""
-    group: str = ""
-    working_directory: str = ""
-
-    @field_validator("pid", mode="before")
-    @classmethod
-    def parse_pid(cls, v: int | str | None) -> int | str | None:
-        return parse_int_or_var(v, minimum=1, field_name="pid") if v is not None else v
-
-    @field_validator("command", mode="before")
-    @classmethod
-    def normalize_command(cls, v: str | list[str] | None) -> list[str]:
-        if v is None:
-            return []
-        if isinstance(v, str):
-            return [v]
-        return v
-
-    @field_validator("working_directory")
-    @classmethod
-    def validate_working_directory(cls, v: str) -> str:
-        return _absolute_path_or_var(v, field_name="working_directory") if v else v
-
-
-class RuntimePackage(SDLModel):
-    """A package observed in a runtime image or node."""
-
-    manager: str
-    name: str
-    version: str
-    architecture: str = ""
-    source: str = ""
-    purl: str = ""
-
-
-class RuntimeDependencyManifest(SDLModel):
-    """A dependency manifest visible in the realized runtime artifact."""
-
-    ecosystem: str
-    path: str
-    format: str = ""
-    name: str = ""
-    version: str = ""
-
-    @field_validator("path")
-    @classmethod
-    def validate_path(cls, v: str) -> str:
-        return _absolute_path_or_var(v, field_name="path")
-
-
-class RuntimePackageVulnerabilityFinding(SDLModel):
-    """A scanner-derived CVE/advisory finding for an observed package."""
-
-    id: str
-    package_name: str
-    installed_version: str
-    severity: RuntimePackageVulnerabilitySeverity | str = RuntimePackageVulnerabilitySeverity.UNKNOWN
-    scanner: str
-    image_digest: str
-    scan_time: str
-    fixed_version: str = ""
-    advisory_url: str = ""
-    scanner_version: str = ""
-    scanner_database: str = ""
-
-    @field_validator("severity", mode="before")
-    @classmethod
-    def normalize_severity(
-        cls,
-        v: RuntimePackageVulnerabilitySeverity | str,
-    ) -> RuntimePackageVulnerabilitySeverity | str:
-        return _parse_runtime_enum_or_var(v, RuntimePackageVulnerabilitySeverity, field_name="severity")
-
-
-class RuntimeConfiguration(SDLModel):
-    """Observed runtime configuration facts attached to a VM node."""
-
-    mounts: list[RuntimeMount] = Field(default_factory=list)
-    local_control_interfaces: list[RuntimeControlInterface] = Field(default_factory=list)
-    process: RuntimeProcessIdentity | None = None
-    packages: list[RuntimePackage] = Field(default_factory=list)
-    dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
-    package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)
 
 
 class Node(SDLModel):

@@ -48,10 +48,14 @@ jobs:
         env:
           ACES_REQUIREMENT_UID: ${{ steps.requirement.outputs.uid }}
           GC_BASE_URL: ${{ vars.GC_BASE_URL }}
-        run: >
-          uv tool run --from 'nox[uv]==2026.4.10'
-          nox -f noxfile.py -s verify --
-          --base-rev "${{ steps.base.outputs.base_rev }}"
+        run: |
+          verify_args=(--base-rev "${{ steps.base.outputs.base_rev }}")
+          if [ -n "${{ steps.requirement.outputs.uid }}" ]; then
+            verify_args+=(--requirement-uid "${{ steps.requirement.outputs.uid }}")
+          else
+            verify_args+=(--skip-requirement)
+          fi
+          uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify -- "${verify_args[@]}"
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

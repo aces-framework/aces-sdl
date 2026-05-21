@@ -16,7 +16,12 @@ from aces.core.sdl.nodes import (
     RuntimeControlInterface,
     RuntimeControlInterfaceAccess,
     RuntimeControlInterfaceKind,
+    RuntimeEnvironmentValueClassification,
+    RuntimeEnvironmentVariableProvenance,
     RuntimeMountSourceKind,
+    RuntimePackageVulnerabilitySeverity,
+    RuntimeProcessRole,
+    RuntimeRestartPolicy,
     parse_ram,
 )
 from aces.core.sdl.objectives import Objective, ObjectiveSuccess, ObjectiveWindow
@@ -205,8 +210,98 @@ class TestNode:
         assert runtime.process.user == "root"
         assert runtime.process.working_directory == "/app"
         assert runtime.packages[0].manager == "apk"
+        assert runtime.packages[0].name == "musl"
+        assert runtime.packages[0].version == "1.2.4-r2"
         assert runtime.dependency_manifests[0].ecosystem == "go"
+        assert runtime.dependency_manifests[0].path == "/app/go.mod"
+        assert runtime.dependency_manifests[0].format == "go-module"
+        assert runtime.package_vulnerabilities[0].id == "CVE-2026-12345"
+        assert runtime.package_vulnerabilities[0].package_name == "musl"
+        assert runtime.package_vulnerabilities[0].installed_version == "1.2.4-r2"
+        assert runtime.package_vulnerabilities[0].fixed_version == "1.2.5-r0"
+        assert runtime.package_vulnerabilities[0].severity == RuntimePackageVulnerabilitySeverity.HIGH
         assert runtime.package_vulnerabilities[0].scanner == "trivy"
+        assert runtime.package_vulnerabilities[0].image_digest == "sha256:abc123"
+        assert runtime.package_vulnerabilities[0].scan_time == "2026-05-20T12:00:00Z"
+
+    def test_vm_runtime_operational_surfaces(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "processes": [
+                    {
+                        "name": "supervisord",
+                        "pid": 1,
+                        "command": "supervisord -n",
+                        "role": "supervisor",
+                    },
+                    {
+                        "name": "gunicorn",
+                        "pid": 42,
+                        "parent_pid": 1,
+                        "command": ["gunicorn", "app:app"],
+                        "role": "worker",
+                    },
+                    {
+                        "name": "wazuh-agentd",
+                        "parent_pid": 1,
+                        "command_redacted": True,
+                        "role": "agent",
+                    },
+                ],
+                "environment": [
+                    {
+                        "name": "DJANGO_SETTINGS_MODULE",
+                        "value": "techvault.settings",
+                        "value_classification": "plain",
+                        "provenance": "compose",
+                    },
+                    {
+                        "name": "TECHVAULT_ADMIN_PASSWORD",
+                        "value_classification": "redacted",
+                        "provenance": "operator",
+                    },
+                    {
+                        "name": "SCENARIO_FIXTURE_TOKEN",
+                        "value": "fixture-token",
+                        "value_classification": "secret_fixture",
+                        "provenance": "compose",
+                    },
+                ],
+                "linux_capabilities": {
+                    "required": ["CAP_NET_ADMIN"],
+                    "effective": "CAP_NET_ADMIN",
+                },
+                "operational_policy": {
+                    "restart": "unless-stopped",
+                    "resource_limits": {
+                        "memory": "512 MiB",
+                        "cpu": "0.5",
+                        "pids": "128",
+                    },
+                },
+            },
+        )
+
+        runtime = n.runtime
+        assert runtime is not None
+        assert runtime.processes[0].role == RuntimeProcessRole.SUPERVISOR
+        assert runtime.processes[1].parent_pid == 1
+        assert runtime.processes[1].command == ["gunicorn", "app:app"]
+        assert runtime.processes[2].command_redacted is True
+        assert runtime.environment[1].value == ""
+        assert runtime.environment[1].value_classification == RuntimeEnvironmentValueClassification.REDACTED
+        assert runtime.environment[1].provenance == RuntimeEnvironmentVariableProvenance.OPERATOR
+        assert runtime.environment[2].value_classification == RuntimeEnvironmentValueClassification.SECRET_FIXTURE
+        assert runtime.linux_capabilities is not None
+        assert runtime.linux_capabilities.required == ["CAP_NET_ADMIN"]
+        assert runtime.linux_capabilities.effective == ["CAP_NET_ADMIN"]
+        assert runtime.operational_policy is not None
+        assert runtime.operational_policy.restart == RuntimeRestartPolicy.UNLESS_STOPPED
+        assert runtime.operational_policy.resource_limits is not None
+        assert runtime.operational_policy.resource_limits.memory == 512 * 1048576
+        assert runtime.operational_policy.resource_limits.cpu == 0.5
+        assert runtime.operational_policy.resource_limits.pids == 128
 
     @pytest.mark.parametrize(
         ("runtime", "message"),
@@ -216,6 +311,22 @@ class TestNode:
             ({"process": {"pid": 0, "command": "./shufflebackend"}}, "pid"),
             ({"process": {"working_directory": "app"}}, "working_directory"),
             ({"dependency_manifests": [{"ecosystem": "go", "path": "go.mod"}]}, "path"),
+            (
+                {
+                    "environment": [
+                        {"name": "TECHVAULT_ADMIN_PASSWORD", "value_classification": "redacted"},
+                        {"name": "TECHVAULT_ADMIN_PASSWORD", "value_classification": "redacted"},
+                    ]
+                },
+                "Duplicate runtime environment variable",
+            ),
+            ({"environment": [{"name": "BAD=NAME"}]}, "environment variable name"),
+            (
+                {"processes": [{"name": "gunicorn"}, {"name": "gunicorn"}]},
+                "Duplicate runtime process name",
+            ),
+            ({"linux_capabilities": {"required": [""]}}, "capability"),
+            ({"operational_policy": {"resource_limits": {"pids": 0}}}, "pids"),
         ],
     )
     def test_runtime_configuration_rejects_invalid_runtime_anchors(self, runtime, message):
