@@ -4,22 +4,17 @@
 
 These are things the SDL cannot currently express, identified through stress-testing against 19 real-world scenarios from 8 platforms.
 
-### Deployment-Layer Gaps (by design — belong in backend implementations)
+### Deployment Authoring Boundaries (by design)
 
-These are intentionally excluded from the specification layer:
-
-- **Port mappings** (host:container exposure) — deployment detail
-- **Volume mounts** — deployment detail
-- **Linux capabilities** (NET_RAW, SYS_ADMIN) — deployment detail
-- **Security options** (seccomp, cgroup) — deployment detail
-- **Docker Compose profiles** — deployment-specific grouping
-- **Image build contexts** (Dockerfile paths) — deployment detail
-- **Container entrypoints/commands** — deployment detail
-- **Extra hosts** (/etc/hosts overrides) — deployment detail
-- **Ulimits** (nofile, memlock) — deployment detail
-
-These remain outside the language itself and are addressed by backend
-implementations rather than by the SDL surface.
+The SDL distinguishes authored deployment intent from observed runtime facts.
+Backends still own deployment-specific mechanics such as Docker Compose
+profiles, image build contexts, host port publication decisions, and engine
+realization. The node `runtime` surface can now record observed runtime facts
+for analysis and parity, including mounts, Linux capabilities, namespace modes,
+entrypoints, image commands, extra hosts, DNS options, security flags, resource
+limits, health status/logs, and filesystem inventory. Recording those facts in
+SDL does not make Docker, Compose, or any specific container engine the
+normative deployment model.
 
 ### Specification-Layer Gaps (future SDL work)
 

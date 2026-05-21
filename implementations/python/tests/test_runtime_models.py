@@ -47,6 +47,7 @@ features:
         }
         assert model.feature_bindings["provision.feature.vm1.nginx"].node_name == "vm1"
         assert model.feature_bindings["provision.feature.vm2.nginx"].node_name == "vm2"
+        assert not model.diagnostics
 
     def test_node_runtime_preserves_runtime_configuration_metadata(self):
         model = compile_runtime_model(
@@ -61,6 +62,32 @@ nodes:
         - target: /shuffle-database
           source: aptl_shuffle_data
           source-kind: volume
+          filesystem-type: ext4
+          read-only: false
+          options: [rw, nosuid]
+          propagation: rprivate
+          stability: volume-backed
+          backend-generated: true
+      filesystem-inventory:
+        - path: /app/app.py
+          entry-type: file
+          owner-user: root
+          owner-group: root
+          uid: "0"
+          gid: "0"
+          mode: "0644"
+          size: "4096"
+          content-digest: 4f8c2d
+          digest-algorithm: sha256
+          source-path: src/webapp/app.py
+          provenance: python-package
+          stability: stable
+          sensitivity: plain
+        - path: /var/log/gunicorn/access.log
+          entry-type: file
+          mode: "0600"
+          stability: log
+          sensitivity: operator-secret
       local-control-interfaces:
         - path: /run/docker.sock
           kind: unix-socket
@@ -98,6 +125,48 @@ nodes:
           memory: 512 MiB
           cpu: 0.5
           pids: 128
+      container:
+        entrypoint: [/entrypoint.sh]
+        command: [gunicorn, app:app]
+        log-driver: json-file
+        log-options:
+          max-size: 10m
+          max-file: "3"
+        namespaces:
+          cgroup: private
+          ipc: private
+          pid: private
+          userns: host
+          uts: private
+        privileged: false
+        read-only-rootfs: false
+        publish-all-ports: false
+        autoremove: false
+        shm-size: 64 MiB
+        masked-paths: [/proc/acpi, /proc/kcore]
+        read-only-paths: /proc/sys
+        cgroup-parent: /docker
+        runtime-name: runc
+        devices:
+          - host-path: /dev/null
+            container-path: /dev/null
+            permissions: rwm
+        device-cgroup-rules: c 1:3 rwm
+        extra-hosts:
+          - hostname: wazuh-manager
+            address: 172.20.0.10
+        dns: [8.8.8.8]
+        dns-options: ndots:0
+        dns-search: [techvault.local]
+        group-add: [adm, "101"]
+      health:
+        status: healthy
+        failing-streak: "0"
+        log:
+          - start: "2026-05-20T12:00:00Z"
+            end: "2026-05-20T12:00:01Z"
+            exit-code: "0"
+            output: ok
       packages:
         - manager: apk
           name: musl
@@ -120,6 +189,21 @@ nodes:
 
         runtime = model.node_deployments["provision.node.shuffle-backend"].spec["node"]["runtime"]
         assert runtime["mounts"][0]["target"] == "/shuffle-database"
+        assert runtime["mounts"][0]["filesystem_type"] == "ext4"
+        assert runtime["mounts"][0]["propagation"] == "rprivate"
+        assert runtime["mounts"][0]["stability"] == "volume_backed"
+        assert runtime["mounts"][0]["backend_generated"] is True
+        assert runtime["filesystem_inventory"][0]["path"] == "/app/app.py"
+        assert runtime["filesystem_inventory"][0]["entry_type"] == "file"
+        assert runtime["filesystem_inventory"][0]["uid"] == 0
+        assert runtime["filesystem_inventory"][0]["gid"] == 0
+        assert runtime["filesystem_inventory"][0]["mode"] == "0644"
+        assert runtime["filesystem_inventory"][0]["size"] == 4096
+        assert runtime["filesystem_inventory"][0]["digest_algorithm"] == "sha256"
+        assert runtime["filesystem_inventory"][0]["content_digest"] == "4f8c2d"
+        assert runtime["filesystem_inventory"][0]["source_path"] == "src/webapp/app.py"
+        assert runtime["filesystem_inventory"][1]["stability"] == "log"
+        assert runtime["filesystem_inventory"][1]["sensitivity"] == "operator_secret"
         assert runtime["local_control_interfaces"][0]["path"] == "/run/docker.sock"
         assert runtime["process"]["pid"] == 1
         assert runtime["process"]["command"] == ["./shufflebackend"]
@@ -134,6 +218,22 @@ nodes:
         assert runtime["operational_policy"]["resource_limits"]["memory"] == 512 * 1048576
         assert runtime["operational_policy"]["resource_limits"]["cpu"] == 0.5
         assert runtime["operational_policy"]["resource_limits"]["pids"] == 128
+        assert runtime["container"]["entrypoint"] == ["/entrypoint.sh"]
+        assert runtime["container"]["command"] == ["gunicorn", "app:app"]
+        assert runtime["container"]["log_driver"] == "json-file"
+        assert runtime["container"]["log_options"] == {"max-size": "10m", "max-file": "3"}
+        assert runtime["container"]["namespaces"]["userns"] == "host"
+        assert runtime["container"]["shm_size"] == 64 * 1048576
+        assert runtime["container"]["masked_paths"] == ["/proc/acpi", "/proc/kcore"]
+        assert runtime["container"]["read_only_paths"] == ["/proc/sys"]
+        assert runtime["container"]["devices"][0]["container_path"] == "/dev/null"
+        assert runtime["container"]["device_cgroup_rules"] == ["c 1:3 rwm"]
+        assert runtime["container"]["extra_hosts"][0]["hostname"] == "wazuh-manager"
+        assert runtime["container"]["dns_options"] == ["ndots:0"]
+        assert runtime["container"]["group_add"] == ["adm", "101"]
+        assert runtime["health"]["status"] == "healthy"
+        assert runtime["health"]["failing_streak"] == 0
+        assert runtime["health"]["log"][0]["exit_code"] == 0
         assert runtime["packages"][0]["manager"] == "apk"
         assert runtime["packages"][0]["name"] == "musl"
         assert runtime["packages"][0]["version"] == "1.2.4-r2"
@@ -245,6 +345,7 @@ injects:
         assert condition.result_contract.resource_type == "condition-binding"
         assert condition.result_contract.supports_passed is True
         assert condition.execution_contract.requires_start_event is True
+        assert not model.diagnostics
 
     def test_objective_windows_and_workflows_resolve_refresh_dependencies(self):
         model = compile_runtime_model(
@@ -337,6 +438,7 @@ workflows:
         assert model.metrics["evaluation.metric.uptime"].result_contract.supports_score is True
         assert model.metrics["evaluation.metric.uptime"].result_contract.fixed_max_score == 100
         assert model.objectives["evaluation.objective.initial"].result_contract.supports_passed is True
+        assert not model.diagnostics
 
     def test_objective_window_step_outside_window_workflows_emits_diagnostic(self):
         model = compile_runtime_model(
@@ -554,6 +656,7 @@ workflows:
             "evaluation.objective.recover",
         )
         assert "evaluation.condition.vm.health" in workflow.step_predicate_addresses["branch"]
+        assert not model.diagnostics
 
     def test_parallel_join_compiles_as_barrier_with_typed_predicate(self):
         model = compile_runtime_model(
@@ -647,6 +750,7 @@ workflows:
             WorkflowStatePredicateFeature.OUTCOME_MATCHING,
             WorkflowStatePredicateFeature.ATTEMPT_COUNTS,
         }
+        assert not model.diagnostics
 
     def test_module_expansion_compiles_like_flat_scenario(self, tmp_path: Path):
         imported = tmp_path / "shared.yaml"
@@ -809,6 +913,7 @@ imports:
             "succeeded",
             "failed",
         )
+        assert not model.diagnostics
 
     def test_workflow_compensation_compiles_to_explicit_contracts(self):
         model = compile_runtime_model(
@@ -868,3 +973,4 @@ imports:
         assert workflow.execution_contract.compensation_targets == {"run": "orchestration.workflow.rollback"}
         assert workflow.execution_contract.compensation_ordering == "reverse_completion"
         assert workflow.execution_contract.compensation_failure_policy == "record_and_continue"
+        assert not model.diagnostics

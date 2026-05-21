@@ -1,0 +1,255 @@
+name: techvault-runtime-parity
+description: TechVault webapp runtime facts used to exercise ACES SDL runtime inventory parity.
+
+variables:
+  app_py_sha256:
+    type: string
+    required: true
+    description: SHA-256 digest observed for /app/app.py in the runtime capture.
+  requirements_sha256:
+    type: string
+    required: true
+    description: SHA-256 digest observed for /app/requirements.txt in the runtime capture.
+  style_css_sha256:
+    type: string
+    required: true
+    description: SHA-256 digest observed for /app/static/style.css in the runtime capture.
+  webapp_conf_sha256:
+    type: string
+    required: true
+    description: SHA-256 digest observed for /etc/supervisor/conf.d/webapp.conf.
+  wazuh_conf_sha256:
+    type: string
+    required: true
+    description: SHA-256 digest observed for /var/ossec/etc/ossec.conf.
+
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    resources:
+      ram: 1 GiB
+      cpu: 1
+    runtime:
+      mounts:
+        - target: /var/log/gunicorn
+          source: techvault_gunicorn_logs
+          source_kind: volume
+          filesystem_type: ext4
+          read_only: false
+          options: [rw, nosuid]
+          propagation: rprivate
+          stability: volume_backed
+          backend_generated: true
+          description: Runtime volume state for Gunicorn logs.
+      filesystem_inventory:
+        - path: /app/app.py
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          size: 14896
+          content_digest: ${app_py_sha256}
+          digest_algorithm: sha256
+          source_path: webapp/app.py
+          provenance: techvault-source-package
+          stability: stable
+          sensitivity: plain
+        - path: /app/requirements.txt
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          size: 312
+          content_digest: ${requirements_sha256}
+          digest_algorithm: sha256
+          source_path: webapp/requirements.txt
+          provenance: techvault-source-package
+          stability: stable
+          sensitivity: plain
+        - path: /app/static/style.css
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          size: 8192
+          content_digest: ${style_css_sha256}
+          digest_algorithm: sha256
+          source_path: webapp/static/style.css
+          provenance: techvault-source-package
+          stability: stable
+          sensitivity: plain
+        - path: /app/templates/index.html
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          source_path: webapp/templates/index.html
+          provenance: techvault-source-package
+          stability: stable
+          sensitivity: plain
+        - path: /etc/supervisor/conf.d/webapp.conf
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          content_digest: ${webapp_conf_sha256}
+          digest_algorithm: sha256
+          source_path: supervisor/webapp.conf
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /etc/rsyslog.d/80-gunicorn.conf
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          source_path: rsyslog/80-gunicorn.conf
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /etc/rsyslog.d/90-forward.conf
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"
+          source_path: rsyslog/90-forward.conf
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /entrypoint.sh
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0755"
+          source_path: docker/entrypoint.sh
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /opt/aptl/wazuh
+          entry_type: directory
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0755"
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /var/ossec/etc/ossec.conf
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0640"
+          content_digest: ${wazuh_conf_sha256}
+          digest_algorithm: sha256
+          source_path: wazuh/ossec.conf
+          provenance: image-configuration
+          stability: stable
+          sensitivity: plain
+        - path: /var/log/gunicorn/access.log
+          entry_type: file
+          owner_user: root
+          owner_group: adm
+          uid: 0
+          gid: 4
+          mode: "0640"
+          provenance: runtime
+          stability: log
+          sensitivity: operator_secret
+      process:
+        pid: 1
+        command: supervisord -n -c /etc/supervisor/supervisord.conf
+        user: root
+        group: root
+        working_directory: /
+      processes:
+        - name: supervisord
+          pid: 1
+          command: supervisord -n -c /etc/supervisor/supervisord.conf
+          role: supervisor
+          user: root
+          group: root
+        - name: gunicorn
+          parent_pid: 1
+          command: [gunicorn, app:app, --bind, 0.0.0.0:8080]
+          role: worker
+          user: root
+          group: root
+        - name: wazuh-agentd
+          parent_pid: 1
+          command_redacted: true
+          role: agent
+          user: root
+          group: ossec
+      environment:
+        - name: TECHVAULT_ADMIN_PASSWORD
+          value_classification: redacted
+          provenance: operator
+        - name: SCENARIO_FIXTURE_TOKEN
+          value_classification: secret_fixture
+          provenance: compose
+      linux_capabilities:
+        required: [CAP_NET_BIND_SERVICE]
+        effective: [CAP_CHOWN, CAP_DAC_OVERRIDE, CAP_NET_BIND_SERVICE]
+      operational_policy:
+        restart: unless_stopped
+        resource_limits:
+          memory: 512 MiB
+          pids: 128
+      container:
+        entrypoint: [/entrypoint.sh]
+        command: [supervisord, -n, -c, /etc/supervisor/supervisord.conf]
+        log_driver: json-file
+        log_options:
+          max-size: 10m
+          max-file: "3"
+        namespaces:
+          cgroup: private
+          ipc: private
+          pid: private
+          userns: host
+          uts: private
+        privileged: false
+        read_only_rootfs: false
+        publish_all_ports: false
+        autoremove: false
+        shm_size: 64 MiB
+        masked_paths: [/proc/acpi, /proc/kcore]
+        read_only_paths: [/proc/sys, /proc/sysrq-trigger]
+        cgroup_parent: /docker
+        runtime_name: runc
+        device_cgroup_rules: [c 1:3 rwm]
+        extra_hosts:
+          - hostname: wazuh-manager
+            address: 172.20.0.10
+        dns: [8.8.8.8]
+        dns_options: [ndots:0]
+        dns_search: [techvault.local]
+        group_add: [adm]
+      health:
+        status: healthy
+        failing_streak: 0
+        log:
+          - start: "2026-05-20T12:00:00Z"
+            end: "2026-05-20T12:00:01Z"
+            exit_code: 0
+            output: ok

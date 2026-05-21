@@ -90,6 +90,32 @@ nodes:
         - target: /shuffle-database
           source: aptl_shuffle_data
           source_kind: volume
+          filesystem_type: ext4
+          read_only: false
+          options: [rw, nosuid]
+          propagation: rprivate
+          stability: volume_backed
+          backend_generated: true
+      filesystem_inventory:
+        - path: /app/app.py
+          entry_type: file
+          owner_user: root
+          owner_group: root
+          uid: 0
+          gid: 0
+          mode: "0644"                 # quote to preserve leading zeroes
+          size: 4096
+          content_digest: 4f8c2d
+          digest_algorithm: sha256
+          source_path: src/webapp/app.py
+          provenance: python-package
+          stability: stable
+          sensitivity: plain
+        - path: /var/log/gunicorn/access.log
+          entry_type: file
+          mode: "0600"
+          stability: log
+          sensitivity: operator_secret
       local_control_interfaces:
         - path: /run/docker.sock
           kind: unix_socket
@@ -127,6 +153,48 @@ nodes:
           memory: 512 MiB
           cpu: 0.5
           pids: 128
+      container:
+        entrypoint: [/entrypoint.sh]
+        command: [gunicorn, app:app]
+        log_driver: json-file
+        log_options:
+          max-size: 10m
+          max-file: "3"
+        namespaces:
+          cgroup: private
+          ipc: private
+          pid: private
+          userns: host
+          uts: private
+        privileged: false
+        read_only_rootfs: false
+        publish_all_ports: false
+        autoremove: false
+        shm_size: 64 MiB
+        masked_paths: [/proc/acpi, /proc/kcore]
+        read_only_paths: [/proc/sys]
+        cgroup_parent: /docker
+        runtime_name: runc
+        devices:
+          - host_path: /dev/null
+            container_path: /dev/null
+            permissions: rwm
+        device_cgroup_rules: [c 1:3 rwm]
+        extra_hosts:
+          - hostname: wazuh-manager
+            address: 172.20.0.10
+        dns: [8.8.8.8]
+        dns_options: [ndots:0]
+        dns_search: [techvault.local]
+        group_add: [adm, "101"]
+      health:
+        status: healthy
+        failing_streak: 0
+        log:
+          - start: "2026-05-20T12:00:00Z"
+            end: "2026-05-20T12:00:01Z"
+            exit_code: 0
+            output: ok
       packages:
         - manager: apk
           name: musl
@@ -162,17 +230,23 @@ Concrete service bindings on a VM must be unique by `protocol` + `port`. Reusing
 
 `runtime` captures observed VM/runtime facts that are not authored deployable
 features or exposed network services. Mounts describe realized filesystem
-attachments; `local_control_interfaces` describe path-local control APIs such
-as Unix sockets; `process` records primary execution identity; `processes`
-records a supervised or load-bearing process set; `environment` records
-observed runtime environment variables with provenance and redaction
-classification; `linux_capabilities` records container/Linux capability policy;
-`operational_policy` records restart policy and observed resource limits;
-`packages` and `dependency_manifests` record runtime inventory; and
-`package_vulnerabilities` records scanner-derived CVE/advisory findings tied
-to an image digest and scan time. These findings are separate from the
-top-level `vulnerabilities` section, which remains the CWE-classified scenario
-vulnerability surface.
+attachments, including filesystem type, propagation, stability, and whether a
+backend generated the source. `filesystem_inventory` records runtime-observed
+filesystem entries with absolute path, entry type, ownership, UID/GID, mode,
+size, digest algorithm/value pairs, source-package path, provenance, stability,
+and sensitivity classification. `local_control_interfaces` describe path-local
+control APIs such as Unix sockets; `process` records primary execution
+identity; `processes` records a supervised or load-bearing process set;
+`environment` records observed runtime environment variables with provenance
+and redaction classification; `linux_capabilities` records container/Linux
+capability policy; `operational_policy` records restart policy and observed
+resource limits; `container` records observed host/container configuration and
+namespace/security facts; `health` records observed health status and bounded
+healthcheck log facts; `packages` and `dependency_manifests` record runtime
+inventory; and `package_vulnerabilities` records scanner-derived CVE/advisory
+findings tied to an image digest and scan time. These findings are separate
+from the top-level `vulnerabilities` section, which remains the CWE-classified
+scenario vulnerability surface.
 
 ---
 

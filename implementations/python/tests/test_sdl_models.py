@@ -18,10 +18,15 @@ from aces.core.sdl.nodes import (
     RuntimeControlInterfaceKind,
     RuntimeEnvironmentValueClassification,
     RuntimeEnvironmentVariableProvenance,
+    RuntimeFilesystemEntryType,
+    RuntimeFilesystemStability,
+    RuntimeHealthStatus,
+    RuntimeMountPropagation,
     RuntimeMountSourceKind,
     RuntimePackageVulnerabilitySeverity,
     RuntimeProcessRole,
     RuntimeRestartPolicy,
+    RuntimeSensitivityClassification,
     parse_ram,
 )
 from aces.core.sdl.objectives import Objective, ObjectiveSuccess, ObjectiveWindow
@@ -303,14 +308,210 @@ class TestNode:
         assert runtime.operational_policy.resource_limits.cpu == 0.5
         assert runtime.operational_policy.resource_limits.pids == 128
 
+    def test_vm_runtime_filesystem_inventory_surfaces(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "filesystem_inventory": [
+                    {
+                        "path": "/app/app.py",
+                        "entry_type": "file",
+                        "owner_user": "root",
+                        "owner_group": "root",
+                        "uid": "0",
+                        "gid": 0,
+                        "mode": 0o644,
+                        "size": "4096",
+                        "content_digest": "4f8c2d",
+                        "digest_algorithm": "sha256",
+                        "source_path": "src/webapp/app.py",
+                        "provenance": "python-package",
+                        "stability": "stable",
+                        "sensitivity": "plain",
+                    },
+                    {
+                        "path": "/var/log/gunicorn/access.log",
+                        "entry_type": "file",
+                        "mode": "0600",
+                        "stability": "log",
+                        "sensitivity": "operator-secret",
+                    },
+                    {
+                        "path": "/run/secrets/fixture-token",
+                        "entry_type": "file",
+                        "stability": "runtime-created",
+                        "sensitivity": "secret-fixture",
+                    },
+                ],
+            },
+        )
+
+        runtime = n.runtime
+        assert runtime is not None
+        assert runtime.filesystem_inventory[0].path == "/app/app.py"
+        assert runtime.filesystem_inventory[0].entry_type == RuntimeFilesystemEntryType.FILE
+        assert runtime.filesystem_inventory[0].uid == 0
+        assert runtime.filesystem_inventory[0].gid == 0
+        assert runtime.filesystem_inventory[0].mode == "0644"
+        assert runtime.filesystem_inventory[0].size == 4096
+        assert runtime.filesystem_inventory[0].digest_algorithm == "sha256"
+        assert runtime.filesystem_inventory[0].content_digest == "4f8c2d"
+        assert runtime.filesystem_inventory[0].source_path == "src/webapp/app.py"
+        assert runtime.filesystem_inventory[0].stability == RuntimeFilesystemStability.STABLE
+        assert runtime.filesystem_inventory[0].sensitivity == RuntimeSensitivityClassification.PLAIN
+        assert runtime.filesystem_inventory[1].stability == RuntimeFilesystemStability.LOG
+        assert runtime.filesystem_inventory[1].sensitivity == RuntimeSensitivityClassification.OPERATOR_SECRET
+        assert runtime.filesystem_inventory[2].stability == RuntimeFilesystemStability.RUNTIME_CREATED
+        assert runtime.filesystem_inventory[2].sensitivity == RuntimeSensitivityClassification.SECRET_FIXTURE
+
+    def test_vm_runtime_container_host_config_surfaces(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "mounts": [
+                    {
+                        "target": "/var/log/gunicorn",
+                        "source": "techvault_gunicorn_logs",
+                        "source_kind": "volume",
+                        "filesystem_type": "ext4",
+                        "read_only": False,
+                        "options": ["rw", "nosuid"],
+                        "propagation": "rprivate",
+                        "stability": "volume-backed",
+                        "backend_generated": True,
+                    }
+                ],
+                "container": {
+                    "entrypoint": ["/entrypoint.sh"],
+                    "command": ["gunicorn", "app:app"],
+                    "log_driver": "json-file",
+                    "log_options": {"max-size": "10m", "max-file": "3"},
+                    "namespaces": {
+                        "cgroup": "private",
+                        "ipc": "private",
+                        "pid": "private",
+                        "userns": "host",
+                        "uts": "private",
+                    },
+                    "privileged": False,
+                    "read_only_rootfs": False,
+                    "publish_all_ports": False,
+                    "autoremove": False,
+                    "shm_size": "64 MiB",
+                    "masked_paths": ["/proc/acpi", "/proc/kcore"],
+                    "read_only_paths": "/proc/sys",
+                    "cgroup_parent": "/docker",
+                    "runtime_name": "runc",
+                    "devices": [
+                        {
+                            "host_path": "/dev/null",
+                            "container_path": "/dev/null",
+                            "permissions": "rwm",
+                        }
+                    ],
+                    "device_cgroup_rules": "c 1:3 rwm",
+                    "extra_hosts": [{"hostname": "wazuh-manager", "address": "172.20.0.10"}],
+                    "dns": ["8.8.8.8"],
+                    "dns_options": "ndots:0",
+                    "dns_search": ["techvault.local"],
+                    "group_add": ["adm", "101"],
+                },
+                "health": {
+                    "status": "healthy",
+                    "failing_streak": "0",
+                    "log": [
+                        {
+                            "start": "2026-05-20T12:00:00Z",
+                            "end": "2026-05-20T12:00:01Z",
+                            "exit_code": "0",
+                            "output": "ok",
+                        },
+                        {
+                            "start": "2026-05-20T12:01:00Z",
+                            "end": "2026-05-20T12:01:01Z",
+                            "exit_code": 1,
+                            "output_redacted": True,
+                        },
+                    ],
+                },
+            },
+        )
+
+        runtime = n.runtime
+        assert runtime is not None
+        assert runtime.mounts[0].filesystem_type == "ext4"
+        assert runtime.mounts[0].propagation == RuntimeMountPropagation.RPRIVATE
+        assert runtime.mounts[0].stability == RuntimeFilesystemStability.VOLUME_BACKED
+        assert runtime.mounts[0].backend_generated is True
+        assert runtime.container is not None
+        assert runtime.container.entrypoint == ["/entrypoint.sh"]
+        assert runtime.container.command == ["gunicorn", "app:app"]
+        assert runtime.container.log_driver == "json-file"
+        assert runtime.container.namespaces is not None
+        assert runtime.container.namespaces.userns == "host"
+        assert runtime.container.privileged is False
+        assert runtime.container.shm_size == 64 * 1048576
+        assert runtime.container.read_only_paths == ["/proc/sys"]
+        assert runtime.container.devices[0].host_path == "/dev/null"
+        assert runtime.container.device_cgroup_rules == ["c 1:3 rwm"]
+        assert runtime.container.extra_hosts[0].hostname == "wazuh-manager"
+        assert runtime.container.dns_options == ["ndots:0"]
+        assert runtime.container.group_add == ["adm", "101"]
+        assert runtime.health is not None
+        assert runtime.health.status == RuntimeHealthStatus.HEALTHY
+        assert runtime.health.failing_streak == 0
+        assert runtime.health.log[0].exit_code == 0
+        assert runtime.health.log[1].output_redacted is True
+
     @pytest.mark.parametrize(
         ("runtime", "message"),
         [
             ({"mounts": [{"target": "shuffle-database", "source": "data"}]}, "target"),
+            ({"mounts": [{"target": "/data", "backend_generated": "sometimes"}]}, "backend_generated"),
+            ({"mounts": [{"target": "/data"}, {"target": "/data"}]}, "Duplicate runtime mount target"),
+            ({"filesystem_inventory": [{"path": "app/app.py"}]}, "path"),
+            (
+                {"filesystem_inventory": [{"path": "/app/app.py", "content_digest": "abc"}]},
+                "content_digest requires digest_algorithm",
+            ),
+            (
+                {"filesystem_inventory": [{"path": "/app/app.py", "digest_algorithm": "sha256"}]},
+                "digest_algorithm requires content_digest",
+            ),
+            ({"filesystem_inventory": [{"path": "/app/app.py", "mode": "888"}]}, "mode"),
+            (
+                {"filesystem_inventory": [{"path": "/app/app.py"}, {"path": "/app/app.py"}]},
+                "Duplicate runtime filesystem path",
+            ),
             ({"local_control_interfaces": [{"path": "run/docker.sock"}]}, "path"),
             ({"process": {"pid": 0, "command": "./shufflebackend"}}, "pid"),
             ({"process": {"working_directory": "app"}}, "working_directory"),
             ({"dependency_manifests": [{"ecosystem": "go", "path": "go.mod"}]}, "path"),
+            ({"container": {"masked_paths": ["proc/acpi"]}}, "masked_paths"),
+            ({"container": {"devices": [{"host_path": "dev/null", "container_path": "/dev/null"}]}}, "host_path"),
+            (
+                {
+                    "container": {
+                        "devices": [
+                            {"host_path": "/dev/null", "container_path": "/dev/null"},
+                            {"host_path": "/dev/null", "container_path": "/dev/null"},
+                        ]
+                    }
+                },
+                "Duplicate runtime device mapping",
+            ),
+            (
+                {
+                    "container": {
+                        "extra_hosts": [
+                            {"hostname": "wazuh-manager", "address": "172.20.0.10"},
+                            {"hostname": "wazuh-manager", "address": "172.20.0.11"},
+                        ]
+                    }
+                },
+                "Duplicate runtime extra host",
+            ),
+            ({"health": {"log": [{"output": "secret", "output_redacted": True}]}}, "redacted healthcheck output"),
             (
                 {
                     "environment": [
@@ -1236,6 +1437,8 @@ class TestRelationship:
             type="connects_to", source="webapp", target="db", properties={"protocol": "tcp", "port": "5432"}
         )
         assert r.source == "webapp"
+        assert r.type == RelationshipType.CONNECTS_TO
+        assert r.properties == {"protocol": "tcp", "port": "5432"}
 
     def test_federates_with(self):
         r = Relationship(type="federates_with", source="adfs", target="azure-ad", properties={"protocol": "SAML"})

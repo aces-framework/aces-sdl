@@ -46,9 +46,15 @@ becoming a validator-only interpretation of the SDL.
 Pydantic structural validation also enforces model-local node rules before
 these semantic passes run. Switch nodes reject VM-only fields, including
 `runtime`. Runtime mount and dependency-manifest paths must be absolute paths
-or variable references. Runtime local-control interface paths and bind sources
-must be absolute paths, Windows named pipe endpoints, or variable references;
-Windows named pipe endpoints require `kind: named_pipe`.
+or variable references. Runtime filesystem inventory paths, container masked
+paths, container read-only paths, and device host/container paths must also be
+absolute runtime paths or variable references. Runtime local-control interface
+paths and bind sources must be absolute paths, Windows named pipe endpoints, or
+variable references; Windows named pipe endpoints require `kind: named_pipe`.
+Runtime filesystem inventory UID/GID and size fields are non-negative, mode is
+stored as octal permission bits, and content digests must carry both the digest
+algorithm and value. Runtime healthcheck entries marked as redacted must omit
+raw output.
 
 When a field contains an unresolved `${var}` placeholder, reference-oriented
 passes treat it as deferred rather than as a broken concrete reference. The
@@ -63,6 +69,7 @@ feature dependency enforcement and bound-resource reference resolution.
 This also means the validator only enforces what the current SDL syntax can
 actually express. Node `runtime` metadata covers observed VM configuration
 facts such as mounts, path-local control interfaces, process identity, runtime
+filesystem inventory, container host/security configuration, health observations,
 package inventory, dependency manifests, and scanner-derived package findings.
 Broader ecosystem concerns such as participant-implementation manifests,
 decision-surface exposure policy contracts, augmentation disclosure, and full
