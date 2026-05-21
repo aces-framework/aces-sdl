@@ -952,6 +952,7 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
     for name, contract in scenario.action_contracts.items():
         contract_spec = _dump(contract)
         interactions = contract_spec.get("interactions", [])
+        temporal_contracts = contract_spec.get("temporal_contracts", [])
         interaction_classes = _dedupe(
             [
                 str(interaction.get("interaction_class", ""))
@@ -991,6 +992,48 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
             for mapping in contract_spec.get("backend_failure_mappings", [])
             if isinstance(mapping, dict)
         )
+        temporal_contract_ids = _dedupe(
+            [
+                str(temporal_contract.get("temporal_id", ""))
+                for temporal_contract in temporal_contracts
+                if isinstance(temporal_contract, dict) and temporal_contract.get("temporal_id")
+            ]
+        )
+        temporal_kinds = _dedupe(
+            [
+                str(temporal_contract.get("temporal_kind", ""))
+                for temporal_contract in temporal_contracts
+                if isinstance(temporal_contract, dict) and temporal_contract.get("temporal_kind")
+            ]
+        )
+        time_domains = _dedupe(
+            [
+                str(temporal_contract.get("time_domain", ""))
+                for temporal_contract in temporal_contracts
+                if isinstance(temporal_contract, dict) and temporal_contract.get("time_domain")
+            ]
+        )
+        clock_authorities = _dedupe(
+            [
+                str(temporal_contract.get("clock_authority", ""))
+                for temporal_contract in temporal_contracts
+                if isinstance(temporal_contract, dict) and temporal_contract.get("clock_authority")
+            ]
+        )
+        backend_timing_disclosures = tuple(
+            {
+                "disclosure_id": str(disclosure.get("disclosure_id", "")),
+                "disclosure_kind": str(disclosure.get("disclosure_kind", "")),
+                "support_mode": str(disclosure.get("support_mode", "")),
+                "description": str(disclosure.get("description", "")),
+                "affected_temporal_ids": [
+                    str(temporal_id) for temporal_id in disclosure.get("affected_temporal_ids", [])
+                ],
+                "limitations": [str(limitation) for limitation in disclosure.get("limitations", [])],
+            }
+            for disclosure in contract_spec.get("backend_timing_disclosures", [])
+            if isinstance(disclosure, dict)
+        )
         action_contracts[_action_contract_address(name)] = ParticipantActionContractRuntime(
             address=_action_contract_address(name),
             name=name,
@@ -1004,6 +1047,11 @@ def _compile_action_contracts(scenario: InstantiatedScenario) -> dict[str, Parti
             backend_failure_mappings=backend_failure_mappings,
             interaction_classes=interaction_classes,
             shared_state_refs=shared_state_refs,
+            temporal_contract_ids=temporal_contract_ids,
+            temporal_kinds=temporal_kinds,
+            time_domains=time_domains,
+            clock_authorities=clock_authorities,
+            backend_timing_disclosures=backend_timing_disclosures,
             spec=contract_spec,
         )
     return action_contracts

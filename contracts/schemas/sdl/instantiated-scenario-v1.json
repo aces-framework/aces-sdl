@@ -1492,6 +1492,13 @@
           "title": "Backend Failure Mappings",
           "type": "array"
         },
+        "backend_timing_disclosures": {
+          "items": {
+            "$ref": "#/$defs/ParticipantBackendTimingDisclosure"
+          },
+          "title": "Backend Timing Disclosures",
+          "type": "array"
+        },
         "behavioral_granularity": {
           "$ref": "#/$defs/ParticipantActionGranularity"
         },
@@ -1569,6 +1576,13 @@
             "type": "string"
           },
           "title": "State Transition Effects",
+          "type": "array"
+        },
+        "temporal_contracts": {
+          "items": {
+            "$ref": "#/$defs/ParticipantTemporalContract"
+          },
+          "title": "Temporal Contracts",
           "type": "array"
         }
       },
@@ -1701,6 +1715,62 @@
       ],
       "title": "ParticipantBackendFailureMapping",
       "type": "object"
+    },
+    "ParticipantBackendTimingDisclosure": {
+      "additionalProperties": false,
+      "description": "Backend timing realization disclosure for SEM-213 contracts.",
+      "properties": {
+        "affected_temporal_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Affected Temporal Ids",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "disclosure_id": {
+          "title": "Disclosure Id",
+          "type": "string"
+        },
+        "disclosure_kind": {
+          "$ref": "#/$defs/ParticipantBackendTimingDisclosureKind"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "support_mode": {
+          "$ref": "#/$defs/ParticipantTemporalSupportMode"
+        }
+      },
+      "required": [
+        "disclosure_id",
+        "disclosure_kind",
+        "support_mode",
+        "description",
+        "affected_temporal_ids"
+      ],
+      "title": "ParticipantBackendTimingDisclosure",
+      "type": "object"
+    },
+    "ParticipantBackendTimingDisclosureKind": {
+      "description": "Backend timing realization disclosures.",
+      "enum": [
+        "pacing",
+        "dilation",
+        "synchronization",
+        "serialization",
+        "unsupported_guarantee"
+      ],
+      "title": "ParticipantBackendTimingDisclosureKind",
+      "type": "string"
     },
     "ParticipantEffectClass": {
       "description": "SEM-211 effect classes for participant action results.",
@@ -1898,6 +1968,175 @@
         "realization"
       ],
       "title": "ParticipantPreconditionClass",
+      "type": "string"
+    },
+    "ParticipantTemporalContract": {
+      "additionalProperties": false,
+      "description": "Typed SEM-213 temporal contract for a participant action.",
+      "properties": {
+        "backend_disclosure_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Backend Disclosure Refs",
+          "type": "array"
+        },
+        "clock_authority": {
+          "title": "Clock Authority",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "duration_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Ref"
+        },
+        "event_points": {
+          "items": {
+            "$ref": "#/$defs/ParticipantTemporalEventPoint"
+          },
+          "minItems": 1,
+          "title": "Event Points",
+          "type": "array"
+        },
+        "ordering_basis": {
+          "title": "Ordering Basis",
+          "type": "string"
+        },
+        "randomization_basis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Basis"
+        },
+        "replay_boundary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replay Boundary"
+        },
+        "reset_boundary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reset Boundary"
+        },
+        "temporal_id": {
+          "title": "Temporal Id",
+          "type": "string"
+        },
+        "temporal_kind": {
+          "$ref": "#/$defs/ParticipantTemporalContractKind"
+        },
+        "time_domain": {
+          "$ref": "#/$defs/ParticipantTimeDomain"
+        },
+        "window_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window Ref"
+        }
+      },
+      "required": [
+        "temporal_id",
+        "temporal_kind",
+        "time_domain",
+        "clock_authority",
+        "event_points",
+        "description",
+        "ordering_basis"
+      ],
+      "title": "ParticipantTemporalContract",
+      "type": "object"
+    },
+    "ParticipantTemporalContractKind": {
+      "description": "SEM-213 temporal contract kinds.",
+      "enum": [
+        "schedule",
+        "cadence",
+        "deadline",
+        "dwell",
+        "latency",
+        "time_window",
+        "timeout",
+        "cooldown"
+      ],
+      "title": "ParticipantTemporalContractKind",
+      "type": "string"
+    },
+    "ParticipantTemporalEventPoint": {
+      "description": "Named participant event points used by temporal contracts.",
+      "enum": [
+        "submit",
+        "start",
+        "end",
+        "observed",
+        "effective",
+        "deadline",
+        "window_open",
+        "window_close",
+        "reset",
+        "replay"
+      ],
+      "title": "ParticipantTemporalEventPoint",
+      "type": "string"
+    },
+    "ParticipantTemporalSupportMode": {
+      "description": "How a backend supports a temporal guarantee.",
+      "enum": [
+        "exact",
+        "bounded",
+        "disclosed_limitation",
+        "unsupported"
+      ],
+      "title": "ParticipantTemporalSupportMode",
+      "type": "string"
+    },
+    "ParticipantTimeDomain": {
+      "description": "Distinct SEM-213 time domains.",
+      "enum": [
+        "episode_step",
+        "scenario_time",
+        "simulation_time",
+        "backend_time",
+        "wall_clock_time"
+      ],
+      "title": "ParticipantTimeDomain",
       "type": "string"
     },
     "ParticipantViewDisposition": {
