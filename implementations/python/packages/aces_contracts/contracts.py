@@ -19,6 +19,10 @@ from aces_sdl.participant_behavior import (
     ParticipantInteractionClass,
     ParticipantPreconditionClass,
 )
+from aces_sdl.participant_outcome_semantics import (
+    OutcomeInterpretationSourceLayer,
+    OutcomeInterpretationTargetLayer,
+)
 from aces_sdl.participant_temporal_semantics import (
     ParticipantTemporalEventPoint,
     ParticipantTimeDomain,
@@ -300,6 +304,40 @@ class ParticipantAttributionEdgeModel(ContractModel):
     interpretation_rule_ref: NonEmptyString | None = None
 
 
+class ParticipantOutcomeSourceRecordModel(ContractModel):
+    source_id: NonEmptyString
+    source_layer: OutcomeInterpretationSourceLayer
+    ref: NonEmptyString
+    observed_value: NonEmptyString
+    evidence_refs: list[NonEmptyString] = Field(default_factory=list)
+    provenance_refs: list[NonEmptyString] = Field(default_factory=list)
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
+class ParticipantOutcomeTargetRecordModel(ContractModel):
+    target_id: NonEmptyString
+    target_layer: OutcomeInterpretationTargetLayer
+    ref: NonEmptyString
+    interpreted_value: NonEmptyString
+    evidence_refs: list[NonEmptyString] = Field(min_length=1)
+    limitations: list[NonEmptyString] = Field(min_length=1)
+    governance_ref: NonEmptyString | None = None
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
+class ParticipantOutcomeInterpretationRecordModel(ContractModel):
+    interpretation_id: NonEmptyString
+    rule_address: NonEmptyString
+    participant_address: NonEmptyString
+    episode_id: NonEmptyString
+    observation_point: NonEmptyString
+    source_bindings: list[ParticipantOutcomeSourceRecordModel] = Field(min_length=1)
+    target_bindings: list[ParticipantOutcomeTargetRecordModel] = Field(min_length=1)
+    evidence_refs: list[NonEmptyString] = Field(min_length=1)
+    limitations: list[NonEmptyString] = Field(min_length=1)
+    diagnostics: list[NonEmptyString] = Field(default_factory=list)
+
+
 class ParticipantBehaviorHistoryEventModel(ContractModel):
     event_type: str
     timestamp: str
@@ -319,6 +357,7 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
     action_result: ParticipantActionResultModel | None = None
     attribution_edges: list[ParticipantAttributionEdgeModel] = Field(default_factory=list)
+    outcome_interpretations: list[ParticipantOutcomeInterpretationRecordModel] = Field(default_factory=list)
     temporal_contexts: list[ParticipantTemporalRuntimeContextModel] = Field(default_factory=list)
     details: ParticipantObservationDetailsModel = Field(default_factory=ParticipantObservationDetailsModel)
 
@@ -1393,6 +1432,9 @@ __all__ = [
     "ParticipantBehaviorHistoryEventModel",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
+    "ParticipantOutcomeInterpretationRecordModel",
+    "ParticipantOutcomeSourceRecordModel",
+    "ParticipantOutcomeTargetRecordModel",
     "ParticipantRuntimeCapabilitiesModel",
     "ParticipantTemporalRuntimeContextModel",
     "PlanOperationModel",

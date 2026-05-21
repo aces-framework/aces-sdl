@@ -13,6 +13,10 @@ from aces_sdl.entities import flatten_entities
 from aces_sdl.instantiate import instantiate_scenario
 from aces_sdl.nodes import NodeType
 from aces_sdl.orchestration import WorkflowStepType
+from aces_sdl.participant_outcome_semantics import (
+    OutcomeInterpretationSourceLayer,
+    OutcomeInterpretationTargetLayer,
+)
 from aces_sdl.scenario import InstantiatedScenario, Scenario
 from aces_sdl.semantics.assessment import partition_assessment_dependencies
 from aces_sdl.semantics.objective_semantics import (
@@ -45,6 +49,7 @@ from .models import (
     ParticipantActionContractRuntime,
     ParticipantBehaviorRuntime,
     ParticipantObservationBoundaryRuntime,
+    ParticipantOutcomeInterpretationRuleRuntime,
     RuntimeModel,
     RuntimeTemplate,
     ScriptRuntime,
@@ -215,6 +220,10 @@ def _action_contract_address(name: str) -> str:
 
 def _observation_boundary_address(name: str) -> str:
     return _address("participant", "observation-boundary", name)
+
+
+def _outcome_interpretation_rule_address(name: str) -> str:
+    return _address("participant", "outcome-interpretation-rule", name)
 
 
 def _participant_behavior_address(name: str) -> str:
@@ -1095,6 +1104,66 @@ def _compile_observation_boundaries(scenario: InstantiatedScenario) -> dict[str,
             spec=boundary_spec,
         )
     return observation_boundaries
+
+
+def _outcome_source_ref_address(source_layer: str, ref: str) -> str:
+    if source_layer == OutcomeInterpretationSourceLayer.PARTICIPANT_ACTION_OUTCOME.value:
+        return _action_contract_address(ref)
+    if source_layer == OutcomeInterpretationSourceLayer.OBJECTIVE_RESULT.value:
+        return _objective_address(ref)
+    if source_layer == OutcomeInterpretationSourceLayer.WORKFLOW_RESULT.value:
+        return _workflow_address(ref)
+    if source_layer == OutcomeInterpretationSourceLayer.EVALUATION_RESULT.value:
+        return _evaluation_address(ref)
+    return ref
+
+
+def _outcome_target_ref_address(target_layer: str, ref: str) -> str:
+    if target_layer == OutcomeInterpretationTargetLayer.OBJECTIVE_RESULT.value:
+        return _objective_address(ref)
+    if target_layer == OutcomeInterpretationTargetLayer.WORKFLOW_RESULT.value:
+        return _workflow_address(ref)
+    if target_layer == OutcomeInterpretationTargetLayer.EVALUATION_RESULT.value:
+        return _evaluation_address(ref)
+    return ref
+
+
+def _compile_outcome_interpretation_rules(
+    scenario: InstantiatedScenario,
+) -> dict[str, ParticipantOutcomeInterpretationRuleRuntime]:
+    rules: dict[str, ParticipantOutcomeInterpretationRuleRuntime] = {}
+    for name, rule in scenario.outcome_interpretation_rules.items():
+        rule_spec = _dump(rule)
+        sources = tuple(source for source in rule_spec.get("source_bindings", ()) if isinstance(source, dict))
+        targets = tuple(target for target in rule_spec.get("target_bindings", ()) if isinstance(target, dict))
+        source_layers = tuple(str(source.get("source_layer", "")) for source in sources)
+        target_layers = tuple(str(target.get("target_layer", "")) for target in targets)
+        source_refs = tuple(
+            _outcome_source_ref_address(str(source.get("source_layer", "")), str(source.get("ref", "")))
+            for source in sources
+        )
+        target_refs = tuple(
+            _outcome_target_ref_address(str(target.get("target_layer", "")), str(target.get("ref", "")))
+            for target in targets
+        )
+        address = _outcome_interpretation_rule_address(name)
+        rules[address] = ParticipantOutcomeInterpretationRuleRuntime(
+            address=address,
+            name=name,
+            rule_name=name,
+            semantic_version=str(rule_spec.get("semantic_version", "")),
+            participant_scope=str(rule_spec.get("participant_scope", "")),
+            observation_point_basis=str(rule_spec.get("observation_point_basis", "")),
+            interpretation_basis=str(rule_spec.get("interpretation_basis", "")),
+            source_layers=source_layers,
+            source_refs=source_refs,
+            target_layers=target_layers,
+            target_refs=target_refs,
+            evidence_refs=tuple(str(ref) for ref in rule_spec.get("evidence_refs", ())),
+            limitations=tuple(str(item) for item in rule_spec.get("limitations", ())),
+            spec=rule_spec,
+        )
+    return rules
 
 
 def _participant_action_addresses(
@@ -2154,6 +2223,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
     account_placements = _compile_account_placements(scenario, diagnostics)
     action_contracts = _compile_action_contracts(scenario)
     observation_boundaries = _compile_observation_boundaries(scenario)
+    outcome_interpretation_rules = _compile_outcome_interpretation_rules(scenario)
     participant_behaviors = _compile_participant_behaviors(scenario, diagnostics)
     events = _compile_events(scenario, condition_bindings, injects, inject_bindings, diagnostics)
     scripts = _compile_scripts(scenario, diagnostics)
@@ -2186,6 +2256,7 @@ def compile_runtime_model(scenario: Scenario | InstantiatedScenario) -> RuntimeM
         account_placements=account_placements,
         action_contracts=action_contracts,
         observation_boundaries=observation_boundaries,
+        outcome_interpretation_rules=outcome_interpretation_rules,
         participant_behaviors=participant_behaviors,
         events=events,
         scripts=scripts,

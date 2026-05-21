@@ -39,8 +39,10 @@ becoming a validator-only interpretation of the SDL.
 | `verify_accounts` | Account nodes reference existing VM nodes. |
 | `verify_relationships` | Source and target resolve to any named element in any section, including variables, relationships, content item names, named service bindings, and named ACL rules. Ambiguous bare refs are rejected with qualified alternatives. |
 | `verify_agents` | Entity references resolve. Starting accounts and initial-knowledge accounts exist in accounts section. Allowed subnets and initial-knowledge subnets must resolve to switch-backed infrastructure entries. Initial-knowledge hosts must resolve to VM nodes. Initial-knowledge services exist in `nodes.*.services[].name`. |
+| `verify_participant_behavior` | Agent action refs resolve to declared action contracts, observation-boundary refs resolve to declared boundaries, interaction refs resolve to declared actions or targetable state, and boundary view rules/transitions resolve to declared observable, hidden, or evidence refs. |
 | `verify_objectives` | Objective actors resolve (`agent` or `entity`). Objective actions must be declared by the referenced agent. Targets resolve to named scenario elements, including qualified service/ACL refs and section-qualified top-level refs. Ambiguous bare refs are rejected with qualified alternatives. Success criteria resolve to declared conditions/metrics/evaluations/TLOs/goals. Optional windows resolve through one shared normalized analysis over stories/scripts/events/workflows/workflow-steps, must remain internally consistent, and fail closed on dangling or out-of-window refs. Objective dependencies must resolve and stay acyclic. |
 | `verify_workflows` | Workflow `start` and every referenced step must exist. `objective`/`retry` steps must reference declared objectives. Predicate refs must resolve to declared conditions/metrics/evaluations/TLOs/goals/objectives, and step-state refs must resolve to prior executable steps whose state is guaranteed to be known before the predicate runs. Workflow graphs must be acyclic and fully reachable from `start`. Parallel joins must be explicit barriers, every explicit branch path must converge on the declared join, branch-local state remains scoped until the join, and post-join predicates may inspect only branch steps guaranteed on every path within their branch before the join. |
+| `verify_participant_outcomes` | Outcome interpretation source and target refs resolve for action contracts, objectives, workflows, and evaluations. Reward-signal targets require governed assessment refs structurally, while runtime conformance grounds emitted interpretation records in action results, event evidence, and participant episode history. |
 | `verify_variables` | Checks that full-value `${var}` placeholders reference declared variables. Structural validation of typed defaults and `allowed_values` still happens in the `Variable` model itself. |
 
 Pydantic structural validation also enforces model-local node rules before
@@ -57,8 +59,13 @@ phase performs substitution, type-checking, and concrete revalidation before
 runtime compilation.
 
 The SDL validator is intentionally structural/semantic. The SDL-native runtime
-compiler performs additional fail-closed binding checks, including node-local
-feature dependency enforcement and bound-resource reference resolution.
+compiler and runtime conformance helpers perform additional fail-closed binding
+checks, including node-local feature dependency enforcement, bound-resource
+reference resolution, and SEM-215 outcome-record grounding. A participant outcome
+interpretation emitted at runtime must preserve declared source/target bindings
+and must ground participant-action outcome sources in the event action result,
+evidence refs in event evidence, and participant-episode status sources in
+terminal participant-episode history for the same participant and episode.
 
 This also means the validator only enforces what the current SDL syntax can
 actually express. Node `runtime` metadata covers observed VM configuration

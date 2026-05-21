@@ -1481,6 +1481,234 @@
       "title": "ObjectiveWindow",
       "type": "object"
     },
+    "OutcomeInterpretationParticipantScope": {
+      "description": "Allowed participant scope for SEM-215 interpretation rules.",
+      "enum": [
+        "participant_local"
+      ],
+      "title": "OutcomeInterpretationParticipantScope",
+      "type": "string"
+    },
+    "OutcomeInterpretationRule": {
+      "additionalProperties": false,
+      "description": "Explicit SEM-215 rule relating participant-local outcomes to meaning layers.",
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "interpretation_basis": {
+          "title": "Interpretation Basis",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "observation_point_basis": {
+          "title": "Observation Point Basis",
+          "type": "string"
+        },
+        "participant_scope": {
+          "$ref": "#/$defs/OutcomeInterpretationParticipantScope"
+        },
+        "semantic_version": {
+          "title": "Semantic Version",
+          "type": "string"
+        },
+        "source_bindings": {
+          "items": {
+            "$ref": "#/$defs/OutcomeInterpretationSourceBinding"
+          },
+          "minItems": 1,
+          "title": "Source Bindings",
+          "type": "array"
+        },
+        "target_bindings": {
+          "items": {
+            "$ref": "#/$defs/OutcomeInterpretationTargetBinding"
+          },
+          "minItems": 1,
+          "title": "Target Bindings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "semantic_version",
+        "participant_scope",
+        "observation_point_basis",
+        "interpretation_basis",
+        "source_bindings",
+        "target_bindings",
+        "evidence_refs",
+        "limitations"
+      ],
+      "title": "OutcomeInterpretationRule",
+      "type": "object"
+    },
+    "OutcomeInterpretationSourceBinding": {
+      "additionalProperties": false,
+      "description": "Declared input to a participant outcome interpretation rule.",
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "interpretation_role": {
+          "title": "Interpretation Role",
+          "type": "string"
+        },
+        "provenance_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Provenance Refs",
+          "type": "array"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_layer": {
+          "$ref": "#/$defs/OutcomeInterpretationSourceLayer"
+        }
+      },
+      "required": [
+        "source_id",
+        "source_layer",
+        "ref",
+        "interpretation_role"
+      ],
+      "title": "OutcomeInterpretationSourceBinding",
+      "type": "object"
+    },
+    "OutcomeInterpretationSourceLayer": {
+      "description": "Semantic layers that may feed a SEM-215 interpretation rule.",
+      "enum": [
+        "participant_action_outcome",
+        "participant_episode_status",
+        "objective_result",
+        "workflow_result",
+        "evaluation_result",
+        "evidence_claim",
+        "reward_signal",
+        "benchmark_milestone",
+        "subtask",
+        "gold_step",
+        "human_assistance",
+        "scaffold_variant",
+        "cost_resource_telemetry",
+        "privacy_redaction_result"
+      ],
+      "title": "OutcomeInterpretationSourceLayer",
+      "type": "string"
+    },
+    "OutcomeInterpretationTargetBinding": {
+      "additionalProperties": false,
+      "description": "Declared output relation from a participant outcome interpretation rule.",
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "governance_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Governance Ref"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "relation": {
+          "title": "Relation",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_layer": {
+          "$ref": "#/$defs/OutcomeInterpretationTargetLayer"
+        }
+      },
+      "required": [
+        "target_id",
+        "target_layer",
+        "ref",
+        "relation"
+      ],
+      "title": "OutcomeInterpretationTargetBinding",
+      "type": "object"
+    },
+    "OutcomeInterpretationTargetLayer": {
+      "description": "Semantic layers a SEM-215 interpretation rule may explicitly produce.",
+      "enum": [
+        "scenario_meaning",
+        "objective_result",
+        "workflow_result",
+        "evaluation_result",
+        "evidence_claim",
+        "reward_signal",
+        "benchmark_progress",
+        "privacy_redaction_result"
+      ],
+      "title": "OutcomeInterpretationTargetLayer",
+      "type": "string"
+    },
     "ParticipantActionContract": {
       "additionalProperties": false,
       "description": "Governed semantic contract for one participant action name.",
@@ -4130,6 +4358,13 @@
         "$ref": "#/$defs/ParticipantObservationBoundary"
       },
       "title": "Observation Boundaries",
+      "type": "object"
+    },
+    "outcome_interpretation_rules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/OutcomeInterpretationRule"
+      },
+      "title": "Outcome Interpretation Rules",
       "type": "object"
     },
     "relationships": {

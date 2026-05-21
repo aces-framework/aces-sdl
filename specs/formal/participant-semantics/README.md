@@ -902,18 +902,24 @@ Design commitments:
   governed assessment rule;
 - participant outcomes must preserve enough provenance for replay and academic
   critique;
+- runtime interpretation records must ground participant-action outcome sources
+  in the event `action_result`, evidence sources and evidence refs in evidence
+  emitted by the event, and participant-episode status sources in terminal
+  `participant_episode_history` records for the same participant and episode;
 - progress milestones, subtasks, gold steps, human assistance, scaffold
   variants, cost/resource telemetry, and privacy/redaction results are outcome
   inputs only when declared by an interpretation rule; none substitutes for the
   full outcome model.
 
-Minimum future implementation artifacts:
+Implementation artifacts:
 
 - outcome interpretation helper/contract;
 - integration with objective and assessment semantics;
 - tests for local-success/objective-failure and local-failure/evidence-success
   cases;
-- evidence records that preserve participant-local outcome basis.
+- evidence records that preserve participant-local outcome basis;
+- runtime conformance checks that reject ungrounded action outcome, evidence
+  claim, and episode-status interpretation sources.
 
 ## Required Future Verification
 

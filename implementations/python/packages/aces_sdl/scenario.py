@@ -24,6 +24,7 @@ from .nodes import Node
 from .objectives import Objective
 from .orchestration import Event, Inject, Script, Story, Workflow
 from .participant_behavior import ParticipantActionContract, ParticipantObservationBoundary
+from .participant_outcome_semantics import OutcomeInterpretationRule
 from .relationships import Relationship
 from .scoring import TLO, Evaluation, Goal, Metric
 from .variables import Variable
@@ -119,6 +120,7 @@ class Scenario(SDLModel):
     agents: dict[str, Agent] = Field(default_factory=dict)
     action_contracts: dict[str, ParticipantActionContract] = Field(default_factory=dict)
     observation_boundaries: dict[str, ParticipantObservationBoundary] = Field(default_factory=dict)
+    outcome_interpretation_rules: dict[str, OutcomeInterpretationRule] = Field(default_factory=dict)
     objectives: dict[str, Objective] = Field(default_factory=dict)
     workflows: dict[str, Workflow] = Field(default_factory=dict)
     variables: dict[str, Variable] = Field(default_factory=dict)

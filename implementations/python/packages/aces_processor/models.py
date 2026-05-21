@@ -41,6 +41,11 @@ from aces_sdl.participant_behavior import (
     ParticipantInteractionClass,
     ParticipantPreconditionClass,
 )
+from aces_sdl.participant_outcome_semantics import (
+    PROVENANCE_REQUIRED_OUTCOME_SOURCE_LAYERS,
+    OutcomeInterpretationSourceLayer,
+    OutcomeInterpretationTargetLayer,
+)
 from aces_sdl.participant_temporal_semantics import (
     ParticipantTemporalEventPoint,
     ParticipantTemporalState,
@@ -50,6 +55,7 @@ from aces_sdl.semantics.workflow import WorkflowStepSemanticContract
 
 _PARTICIPANT_ACTION_CONTRACT_PREFIX = "participant.action-contract."
 _PARTICIPANT_OBSERVATION_BOUNDARY_PREFIX = "participant.observation-boundary."
+_PARTICIPANT_OUTCOME_RULE_PREFIX = "participant.outcome-interpretation-rule."
 _PARTICIPANT_BEHAVIOR_HISTORY_KEY = "runtime.snapshot.participant-behavior-history"
 
 
@@ -577,6 +583,23 @@ class ParticipantObservationBoundaryRuntime(ResolvedResource):
     view_transitions: tuple[dict[str, Any], ...] = ()
     view_relation_timeline: tuple[dict[str, Any], ...] = ()
     realized_view_disclosure: str = ""
+
+
+@dataclass(frozen=True)
+class ParticipantOutcomeInterpretationRuleRuntime(ResolvedResource):
+    """Compiled SEM-215 participant outcome interpretation rule."""
+
+    rule_name: str = ""
+    semantic_version: str = ""
+    participant_scope: str = ""
+    observation_point_basis: str = ""
+    interpretation_basis: str = ""
+    source_layers: tuple[str, ...] = ()
+    source_refs: tuple[str, ...] = ()
+    target_layers: tuple[str, ...] = ()
+    target_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    limitations: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2483,6 +2506,275 @@ class ParticipantAttributionEdge:
             raise ValueError("downstream outcome attribution requires interpretation_rule_ref")
 
 
+def _outcome_source_layer_from_payload(value: Any) -> OutcomeInterpretationSourceLayer:
+    if isinstance(value, OutcomeInterpretationSourceLayer):
+        return value
+    return OutcomeInterpretationSourceLayer(str(value))
+
+
+def _outcome_target_layer_from_payload(value: Any) -> OutcomeInterpretationTargetLayer:
+    if isinstance(value, OutcomeInterpretationTargetLayer):
+        return value
+    return OutcomeInterpretationTargetLayer(str(value))
+
+
+@dataclass(frozen=True)
+class ParticipantOutcomeSourceRecord:
+    """Runtime source observed for a SEM-215 outcome interpretation."""
+
+    source_id: str
+    source_layer: OutcomeInterpretationSourceLayer
+    ref: str
+    observed_value: str
+    evidence_refs: tuple[str, ...] = ()
+    provenance_refs: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantOutcomeSourceRecord":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant outcome source record must be a mapping")
+        missing = [key for key in ("source_id", "source_layer", "ref", "observed_value") if key not in payload]
+        if missing:
+            raise ValueError("participant outcome source record is missing required fields: " + ", ".join(missing))
+        return cls(
+            source_id=str(payload.get("source_id")),
+            source_layer=_outcome_source_layer_from_payload(payload.get("source_layer")),
+            ref=str(payload.get("ref")),
+            observed_value=str(payload.get("observed_value")),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs", ()), field_name="evidence_refs"),
+            provenance_refs=_tuple_of_non_empty_strings(
+                payload.get("provenance_refs", ()),
+                field_name="provenance_refs",
+            ),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "source_id": self.source_id,
+            "source_layer": self.source_layer.value,
+            "ref": self.ref,
+            "observed_value": self.observed_value,
+            "evidence_refs": list(self.evidence_refs),
+            "provenance_refs": list(self.provenance_refs),
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(self.source_id, "participant outcome source_id must be a non-empty string")
+        if not isinstance(self.source_layer, OutcomeInterpretationSourceLayer):
+            raise TypeError("source_layer must be an OutcomeInterpretationSourceLayer")
+        _validate_required_string(self.ref, "participant outcome source ref must be a non-empty string")
+        _validate_required_string(
+            self.observed_value,
+            "participant outcome source observed_value must be a non-empty string",
+        )
+        _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs")
+        _tuple_of_non_empty_strings(self.provenance_refs, field_name="provenance_refs")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+
+
+@dataclass(frozen=True)
+class ParticipantOutcomeTargetRecord:
+    """Runtime target interpretation produced by a SEM-215 rule."""
+
+    target_id: str
+    target_layer: OutcomeInterpretationTargetLayer
+    ref: str
+    interpreted_value: str
+    evidence_refs: tuple[str, ...]
+    limitations: tuple[str, ...]
+    governance_ref: str | None = None
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantOutcomeTargetRecord":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant outcome target record must be a mapping")
+        missing = [
+            key
+            for key in (
+                "target_id",
+                "target_layer",
+                "ref",
+                "interpreted_value",
+                "evidence_refs",
+                "limitations",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError("participant outcome target record is missing required fields: " + ", ".join(missing))
+        return cls(
+            target_id=str(payload.get("target_id")),
+            target_layer=_outcome_target_layer_from_payload(payload.get("target_layer")),
+            ref=str(payload.get("ref")),
+            interpreted_value=str(payload.get("interpreted_value")),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs"), field_name="evidence_refs"),
+            limitations=_tuple_of_non_empty_strings(payload.get("limitations"), field_name="limitations"),
+            governance_ref=_optional_payload_string(payload, "governance_ref"),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "target_id": self.target_id,
+            "target_layer": self.target_layer.value,
+            "ref": self.ref,
+            "interpreted_value": self.interpreted_value,
+            "evidence_refs": list(self.evidence_refs),
+            "limitations": list(self.limitations),
+            "governance_ref": self.governance_ref,
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(self.target_id, "participant outcome target_id must be a non-empty string")
+        if not isinstance(self.target_layer, OutcomeInterpretationTargetLayer):
+            raise TypeError("target_layer must be an OutcomeInterpretationTargetLayer")
+        _validate_required_string(self.ref, "participant outcome target ref must be a non-empty string")
+        _validate_required_string(
+            self.interpreted_value,
+            "participant outcome target interpreted_value must be a non-empty string",
+        )
+        if not _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs"):
+            raise ValueError("participant outcome targets require evidence_refs")
+        if not _tuple_of_non_empty_strings(self.limitations, field_name="limitations"):
+            raise ValueError("participant outcome targets require limitations")
+        _validate_optional_string(self.governance_ref, "governance_ref must be a non-empty string or None")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+        if self.target_layer == OutcomeInterpretationTargetLayer.REWARD_SIGNAL and self.governance_ref is None:
+            raise ValueError("reward_signal outcome targets require governance_ref")
+
+
+def _participant_outcome_source_records_from_payload(value: Any) -> tuple[ParticipantOutcomeSourceRecord, ...]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError("outcome source_bindings must be a list of source records")
+    return tuple(ParticipantOutcomeSourceRecord.from_payload(item) for item in value)
+
+
+def _participant_outcome_target_records_from_payload(value: Any) -> tuple[ParticipantOutcomeTargetRecord, ...]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError("outcome target_bindings must be a list of target records")
+    return tuple(ParticipantOutcomeTargetRecord.from_payload(item) for item in value)
+
+
+@dataclass(frozen=True)
+class ParticipantOutcomeInterpretationRecord:
+    """Provenance-bearing SEM-215 interpretation of participant-local outcomes."""
+
+    interpretation_id: str
+    rule_address: str
+    participant_address: str
+    episode_id: str
+    observation_point: str
+    source_bindings: tuple[ParticipantOutcomeSourceRecord, ...]
+    target_bindings: tuple[ParticipantOutcomeTargetRecord, ...]
+    evidence_refs: tuple[str, ...]
+    limitations: tuple[str, ...]
+    diagnostics: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantOutcomeInterpretationRecord":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant outcome interpretation record must be a mapping")
+        missing = [
+            key
+            for key in (
+                "interpretation_id",
+                "rule_address",
+                "participant_address",
+                "episode_id",
+                "observation_point",
+                "source_bindings",
+                "target_bindings",
+                "evidence_refs",
+                "limitations",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError(
+                "participant outcome interpretation record is missing required fields: " + ", ".join(missing)
+            )
+        return cls(
+            interpretation_id=str(payload.get("interpretation_id")),
+            rule_address=str(payload.get("rule_address")),
+            participant_address=str(payload.get("participant_address")),
+            episode_id=str(payload.get("episode_id")),
+            observation_point=str(payload.get("observation_point")),
+            source_bindings=_participant_outcome_source_records_from_payload(payload.get("source_bindings")),
+            target_bindings=_participant_outcome_target_records_from_payload(payload.get("target_bindings")),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs"), field_name="evidence_refs"),
+            limitations=_tuple_of_non_empty_strings(payload.get("limitations"), field_name="limitations"),
+            diagnostics=_tuple_of_non_empty_strings(payload.get("diagnostics", ()), field_name="diagnostics"),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "interpretation_id": self.interpretation_id,
+            "rule_address": self.rule_address,
+            "participant_address": self.participant_address,
+            "episode_id": self.episode_id,
+            "observation_point": self.observation_point,
+            "source_bindings": [source.to_payload() for source in self.source_bindings],
+            "target_bindings": [target.to_payload() for target in self.target_bindings],
+            "evidence_refs": list(self.evidence_refs),
+            "limitations": list(self.limitations),
+            "diagnostics": list(self.diagnostics),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(
+            self.interpretation_id,
+            "participant outcome interpretation_id must be a non-empty string",
+        )
+        _validate_required_address(
+            self.rule_address,
+            prefix=_PARTICIPANT_OUTCOME_RULE_PREFIX,
+            message="rule_address must be a compiled participant outcome interpretation rule address",
+        )
+        _validate_required_string(
+            self.participant_address,
+            "participant outcome participant_address must be a non-empty string",
+        )
+        _validate_required_string(self.episode_id, "participant outcome episode_id must be a non-empty string")
+        _validate_required_string(
+            self.observation_point,
+            "participant outcome observation_point must be a non-empty string",
+        )
+        if not isinstance(self.source_bindings, tuple):
+            raise TypeError("source_bindings must be a tuple")
+        if not self.source_bindings:
+            raise ValueError("participant outcome interpretations require source_bindings")
+        if any(not isinstance(source, ParticipantOutcomeSourceRecord) for source in self.source_bindings):
+            raise TypeError("source_bindings must contain ParticipantOutcomeSourceRecord values")
+        if len({source.source_id for source in self.source_bindings}) != len(self.source_bindings):
+            raise ValueError("participant outcome source_id values must be unique")
+        if not isinstance(self.target_bindings, tuple):
+            raise TypeError("target_bindings must be a tuple")
+        if not self.target_bindings:
+            raise ValueError("participant outcome interpretations require target_bindings")
+        if any(not isinstance(target, ParticipantOutcomeTargetRecord) for target in self.target_bindings):
+            raise TypeError("target_bindings must contain ParticipantOutcomeTargetRecord values")
+        if len({target.target_id for target in self.target_bindings}) != len(self.target_bindings):
+            raise ValueError("participant outcome target_id values must be unique")
+        if not _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs"):
+            raise ValueError("participant outcome interpretations require evidence_refs")
+        if not _tuple_of_non_empty_strings(self.limitations, field_name="limitations"):
+            raise ValueError("participant outcome interpretations require limitations")
+        _tuple_of_non_empty_strings(self.diagnostics, field_name="diagnostics")
+
+
+def _participant_outcome_interpretation_records_from_payload(
+    value: Any,
+) -> tuple[ParticipantOutcomeInterpretationRecord, ...]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError("outcome_interpretations must be a list of interpretation records")
+    return tuple(ParticipantOutcomeInterpretationRecord.from_payload(item) for item in value)
+
+
 def _participant_time_domain_from_payload(value: Any) -> ParticipantTimeDomain:
     if isinstance(value, ParticipantTimeDomain):
         return value
@@ -2850,6 +3142,7 @@ class ParticipantBehaviorHistoryEvent:
     shared_state_refs: tuple[str, ...] = ()
     action_result: ParticipantActionResult | None = None
     attribution_edges: tuple[ParticipantAttributionEdge, ...] = ()
+    outcome_interpretations: tuple[ParticipantOutcomeInterpretationRecord, ...] = ()
     temporal_contexts: tuple[ParticipantTemporalRuntimeContext, ...] = ()
     details: dict[str, Any] = field(default_factory=dict)
 
@@ -2896,6 +3189,9 @@ class ParticipantBehaviorHistoryEvent:
             ),
             action_result=_participant_action_result_from_payload(payload.get("action_result")),
             attribution_edges=_participant_attribution_edges_from_payload(payload.get("attribution_edges", ())),
+            outcome_interpretations=_participant_outcome_interpretation_records_from_payload(
+                payload.get("outcome_interpretations", ())
+            ),
             temporal_contexts=_participant_temporal_contexts_from_payload(payload.get("temporal_contexts", ())),
             details=_participant_behavior_details_from_payload(payload.get("details", {})),
         )
@@ -2920,6 +3216,7 @@ class ParticipantBehaviorHistoryEvent:
             "shared_state_refs": list(self.shared_state_refs),
             "action_result": self.action_result.to_payload() if self.action_result is not None else None,
             "attribution_edges": [edge.to_payload() for edge in self.attribution_edges],
+            "outcome_interpretations": [record.to_payload() for record in self.outcome_interpretations],
             "temporal_contexts": [context.to_payload() for context in self.temporal_contexts],
             "details": dict(self.details),
         }
@@ -2966,6 +3263,7 @@ class ParticipantBehaviorHistoryEvent:
         self._validate_interaction_fields()
         self._validate_action_result_type()
         self._validate_attribution_edge_types()
+        self._validate_outcome_interpretation_types()
         self._validate_temporal_context_types()
         if not isinstance(self.details, dict):
             raise TypeError("participant behavior details must be a dict")
@@ -3005,6 +3303,20 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("participant attribution edge_id values must be unique per event")
         if self.attribution_edges and self.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
             raise ValueError("participant attribution edges are only allowed on observation_emitted events")
+
+    def _validate_outcome_interpretation_types(self) -> None:
+        if not isinstance(self.outcome_interpretations, tuple):
+            raise TypeError("outcome_interpretations must be a tuple")
+        if any(
+            not isinstance(record, ParticipantOutcomeInterpretationRecord) for record in self.outcome_interpretations
+        ):
+            raise TypeError("outcome_interpretations must contain ParticipantOutcomeInterpretationRecord values")
+        if len({record.interpretation_id for record in self.outcome_interpretations}) != len(
+            self.outcome_interpretations
+        ):
+            raise ValueError("participant outcome interpretation_id values must be unique per event")
+        if self.outcome_interpretations and self.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            raise ValueError("participant outcome interpretations are only allowed on observation_emitted events")
 
     def _validate_temporal_context_types(self) -> None:
         if not isinstance(self.temporal_contexts, tuple):
@@ -3105,6 +3417,7 @@ class ParticipantBehaviorHistoryEvent:
         if self.action_result is not None:
             self._validate_action_result_scope()
         self._validate_attribution_edges()
+        self._validate_outcome_interpretations()
 
     def _validate_action_result_scope(self) -> None:
         if self.action_result is None:
@@ -3135,6 +3448,20 @@ class ParticipantBehaviorHistoryEvent:
             elif not _observation_point_matches_action_instance(edge.observation_point, self.action_instance_id):
                 raise ValueError("attribution edge observation_point must be anchored to action_instance_id")
             self._validate_attribution_candidate_grounding(edge)
+
+    def _validate_outcome_interpretations(self) -> None:
+        for record in self.outcome_interpretations:
+            if record.participant_address != self.participant_address:
+                raise ValueError("outcome interpretation participant_address must match event participant_address")
+            if record.episode_id != self.episode_id:
+                raise ValueError("outcome interpretation episode_id must match event episode_id")
+            if self.action_result is not None:
+                if record.observation_point != self.action_result.observation_point:
+                    raise ValueError(
+                        "outcome interpretation observation_point must match action_result observation_point"
+                    )
+            elif not _observation_point_matches_action_instance(record.observation_point, self.action_instance_id):
+                raise ValueError("outcome interpretation observation_point must be anchored to action_instance_id")
 
     def _validate_attribution_candidate_grounding(self, edge: ParticipantAttributionEdge) -> None:
         allowed_action_refs = {self.action_instance_id}
@@ -3654,6 +3981,360 @@ def _participant_behavior_attribution_ref_authorization_violations(
     return violations
 
 
+def _participant_behavior_outcome_evidence_ref_violations(
+    *,
+    locator: str,
+    record: ParticipantOutcomeInterpretationRecord,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if ref in boundary.evidence_refs or disposition == "evidence_only":
+            continue
+        suffix = f": disposition {disposition!r}" if disposition is not None else ""
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} evidence_ref {ref!r} "
+                    f"is not authorized evidence at effective_order {effective_order}{suffix}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_outcome_provenance_ref_violations(
+    *,
+    locator: str,
+    record: ParticipantOutcomeInterpretationRecord,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if ref in boundary.evidence_refs or disposition in {"evidence_only", "disclosed", "observable", "discovered"}:
+            continue
+        if ref not in boundary.hidden_refs and disposition not in {"hidden", "concealed", "deceptive"}:
+            continue
+        suffix = f": disposition {disposition!r}" if disposition is not None else ""
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} provenance_ref {ref!r} "
+                    f"exposes a hidden participant-boundary ref at effective_order {effective_order}{suffix}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_outcome_ref_authorization_violations(
+    *,
+    event: ParticipantBehaviorHistoryEvent,
+    locator: str,
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for record in event.outcome_interpretations:
+        violations.extend(
+            _participant_behavior_outcome_evidence_ref_violations(
+                locator=locator,
+                record=record,
+                refs=record.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        for source in record.source_bindings:
+            violations.extend(
+                _participant_behavior_outcome_evidence_ref_violations(
+                    locator=locator,
+                    record=record,
+                    refs=source.evidence_refs,
+                    boundary=boundary,
+                    relation=relation,
+                    effective_order=effective_order,
+                )
+            )
+            violations.extend(
+                _participant_behavior_outcome_provenance_ref_violations(
+                    locator=locator,
+                    record=record,
+                    refs=source.provenance_refs,
+                    boundary=boundary,
+                    relation=relation,
+                    effective_order=effective_order,
+                )
+            )
+        for target in record.target_bindings:
+            violations.extend(
+                _participant_behavior_outcome_evidence_ref_violations(
+                    locator=locator,
+                    record=record,
+                    refs=target.evidence_refs,
+                    boundary=boundary,
+                    relation=relation,
+                    effective_order=effective_order,
+                )
+            )
+    return violations
+
+
+def _participant_behavior_event_evidence_refs(event: ParticipantBehaviorHistoryEvent) -> set[str]:
+    evidence_refs: set[str] = set()
+    detail_refs = event.details.get("evidence_refs")
+    if not isinstance(detail_refs, (str, bytes, Mapping)) and isinstance(detail_refs, Iterable):
+        evidence_refs.update(str(ref) for ref in detail_refs if isinstance(ref, str) and ref)
+    if event.action_result is not None:
+        evidence_refs.update(event.action_result.evidence_refs)
+        for precondition in event.action_result.preconditions:
+            evidence_refs.update(precondition.evidence_refs)
+        for effect in event.action_result.effects:
+            evidence_refs.update(effect.evidence_refs)
+    for edge in event.attribution_edges:
+        evidence_refs.update(edge.evidence_refs)
+    return evidence_refs
+
+
+def _participant_episode_terminal_statuses(
+    participant_episode_history: Any,
+) -> dict[tuple[str, str], set[str]]:
+    terminal_statuses: dict[tuple[str, str], set[str]] = {}
+    if isinstance(participant_episode_history, Mapping):
+        histories = participant_episode_history.values()
+    elif isinstance(participant_episode_history, list):
+        histories = (participant_episode_history,)
+    else:
+        histories = ()
+    for history in histories:
+        if isinstance(history, (str, bytes, Mapping)) or not isinstance(history, Iterable):
+            continue
+        for event in history:
+            if not isinstance(event, Mapping):
+                continue
+            try:
+                normalized = ParticipantEpisodeHistoryEvent.from_payload(event)
+            except (TypeError, ValueError):
+                continue
+            terminal_reason = _PARTICIPANT_EPISODE_TERMINAL_EVENTS.get(normalized.event_type)
+            if terminal_reason is None:
+                continue
+            key = (normalized.participant_address, normalized.episode_id)
+            terminal_statuses.setdefault(key, set()).add(terminal_reason.value)
+    return terminal_statuses
+
+
+def _participant_behavior_outcome_evidence_grounding_violations(
+    *,
+    locator: str,
+    record: ParticipantOutcomeInterpretationRecord,
+    owner_label: str,
+    refs: tuple[str, ...],
+    grounded_evidence_refs: set[str],
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    owner = f" {owner_label}" if owner_label else ""
+    for ref in refs:
+        if ref in grounded_evidence_refs:
+            continue
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r}{owner} evidence_ref {ref!r} "
+                    "is not grounded in event evidence"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_outcome_action_source_grounding_violations(
+    *,
+    locator: str,
+    event: ParticipantBehaviorHistoryEvent,
+    record: ParticipantOutcomeInterpretationRecord,
+    source: ParticipantOutcomeSourceRecord,
+) -> list[tuple[str, str]]:
+    if source.source_layer != OutcomeInterpretationSourceLayer.PARTICIPANT_ACTION_OUTCOME:
+        return []
+    if event.action_result is None:
+        return [
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                    "uses participant_action_outcome without an action_result"
+                ),
+            )
+        ]
+    violations: list[tuple[str, str]] = []
+    if source.ref != event.action_result.action_contract_address:
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                    f"ref {source.ref!r} does not match action_result action_contract_address "
+                    f"{event.action_result.action_contract_address!r}"
+                ),
+            )
+        )
+    expected_status = event.action_result.status.value
+    if source.observed_value != expected_status:
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                    f"observed_value {source.observed_value!r} does not match action_result status "
+                    f"{expected_status!r}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_outcome_episode_status_grounding_violations(
+    *,
+    locator: str,
+    record: ParticipantOutcomeInterpretationRecord,
+    source: ParticipantOutcomeSourceRecord,
+    terminal_statuses: Mapping[tuple[str, str], set[str]],
+) -> list[tuple[str, str]]:
+    if source.source_layer != OutcomeInterpretationSourceLayer.PARTICIPANT_EPISODE_STATUS:
+        return []
+    key = (record.participant_address, record.episode_id)
+    statuses = terminal_statuses.get(key, set())
+    if not statuses:
+        return [
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                    "participant_episode_status is not grounded by a terminal participant_episode_history event"
+                ),
+            )
+        ]
+    if source.observed_value in statuses:
+        return []
+    expected = ", ".join(repr(status) for status in sorted(statuses))
+    return [
+        (
+            locator,
+            (
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"observed_value {source.observed_value!r} does not match participant_episode_history terminal status "
+                f"{expected}"
+            ),
+        )
+    ]
+
+
+def _participant_behavior_outcome_source_grounding_violations(
+    *,
+    locator: str,
+    event: ParticipantBehaviorHistoryEvent,
+    record: ParticipantOutcomeInterpretationRecord,
+    source: ParticipantOutcomeSourceRecord,
+    grounded_evidence_refs: set[str],
+    terminal_statuses: Mapping[tuple[str, str], set[str]],
+) -> list[tuple[str, str]]:
+    violations = _participant_behavior_outcome_action_source_grounding_violations(
+        locator=locator,
+        event=event,
+        record=record,
+        source=source,
+    )
+    violations.extend(
+        _participant_behavior_outcome_episode_status_grounding_violations(
+            locator=locator,
+            record=record,
+            source=source,
+            terminal_statuses=terminal_statuses,
+        )
+    )
+    if (
+        source.source_layer == OutcomeInterpretationSourceLayer.EVIDENCE_CLAIM
+        and source.ref not in grounded_evidence_refs
+    ):
+        violations.append(
+            (
+                locator,
+                (
+                    f"outcome interpretation {record.interpretation_id!r} evidence_claim source "
+                    f"{source.source_id!r} ref {source.ref!r} is not grounded in event evidence"
+                ),
+            )
+        )
+    violations.extend(
+        _participant_behavior_outcome_evidence_grounding_violations(
+            locator=locator,
+            record=record,
+            owner_label=f"source {source.source_id!r}",
+            refs=source.evidence_refs,
+            grounded_evidence_refs=grounded_evidence_refs,
+        )
+    )
+    return violations
+
+
+def _participant_behavior_outcome_event_grounding_violations(
+    events: Iterable[ParticipantBehaviorHistoryEvent],
+    *,
+    participant_episode_history: Any = None,
+) -> Iterator[tuple[str, str]]:
+    terminal_statuses = _participant_episode_terminal_statuses(participant_episode_history)
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        if not event.outcome_interpretations:
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        grounded_evidence_refs = _participant_behavior_event_evidence_refs(event)
+        for record in event.outcome_interpretations:
+            yield from _participant_behavior_outcome_evidence_grounding_violations(
+                locator=locator,
+                record=record,
+                owner_label="",
+                refs=record.evidence_refs,
+                grounded_evidence_refs=grounded_evidence_refs,
+            )
+            for source in record.source_bindings:
+                yield from _participant_behavior_outcome_source_grounding_violations(
+                    locator=locator,
+                    event=event,
+                    record=record,
+                    source=source,
+                    grounded_evidence_refs=grounded_evidence_refs,
+                    terminal_statuses=terminal_statuses,
+                )
+            for target in record.target_bindings:
+                yield from _participant_behavior_outcome_evidence_grounding_violations(
+                    locator=locator,
+                    record=record,
+                    owner_label=f"target {target.target_id!r}",
+                    refs=target.evidence_refs,
+                    grounded_evidence_refs=grounded_evidence_refs,
+                )
+
+
 def _participant_behavior_history_anchor_indexes(
     events: Iterable[ParticipantBehaviorHistoryEvent],
 ) -> tuple[dict[str, int], dict[str, int], dict[tuple[str, str | None], int]]:
@@ -3874,7 +4555,7 @@ def _participant_behavior_action_result_ref_authorization_violations_for_events(
     for index, event in enumerate(events):
         if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
             continue
-        if event.action_result is None and not event.attribution_edges:
+        if event.action_result is None and not event.attribution_edges and not event.outcome_interpretations:
             continue
         boundary_address = event.observation_boundary_address or ""
         boundary = observation_boundaries.get(boundary_address)
@@ -3898,6 +4579,13 @@ def _participant_behavior_action_result_ref_authorization_violations_for_events(
                 effective_order=effective_order,
             )
         yield from _participant_behavior_attribution_ref_authorization_violations(
+            event=event,
+            locator=locator,
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+        yield from _participant_behavior_outcome_ref_authorization_violations(
             event=event,
             locator=locator,
             boundary=boundary,
@@ -4042,6 +4730,162 @@ def _participant_behavior_temporal_contract_violations(
             continue
         for context in event.temporal_contexts:
             for violation in _participant_temporal_context_contract_violations(context, contract=contract):
+                yield (locator, violation)
+
+
+def _contract_sem215_source_bindings(
+    rule: ParticipantOutcomeInterpretationRuleRuntime,
+) -> dict[tuple[str, str], dict[str, str | set[str]]]:
+    bindings = rule.spec.get("source_bindings", ())
+    if isinstance(bindings, (str, bytes, Mapping)) or not isinstance(bindings, Iterable):
+        return {}
+    declarations: dict[tuple[str, str], dict[str, str | set[str]]] = {}
+    for index, binding in enumerate(bindings):
+        if not isinstance(binding, Mapping) or not binding.get("source_id") or not binding.get("source_layer"):
+            continue
+        declarations[(str(binding.get("source_id")), str(binding.get("source_layer")))] = {
+            "ref": rule.source_refs[index] if index < len(rule.source_refs) else str(binding.get("ref", "")),
+            "evidence_refs": _as_string_set(binding.get("evidence_refs", ())),
+            "provenance_refs": _as_string_set(binding.get("provenance_refs", ())),
+        }
+    return declarations
+
+
+def _contract_sem215_target_bindings(
+    rule: ParticipantOutcomeInterpretationRuleRuntime,
+) -> dict[tuple[str, str], dict[str, str | set[str] | None]]:
+    bindings = rule.spec.get("target_bindings", ())
+    if isinstance(bindings, (str, bytes, Mapping)) or not isinstance(bindings, Iterable):
+        return {}
+    declarations: dict[tuple[str, str], dict[str, str | set[str] | None]] = {}
+    for index, binding in enumerate(bindings):
+        if not isinstance(binding, Mapping) or not binding.get("target_id") or not binding.get("target_layer"):
+            continue
+        governance_ref = binding.get("governance_ref")
+        declarations[(str(binding.get("target_id")), str(binding.get("target_layer")))] = {
+            "ref": rule.target_refs[index] if index < len(rule.target_refs) else str(binding.get("ref", "")),
+            "governance_ref": str(governance_ref) if governance_ref is not None else None,
+            "evidence_refs": _as_string_set(binding.get("evidence_refs", ())),
+            "limitations": _as_string_set(binding.get("limitations", ())),
+        }
+    return declarations
+
+
+def _outcome_source_layer_requires_provenance(layer: str) -> bool:
+    try:
+        source_layer = OutcomeInterpretationSourceLayer(layer)
+    except ValueError:
+        return False
+    return source_layer in PROVENANCE_REQUIRED_OUTCOME_SOURCE_LAYERS
+
+
+def validate_participant_outcome_interpretation_record(
+    record: ParticipantOutcomeInterpretationRecord,
+    rule: ParticipantOutcomeInterpretationRuleRuntime,
+) -> list[str]:
+    """Return SEM-215 rule-conformance violations for a runtime interpretation."""
+
+    violations: list[str] = []
+    declared_sources = _contract_sem215_source_bindings(rule)
+    declared_targets = _contract_sem215_target_bindings(rule)
+    reported_sources: set[tuple[str, str]] = set()
+    for source in record.source_bindings:
+        source_key = (source.source_id, source.source_layer.value)
+        reported_sources.add(source_key)
+        if source_key not in declared_sources:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"is not declared by {rule.address}"
+            )
+            continue
+        declared_refs = declared_sources[source_key]
+        if source.ref != declared_refs["ref"]:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"ref {source.ref!r} does not match declared ref {declared_refs['ref']!r}"
+            )
+        for ref in sorted(set(source.evidence_refs) - declared_refs["evidence_refs"]):
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"reports undeclared evidence_ref {ref!r}"
+            )
+        for ref in sorted(set(source.provenance_refs) - declared_refs["provenance_refs"]):
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"reports undeclared provenance_ref {ref!r}"
+            )
+        for ref in sorted(declared_refs["provenance_refs"] - set(source.provenance_refs)):
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source.source_id!r} "
+                f"omits declared provenance_ref {ref!r}"
+            )
+    for source_id, source_layer in sorted(declared_sources):
+        if not _outcome_source_layer_requires_provenance(source_layer):
+            continue
+        if (source_id, source_layer) not in reported_sources:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} source {source_id!r} "
+                f"with provenance-required layer {source_layer!r} is not reported"
+            )
+    for target in record.target_bindings:
+        target_key = (target.target_id, target.target_layer.value)
+        if target_key not in declared_targets:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} target {target.target_id!r} "
+                f"is not declared by {rule.address}"
+            )
+            continue
+        declared_refs = declared_targets[target_key]
+        if target.ref != declared_refs["ref"]:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} target {target.target_id!r} "
+                f"ref {target.ref!r} does not match declared ref {declared_refs['ref']!r}"
+            )
+        if target.governance_ref != declared_refs["governance_ref"]:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} target {target.target_id!r} "
+                f"governance_ref {target.governance_ref!r} does not match declared governance_ref "
+                f"{declared_refs['governance_ref']!r}"
+            )
+        for ref in sorted(set(target.evidence_refs) - declared_refs["evidence_refs"]):
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} target {target.target_id!r} "
+                f"reports undeclared evidence_ref {ref!r}"
+            )
+        if declared_refs["limitations"] and not set(target.limitations) <= declared_refs["limitations"]:
+            violations.append(
+                f"outcome interpretation {record.interpretation_id!r} target {target.target_id!r} "
+                "reports limitations outside the declared rule"
+            )
+    declared_rule_evidence_refs = _as_string_set(rule.spec.get("evidence_refs", ()))
+    for ref in sorted(set(record.evidence_refs) - declared_rule_evidence_refs):
+        violations.append(
+            f"outcome interpretation {record.interpretation_id!r} reports undeclared evidence_ref {ref!r}"
+        )
+    return violations
+
+
+def _participant_behavior_outcome_interpretation_rule_violations(
+    events: Iterable[ParticipantBehaviorHistoryEvent],
+    *,
+    outcome_interpretation_rules: Mapping[str, ParticipantOutcomeInterpretationRuleRuntime],
+) -> Iterator[tuple[str, str]]:
+    for index, event in enumerate(events):
+        if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            continue
+        locator = f"{_PARTICIPANT_BEHAVIOR_HISTORY_KEY}[{index}]"
+        for record in event.outcome_interpretations:
+            rule = outcome_interpretation_rules.get(record.rule_address)
+            if rule is None:
+                yield (
+                    locator,
+                    (
+                        f"outcome interpretation {record.interpretation_id!r} references unknown "
+                        f"rule_address {record.rule_address!r}"
+                    ),
+                )
+                continue
+            for violation in validate_participant_outcome_interpretation_record(record, rule):
                 yield (locator, violation)
 
 
@@ -4204,6 +5048,7 @@ def iter_participant_behavior_history_violations(
     *,
     action_contract_addresses: set[str] | frozenset[str] | None = None,
     action_contracts: Mapping[str, ParticipantActionContractRuntime] | None = None,
+    outcome_interpretation_rules: Mapping[str, ParticipantOutcomeInterpretationRuleRuntime] | None = None,
     observation_boundary_addresses: set[str] | frozenset[str] | None = None,
     observation_boundaries: Mapping[str, ParticipantObservationBoundaryRuntime] | None = None,
     participant_episode_history: Any = None,
@@ -4240,6 +5085,10 @@ def iter_participant_behavior_history_violations(
     yield from _participant_behavior_detail_shape_violations_for_events(normalized_events)
     yield from _participant_behavior_action_instance_violations(normalized_events)
     yield from _participant_behavior_joint_action_order_violations(normalized_events)
+    yield from _participant_behavior_outcome_event_grounding_violations(
+        normalized_events,
+        participant_episode_history=participant_episode_history,
+    )
     if action_contracts is not None:
         yield from _participant_behavior_action_result_contract_violations(
             normalized_events,
@@ -4248,6 +5097,11 @@ def iter_participant_behavior_history_violations(
         yield from _participant_behavior_temporal_contract_violations(
             normalized_events,
             action_contracts=action_contracts,
+        )
+    if outcome_interpretation_rules is not None:
+        yield from _participant_behavior_outcome_interpretation_rule_violations(
+            normalized_events,
+            outcome_interpretation_rules=outcome_interpretation_rules,
         )
     if observation_boundaries is not None:
         yield from _participant_behavior_transition_anchor_violations(
@@ -4675,6 +5529,7 @@ class RuntimeModel:
     account_placements: dict[str, AccountPlacement] = field(default_factory=dict)
     action_contracts: dict[str, ParticipantActionContractRuntime] = field(default_factory=dict)
     observation_boundaries: dict[str, ParticipantObservationBoundaryRuntime] = field(default_factory=dict)
+    outcome_interpretation_rules: dict[str, ParticipantOutcomeInterpretationRuleRuntime] = field(default_factory=dict)
     participant_behaviors: dict[str, ParticipantBehaviorRuntime] = field(default_factory=dict)
     events: dict[str, EventRuntime] = field(default_factory=dict)
     scripts: dict[str, ScriptRuntime] = field(default_factory=dict)
