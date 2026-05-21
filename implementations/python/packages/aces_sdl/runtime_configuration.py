@@ -28,6 +28,14 @@ from .runtime_filesystem import (
     RuntimeMountPropagation,
     RuntimeSensitivityClassification,
 )
+from .runtime_identity import (
+    RuntimeIdentityProvenance,
+    RuntimeLocalGroup,
+    RuntimeLocalIdentityInventory,
+    RuntimeLocalUser,
+    RuntimeSudoPrincipalKind,
+    RuntimeSudoRule,
+)
 from .runtime_values import (
     absolute_path_or_var as _absolute_path_or_var,
 )
@@ -69,6 +77,10 @@ __all__ = [
     "RuntimeHealthObservation",
     "RuntimeHealthStatus",
     "RuntimeHealthcheckLog",
+    "RuntimeIdentityProvenance",
+    "RuntimeLocalGroup",
+    "RuntimeLocalIdentityInventory",
+    "RuntimeLocalUser",
     "RuntimeMount",
     "RuntimeMountPropagation",
     "RuntimeMountSourceKind",
@@ -82,6 +94,8 @@ __all__ = [
     "RuntimeResourceLimits",
     "RuntimeRestartPolicy",
     "RuntimeSensitivityClassification",
+    "RuntimeSudoPrincipalKind",
+    "RuntimeSudoRule",
     "parse_ram",
 ]
 
@@ -485,6 +499,7 @@ class RuntimeConfiguration(SDLModel):
     operational_policy: RuntimeOperationalPolicy | None = None
     container: RuntimeContainerConfiguration | None = None
     health: RuntimeHealthObservation | None = None
+    local_identity: RuntimeLocalIdentityInventory | None = None
     packages: list[RuntimePackage] = Field(default_factory=list)
     dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
     package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)

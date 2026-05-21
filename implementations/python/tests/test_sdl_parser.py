@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from aces.core.sdl import instantiate_scenario
 from aces.core.sdl._errors import SDLParseError
 from aces.core.sdl.nodes import NodeType
 from aces.core.sdl.parser import parse_sdl, parse_sdl_file
@@ -424,6 +425,94 @@ nodes:
         assert node.runtime.package_vulnerabilities[0].scanner == "trivy"
         assert node.runtime.package_vulnerabilities[0].image_digest == "sha256:abc123"
         assert node.runtime.package_vulnerabilities[0].scan_time == "2026-05-20T12:00:00Z"
+
+    def test_runtime_local_identity_inventory_parses_with_kebab_keys(self):
+        sdl = """
+name: techvault-identity-inventory
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    runtime:
+      local-identity:
+        description: getent passwd/group capture
+        users:
+          - username: root
+            uid: 0
+            primary-gid: 0
+            primary-group: root
+            gecos: root
+            home: /root
+            shell: /bin/bash
+            provenance: image
+            stability: stable
+          - username: www-data
+            uid: 33
+            primary-gid: 33
+            primary-group: www-data
+            home: /var/www
+            shell: /usr/sbin/nologin
+            supplemental-groups: [wazuh]
+            no-login: true
+            provenance: package
+        groups:
+          - name: root
+            gid: 0
+            members: [root]
+          - name: wazuh
+            gid: 101
+            members: [www-data]
+        sudo-rules:
+          - principal: operator
+            principal-kind: user
+            run-as-users: [root]
+            commands: ["/usr/bin/systemctl restart gunicorn"]
+            nopasswd: true
+"""
+        scenario = parse_sdl(sdl)
+        identity = scenario.nodes["techvault-webapp"].runtime.local_identity
+        assert identity is not None
+        assert identity.description == "getent passwd/group capture"
+        assert identity.users[0].username == "root"
+        assert identity.users[0].primary_gid == 0
+        assert identity.users[0].provenance == "image"
+        assert identity.users[1].username == "www-data"
+        assert identity.users[1].no_login is True
+        assert identity.users[1].supplemental_groups == ["wazuh"]
+        assert identity.users[1].provenance == "package"
+        assert identity.groups[1].name == "wazuh"
+        assert identity.groups[1].gid == 101
+        assert identity.sudo_rules[0].principal == "operator"
+        assert identity.sudo_rules[0].run_as_users == ["root"]
+        assert identity.sudo_rules[0].commands == ["/usr/bin/systemctl restart gunicorn"]
+        assert identity.sudo_rules[0].nopasswd is True
+
+    def test_runtime_local_identity_uid_variable_substitutes_on_instantiation(self):
+        sdl = """
+name: techvault-identity-variable
+variables:
+  svc_uid:
+    type: integer
+    required: true
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    runtime:
+      local-identity:
+        users:
+          - username: wazuh
+            uid: ${svc_uid}
+            home: /var/ossec
+            shell: /usr/sbin/nologin
+            no-login: true
+"""
+        raw = parse_sdl(sdl)
+        assert raw.nodes["techvault-webapp"].runtime.local_identity.users[0].uid == "${svc_uid}"
+        instantiated = instantiate_scenario(raw, parameters={"svc_uid": 999})
+        user = instantiated.nodes["techvault-webapp"].runtime.local_identity.users[0]
+        assert user.uid == 999
+        assert user.no_login is True
 
     def test_source_build_provenance_parses_with_kebab_keys(self):
         sdl = """

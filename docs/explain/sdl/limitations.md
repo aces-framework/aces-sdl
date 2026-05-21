@@ -12,7 +12,9 @@ profiles, host port publication decisions, image build execution, and engine
 realization. The node `runtime` surface can now record observed runtime facts
 for analysis and parity, including mounts, Linux capabilities, namespace modes,
 entrypoints, image commands, extra hosts, DNS options, security flags, resource
-limits, health status/logs, and filesystem inventory. Container image build
+limits, health status/logs, filesystem inventory, and the local identity
+database (`/etc/passwd` users, `/etc/group` groups, and sudo/sudoers grants).
+Container image build
 provenance is a separate source-artifact expressivity surface tracked by issue
 #364 and [ADR-023](../../decisions/adrs/adr-023-container-image-build-provenance-surface.md);
 recording either surface in SDL does not make Docker, Compose, or any specific

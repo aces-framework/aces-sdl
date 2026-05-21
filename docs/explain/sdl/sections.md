@@ -212,6 +212,28 @@ nodes:
           scanner: trivy
           image_digest: sha256:abc123
           scan_time: "2026-05-20T12:00:00Z"
+      local_identity:                   # observed /etc/passwd, /etc/group, sudo facts
+        users:
+          - username: www-data
+            uid: 33
+            primary_gid: 33
+            primary_group: www-data
+            home: /var/www
+            shell: /usr/sbin/nologin
+            no_login: true
+            provenance: image
+            stability: stable
+        groups:
+          - name: www-data
+            gid: 33
+            members: [www-data]
+            provenance: image
+        sudo_rules:
+          - principal: wazuh
+            principal_kind: user
+            run_as_users: [root]
+            commands: ["/usr/bin/systemctl restart wazuh-agent"]
+            nopasswd: true
     asset_value:                        # CIA triad (from CybORG)
       confidentiality: high
       integrity: medium
@@ -247,6 +269,21 @@ inventory; and `package_vulnerabilities` records scanner-derived CVE/advisory
 findings tied to an image digest and scan time. These findings are separate
 from the top-level `vulnerabilities` section, which remains the CWE-classified
 scenario vulnerability surface.
+
+`runtime.local_identity` records the observed local identity database — the
+node-scoped `/etc/passwd`, `/etc/group`, and sudo/sudoers facts. `users` carry
+`username`, `uid`, `primary_gid`, `primary_group`, `gecos`, `home`, `shell`,
+`supplemental_groups`, and the three distinct status facts `disabled`,
+`locked`, and `no_login` (a no-login shell is not the same fact as a locked
+password or a disabled account), plus `provenance` and `stability`. `groups`
+carry `name`, `gid`, and `members`. `sudo_rules` model privilege grants as
+structured `principal`/`principal_kind`, `run_as_users`/`run_as_groups`,
+`host_scope`, and a portable `commands` scope, with `nopasswd` and a
+`command_redacted` flag; an optional `raw_entry` may carry the original
+sudoers line as descriptive evidence only. This is observed inventory: it is
+distinct from the top-level `accounts` provisioning surface, and service
+accounts recorded here are not implicitly compiled into account placements
+(see [ADR-024](../../decisions/adrs/adr-024-local-identity-inventory-surface.md)).
 
 `source` identifies the node's artifact by provider-neutral `name` and
 `version`. When that artifact is a custom-built container image, the optional

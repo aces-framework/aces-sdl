@@ -56,6 +56,15 @@ stored as octal permission bits, and content digests must carry both the digest
 algorithm and value. Runtime healthcheck entries marked as redacted must omit
 raw output.
 
+The optional `runtime.local_identity` inventory carries its own model-local
+rules. Local user `username` and local group `name` must be non-empty; user
+`uid`/`primary_gid` and group `gid` are non-negative; user `home` and `shell`,
+when set, must be absolute paths or variable references. Local users are unique
+by `username`, local groups are unique by both `name` and `gid`, and sudo rules
+are unique by principal plus command scope. A sudo rule with
+`command_redacted: true` must omit its `commands` list, keeping a withheld
+command scope distinct from a genuinely empty one.
+
 The optional `source.build` container image provenance block carries its own
 model-local rules. Build-argument and image-default-environment names must be
 non-empty and free of `=`, and values classified as redacted must omit the raw
