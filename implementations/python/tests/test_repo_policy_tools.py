@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
 import sys
 import types
@@ -17,6 +18,33 @@ from tools.check_schema_publication import validate_schema_publication_manifest
 from tools.gitleaks_tool import _checksums_asset_name, _release_asset_name, gitleaks_binary_path
 from tools.policy.common import PolicyFailure
 from tools.policy.repo_policy import evaluate_repo_policy
+
+
+def load_noxfile_with_fake_nox(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
+    class FakeOptions:
+        default_venv_backend = ""
+        reuse_existing_virtualenvs = False
+        sessions: list[str] = []
+
+    def session(*args: object, **_kwargs: object) -> object:
+        if args and callable(args[0]):
+            return args[0]
+
+        def decorate(function: object) -> object:
+            return function
+
+        return decorate
+
+    fake_nox = types.SimpleNamespace(options=FakeOptions(), Session=object, session=session)
+    monkeypatch.setitem(sys.modules, "nox", fake_nox)
+
+    spec = importlib.util.spec_from_file_location("_aces_test_noxfile", REPO_ROOT / "noxfile.py")
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, "_aces_test_noxfile", module)
+    spec.loader.exec_module(module)
+    return module
 
 
 def write_text(path: Path, content: str) -> None:
@@ -51,6 +79,35 @@ def setup_policy_repo(tmp_path: Path) -> Path:
 
 def structural_runner_stub(_: dict) -> list[PolicyFailure]:
     return []
+
+
+def test_hygiene_parser_ignores_policy_only_verify_args(monkeypatch: pytest.MonkeyPatch) -> None:
+    noxfile = load_noxfile_with_fake_nox(monkeypatch)
+    calls: list[dict[str, object]] = []
+
+    def fake_changed_paths(*, staged: bool = False, base_rev: str | None = None) -> list[str]:
+        calls.append({"staged": staged, "base_rev": base_rev})
+        return ["noxfile.py"]
+
+    monkeypatch.setattr(noxfile, "_changed_paths", fake_changed_paths)
+
+    skip_selection = noxfile._parse_hygiene_posargs(
+        ["--base-rev", "origin/dev", "--skip-requirement"],
+        default_all_files=False,
+    )
+    uid_selection = noxfile._parse_hygiene_posargs(
+        ["--base-rev", "origin/dev", "--requirement-uid", "GOV-918"],
+        default_all_files=False,
+    )
+
+    assert skip_selection.paths == ["noxfile.py"]
+    assert skip_selection.source == "changes since origin/dev"
+    assert uid_selection.paths == ["noxfile.py"]
+    assert uid_selection.source == "changes since origin/dev"
+    assert calls == [
+        {"staged": False, "base_rev": "origin/dev"},
+        {"staged": False, "base_rev": "origin/dev"},
+    ]
 
 
 def test_structural_policy_runner_receives_policy_input(tmp_path: Path) -> None:

@@ -129,7 +129,15 @@ def _changed_paths(*, staged: bool = False, base_rev: str | None = None) -> list
 
 
 def _sync_project(session: nox.Session) -> None:
-    _run(session, "uv", "sync", "--project", str(PROJECT_ROOT), "--all-extras", "--frozen")
+    _run(
+        session,
+        "uv",
+        "sync",
+        "--project",
+        str(PROJECT_ROOT),
+        "--all-extras",
+        "--frozen",
+    )
 
 
 def _run_project_python(session: nox.Session, script: str, *args: str) -> None:
@@ -192,9 +200,27 @@ def _run_pytest(session: nox.Session, *args: str, coverage: bool = False) -> Non
     if coverage:
         with session.chdir(PROJECT_ROOT):
             _run(session, "uv", "run", "--frozen", "coverage", "erase")
-            _run(session, "uv", "run", "--frozen", "coverage", "run", "-m", "pytest", *normalized_args)
+            _run(
+                session,
+                "uv",
+                "run",
+                "--frozen",
+                "coverage",
+                "run",
+                "-m",
+                "pytest",
+                *normalized_args,
+            )
             _run(session, "uv", "run", "--frozen", "coverage", "xml")
-            _run(session, "uv", "run", "--frozen", "coverage", "report", "--fail-under=50")
+            _run(
+                session,
+                "uv",
+                "run",
+                "--frozen",
+                "coverage",
+                "report",
+                "--fail-under=50",
+            )
         return
     with session.chdir(PROJECT_ROOT):
         _run(session, "uv", "run", "--frozen", "python", "-m", "pytest", *normalized_args)
@@ -249,6 +275,12 @@ def _parse_hygiene_posargs(posargs: Sequence[str], *, default_all_files: bool) -
         if arg == "--base-rev":
             base_rev = values[index + 1]
             all_files = False
+            index += 2
+            continue
+        if arg == "--skip-requirement":
+            index += 1
+            continue
+        if arg == "--requirement-uid":
             index += 2
             continue
         explicit_paths.append(arg)
@@ -322,7 +354,16 @@ def _paths_trigger(paths: Iterable[str], prefixes: tuple[str, ...]) -> bool:
 
 def _run_pre_commit_hook(_session: nox.Session, command: str, *args: str, paths: list[str]) -> None:
     for batch in _chunked(paths):
-        _run_external_subprocess("uv", "tool", "run", "--from", PRE_COMMIT_HOOKS_TOOL_SPEC, command, *args, *batch)
+        _run_external_subprocess(
+            "uv",
+            "tool",
+            "run",
+            "--from",
+            PRE_COMMIT_HOOKS_TOOL_SPEC,
+            command,
+            *args,
+            *batch,
+        )
 
 
 def _run_gitleaks_dir_scan(session: nox.Session, paths: list[str]) -> None:
@@ -348,13 +389,20 @@ def _run_gitleaks_dir_scan(session: nox.Session, paths: list[str]) -> None:
 
 
 def _run_hygiene(
-    session: nox.Session, reporter: SessionReporter, *, posargs: Sequence[str], default_all_files: bool
+    session: nox.Session,
+    reporter: SessionReporter,
+    *,
+    posargs: Sequence[str],
+    default_all_files: bool,
 ) -> None:
     selection = _parse_hygiene_posargs(posargs, default_all_files=default_all_files)
     paths = selection.paths
     detail = f"{len(paths)} files from {selection.source}"
     if not paths:
-        reporter.skip("hygiene / candidate path resolution", f"no files selected from {selection.source}")
+        reporter.skip(
+            "hygiene / candidate path resolution",
+            f"no files selected from {selection.source}",
+        )
         return
 
     text_paths = _text_paths(paths)
@@ -388,7 +436,13 @@ def _run_hygiene(
 
     reporter.run(
         "hygiene / added large files",
-        lambda: _run_pre_commit_hook(session, "check-added-large-files", "--maxkb", MAX_LARGE_FILE_KB, paths=paths),
+        lambda: _run_pre_commit_hook(
+            session,
+            "check-added-large-files",
+            "--maxkb",
+            MAX_LARGE_FILE_KB,
+            paths=paths,
+        ),
         detail=detail,
     )
 
@@ -443,9 +497,18 @@ def _run_policy(session: nox.Session, reporter: SessionReporter, *args: str) -> 
     # snapshot, so it is meaningless (and misleading) under --staged. It runs in
     # the working-tree policy invocations (`policy`, `hook-pre-push`, `verify`).
     if "--staged" in args:
-        reporter.skip("policy / semantic coverage ADR", "skipped on staged check; runs on push and verify")
-        reporter.skip("policy / assurance policy ADR", "skipped on staged check; runs on push and verify")
-        reporter.skip("policy / authority boundary ADR", "skipped on staged check; runs on push and verify")
+        reporter.skip(
+            "policy / semantic coverage ADR",
+            "skipped on staged check; runs on push and verify",
+        )
+        reporter.skip(
+            "policy / assurance policy ADR",
+            "skipped on staged check; runs on push and verify",
+        )
+        reporter.skip(
+            "policy / authority boundary ADR",
+            "skipped on staged check; runs on push and verify",
+        )
     else:
         reporter.run(
             "policy / semantic coverage ADR",
@@ -514,8 +577,14 @@ def _run_changed_lint(session: nox.Session, reporter: SessionReporter, paths: li
             detail=f"{len(project_paths)} files",
         )
     else:
-        reporter.skip("lint / ruff format (changed project files)", "no changed project Python files")
-        reporter.skip("lint / ruff check (changed project files)", "no changed project Python files")
+        reporter.skip(
+            "lint / ruff format (changed project files)",
+            "no changed project Python files",
+        )
+        reporter.skip(
+            "lint / ruff check (changed project files)",
+            "no changed project Python files",
+        )
 
     tooling_paths = [
         path for path in paths if (path.startswith("tools/") or path == "noxfile.py") and path.endswith(".py")
@@ -532,8 +601,14 @@ def _run_changed_lint(session: nox.Session, reporter: SessionReporter, paths: li
             detail=f"{len(tooling_paths)} files",
         )
     else:
-        reporter.skip("lint / ruff format (changed tooling files)", "no changed tooling Python files")
-        reporter.skip("lint / ruff check (changed tooling files)", "no changed tooling Python files")
+        reporter.skip(
+            "lint / ruff format (changed tooling files)",
+            "no changed tooling Python files",
+        )
+        reporter.skip(
+            "lint / ruff check (changed tooling files)",
+            "no changed tooling Python files",
+        )
 
 
 def _run_tests(session: nox.Session, reporter: SessionReporter, posargs: list[str] | None = None) -> None:
@@ -675,7 +750,11 @@ def hook_pre_commit(session: nox.Session) -> None:
             reporter.skip("contracts / generated schema drift", "no contract-bearing changes")
             reporter.skip("contracts / json artifact validation", "no contract-bearing changes")
         if _paths_trigger(changed, FULL_TEST_TRIGGER_PREFIXES):
-            reporter.run("tests / pytest", lambda: _run_pytest(session, "-q"), detail="full implementation test sweep")
+            reporter.run(
+                "tests / pytest",
+                lambda: _run_pytest(session, "-q"),
+                detail="full implementation test sweep",
+            )
         elif _paths_trigger(changed, TOOLING_TEST_TRIGGER_PREFIXES):
             reporter.run(
                 "tests / targeted tooling tests",
@@ -683,7 +762,10 @@ def hook_pre_commit(session: nox.Session) -> None:
                 detail=" ".join(TARGETED_POLICY_TESTS),
             )
         else:
-            reporter.skip("tests / pytest", "no implementation or tooling test trigger paths changed")
+            reporter.skip(
+                "tests / pytest",
+                "no implementation or tooling test trigger paths changed",
+            )
     finally:
         reporter.summary()
 
@@ -706,7 +788,12 @@ def hook_pre_push(session: nox.Session) -> None:
 def verify(session: nox.Session) -> None:
     reporter = SessionReporter(session, "verify")
     try:
-        _run_hygiene(session, reporter, posargs=session.posargs or ["--all-files"], default_all_files=True)
+        _run_hygiene(
+            session,
+            reporter,
+            posargs=session.posargs or ["--all-files"],
+            default_all_files=True,
+        )
         _run_policy(session, reporter, *session.posargs)
         _run_lint(session, reporter)
         _run_contracts(session, reporter)
