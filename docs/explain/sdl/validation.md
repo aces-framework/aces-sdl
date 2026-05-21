@@ -56,6 +56,17 @@ stored as octal permission bits, and content digests must carry both the digest
 algorithm and value. Runtime healthcheck entries marked as redacted must omit
 raw output.
 
+The optional `source.build` container image provenance block carries its own
+model-local rules. Build-argument and image-default-environment names must be
+non-empty and free of `=`, and values classified as redacted must omit the raw
+value. Copied-source and source-input destination paths, and image-config
+working directories, must be absolute paths or variable references. Source-input
+checksums must carry both the checksum and its algorithm. Build-argument names
+and source-input identifiers must be unique within a build block, and
+image-default environment names must be unique within an image config. An
+attestation with `status: absent` cannot also report `verification: verified`,
+keeping "no registry-visible attestation" distinct from a failed verification.
+
 When a field contains an unresolved `${var}` placeholder, reference-oriented
 passes treat it as deferred rather than as a broken concrete reference. The
 validator still does not substitute values; the later repo-owned instantiation
@@ -71,6 +82,10 @@ actually express. Node `runtime` metadata covers observed VM configuration
 facts such as mounts, path-local control interfaces, process identity, runtime
 filesystem inventory, container host/security configuration, health observations,
 package inventory, dependency manifests, and scanner-derived package findings.
+The `source.build` block covers observed container image build provenance:
+base image and digest, layer chain, structured build-recipe instructions, build
+arguments, copied sources, image-default configuration, source-input mapping,
+and attestation status.
 Broader ecosystem concerns such as participant-implementation manifests,
 decision-surface exposure policy contracts, augmentation disclosure, and full
 evidence-capture contract surfaces are separate validation domains.

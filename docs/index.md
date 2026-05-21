@@ -88,6 +88,7 @@ decisions/adrs/adr-019-normative-authority-boundary-manifest
 decisions/adrs/adr-020-declarative-participant-framing-boundaries
 decisions/adrs/adr-021-falsification-first-claim-evidence-gate
 decisions/adrs/adr-022-participant-behavior-and-interaction-semantics
+decisions/adrs/adr-023-container-image-build-provenance-surface
 decisions/sem-213-temporal-participant-preflight
 ```
 

@@ -8,13 +8,15 @@ These are things the SDL cannot currently express, identified through stress-tes
 
 The SDL distinguishes authored deployment intent from observed runtime facts.
 Backends still own deployment-specific mechanics such as Docker Compose
-profiles, image build contexts, host port publication decisions, and engine
+profiles, host port publication decisions, image build execution, and engine
 realization. The node `runtime` surface can now record observed runtime facts
 for analysis and parity, including mounts, Linux capabilities, namespace modes,
 entrypoints, image commands, extra hosts, DNS options, security flags, resource
-limits, health status/logs, and filesystem inventory. Recording those facts in
-SDL does not make Docker, Compose, or any specific container engine the
-normative deployment model.
+limits, health status/logs, and filesystem inventory. Container image build
+provenance is a separate source-artifact expressivity surface tracked by issue
+#364 and [ADR-023](../../decisions/adrs/adr-023-container-image-build-provenance-surface.md);
+recording either surface in SDL does not make Docker, Compose, or any specific
+container engine the normative deployment model.
 
 ### Specification-Layer Gaps (future SDL work)
 
