@@ -29,6 +29,7 @@ _RAM_PATTERN = re.compile(
     r"^\s*(\d+(?:\.\d+)?)\s*(" + "|".join(_BYTE_UNITS) + r")\s*$",
     re.IGNORECASE,
 )
+_RAM_MIN_BYTES_ERROR = "RAM must be >= 1 byte"
 _WINDOWS_NAMED_PIPE_PREFIXES = ("\\\\.\\pipe\\", "\\\\?\\pipe\\")
 
 
@@ -83,13 +84,13 @@ def parse_ram(value: str | int) -> int | str:
         raise ValueError("RAM must be a positive integer or human-readable size")
     if isinstance(value, int):
         if value < 1:
-            raise ValueError("RAM must be >= 1 byte")
+            raise ValueError(_RAM_MIN_BYTES_ERROR)
         return value
     value_str = str(value).strip()
     if value_str.isdigit():
         parsed = int(value_str)
         if parsed < 1:
-            raise ValueError("RAM must be >= 1 byte")
+            raise ValueError(_RAM_MIN_BYTES_ERROR)
         return parsed
     match = _RAM_PATTERN.match(value_str)
     if not match:
@@ -98,7 +99,7 @@ def parse_ram(value: str | int) -> int | str:
     unit = match.group(2).lower()
     parsed = int(amount * _BYTE_UNITS[unit])
     if parsed < 1:
-        raise ValueError("RAM must be >= 1 byte")
+        raise ValueError(_RAM_MIN_BYTES_ERROR)
     return parsed
 
 
@@ -155,7 +156,7 @@ class RuntimeEnvironmentValueClassification(str, Enum):
 
     PLAIN = "plain"
     REDACTED = "redacted"
-    SECRET_FIXTURE = "secret_fixture"  # noqa: S105 - classification label, not a credential value.
+    SECRET_FIXTURE = "secret_fixture"  # noqa: S105
     UNKNOWN = "unknown"
 
 
