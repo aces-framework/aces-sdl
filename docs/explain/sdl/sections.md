@@ -85,13 +85,46 @@ nodes:
         name: http
       - port: 443
         name: https
+    runtime:                            # observed runtime configuration facts
+      mounts:
+        - target: /shuffle-database
+          source: aptl_shuffle_data
+          source_kind: volume
+      local_control_interfaces:
+        - path: /run/docker.sock
+          kind: unix_socket
+          protocol: docker
+          bind_source: /var/run/docker.sock
+          access: read_write
+      process:
+        pid: 1
+        command: ./shufflebackend
+        user: root
+        working_directory: /app
+      packages:
+        - manager: apk
+          name: musl
+          version: 1.2.4-r2
+      dependency_manifests:
+        - ecosystem: go
+          path: /app/go.mod
+          format: go-module
+      package_vulnerabilities:
+        - id: CVE-2026-12345
+          package_name: musl
+          installed_version: 1.2.4-r2
+          fixed_version: 1.2.5-r0
+          severity: high
+          scanner: trivy
+          image_digest: sha256:abc123
+          scan_time: "2026-05-20T12:00:00Z"
     asset_value:                        # CIA triad (from CybORG)
       confidentiality: high
       integrity: medium
       availability: critical
 ```
 
-**Switch** nodes are pure connectivity objects. They may define `type` and an optional `description`, but `source`, `resources`, `os`, `os_version`, `features`, `conditions`, `injects`, `vulnerabilities`, `roles`, `services`, and `asset_value` are rejected.
+**Switch** nodes are pure connectivity objects. They may define `type` and an optional `description`, but `source`, `resources`, `os`, `os_version`, `features`, `conditions`, `injects`, `vulnerabilities`, `roles`, `services`, `asset_value`, and `runtime` are rejected.
 
 For **VM** nodes, `resources` remain optional at the SDL layer to preserve abstract specifications, but a VM without `resources` emits a non-fatal advisory because many deployment backends will need explicit sizing or well-defined defaults.
 
@@ -100,6 +133,16 @@ For **VM** nodes, `resources` remain optional at the SDL layer to preserve abstr
 When `features`, `conditions`, or `injects` use the `{name: role}` form, the role must be declared in the node's `roles` map.
 
 Concrete service bindings on a VM must be unique by `protocol` + `port`. Reusing `53/tcp` and `53/udp` is valid; declaring `443/tcp` twice on the same node is rejected. If a service binding also has a `name`, that `name` must be unique within the node and can be targeted directly as `nodes.<node>.services.<service_name>`.
+
+`runtime` captures observed VM/runtime facts that are not authored deployable
+features or exposed network services. Mounts describe realized filesystem
+attachments; `local_control_interfaces` describe path-local control APIs such
+as Unix sockets; `process` records execution identity; `packages` and
+`dependency_manifests` record runtime inventory; and
+`package_vulnerabilities` records scanner-derived CVE/advisory findings tied
+to an image digest and scan time. These findings are separate from the
+top-level `vulnerabilities` section, which remains the CWE-classified scenario
+vulnerability surface.
 
 ---
 

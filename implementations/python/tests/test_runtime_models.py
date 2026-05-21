@@ -48,6 +48,60 @@ features:
         assert model.feature_bindings["provision.feature.vm1.nginx"].node_name == "vm1"
         assert model.feature_bindings["provision.feature.vm2.nginx"].node_name == "vm2"
 
+    def test_node_runtime_preserves_runtime_configuration_metadata(self):
+        model = compile_runtime_model(
+            _scenario("""
+name: shuffle-runtime-inventory
+nodes:
+  shuffle-backend:
+    type: vm
+    os: linux
+    runtime:
+      mounts:
+        - target: /shuffle-database
+          source: aptl_shuffle_data
+          source-kind: volume
+      local-control-interfaces:
+        - path: /run/docker.sock
+          kind: unix-socket
+          protocol: docker
+          bind-source: /var/run/docker.sock
+          access: read-write
+      process:
+        pid: 1
+        command: ./shufflebackend
+        user: root
+        working-directory: /app
+      packages:
+        - manager: apk
+          name: musl
+          version: 1.2.4-r2
+      dependency-manifests:
+        - ecosystem: go
+          path: /app/go.mod
+          format: go-module
+      package-vulnerabilities:
+        - id: CVE-2026-12345
+          package-name: musl
+          installed-version: 1.2.4-r2
+          fixed-version: 1.2.5-r0
+          severity: high
+          scanner: trivy
+          image-digest: sha256:abc123
+          scan-time: "2026-05-20T12:00:00Z"
+""")
+        )
+
+        runtime = model.node_deployments["provision.node.shuffle-backend"].spec["node"]["runtime"]
+        assert runtime["mounts"][0]["target"] == "/shuffle-database"
+        assert runtime["local_control_interfaces"][0]["path"] == "/run/docker.sock"
+        assert runtime["process"]["pid"] == 1
+        assert runtime["process"]["command"] == ["./shufflebackend"]
+        assert runtime["packages"][0]["manager"] == "apk"
+        assert runtime["dependency_manifests"][0]["ecosystem"] == "go"
+        assert runtime["package_vulnerabilities"][0]["scanner"] == "trivy"
+        assert not model.diagnostics
+
     def test_feature_binding_tracks_same_node_dependencies(self):
         model = compile_runtime_model(
             _scenario("""

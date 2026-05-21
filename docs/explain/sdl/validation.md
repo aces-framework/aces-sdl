@@ -15,7 +15,7 @@ becoming a validator-only interpretation of the SDL.
 
 | Pass | What It Checks |
 |------|----------------|
-| `verify_nodes` | Features, conditions, injects, vulnerabilities referenced by nodes exist in their respective sections. Role names on feature/condition/inject assignments must match declared node `roles`. Node names ≤ 35 characters. |
+| `verify_nodes` | Features, conditions, injects, vulnerabilities referenced by nodes exist in their respective sections. Role names on feature/condition/inject assignments must match declared node `roles`. Node names ≤ 35 characters. Runtime mount/interface/manifest paths are structurally typed on VM nodes and rejected on switch nodes. |
 | `verify_infrastructure` | Every infrastructure entry has a matching node. Links reference existing switch/network entries. Dependencies reference existing infrastructure entries. Switch nodes cannot have count > 1, and nodes with conditions cannot scale above 1. Complex property IPs must be valid IPs within the linked switch's CIDR. ACL `from_net` and `to_net` references are each checked and must resolve to switch/network entries. |
 | `verify_features` | Vulnerability references exist. Dependency references exist. **Dependency cycle detection** via topological sort. |
 | `verify_conditions` | (Structural: command+interval XOR source — enforced by Pydantic) |
@@ -54,9 +54,12 @@ compiler performs additional fail-closed binding checks, including node-local
 feature dependency enforcement and bound-resource reference resolution.
 
 This also means the validator only enforces what the current SDL syntax can
-actually express. Broader ecosystem concerns such as participant-implementation
-manifests, decision-surface exposure policy contracts, augmentation disclosure,
-and full evidence-capture contract surfaces are separate validation domains.
+actually express. Node `runtime` metadata covers observed VM configuration
+facts such as mounts, path-local control interfaces, process identity, runtime
+package inventory, dependency manifests, and scanner-derived package findings.
+Broader ecosystem concerns such as participant-implementation manifests,
+decision-surface exposure policy contracts, augmentation disclosure, and full
+evidence-capture contract surfaces are separate validation domains.
 They should not be retrofitted into validator-only behavior before the authored
 surface or external contracts exist.
 
