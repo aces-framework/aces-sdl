@@ -34,12 +34,18 @@ from aces.core.sdl.nodes import (
     RuntimeFilesystemEntryType,
     RuntimeFilesystemStability,
     RuntimeHealthStatus,
+    RuntimeIdentityProvenance,
+    RuntimeLocalGroup,
+    RuntimeLocalIdentityInventory,
+    RuntimeLocalUser,
     RuntimeMountPropagation,
     RuntimeMountSourceKind,
     RuntimePackageVulnerabilitySeverity,
     RuntimeProcessRole,
     RuntimeRestartPolicy,
     RuntimeSensitivityClassification,
+    RuntimeSudoPrincipalKind,
+    RuntimeSudoRule,
     parse_ram,
 )
 from aces.core.sdl.objectives import Objective, ObjectiveSuccess, ObjectiveWindow
@@ -716,6 +722,41 @@ class TestNode:
             ),
             ({"linux_capabilities": {"required": [""]}}, "capability"),
             ({"operational_policy": {"resource_limits": {"pids": 0}}}, "pids"),
+            (
+                {"local_identity": {"users": [{"username": "root"}, {"username": "root"}]}},
+                "Duplicate runtime local user",
+            ),
+            (
+                {"local_identity": {"groups": [{"name": "wheel"}, {"name": "wheel"}]}},
+                "Duplicate runtime local group",
+            ),
+            (
+                {"local_identity": {"groups": [{"name": "a", "gid": 10}, {"name": "b", "gid": 10}]}},
+                "Duplicate runtime local group gid",
+            ),
+            (
+                {
+                    "local_identity": {
+                        "sudo_rules": [
+                            {"principal": "ops", "commands": ["/usr/bin/systemctl"]},
+                            {"principal": "ops", "commands": ["/usr/bin/systemctl"]},
+                        ]
+                    }
+                },
+                "Duplicate runtime sudo rule",
+            ),
+            ({"local_identity": {"users": [{"username": "  "}]}}, "username"),
+            ({"local_identity": {"users": [{"username": "svc", "home": "var/svc"}]}}, "home"),
+            ({"local_identity": {"users": [{"username": "svc", "uid": -1}]}}, "uid"),
+            ({"local_identity": {"groups": [{"name": ""}]}}, "group name"),
+            (
+                {
+                    "local_identity": {
+                        "sudo_rules": [{"principal": "ops", "command_redacted": True, "commands": ["/bin/sh"]}]
+                    }
+                },
+                "redacted sudo rules must omit commands",
+            ),
         ],
     )
     def test_runtime_configuration_rejects_invalid_runtime_anchors(self, runtime, message):
@@ -736,6 +777,130 @@ class TestNode:
     def test_runtime_control_interface_named_pipe_path_requires_named_pipe_kind(self):
         with pytest.raises(ValidationError, match="named_pipe"):
             RuntimeControlInterface(path=r"\\.\pipe\docker_engine", kind="unix-socket")
+
+    def test_vm_runtime_local_identity_inventory_surfaces(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "local_identity": {
+                    "description": "getent passwd/group capture",
+                    "users": [
+                        {
+                            "username": "root",
+                            "uid": 0,
+                            "primary_gid": 0,
+                            "primary_group": "root",
+                            "gecos": "root",
+                            "home": "/root",
+                            "shell": "/bin/bash",
+                            "provenance": "image",
+                            "stability": "stable",
+                        },
+                        {
+                            "username": "www-data",
+                            "uid": "33",
+                            "primary_gid": 33,
+                            "primary_group": "www-data",
+                            "home": "/var/www",
+                            "shell": "/usr/sbin/nologin",
+                            "supplemental_groups": ["wazuh"],
+                            "no_login": True,
+                            "provenance": "package",
+                        },
+                        {
+                            "username": "operator",
+                            "uid": 1000,
+                            "home": "/home/operator",
+                            "shell": "/bin/bash",
+                            "disabled": True,
+                            "locked": True,
+                            "provenance": "runtime-created",
+                            "stability": "runtime_created",
+                        },
+                    ],
+                    "groups": [
+                        {"name": "root", "gid": 0, "members": ["root"], "provenance": "image"},
+                        {"name": "www-data", "gid": 33, "members": ["www-data"]},
+                        {"name": "wazuh", "gid": "101", "members": ["www-data", "operator"]},
+                    ],
+                    "sudo_rules": [
+                        {
+                            "principal": "operator",
+                            "principal_kind": "user",
+                            "run_as_users": ["root"],
+                            "commands": ["/usr/bin/systemctl restart gunicorn"],
+                            "nopasswd": True,
+                        },
+                        {
+                            "principal": "wheel",
+                            "principal_kind": "group",
+                            "host_scope": "ALL",
+                            "commands": ["ALL"],
+                        },
+                    ],
+                },
+            },
+        )
+
+        identity = n.runtime.local_identity
+        assert identity is not None
+        assert identity.description == "getent passwd/group capture"
+        assert identity.users[0].username == "root"
+        assert identity.users[0].uid == 0
+        assert identity.users[0].primary_gid == 0
+        assert identity.users[0].primary_group == "root"
+        assert identity.users[0].gecos == "root"
+        assert identity.users[0].home == "/root"
+        assert identity.users[0].shell == "/bin/bash"
+        assert identity.users[0].provenance == RuntimeIdentityProvenance.IMAGE
+        assert identity.users[0].stability == RuntimeFilesystemStability.STABLE
+        assert identity.users[1].uid == 33
+        assert identity.users[1].supplemental_groups == ["wazuh"]
+        assert identity.users[1].no_login is True
+        assert identity.users[1].disabled is False
+        assert identity.users[1].locked is False
+        assert identity.users[1].provenance == RuntimeIdentityProvenance.PACKAGE
+        assert identity.users[2].disabled is True
+        assert identity.users[2].locked is True
+        assert identity.users[2].no_login is False
+        assert identity.users[2].provenance == RuntimeIdentityProvenance.RUNTIME_CREATED
+        assert identity.groups[0].name == "root"
+        assert identity.groups[0].gid == 0
+        assert identity.groups[0].members == ["root"]
+        assert identity.groups[2].gid == 101
+        assert identity.groups[2].members == ["www-data", "operator"]
+        assert identity.sudo_rules[0].principal == "operator"
+        assert identity.sudo_rules[0].principal_kind == RuntimeSudoPrincipalKind.USER
+        assert identity.sudo_rules[0].run_as_users == ["root"]
+        assert identity.sudo_rules[0].commands == ["/usr/bin/systemctl restart gunicorn"]
+        assert identity.sudo_rules[0].nopasswd is True
+        assert identity.sudo_rules[1].principal_kind == RuntimeSudoPrincipalKind.GROUP
+        assert identity.sudo_rules[1].host_scope == "ALL"
+
+    def test_runtime_local_user_status_flags_are_independent(self):
+        user = RuntimeLocalUser.model_validate({"username": "svc", "shell": "/usr/sbin/nologin", "no_login": True})
+        assert user.no_login is True
+        assert user.locked is False
+        assert user.disabled is False
+
+    def test_runtime_local_group_defaults(self):
+        group = RuntimeLocalGroup(name="messagebus")
+        assert group.gid is None
+        assert group.members == []
+        assert group.provenance == RuntimeIdentityProvenance.UNKNOWN
+
+    def test_runtime_local_identity_inventory_is_optional(self):
+        assert RuntimeLocalIdentityInventory().users == []
+        assert Node(type="vm", runtime={}).runtime.local_identity is None
+
+    def test_runtime_sudo_rule_redacted_commands_must_be_omitted(self):
+        with pytest.raises(ValidationError, match="redacted sudo rules must omit commands"):
+            RuntimeSudoRule(principal="ops", command_redacted=True, commands=["/bin/sh -c secret"])
+
+    def test_runtime_sudo_rule_redacted_without_commands_is_valid(self):
+        rule = RuntimeSudoRule(principal="ops", command_redacted=True)
+        assert rule.command_redacted is True
+        assert rule.commands == []
 
 
 class TestRole:

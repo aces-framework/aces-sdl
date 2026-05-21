@@ -3091,6 +3091,17 @@
           "title": "Local Control Interfaces",
           "type": "array"
         },
+        "local_identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeLocalIdentityInventory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "mounts": {
           "items": {
             "$ref": "#/$defs/RuntimeMount"
@@ -3863,6 +3874,244 @@
       "title": "RuntimeHealthcheckLog",
       "type": "object"
     },
+    "RuntimeIdentityProvenance": {
+      "description": "Origin class for an observed local identity record.",
+      "enum": [
+        "image",
+        "package",
+        "runtime_created",
+        "operator",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeIdentityProvenance",
+      "type": "string"
+    },
+    "RuntimeLocalGroup": {
+      "additionalProperties": false,
+      "description": "A local group record observed in a node's identity database (/etc/group).",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "gid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gid"
+        },
+        "members": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Members",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeIdentityProvenance"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Provenance"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RuntimeLocalGroup",
+      "type": "object"
+    },
+    "RuntimeLocalIdentityInventory": {
+      "additionalProperties": false,
+      "description": "Observed local identity database (users, groups, sudo rules) for a node.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/RuntimeLocalGroup"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "sudo_rules": {
+          "items": {
+            "$ref": "#/$defs/RuntimeSudoRule"
+          },
+          "title": "Sudo Rules",
+          "type": "array"
+        },
+        "users": {
+          "items": {
+            "$ref": "#/$defs/RuntimeLocalUser"
+          },
+          "title": "Users",
+          "type": "array"
+        }
+      },
+      "title": "RuntimeLocalIdentityInventory",
+      "type": "object"
+    },
+    "RuntimeLocalUser": {
+      "additionalProperties": false,
+      "description": "A local user record observed in a node's identity database (/etc/passwd).",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "disabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Disabled"
+        },
+        "gecos": {
+          "default": "",
+          "title": "Gecos",
+          "type": "string"
+        },
+        "home": {
+          "default": "",
+          "title": "Home",
+          "type": "string"
+        },
+        "locked": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Locked"
+        },
+        "no_login": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "No Login"
+        },
+        "primary_gid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Gid"
+        },
+        "primary_group": {
+          "default": "",
+          "title": "Primary Group",
+          "type": "string"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeIdentityProvenance"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Provenance"
+        },
+        "shell": {
+          "default": "",
+          "title": "Shell",
+          "type": "string"
+        },
+        "stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeFilesystemStability"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Stability"
+        },
+        "supplemental_groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supplemental Groups",
+          "type": "array"
+        },
+        "uid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uid"
+        },
+        "username": {
+          "title": "Username",
+          "type": "string"
+        }
+      },
+      "required": [
+        "username"
+      ],
+      "title": "RuntimeLocalUser",
+      "type": "object"
+    },
     "RuntimeMount": {
       "additionalProperties": false,
       "description": "A filesystem mount observed on a runtime node.",
@@ -4402,6 +4651,103 @@
       ],
       "title": "RuntimeSensitivityClassification",
       "type": "string"
+    },
+    "RuntimeSudoPrincipalKind": {
+      "description": "Kind of principal a sudo rule grants privilege to.",
+      "enum": [
+        "user",
+        "group",
+        "other"
+      ],
+      "title": "RuntimeSudoPrincipalKind",
+      "type": "string"
+    },
+    "RuntimeSudoRule": {
+      "additionalProperties": false,
+      "description": "An observed sudo/sudoers privilege grant.\n\nThe portable model is the structured principal/run-as/command scope.\n``raw_entry`` may carry the original sudoers line only as optional\ndescriptive evidence; ``command_redacted`` marks a rule whose command\nscope was withheld because it carried sensitive arguments.",
+      "properties": {
+        "command_redacted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Command Redacted"
+        },
+        "commands": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Commands",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "host_scope": {
+          "default": "",
+          "title": "Host Scope",
+          "type": "string"
+        },
+        "nopasswd": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Nopasswd"
+        },
+        "principal": {
+          "title": "Principal",
+          "type": "string"
+        },
+        "principal_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeSudoPrincipalKind"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "user",
+          "title": "Principal Kind"
+        },
+        "raw_entry": {
+          "default": "",
+          "title": "Raw Entry",
+          "type": "string"
+        },
+        "run_as_groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Run As Groups",
+          "type": "array"
+        },
+        "run_as_users": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Run As Users",
+          "type": "array"
+        }
+      },
+      "required": [
+        "principal"
+      ],
+      "title": "RuntimeSudoRule",
+      "type": "object"
     },
     "Script": {
       "additionalProperties": false,

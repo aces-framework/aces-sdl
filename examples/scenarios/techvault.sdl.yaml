@@ -359,3 +359,99 @@ nodes:
             end: "2026-05-20T12:00:01Z"
             exit_code: 0
             output: ok
+      local_identity:
+        description: Local identity database observed via getent passwd/group inside the webapp container.
+        users:
+          - username: root
+            uid: 0
+            primary_gid: 0
+            primary_group: root
+            gecos: root
+            home: /root
+            shell: /bin/bash
+            provenance: image
+            stability: stable
+          - username: www-data
+            uid: 33
+            primary_gid: 33
+            primary_group: www-data
+            gecos: www-data
+            home: /var/www
+            shell: /usr/sbin/nologin
+            no_login: true
+            provenance: image
+            stability: stable
+          - username: messagebus
+            uid: 100
+            primary_gid: 100
+            primary_group: messagebus
+            home: /nonexistent
+            shell: /usr/sbin/nologin
+            no_login: true
+            provenance: package
+            stability: stable
+          - username: Debian-exim
+            uid: 101
+            primary_gid: 101
+            primary_group: Debian-exim
+            home: /var/spool/exim4
+            shell: /usr/sbin/nologin
+            no_login: true
+            provenance: package
+            stability: stable
+          - username: wazuh
+            uid: 999
+            primary_gid: 999
+            primary_group: wazuh
+            gecos: Wazuh agent
+            home: /var/ossec
+            shell: /usr/sbin/nologin
+            supplemental_groups: [adm]
+            no_login: true
+            provenance: package
+            stability: stable
+        groups:
+          - name: root
+            gid: 0
+            members: [root]
+            provenance: image
+          - name: www-data
+            gid: 33
+            members: [www-data]
+            provenance: image
+          - name: adm
+            gid: 4
+            members: [wazuh]
+            provenance: image
+          - name: sudo
+            gid: 27
+            members: []
+            provenance: image
+          - name: messagebus
+            gid: 100
+            members: []
+            provenance: package
+          - name: Debian-exim
+            gid: 101
+            members: []
+            provenance: package
+          - name: wazuh
+            gid: 999
+            members: [wazuh]
+            provenance: package
+        sudo_rules:
+          - principal: sudo
+            principal_kind: group
+            host_scope: ALL
+            run_as_users: [ALL]
+            run_as_groups: [ALL]
+            commands: [ALL]
+            description: Default Debian sudo-group grant; no member accounts observed in this capture.
+          - principal: wazuh
+            principal_kind: user
+            host_scope: ALL
+            run_as_users: [root]
+            commands:
+              - /usr/bin/systemctl restart wazuh-agent
+            nopasswd: true
+            description: NOPASSWD restart grant for the Wazuh agent service.
