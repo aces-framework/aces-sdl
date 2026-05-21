@@ -12,8 +12,13 @@ profiles, host port publication decisions, image build execution, and engine
 realization. The node `runtime` surface can now record observed runtime facts
 for analysis and parity, including mounts, Linux capabilities, namespace modes,
 entrypoints, image commands, extra hosts, DNS options, security flags, resource
-limits, health status/logs, filesystem inventory, and the local identity
-database (`/etc/passwd` users, `/etc/group` groups, and sudo/sudoers grants).
+limits, health status/logs, filesystem inventory, the local identity
+database (`/etc/passwd` users, `/etc/group` groups, and sudo/sudoers grants),
+and container network realization (per-network aliases and DNS names,
+hostname/domain identity, endpoint MAC/IP/prefix/gateway, backend network and
+endpoint identifiers with stability classification, host-published port
+bindings, and observable backend driver/IPAM detail —
+[ADR-025](../../decisions/adrs/adr-025-container-network-realization-surface.md)).
 Container image build
 provenance is a separate source-artifact expressivity surface tracked by issue
 #364 and [ADR-023](../../decisions/adrs/adr-023-container-image-build-provenance-surface.md);

@@ -415,6 +415,7 @@ class SemanticValidator:
         # OCR passes
         self._verify_nodes()
         self._verify_infrastructure()
+        self._verify_runtime_network()
         self._verify_features()
         self._verify_conditions()
         self._verify_vulnerabilities()
@@ -580,6 +581,57 @@ class SemanticValidator:
                         self._err(f"Infrastructure '{name}' ACL references undefined network '{ref}'")
                     elif ref and not self._is_switch_node(ref):
                         self._err(f"Infrastructure '{name}' ACL reference '{ref}' must point to a switch/network entry")
+
+    def _verify_runtime_network(self) -> None:
+        """Validate observed runtime network endpoints against declared topology.
+
+        Each endpoint's ``network`` must resolve to a switch-backed
+        infrastructure entry; concrete endpoint IPs and gateways are checked
+        against the referenced network CIDR when one is declared (ADR-025).
+        """
+        for name, node in self._s.nodes.items():
+            runtime = getattr(node, "runtime", None)
+            if runtime is None or runtime.network is None:
+                continue
+            for endpoint in runtime.network.endpoints:
+                net = endpoint.network
+                if self._is_unresolved_var(net):
+                    continue
+                if net not in self._s.infrastructure:
+                    self._err(f"Node '{name}' runtime network endpoint references undefined network '{net}'")
+                    continue
+                if not self._is_switch_node(net):
+                    self._err(
+                        f"Node '{name}' runtime network endpoint network '{net}' must reference a switch/network entry"
+                    )
+                    continue
+                self._verify_endpoint_addressing(name, net, endpoint)
+
+    def _verify_endpoint_addressing(self, node_name: str, net: str, endpoint: object) -> None:
+        infra = self._s.infrastructure.get(net)
+        props = infra.properties if infra is not None else None
+        if not isinstance(props, SimpleProperties):
+            return
+        cidr = props.cidr
+        if not cidr or self._is_unresolved_var(cidr):
+            return
+        try:
+            network = ip_network(cidr, strict=False)
+        except ValueError:
+            return
+        for label in ("ip_address", "gateway"):
+            value = getattr(endpoint, label, "")
+            if not value or self._is_unresolved_var(value):
+                continue
+            try:
+                addr = ip_address(value)
+            except ValueError:
+                continue  # malformed addresses are reported by the model-level validator
+            if addr.version == network.version and addr not in network:
+                self._err(
+                    f"Node '{node_name}' runtime network endpoint {label} {value} "
+                    f"is not within network '{net}' CIDR {cidr}"
+                )
 
     def _verify_content(self) -> None:
         for name, item in self._s.content.items():

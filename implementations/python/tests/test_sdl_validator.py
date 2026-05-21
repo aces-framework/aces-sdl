@@ -180,6 +180,89 @@ class TestVerifyInfrastructure:
         assert any("cannot have count > 1" in e for e in errors)
 
 
+class TestVerifyRuntimeNetwork:
+    def test_endpoint_referencing_switch_is_valid(self):
+        s = _make_scenario(
+            nodes={
+                "sw": {"type": "switch"},
+                "vm": {
+                    "type": "vm",
+                    "resources": {"ram": "1 gib", "cpu": 1},
+                    "runtime": {
+                        "network": {"endpoints": [{"network": "sw", "ip_address": "10.0.0.5", "gateway": "10.0.0.1"}]}
+                    },
+                },
+            },
+            infrastructure={
+                "sw": {"count": 1, "properties": {"cidr": "10.0.0.0/24", "gateway": "10.0.0.1"}},
+                "vm": {"count": 1, "links": ["sw"]},
+            },
+        )
+        assert _validate(s) == []
+
+    def test_endpoint_referencing_undefined_network_is_rejected(self):
+        s = _make_scenario(
+            nodes={
+                "vm": {
+                    "type": "vm",
+                    "resources": {"ram": "1 gib", "cpu": 1},
+                    "runtime": {"network": {"endpoints": [{"network": "ghost-net"}]}},
+                },
+            },
+        )
+        errors = _validate(s)
+        assert any("references undefined network 'ghost-net'" in e for e in errors)
+
+    def test_endpoint_referencing_non_switch_is_rejected(self):
+        s = _make_scenario(
+            nodes={
+                "other-vm": {"type": "vm", "resources": {"ram": "1 gib", "cpu": 1}},
+                "vm": {
+                    "type": "vm",
+                    "resources": {"ram": "1 gib", "cpu": 1},
+                    "runtime": {"network": {"endpoints": [{"network": "other-vm"}]}},
+                },
+            },
+            infrastructure={
+                "other-vm": {"count": 1},
+                "vm": {"count": 1},
+            },
+        )
+        errors = _validate(s)
+        assert any("must reference a switch/network entry" in e for e in errors)
+
+    def test_endpoint_ip_outside_referenced_cidr_is_rejected(self):
+        s = _make_scenario(
+            nodes={
+                "sw": {"type": "switch"},
+                "vm": {
+                    "type": "vm",
+                    "resources": {"ram": "1 gib", "cpu": 1},
+                    "runtime": {"network": {"endpoints": [{"network": "sw", "ip_address": "192.168.5.5"}]}},
+                },
+            },
+            infrastructure={
+                "sw": {"count": 1, "properties": {"cidr": "10.0.0.0/24", "gateway": "10.0.0.1"}},
+                "vm": {"count": 1, "links": ["sw"]},
+            },
+        )
+        errors = _validate(s)
+        assert any("ip_address 192.168.5.5 is not within network 'sw'" in e for e in errors)
+
+    def test_endpoint_network_variable_reference_is_skipped(self):
+        s = _make_scenario(
+            variables={"TARGET_NET": {"type": "string", "required": True}},
+            nodes={
+                "vm": {
+                    "type": "vm",
+                    "resources": {"ram": "1 gib", "cpu": 1},
+                    "runtime": {"network": {"endpoints": [{"network": "${TARGET_NET}"}]}},
+                },
+            },
+        )
+        assert _validate(s) == []
+
+
 class TestVerifyFeatures:
     def test_feature_dependency_cycle(self):
         s = _make_scenario(

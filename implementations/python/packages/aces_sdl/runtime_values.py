@@ -1,5 +1,6 @@
 """Shared parsing helpers for SDL runtime configuration models."""
 
+import ipaddress
 import re
 from enum import Enum
 from typing import Any
@@ -36,6 +37,19 @@ def absolute_path_or_var(value: str, *, field_name: str) -> str:
         raise ValueError(f"{field_name} must be a string")
     if not value.startswith("/"):
         raise ValueError(f"{field_name} must be an absolute path")
+    return value
+
+
+def ip_address_or_var(value: str, *, field_name: str) -> str:
+    """Validate an IPv4/IPv6 address, allowing empty and ``${var}`` values."""
+    if not value or is_variable_ref(value):
+        return value
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    try:
+        ipaddress.ip_address(value)
+    except ValueError as e:
+        raise ValueError(f"{field_name} must be a valid IP address") from e
     return value
 
 

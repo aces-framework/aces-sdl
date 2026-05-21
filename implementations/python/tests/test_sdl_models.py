@@ -40,8 +40,14 @@ from aces.core.sdl.nodes import (
     RuntimeLocalUser,
     RuntimeMountPropagation,
     RuntimeMountSourceKind,
+    RuntimeNetworkBackendDetail,
+    RuntimeNetworkDriver,
+    RuntimeNetworkEndpoint,
+    RuntimeNetworkIdStability,
+    RuntimeNetworkRealization,
     RuntimePackageVulnerabilitySeverity,
     RuntimeProcessRole,
+    RuntimePublishedPort,
     RuntimeRestartPolicy,
     RuntimeSensitivityClassification,
     RuntimeSudoPrincipalKind,
@@ -901,6 +907,185 @@ class TestNode:
         rule = RuntimeSudoRule(principal="ops", command_redacted=True)
         assert rule.command_redacted is True
         assert rule.commands == []
+
+
+# ---------------------------------------------------------------------------
+# Runtime network realization (ADR-025)
+# ---------------------------------------------------------------------------
+
+
+class TestRuntimeNetworkRealization:
+    def test_vm_runtime_network_surface(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "network": {
+                    "description": "Docker network realization observed by harness inspection.",
+                    "hostname": "techvault-webapp",
+                    "domainname": "techvault.local",
+                    "endpoints": [
+                        {
+                            "network": "aptl-dmz",
+                            "network_id": "net-a1b2c3d4e5f6",
+                            "network_id_stability": "stable",
+                            "endpoint_id": "ep-1a2b3c4d5e6f",
+                            "endpoint_id_stability": "ephemeral",
+                            "backend_generated": True,
+                            "ip_address": "172.20.0.20",
+                            "ip_prefix_length": 24,
+                            "gateway": "172.20.0.1",
+                            "mac_address": "02:42:ac:14:00:14",
+                            "aliases": ["aptl-webapp", "webapp"],
+                            "dns_names": ["aptl-webapp", "webapp"],
+                            "generated_dns_names": ["a1b2c3d4e5f6"],
+                            "backend": {
+                                "driver": "bridge",
+                                "ipam_driver": "default",
+                                "driver_options": {"com.docker.network.bridge.name": "br-dmz"},
+                                "ipam_options": {"foo": "bar"},
+                            },
+                        },
+                        {
+                            "network": "aptl-internal",
+                            "ip_address": "172.21.0.20",
+                        },
+                    ],
+                    "published_ports": [
+                        {
+                            "container_port": 8080,
+                            "protocol": "tcp",
+                            "host_ip": "127.0.0.1",
+                            "host_port": 8080,
+                        }
+                    ],
+                },
+            },
+        )
+
+        net = n.runtime.network
+        assert net is not None
+        assert net.hostname == "techvault-webapp"
+        assert net.domainname == "techvault.local"
+        ep = net.endpoints[0]
+        assert ep.network == "aptl-dmz"
+        assert ep.network_id == "net-a1b2c3d4e5f6"
+        assert ep.network_id_stability == RuntimeNetworkIdStability.STABLE
+        assert ep.endpoint_id_stability == RuntimeNetworkIdStability.EPHEMERAL
+        assert ep.backend_generated is True
+        assert ep.ip_address == "172.20.0.20"
+        assert ep.ip_prefix_length == 24
+        assert ep.gateway == "172.20.0.1"
+        assert ep.mac_address == "02:42:ac:14:00:14"
+        assert ep.aliases == ["aptl-webapp", "webapp"]
+        assert ep.dns_names == ["aptl-webapp", "webapp"]
+        assert ep.generated_dns_names == ["a1b2c3d4e5f6"]
+        assert ep.backend.driver == RuntimeNetworkDriver.BRIDGE
+        assert ep.backend.ipam_driver == "default"
+        assert ep.backend.driver_options == {"com.docker.network.bridge.name": "br-dmz"}
+        assert ep.backend.ipam_options == {"foo": "bar"}
+        # Defaults on a sparsely-observed endpoint.
+        assert net.endpoints[1].network_id == ""
+        assert net.endpoints[1].network_id_stability == RuntimeNetworkIdStability.UNKNOWN
+        assert net.endpoints[1].backend is None
+        binding = net.published_ports[0]
+        assert binding.container_port == 8080
+        assert binding.host_ip == "127.0.0.1"
+        assert binding.host_port == 8080
+        assert binding.protocol == "tcp"
+
+    def test_runtime_network_is_optional(self):
+        assert RuntimeNetworkRealization().endpoints == []
+        assert Node(type="vm", runtime={}).runtime.network is None
+
+    def test_endpoint_accepts_variable_placeholders(self):
+        ep = RuntimeNetworkEndpoint(
+            network="aptl-dmz",
+            ip_address="${WEBAPP_IP}",
+            gateway="${DMZ_GATEWAY}",
+            mac_address="${WEBAPP_MAC}",
+            ip_prefix_length="${PREFIX}",
+        )
+        assert ep.ip_address == "${WEBAPP_IP}"
+        assert ep.mac_address == "${WEBAPP_MAC}"
+        assert ep.ip_prefix_length == "${PREFIX}"
+
+    def test_published_port_protocol_normalized_and_required(self):
+        binding = RuntimePublishedPort(container_port="443", protocol="TCP")
+        assert binding.container_port == 443
+        assert binding.protocol == "tcp"
+        assert binding.host_port is None
+
+    def test_published_port_rejects_out_of_range_ports(self):
+        with pytest.raises(ValidationError, match="container_port must be <= 65535"):
+            RuntimePublishedPort(container_port=70000)
+        with pytest.raises(ValidationError, match="host_port must be >= 1"):
+            RuntimePublishedPort(container_port=8080, host_port=0)
+
+    def test_published_port_rejects_empty_protocol(self):
+        with pytest.raises(ValidationError, match="protocol must be a non-empty string"):
+            RuntimePublishedPort(container_port=8080, protocol="  ")
+
+    def test_published_port_rejects_invalid_host_ip(self):
+        with pytest.raises(ValidationError, match="host_ip must be a valid IP address"):
+            RuntimePublishedPort(container_port=8080, host_ip="not-an-ip")
+
+    def test_endpoint_rejects_invalid_ip_and_gateway(self):
+        with pytest.raises(ValidationError, match="ip_address must be a valid IP address"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", ip_address="999.0.0.1")
+        with pytest.raises(ValidationError, match="gateway must be a valid IP address"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", gateway="bad-gateway")
+
+    def test_endpoint_rejects_invalid_mac_address(self):
+        with pytest.raises(ValidationError, match="mac_address must be a colon-separated MAC address"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", mac_address="02-42-ac-14-00-14")
+
+    def test_endpoint_rejects_out_of_range_prefix_length(self):
+        with pytest.raises(ValidationError, match="ip_prefix_length must be <= 128"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", ip_prefix_length=129)
+
+    def test_endpoint_rejects_empty_network(self):
+        with pytest.raises(ValidationError, match="network must be a non-empty string"):
+            RuntimeNetworkEndpoint(network="  ")
+
+    def test_endpoint_rejects_duplicate_aliases(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime network aliases"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", aliases=["webapp", "webapp"])
+
+    def test_endpoint_rejects_duplicate_dns_names(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime network dns_names"):
+            RuntimeNetworkEndpoint(network="aptl-dmz", dns_names=["webapp", "webapp"])
+
+    def test_realization_rejects_duplicate_endpoint_networks(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime network endpoint for network 'aptl-dmz'"):
+            RuntimeNetworkRealization(
+                endpoints=[{"network": "aptl-dmz"}, {"network": "aptl-dmz"}],
+            )
+
+    def test_realization_rejects_conflicting_host_bindings(self):
+        with pytest.raises(ValidationError, match="Duplicate host-published binding"):
+            RuntimeNetworkRealization(
+                published_ports=[
+                    {"container_port": 8080, "host_ip": "127.0.0.1", "host_port": 8080, "protocol": "tcp"},
+                    {"container_port": 9090, "host_ip": "127.0.0.1", "host_port": 8080, "protocol": "tcp"},
+                ],
+            )
+
+    def test_realization_allows_same_host_port_on_distinct_protocols(self):
+        realization = RuntimeNetworkRealization(
+            published_ports=[
+                {"container_port": 53, "host_ip": "127.0.0.1", "host_port": 53, "protocol": "tcp"},
+                {"container_port": 53, "host_ip": "127.0.0.1", "host_port": 53, "protocol": "udp"},
+            ],
+        )
+        assert len(realization.published_ports) == 2
+
+    def test_backend_detail_normalizes_driver_enum(self):
+        detail = RuntimeNetworkBackendDetail(driver="OVERLAY")
+        assert detail.driver == RuntimeNetworkDriver.OVERLAY
+
+    def test_backend_detail_rejects_unknown_driver(self):
+        with pytest.raises(ValidationError, match="driver must be one of"):
+            RuntimeNetworkBackendDetail(driver="quantum-mesh")
 
 
 class TestRole:
