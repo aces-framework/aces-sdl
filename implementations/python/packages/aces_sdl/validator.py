@@ -29,6 +29,10 @@ from .semantics.participant_behavior import (
     ParticipantBehaviorIssue,
     analyze_participant_behavior,
 )
+from .semantics.participant_outcome import (
+    ParticipantOutcomeIssue,
+    analyze_participant_outcome_interpretations,
+)
 from .semantics.workflow import branch_closure, workflow_step_semantic_contract
 
 # Renders an objective-semantics issue (machine-readable code from
@@ -146,6 +150,30 @@ _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS = {
             f"Observation boundary '{i.boundary_name}' view_transition '{i.transition_id}' "
             f"evidence_ref '{i.ref}' is not declared by evidence_refs"
         )
+    ),
+}
+
+_PARTICIPANT_OUTCOME_ISSUE_RENDERERS = {
+    "participant.outcome.source-action-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' source '{i.ref}' references undefined action contract"
+    ),
+    "participant.outcome.source-objective-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' source '{i.ref}' references undefined objective"
+    ),
+    "participant.outcome.source-workflow-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' source '{i.ref}' references undefined workflow"
+    ),
+    "participant.outcome.source-evaluation-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' source '{i.ref}' references undefined evaluation"
+    ),
+    "participant.outcome.target-objective-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' target '{i.ref}' references undefined objective"
+    ),
+    "participant.outcome.target-workflow-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' target '{i.ref}' references undefined workflow"
+    ),
+    "participant.outcome.target-evaluation-unbound": (
+        lambda i: f"Outcome interpretation rule '{i.rule_name}' target '{i.ref}' references undefined evaluation"
     ),
 }
 
@@ -434,6 +462,7 @@ class SemanticValidator:
         self._verify_participant_behavior()
         self._verify_objectives()
         self._verify_workflows()
+        self._verify_participant_outcomes()
         self._verify_variables()
         self._collect_advisories()
 
@@ -714,6 +743,18 @@ class SemanticValidator:
                         targetable=True,
                     )
 
+    def _verify_participant_outcomes(self) -> None:
+        analysis = analyze_participant_outcome_interpretations(
+            outcome_interpretation_rules=self._s.outcome_interpretation_rules,
+            action_contracts=self._s.action_contracts,
+            objectives=self._s.objectives,
+            workflows=self._s.workflows,
+            evaluations=self._s.evaluations,
+            is_unresolved=self._is_unresolved_var,
+        )
+        for issue in analysis.issues:
+            self._err(self._format_participant_outcome_issue(issue))
+
     def _verify_objectives(self) -> None:
         # Declarative-objective semantics — actor binding, target resolution,
         # success interpretation, windows, and dependency ordering (SEM-207).
@@ -758,6 +799,14 @@ class SemanticValidator:
             renderer = _PARTICIPANT_BEHAVIOR_ISSUE_RENDERERS[issue.code]
         except KeyError:  # pragma: no cover - defensive: a new code without a renderer
             raise AssertionError(f"unhandled participant-behavior issue code: {issue.code}") from None
+        return renderer(issue)
+
+    @staticmethod
+    def _format_participant_outcome_issue(issue: ParticipantOutcomeIssue) -> str:
+        try:
+            renderer = _PARTICIPANT_OUTCOME_ISSUE_RENDERERS[issue.code]
+        except KeyError:  # pragma: no cover - defensive: a new code without a renderer
+            raise AssertionError(f"unhandled participant-outcome issue code: {issue.code}") from None
         return renderer(issue)
 
     def _validate_workflow_predicate(

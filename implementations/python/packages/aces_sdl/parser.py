@@ -43,6 +43,7 @@ _HASHMAP_SECTIONS = frozenset(
         "agents",
         "action_contracts",
         "observation_boundaries",
+        "outcome_interpretation_rules",
         "objectives",
         "workflows",
         "variables",
