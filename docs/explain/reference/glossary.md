@@ -98,8 +98,10 @@ published schemas, source code, and ADRs.
   runtime resources, dependencies, and statuses.
 
 **Backend**
-: An apparatus surface that realizes deployable or simulated targets for a
-  scenario.
+: An apparatus surface that realizes scenario targets against infrastructure,
+  emulation, simulation, or stubs. This repository includes backend contracts,
+  stubs, and conformance checks; it does not include a production cyber-range
+  backend.
 
 **Manifest**
 : A machine-readable declaration of an apparatus surface's identity,
@@ -110,13 +112,20 @@ published schemas, source code, and ADRs.
   backends, participants, and live execution surfaces.
 
 **Control plane**
-: The current live execution surface for processor-managed operations,
-  statuses, workflow results, evaluation results, and history streams.
+: The live execution surface implemented by the current processor layer for
+  processor-managed operations, statuses, workflow results, evaluation
+  results, and history streams.
 
 **Participant implementation**
 : An agent, policy, script, or human-control proxy that consumes participant
   contracts during a run. This surface is architecture-level in the current
   repository and is not fully materialized as published schemas.
+
+**Reference implementation**
+: The Python implementation under `implementations/python/`. It is the current
+  executable implementation for parsing, validation, instantiation,
+  compilation, planning, control-plane contracts, stubs, and conformance
+  checks.
 
 ## Evidence, Authority, And Reference Material
 

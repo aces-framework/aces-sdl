@@ -2,15 +2,13 @@
 
 The ACES SDL is a YAML-based specification language for describing cyber range scenarios and experiments. It starts from the [Open Cyber Range SDL](https://github.com/Open-Cyber-Range/SDL-parser) surface, preserves coverage across the OCR-derived sections, and extends that base with additional scenario concepts such as content, accounts, relationships, agents, objectives, workflows, and variables. It is intentionally its own SDL rather than a clone-level derivative.
 
-The SDL describes *what the scenario and experiment mean* — not how to deploy
-or execute it directly. Backend implementations realize SDL specifications
-through the runtime contracts defined here. The
-repository now includes SDL-native instantiation, compilation, planning,
-contracts, and a reference control-plane surface; the broader backend ecosystem
-and production backend implementations are outside this repository's current
-implementation surface.
+The SDL describes *what the scenario and experiment mean*; it is not a direct
+deployment recipe. Backend implementations realize SDL specifications through
+runtime contracts. The repository includes SDL-native instantiation,
+compilation, planning, contracts, backend stubs, conformance checks, and a
+reference control-plane surface. It does not include a production backend.
 
-The SDL now sits inside a broader ecosystem architecture with several distinct
+The SDL sits inside a broader ecosystem architecture with several distinct
 surfaces:
 
 - the **authored scenario and experiment** expressed in SDL
@@ -24,9 +22,9 @@ surfaces:
 - **archival run/evidence/provenance artifacts** used for comparison, replay,
   and experiment review
 
-Those boundaries matter because the same authored scenario may be processed by
-different processors, realized by different backends, and driven by different
-participant implementations without changing its core meaning.
+Those boundaries matter because authored scenario meaning is separate from the
+apparatus that realizes or evaluates it. Current portability claims are limited
+to the repository's schemas, contracts, stubs, examples, and tests.
 
 The raw YAML document is only the entrypoint. The SDL's semantic behavior is
 defined above that syntax layer through typed SDL models, semantic validation,
@@ -41,17 +39,27 @@ control-flow systems such as Step Functions, Argo, and SCXML plus portable
 runtime-boundary patterns from systems such as Kubernetes and Temporal. The
 crosswalk lives in [Design Precedents](precedents.md).
 
-The imported research also informs newer ecosystem concerns that are only partly
+The imported research also informs ecosystem concerns that are only partly
 surfaced in the current SDL syntax, including participant decision surfaces,
 hidden benchmark assets, trajectory corpora, experiment evidence capture, and
-participant-implementation apparatus. More recently, cross-domain simulation
-and co-simulation research has also made the time model impossible to treat as
-an incidental runtime detail. Clock authority, time domains, pacing,
+participant-implementation apparatus. Cross-domain simulation and
+co-simulation research shows that the time model cannot be treated as an
+incidental runtime detail. Clock authority, time domains, pacing,
 synchronization, and realized ordering guarantees are part of the broader
 apparatus story, even when the current SDL syntax only exposes a subset of that
 surface through timelines, timeouts, and budget-like controls. The primary
-references collected in `research/primary/literature/time-and-simulation/` are
-the current foundation for that time/clock work.
+references collected in `research/primary/literature/time-and-simulation/`
+are the current foundation for that time/clock work.
+
+## Current Use Boundary
+
+The current Python package supports parsing SDL, semantic validation,
+variable instantiation, runtime-model compilation, planning against backend
+manifests, control-plane contract exercise, and backend conformance checks.
+It does not deploy scenarios to a real range by itself. Participant
+implementation manifests, evidence-capture contracts, provenance contracts,
+and the full time/clock authoring model remain partially materialized or
+architecture-level surfaces.
 
 ## Stable IDs, Variable Values
 
@@ -133,7 +141,7 @@ accounts:
 - [Semantic Validation](validation.md) — Cross-reference checks and what the validator enforces
 - [Design Precedents](precedents.md) — Where each SDL element comes from
 - [Academic Lineage](lineage.md) — Primary-source lineage for SDL semantics
-- [Limitations](limitations.md) — What the SDL cannot express
+- [Limitations](limitations.md) — Current expressiveness and materialization gaps
 - [Testing](testing.md) — How to run unit tests, stress tests, and fuzz tests
 - [Complex Scenario Designs](complex-scenarios.md) — Up-front design briefs for large example exercises
 - [Runtime Architecture](runtime-architecture.md) — SDL-native compiler, composite plans, and runtime targets

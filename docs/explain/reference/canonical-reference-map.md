@@ -3,6 +3,17 @@
 This page identifies the current repository locations for ACES SDL reference
 material. It is an index, not a replacement for the linked artifacts.
 
+## How To Use This Map
+
+- Scenario authors: start with the SDL guide, section reference, parser
+  behavior, validation rules, and limitations.
+- Backend implementers: start with the contract root, schema inventory,
+  runtime architecture, and backend conformance notes.
+- Researchers: start with lineage, design precedents, formal specifications,
+  glossary, and current materialization notes.
+- Reviewers: use the authority boundary, ADRs, and documentation style guide
+  to distinguish normative claims from explanatory prose.
+
 ## Repository Authority
 
 | Surface | Current reference |

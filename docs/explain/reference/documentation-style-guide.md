@@ -48,6 +48,13 @@ Every factual claim must be grounded in one of these sources:
 If a feature is absent, say so plainly. Do not imply planned support. Prefer
 "not implemented" or "outside the current scope".
 
+## Utility For Readers
+
+Documentation should help a reader decide whether and how to use the current
+repository. State the supported task, the relevant entrypoint, and the known
+boundary. Include commands only when they match the current CLI or Python API.
+Do not hide prerequisites, partial implementations, or validation limits.
+
 ## Citations
 
 Use citations for external technical claims, lineage claims, and terminology

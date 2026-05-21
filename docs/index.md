@@ -1,15 +1,16 @@
 # ACES SDL Documentation
 
-**A backend-agnostic cyber range scenario description language and runtime ecosystem.**
+**A backend-agnostic cyber range scenario description language and reference
+implementation.**
 
-`aces-sdl` is a fully working SDL stack for describing cyber range scenarios
-and experiments, validating their meaning, compiling runtime models, and
-defining portable backend contracts.
+`aces-sdl` currently provides a Python implementation for describing cyber
+range scenarios and experiments, validating their authored meaning, compiling
+runtime models, and checking published backend contracts.
 
-It is designed to stand on its own as a coherent system. It also serves as a
-working, contrastive ecosystem for RFC and standards work by the Red Queen
-Working Group, so language, semantics, runtime, and assurance questions can be
-tested in a live codebase rather than only in abstract design discussions.
+The repository is not a managed cyber range and does not ship production
+backend implementations. It is a working codebase for testing language,
+semantic, runtime, and assurance claims against source code, schemas, examples,
+and tests.
 
 ## Quick Start
 
@@ -37,6 +38,16 @@ for advisory in scenario.advisories:
 - **Processor layer** with compiler, planner, and control-plane contracts
 - **Schemas** and backend conformance fixtures
 - **CLI commands**, docs, examples, and tests
+
+## Reader Map
+
+- Scenario authors usually start with the SDL guide, sections reference,
+  parser behavior, validation rules, and limitations.
+- Backend implementers usually start with runtime architecture, contract
+  schemas, backend conformance, and the canonical reference map.
+- Researchers usually start with lineage, design precedents, formal
+  specifications, glossary, and limitations.
+- Contributors should read the documentation style guide before changing prose.
 
 ```{toctree}
 :maxdepth: 2
@@ -115,6 +126,14 @@ explain/reference/explicitness-realization-semantics
 :caption: Formal Specifications
 
 specs/formal
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Project Notes
+
+lessons/README
+migration/README
 ```
 
 ```{toctree}
