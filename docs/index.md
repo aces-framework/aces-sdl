@@ -41,6 +41,8 @@ for advisory in scenario.advisories:
 
 ## Reader Map
 
+- New users can start with the getting-started guide to choose the smallest
+  current entrypoint for their task and rigor level.
 - Scenario authors usually start with the SDL guide, sections reference,
   parser behavior, validation rules, and limitations.
 - Backend implementers usually start with runtime architecture, contract
@@ -48,6 +50,13 @@ for advisory in scenario.advisories:
 - Researchers usually start with lineage, design precedents, formal
   specifications, glossary, and limitations.
 - Contributors should read the documentation style guide before changing prose.
+
+```{toctree}
+:maxdepth: 2
+:caption: Getting Started
+
+explain/getting-started
+```
 
 ```{toctree}
 :maxdepth: 2

@@ -143,6 +143,8 @@ uv run aces-mcp
 The documentation source is under [`docs/`](docs/). Important entry points:
 
 - [`docs/index.md`](docs/index.md) - documentation index
+- [`docs/explain/getting-started.md`](docs/explain/getting-started.md) - use-case and rigor-level entrypoint
+- [`examples/README.md`](examples/README.md) - current worked example inventory
 - [`docs/explain/reference/canonical-reference-map.md`](docs/explain/reference/canonical-reference-map.md) - current reference map
 - [`docs/explain/reference/documentation-style-guide.md`](docs/explain/reference/documentation-style-guide.md) - documentation style and citation rules
 - [`docs/explain/reference/glossary.md`](docs/explain/reference/glossary.md) - current terminology
