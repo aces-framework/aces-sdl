@@ -455,3 +455,73 @@ nodes:
               - /usr/bin/systemctl restart wazuh-agent
             nopasswd: true
             description: NOPASSWD restart grant for the Wazuh agent service.
+      network:
+        description: Container network realization observed by harness inspection of the webapp container.
+        hostname: techvault-webapp
+        domainname: techvault.local
+        endpoints:
+          - network: aptl-dmz
+            network_id: 7f2c1ad4e9b30c5a8d6e4f1b2a9c7e0d3f5b8a1c4d6e9f0a2b3c5d7e9f1a3b5c
+            network_id_stability: stable
+            endpoint_id: 3a9c7e0d3f5b8a1c4d6e9f0a2b3c5d7e9f1a3b5c7d2c1ad4e9b30c5a8d6e4f1b
+            endpoint_id_stability: ephemeral
+            backend_generated: true
+            ip_address: 172.20.0.20
+            ip_prefix_length: 24
+            gateway: 172.20.0.1
+            mac_address: 02:42:ac:14:00:14
+            aliases: [aptl-webapp, webapp]
+            dns_names: [aptl-webapp, webapp]
+            generated_dns_names: [3a9c7e0d3f5b]
+            backend:
+              driver: bridge
+              ipam_driver: default
+              driver_options:
+                com.docker.network.bridge.name: br-aptl-dmz
+              ipam_options:
+                com.docker.network.driver.mtu: "1500"
+              description: Docker bridge network backing the TechVault DMZ.
+          - network: aptl-internal
+            network_id: c4d6e9f0a2b3c5d7e9f1a3b5c7d2c1ad4e9b30c5a8d6e4f1b7f2c1ad4e9b30c5
+            network_id_stability: stable
+            endpoint_id: 9f1a3b5c7d2c1ad4e9b30c5a8d6e4f1b7f2c1ad4e9b30c5a3a9c7e0d3f5b8a1c
+            endpoint_id_stability: ephemeral
+            backend_generated: true
+            ip_address: 172.21.0.20
+            ip_prefix_length: 24
+            gateway: 172.21.0.1
+            mac_address: 02:42:ac:15:00:14
+            aliases: [aptl-webapp, webapp]
+            dns_names: [aptl-webapp, webapp]
+            generated_dns_names: [3a9c7e0d3f5b]
+            backend:
+              driver: bridge
+              ipam_driver: default
+              driver_options:
+                com.docker.network.bridge.name: br-aptl-internal
+        published_ports:
+          - container_port: 8080
+            protocol: tcp
+            host_ip: 0.0.0.0
+            host_port: 8080
+            description: Webapp HTTP port published from the container to the host.
+  aptl-dmz:
+    type: switch
+    description: TechVault DMZ container network (Docker bridge aptl_aptl-dmz).
+  aptl-internal:
+    type: switch
+    description: TechVault internal container network (Docker bridge aptl_aptl-internal).
+
+infrastructure:
+  techvault-webapp:
+    links: [aptl-dmz, aptl-internal]
+  aptl-dmz:
+    properties:
+      cidr: 172.20.0.0/24
+      gateway: 172.20.0.1
+      internal: false
+  aptl-internal:
+    properties:
+      cidr: 172.21.0.0/24
+      gateway: 172.21.0.1
+      internal: true

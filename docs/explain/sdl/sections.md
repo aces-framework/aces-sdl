@@ -234,6 +234,32 @@ nodes:
             run_as_users: [root]
             commands: ["/usr/bin/systemctl restart wazuh-agent"]
             nopasswd: true
+      network:                          # observed container network realization
+        hostname: techvault-webapp
+        domainname: techvault.local
+        endpoints:
+          - network: aptl-dmz           # references a switch-backed infrastructure entry
+            network_id: 7f2c1ad4e9b3...
+            network_id_stability: stable
+            endpoint_id: 3a9c7e0d3f5b...
+            endpoint_id_stability: ephemeral
+            backend_generated: true
+            ip_address: 172.20.0.20
+            ip_prefix_length: 24
+            gateway: 172.20.0.1
+            mac_address: 02:42:ac:14:00:14
+            aliases: [aptl-webapp, webapp]
+            dns_names: [aptl-webapp, webapp]
+            generated_dns_names: [3a9c7e0d3f5b]
+            backend:
+              driver: bridge
+              ipam_driver: default
+              driver_options: {com.docker.network.bridge.name: br-aptl-dmz}
+        published_ports:
+          - container_port: 8080
+            protocol: tcp
+            host_ip: 0.0.0.0
+            host_port: 8080
     asset_value:                        # CIA triad (from CybORG)
       confidentiality: high
       integrity: medium
@@ -284,6 +310,25 @@ sudoers line as descriptive evidence only. This is observed inventory: it is
 distinct from the top-level `accounts` provisioning surface, and service
 accounts recorded here are not implicitly compiled into account placements
 (see [ADR-024](../../decisions/adrs/adr-024-local-identity-inventory-surface.md)).
+
+`runtime.network` records the observed container network realization — the
+facts visible from inside the realized range or by a harness, distinct from the
+`infrastructure` topology declaration. `hostname` and `domainname` are the
+container's network identity. Each `endpoints` entry is a per-network
+attachment: `network` references a declared switch-backed infrastructure entry,
+and the entry carries the realized `ip_address`, `ip_prefix_length`, `gateway`,
+and `mac_address`; backend `network_id`/`endpoint_id` each with an explicit
+`stable`/`ephemeral` stability classification; a `backend_generated` flag; and
+three distinct name lists — stable per-network `aliases`, observed `dns_names`,
+and backend-`generated_dns_names` (such as a container-ID-prefixed DNS name,
+which is not stable scenario identity). The optional `backend` block records
+observable network `driver` and `ipam_driver` plus bounded backend-native
+`driver_options`/`ipam_options` maps — not raw engine inspect payloads.
+`published_ports` records host-published bindings, keeping container port, host
+IP, host port, and protocol distinct; this is host exposure observed at
+runtime, separate from the authored `services` declaration and image-default
+`source.build.config.exposed_ports`
+(see [ADR-025](../../decisions/adrs/adr-025-container-network-realization-surface.md)).
 
 `source` identifies the node's artifact by provider-neutral `name` and
 `version`. When that artifact is a custom-built container image, the optional
