@@ -9,6 +9,19 @@ from aces.core.sdl.entities import Entity, ExerciseRole, flatten_entities
 from aces.core.sdl.features import Feature, FeatureType
 from aces.core.sdl.infrastructure import ACLAction, ACLRule, InfraNode, SimpleProperties
 from aces.core.sdl.nodes import (
+    ContainerImageBuildProvenance,
+    DockerfileInstruction,
+    DockerfileInstructionKind,
+    ImageAttestation,
+    ImageAttestationStatus,
+    ImageAttestationType,
+    ImageBuildArg,
+    ImageConfig,
+    ImageCopiedSource,
+    ImageEnvironmentDefault,
+    ImageLayer,
+    ImageSourceInput,
+    ImageVerificationStatus,
     Node,
     NodeType,
     Resources,
@@ -58,6 +71,181 @@ class TestSource:
     def test_default_version(self):
         s = Source(name="pkg")
         assert s.version == "*"
+
+    def test_build_defaults_to_none(self):
+        s = Source(name="pkg")
+        assert s.build is None
+
+
+class TestContainerImageBuildProvenance:
+    """Tests for the SDL container image build/provenance surface (issue #364)."""
+
+    def _full_build(self) -> dict:
+        return {
+            "base_image": "python:3.12-slim",
+            "base_image_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "dockerfile_path": "containers/webapp/Dockerfile",
+            "instructions": [
+                {"instruction": "from", "arguments": ["python:3.12-slim"]},
+                {"instruction": "arg", "arguments": ["APP_VERSION"]},
+                {"instruction": "copy", "arguments": ["webapp/app.py", "/app/app.py"]},
+                {"instruction": "entrypoint", "arguments": ["/entrypoint.sh"]},
+            ],
+            "layers": [
+                {
+                    "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+                    "created_by": "FROM python:3.12-slim",
+                    "size": "31000000",
+                },
+                {"created_by": "ENV APP_HOME=/app", "empty": "true"},
+            ],
+            "build_args": [
+                {"name": "APP_VERSION", "value": "1.4.2", "value_classification": "plain"},
+                {"name": "PIP_INDEX_TOKEN", "value_classification": "redacted"},
+            ],
+            "copied_sources": [
+                {"source_path": "webapp/app.py", "destination_path": "/app/app.py"},
+                {
+                    "source_path": "containers/webapp/entrypoint.sh",
+                    "destination_path": "/entrypoint.sh",
+                    "from_stage": "builder",
+                },
+            ],
+            "config": {
+                "entrypoint": "/entrypoint.sh",
+                "command": ["gunicorn", "app:app"],
+                "working_directory": "/app",
+                "exposed_ports": ["8080/tcp"],
+                "labels": {"org.opencontainers.image.source": "https://example.test/techvault"},
+                "default_environment": [
+                    {"name": "APP_HOME", "value": "/app", "value_classification": "plain"},
+                ],
+            },
+            "source_inputs": [
+                {
+                    "identifier": "webapp-app",
+                    "source_path": "webapp/app.py",
+                    "destination_path": "/app/app.py",
+                    "checksum": "4f8c2d",
+                    "checksum_algorithm": "sha256",
+                },
+            ],
+            "attestation": {
+                "status": "absent",
+                "verification": "unverified",
+                "attestation_type": "none",
+            },
+        }
+
+    def test_source_carries_full_build_provenance(self):
+        s = Source(name="techvault-webapp", version="local", build=self._full_build())
+
+        assert s.build is not None
+        build = s.build
+        assert build.base_image == "python:3.12-slim"
+        assert build.dockerfile_path == "containers/webapp/Dockerfile"
+        assert build.instructions[0].instruction == DockerfileInstructionKind.FROM
+        assert build.instructions[2].arguments == ["webapp/app.py", "/app/app.py"]
+        assert build.layers[0].size == 31000000
+        assert build.layers[1].empty is True
+        assert build.layers[1].digest == ""
+        assert build.build_args[0].value == "1.4.2"
+        assert build.copied_sources[1].from_stage == "builder"
+        assert build.config is not None
+        assert build.config.entrypoint == ["/entrypoint.sh"]
+        assert build.config.working_directory == "/app"
+        assert build.config.labels["org.opencontainers.image.source"] == "https://example.test/techvault"
+        assert build.source_inputs[0].checksum_algorithm == "sha256"
+        assert build.attestation is not None
+        assert build.attestation.status == ImageAttestationStatus.ABSENT
+        assert build.attestation.verification == ImageVerificationStatus.UNVERIFIED
+        assert build.attestation.attestation_type == ImageAttestationType.NONE
+
+    def test_instruction_kind_normalizes_case_and_hyphen(self):
+        instruction = DockerfileInstruction(instruction="HEALTHCHECK", arguments="curl localhost")
+        assert instruction.instruction == DockerfileInstructionKind.HEALTHCHECK
+        assert instruction.arguments == ["curl localhost"]
+
+    def test_instruction_rejects_unknown_kind(self):
+        with pytest.raises(ValidationError, match="instruction must be one of"):
+            DockerfileInstruction(instruction="not-a-real-instruction")
+
+    def test_build_arg_redacted_value_must_be_omitted(self):
+        with pytest.raises(ValidationError, match="redacted build arguments must omit value"):
+            ImageBuildArg(name="SECRET", value="leaked", value_classification="redacted")
+
+    def test_build_arg_rejects_name_with_equals(self):
+        with pytest.raises(ValidationError, match="must not contain '='"):
+            ImageBuildArg(name="A=B")
+
+    def test_image_environment_default_redacted_value_must_be_omitted(self):
+        with pytest.raises(ValidationError, match="redacted image environment variables must omit value"):
+            ImageEnvironmentDefault(name="TOKEN", value="leaked", value_classification="redacted")
+
+    def test_copied_source_destination_must_be_absolute(self):
+        with pytest.raises(ValidationError, match="destination_path must be an absolute path"):
+            ImageCopiedSource(source_path="webapp/app.py", destination_path="app/app.py")
+
+    def test_copied_source_rejects_empty_source_path(self):
+        with pytest.raises(ValidationError, match="source_path must be a non-empty string"):
+            ImageCopiedSource(source_path="  ", destination_path="/app/app.py")
+
+    def test_image_config_working_directory_must_be_absolute(self):
+        with pytest.raises(ValidationError, match="working_directory must be an absolute path"):
+            ImageConfig(working_directory="app")
+
+    def test_image_config_rejects_duplicate_default_environment(self):
+        with pytest.raises(ValidationError, match="Duplicate image environment variable 'APP_HOME'"):
+            ImageConfig(
+                default_environment=[
+                    {"name": "APP_HOME", "value": "/app"},
+                    {"name": "APP_HOME", "value": "/srv"},
+                ],
+            )
+
+    def test_source_input_checksum_requires_algorithm(self):
+        with pytest.raises(ValidationError, match="checksum requires checksum_algorithm"):
+            ImageSourceInput(identifier="webapp-app", checksum="4f8c2d")
+
+    def test_source_input_algorithm_requires_checksum(self):
+        with pytest.raises(ValidationError, match="checksum_algorithm requires checksum"):
+            ImageSourceInput(identifier="webapp-app", checksum_algorithm="sha256")
+
+    def test_source_input_destination_must_be_absolute(self):
+        with pytest.raises(ValidationError, match="destination_path must be an absolute path"):
+            ImageSourceInput(identifier="webapp-app", destination_path="app/app.py")
+
+    def test_attestation_absent_cannot_be_verified(self):
+        with pytest.raises(ValidationError, match="absent attestation cannot have a verified"):
+            ImageAttestation(status="absent", verification="verified")
+
+    def test_attestation_absent_unverified_is_distinct_from_failed(self):
+        absent = ImageAttestation(status="absent", verification="unverified")
+        failed = ImageAttestation(status="present", verification="failed")
+        assert absent.status == ImageAttestationStatus.ABSENT
+        assert absent.verification == ImageVerificationStatus.UNVERIFIED
+        assert failed.verification == ImageVerificationStatus.FAILED
+
+    def test_build_rejects_duplicate_build_arg(self):
+        with pytest.raises(ValidationError, match="Duplicate build argument 'APP_VERSION'"):
+            ContainerImageBuildProvenance(
+                build_args=[{"name": "APP_VERSION"}, {"name": "APP_VERSION"}],
+            )
+
+    def test_build_rejects_duplicate_source_input_identifier(self):
+        with pytest.raises(ValidationError, match="Duplicate source input identifier 'webapp-app'"):
+            ContainerImageBuildProvenance(
+                source_inputs=[{"identifier": "webapp-app"}, {"identifier": "webapp-app"}],
+            )
+
+    def test_build_rejects_unknown_field(self):
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            ContainerImageBuildProvenance(not_a_field="x")
+
+    def test_layer_supports_variable_placeholders(self):
+        layer = ImageLayer(digest="${layer_digest}", size="${layer_size}")
+        assert layer.digest == "${layer_digest}"
+        assert layer.size == "${layer_size}"
 
 
 # ---------------------------------------------------------------------------
@@ -576,7 +764,7 @@ class TestInfraNode:
         assert n.count == 3
 
     def test_rejects_zero_count(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="count must be >= 1"):
             InfraNode(count=0)
 
     def test_duplicate_links_rejected(self):
@@ -607,7 +795,11 @@ class TestSimpleProperties:
             SimpleProperties(cidr="10.0.0.0/24", gateway="192.168.1.1")
 
     def test_invalid_cidr(self):
-        with pytest.raises(ValidationError):
+        # Pinned to the field-level ``validate_cidr`` validator (the ipaddress
+        # stdlib message), not the model-level ``gateway_within_cidr`` check,
+        # which would also reject this CIDR. Keeps the test honest about which
+        # validator is under exercise.
+        with pytest.raises(ValidationError, match="does not appear to be an IPv4 or IPv6"):
             SimpleProperties(cidr="not-a-cidr", gateway="10.0.0.1")
 
     def test_variable_placeholders_skip_network_validation(self):
@@ -747,7 +939,7 @@ class TestEvaluation:
         assert len(e.metrics) == 1
 
     def test_empty_metrics_rejected(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="at least 1 item"):
             Evaluation(metrics=[], min_score=MinScore(percentage=50))
 
 
@@ -905,7 +1097,7 @@ class TestStory:
         assert s.speed == 1.0
 
     def test_speed_below_1_rejected(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="speed must be >= 1.0"):
             Story(scripts=["script-1"], speed=0.5)
 
 
@@ -1515,7 +1707,7 @@ class TestAgent:
         assert a.operating_scope == ["${scope_ref}"]
 
     def test_unknown_field_rejected(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
             Agent(entity="red-team", unknown_field=["x"])
 
 

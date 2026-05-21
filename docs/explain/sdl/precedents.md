@@ -203,8 +203,9 @@ These were considered and explicitly excluded:
 | Volume mounts                           | Backend-specific deployment detail | Backend implementation layer           |
 | Linux capabilities (NET_RAW, SYS_ADMIN) | Backend-specific security config   | Backend implementation layer           |
 | Docker Compose profiles                 | Backend-specific grouping          | Backend implementation layer           |
-| Dockerfile/build context                | Backend-specific build detail      | Backend implementation layer           |
-| Container entrypoints                   | Backend-specific runtime config    | Backend implementation layer           |
+| Dockerfile/build execution              | Backend-specific build mechanic    | Backend implementation layer           |
+| Observable container image build provenance | Artifact provenance, not deployment authoring | SDL source-artifact surface; see ADR-023 |
+| Runtime-effective container entrypoints | Backend/runtime state              | `Node.runtime.container` when observed |
 | Framework-specific participant APIs | Framework coupling | Integration adapters outside the core SDL/runtime |
 | Terraform module composition            | Import, version, namespace, parameter, locking, and packaging patterns | Implemented as deterministic SDL module/import expansion with OCI packaging, lockfiles, and trust policy |
 | Full CACAO workflow surface             | Current SDL now covers decisions, switch/case routing, reusable workflow calls, retries, explicit joins, cancel/timeout lifecycle contracts, and explicit compensation targets/order | Future: richer exception control and compensation-of-compensation semantics |
