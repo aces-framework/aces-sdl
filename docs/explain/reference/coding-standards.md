@@ -115,7 +115,7 @@ Required artifacts:
 propagation, where multiple references must remain internally consistent across
 validation and compiled/runtime forms.
 
-Current FM2 examples in the repository now include:
+Current FM2 examples in the repository include:
 
 - normalized objective-window references that stay aligned across validator and
   compiler
@@ -207,7 +207,7 @@ For any semantic or stateful change:
 6. Keep validator, compiler, planner, and runtime language aligned when they
    describe the same behavior.
 7. For composition-adjacent work, preserve canonical identity semantics so
-   future namespace/module expansion can layer on without redefining FM2 rules.
+   namespace/module expansion does not redefine FM2 rules.
 
 For `FM2` and `FM3` changes, plans and reviews must explicitly name the
 invariants and the required artifacts.
@@ -243,11 +243,11 @@ Reviewers should ask:
 The goal is precision, not ceremony. Use the smallest adequate formalization
 that makes the semantic behavior clear and testable.
 
-## Near-Term Rollout
+## Current Scope
 
-This policy establishes a path, not a requirement to formalize everything now.
+This policy does not require formalizing every change.
 
-The first follow-on candidate domains are:
+The policy applies most often to these semantic domains:
 
 1. workflow control semantics
 2. objective window and reachability semantics

@@ -78,7 +78,7 @@ keeping "no registry-visible attestation" distinct from a failed verification.
 
 When a field contains an unresolved `${var}` placeholder, reference-oriented
 passes treat it as deferred rather than as a broken concrete reference. The
-validator still does not substitute values; the later repo-owned instantiation
+validator still does not substitute values; the repo-owned instantiation
 phase performs substitution, type-checking, and concrete revalidation before
 runtime compilation.
 
@@ -128,14 +128,14 @@ but the important semantics live here and in the runtime architecture: which
 steps are reachable, which joins are legal, and which prior step states are
 knowable before a predicate executes.
 
-Objective windows are now the clearest current `FM2` example. Their authoring
+Objective windows are the clearest current `FM2` example. Their authoring
 surface is still simple YAML, but the semantic meaning comes from one shared
 analysis pass that resolves normalized references, checks story/script/event and
 workflow/step consistency, derives refresh semantics, and feeds both validator
 errors and compiled runtime forms.
 
-The same pattern now applies conceptually to newer participant and
-observability concerns: author-facing syntax, shared semantics, runtime
+The same pattern applies conceptually to participant and observability
+concerns: author-facing syntax, shared semantics, runtime
 contracts, and provenance must stay aligned, but they do not all collapse into
 the current validator surface.
 

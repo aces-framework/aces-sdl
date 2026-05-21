@@ -8,8 +8,8 @@ backends. The first consumer is APTL (`Brad-Edwards/aptl`, sibling repo at
 It is not a decision log. ADRs continue to record decisions; this directory
 records the **post-decision evidence** that emerges when ACES's published
 contracts, profiles, fixtures, and runtime model meet a real-world backend.
-Findings here may produce follow-up issues, amendments to existing ADRs, or
-new ADRs — but the finding entry stays as the historical record.
+Findings here can produce follow-up issues, amendments to existing ADRs, or
+new ADRs. The finding entry stays as the historical record.
 
 ## When To Write An Entry
 
@@ -33,7 +33,7 @@ Write a new entry when:
 - A piece of cross-repo coordination cost surprised you — naming, schema
   version handling, dependency pinning, release cadence.
 
-Routine implementation work does NOT need an entry. Don't dilute the
+Routine implementation work does not need an entry. Do not dilute the
 signal.
 
 ## Convention
@@ -89,7 +89,7 @@ one side.
 
 ADRs answer "what did we decide and why." Lessons answer "what did we
 discover when the decision met reality." Mixing the two pollutes the
-decision record's signal: future readers can't tell where the
+decision record's signal: later readers cannot tell where the
 authoritative position ends and the war stories begin.
 
 ## Why Not Issue Threads

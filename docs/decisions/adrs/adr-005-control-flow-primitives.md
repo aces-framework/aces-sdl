@@ -14,7 +14,7 @@ ADR-006 and the corresponding SDL reference docs.
 
 ## Context
 
-[ADR-003](adr-003-workflows-targetable-subobjects-and-enum-variables.md) introduced declarative workflows to the SDL with four step types: `objective`, `if`, `parallel`, and `end`. The [limitations document](../sdl/limitations.md) identified loops, error recovery, and richer conditional branching as the primary remaining control flow gaps, citing CACAO v2.0 workflow types as a precedent.
+[ADR-003](adr-003-workflows-targetable-subobjects-and-enum-variables.md) introduced declarative workflows to the SDL with four step types: `objective`, `if`, `parallel`, and `end`. The [limitations document](../../explain/sdl/limitations.md) identified loops, error recovery, and richer conditional branching as the primary remaining control flow gaps, citing CACAO v2.0 workflow types as a precedent.
 
 Real attack scenarios involve retry-with-variation loops (e.g., credential spraying with different wordlists), error recovery paths (e.g., falling back to a different exploit when the primary one fails), and branching decisions based on whether a prior step succeeded or failed. The existing `if` predicate could reference conditions, metrics, and objectives, but could not reference the outcome of a previously executed workflow step.
 

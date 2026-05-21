@@ -156,7 +156,7 @@
     },
     "Agent": {
       "additionalProperties": false,
-      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n- ``entity`` links to the entities section (team/role) and supplies\n  identity and role per ADR-020\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure\n- ``starting_conditions`` links to the conditions section, giving the\n  authoring surface a declarative hook for participant-relevant\n  precondition checks (ACT-601)\n- ``authority_anchors`` links to declared SDL elements (entities,\n  relationships, content, etc.) that anchor what the participant is\n  allowed or expected to do in scenario meaning (ACT-601, ADR-020)\n- ``operating_scope`` links to targetable named scenario elements\n  (subnets, hosts, services, content) defining where the participant\n  may act or observe (ACT-601, ADR-020)\n- ``observation_boundaries`` links to declared participant observation\n  boundaries that define participant-specific projections of world and\n  evidence state (SEM-208)",
+      "description": "An autonomous participant in the scenario.\n\nAgents reference existing scenario elements:\n\n- ``entity`` links to the entities section (team/role) and supplies\n  identity and role per ADR-020\n- ``starting_accounts`` links to the accounts section\n- ``allowed_subnets`` links to infrastructure entries\n- ``initial_knowledge`` references nodes and infrastructure\n- ``starting_conditions`` links to the conditions section, giving the\n  authoring surface a declarative hook for participant-relevant\n  precondition checks (ACT-601)\n- ``authority_anchors`` links to declared SDL elements (entities,\n  relationships, content, etc.) that anchor what the participant is\n  allowed or expected to do in scenario meaning (ACT-601, ADR-020)\n- ``operating_scope`` links to targetable named scenario elements\n  (subnets, hosts, services, content) defining where the participant\n  may act or observe (ACT-601, ADR-020)\n- ``observation_boundaries`` links to declared participant observation\n  boundaries that define participant-specific projections of world and\n  evidence state (SEM-208)",
       "properties": {
         "actions": {
           "items": {
@@ -488,7 +488,7 @@
     },
     "Content": {
       "additionalProperties": false,
-      "description": "Data or files placed into a scenario node.\n\nSupports three forms:\n- ``file``: A single file at a specific path, optionally with inline text.\n- ``dataset``: A collection of related items (emails, records, pcaps)\n  delivered via a source package or listed as items.\n- ``directory``: A directory structure placed at a destination path.",
+      "description": "Data or files placed into a scenario node.\n\nSupports three forms:\n\n- ``file``: A single file at a specific path, optionally with inline text.\n- ``dataset``: A collection of related items (emails, records, pcaps)\n  delivered via a source package or listed as items.\n- ``directory``: A directory structure placed at a destination path.",
       "properties": {
         "description": {
           "default": "",

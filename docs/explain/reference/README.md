@@ -5,6 +5,14 @@ themselves normative specifications or ADRs.
 
 - [coding-standards.md](coding-standards.md)
   - Reference coding expectations for the repo
+- [canonical-reference-map.md](canonical-reference-map.md)
+  - Current canonical locations for SDL, contract, processor, runtime, and
+    experiment reference material
+- [documentation-style-guide.md](documentation-style-guide.md)
+  - Repo-wide documentation style, citation, and tone expectations
+- [glossary.md](glossary.md)
+  - Current terminology for SDL, contracts, processing, runtime, experiments,
+    and ecosystem concepts
 - [shared-concept-model.md](shared-concept-model.md)
   - Design guidance for `GOV-917` and related shared-concept-model work
 - [shared-semantic-integrity.md](shared-semantic-integrity.md)

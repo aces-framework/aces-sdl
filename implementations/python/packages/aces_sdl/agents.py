@@ -40,6 +40,7 @@ class Agent(SDLModel):
     """An autonomous participant in the scenario.
 
     Agents reference existing scenario elements:
+
     - ``entity`` links to the entities section (team/role) and supplies
       identity and role per ADR-020
     - ``starting_accounts`` links to the accounts section

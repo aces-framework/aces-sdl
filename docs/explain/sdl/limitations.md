@@ -1,15 +1,17 @@
-# SDL Limitations & Future Work
+# SDL Limitations
 
 ## Known Expressiveness Gaps
 
-These are things the SDL cannot currently express, identified through stress-testing against 19 real-world scenarios from 8 platforms.
+These are known current gaps identified through repository tests, examples,
+and stress testing against 19 scenarios from 8 platforms. The list is evidence
+from the current corpus, not a completeness proof.
 
 ### Deployment Authoring Boundaries (by design)
 
 The SDL distinguishes authored deployment intent from observed runtime facts.
-Backends still own deployment-specific mechanics such as Docker Compose
+Backends own deployment-specific mechanics such as Docker Compose
 profiles, host port publication decisions, image build execution, and engine
-realization. The node `runtime` surface can now record observed runtime facts
+realization. The node `runtime` surface can record observed runtime facts
 for analysis and parity, including mounts, Linux capabilities, namespace modes,
 entrypoints, image commands, extra hosts, DNS options, security flags, resource
 limits, health status/logs, filesystem inventory, the local identity
@@ -25,27 +27,27 @@ provenance is a separate source-artifact expressivity surface tracked by issue
 recording either surface in SDL does not make Docker, Compose, or any specific
 container engine the normative deployment model.
 
-### Specification-Layer Gaps (future SDL work)
+### Specification-Layer Gaps
 
-These are things that *should* be expressible in the SDL but aren't yet:
+These are current SDL expressiveness gaps:
 
 | Gap | Description | Candidate Precedent |
 |-----|-------------|-------------------|
-| **Hosted registry operations / ecosystem distribution** | OCI-backed module resolution, lockfiles, trust policy, and publishable image-layout packaging now exist, but operating a shared registry service, signer distribution, and ecosystem-wide discovery policy are still future work | Terraform registry, OCI artifact delivery |
-| **Manual compensation APIs / advanced rollback patterns** | SDL workflows now support explicit automatic compensation targets, reverse-completion rollback ordering, and cancel/timeout/failure compensation observation, but not manual rollback triggers, nested compensation-of-compensation, or richer exception-style recovery surfaces | CACAO v2.0 workflow types, saga compensation patterns |
+| **Hosted registry operations / ecosystem distribution** | OCI-backed module resolution, lockfiles, trust policy, and publishable image-layout packaging exist, but this repository does not operate a shared registry service, signer distribution, or ecosystem-wide discovery policy | Terraform registry, OCI artifact delivery |
+| **Manual compensation APIs / advanced rollback patterns** | SDL workflows support explicit automatic compensation targets, reverse-completion rollback ordering, and cancel/timeout/failure compensation observation, but not manual rollback triggers, nested compensation-of-compensation, or richer exception-style recovery surfaces | CACAO v2.0 workflow types, saga compensation patterns |
 | **Temporal operators** | STIX-style FOLLOWEDBY/WITHIN for time-ordered event assertions | STIX Patterning Language |
-| **Full time and clock model** | The SDL currently exposes timelines, timeouts, and budget-like controls, but it does not yet provide a full authoring surface for time domains, clock authority, pacing/dilation policy, synchronization mode, or explicit ordering/deadline semantics across different realizations | [Time and simulation research set](../../../research/primary/literature/time-and-simulation/README.md), ROS 2 Clock and Time, FMI, ns-3 realtime, DEVS/time-management literature |
-| **Full solver-backed verification** | Global proof-style verification that attack paths are reachable and defenses are consistent is still future work; today the repo adopts lightweight semantic modeling, invariants, typed contracts, and selective property/state-machine methods instead | VSDL SMT solver, CRACK Datalog |
-| **Full participant behavior surface** | The current `agents` section still under-expresses richer role-neutral behavior concerns such as tool/affordance declarations, control-context assets, decision-surface exposure policies, episode structure, and benchmark-oriented participant assets | CybORG, OpenRange, Open Trajectory Gym |
-| **Scenario-native observability and authored evidence requirements** | The ecosystem now treats in-world observability systems and authored “capture these data from these sources” requirements as first-class concerns, but the current SDL syntax does not yet surface the full required authoring model | OpenRange, OCSF-informed telemetry models |
+| **Full time and clock model** | The SDL currently exposes timelines, timeouts, and budget-like controls, but it does not provide a full authoring surface for time domains, clock authority, pacing/dilation policy, synchronization mode, or explicit ordering/deadline semantics across different realizations | Time-and-simulation primary references under `research/`, ROS 2 Clock and Time, FMI, ns-3 realtime, DEVS/time-management literature |
+| **Full solver-backed verification** | Global proof-style verification that attack paths are reachable and defenses are consistent is not implemented; the repository uses lightweight semantic modeling, invariants, typed contracts, and selective property/state-machine methods | VSDL SMT solver, CRACK Datalog |
+| **Full participant behavior surface** | The current `agents` section under-expresses richer role-neutral behavior concerns such as tool/affordance declarations, control-context assets, decision-surface exposure policies, episode structure, and benchmark-oriented participant assets | CybORG, OpenRange, Open Trajectory Gym |
+| **Scenario-native observability and authored evidence requirements** | The ecosystem treats in-world observability systems and authored “capture these data from these sources” requirements as first-class concerns, but the current SDL syntax does not surface the full required authoring model | OpenRange, OCSF-informed telemetry models |
 | **User behavior profiles** | Normal user activity patterns (browsing, email, file access schedules) | CybORG Green agents |
 | **Multi-tenancy** | Multiple independent exercises sharing infrastructure | Locked Shields team-per-subnet model |
 
 ### Ecosystem-Layer Gaps (outside pure SDL syntax)
 
-Some of the newest requirement work is intentionally broader than SDL syntax
-alone. These concerns are now first-class ecosystem requirements, but they are
-not yet fully materialized as published contracts and implementations:
+Some current requirement work is intentionally broader than SDL syntax alone.
+These concerns are first-class ecosystem requirements, but they are
+not fully materialized as published contracts and implementations:
 
 - participant-implementation manifests for agents, policies, scripts, and
   human-control proxies
@@ -63,16 +65,18 @@ Variables (`${var_name}`) are stored as literal strings in the model. They are *
 
 - The validator can confirm that a full-value `${var}` reference has a matching variable definition
 - Cross-reference rules that depend on a placeholder's final concrete value are deferred to the repo-owned instantiation phase
-- Selected leaf enum-backed property fields are parameterizable, but discriminant/schema-shaping enums and user-defined mapping keys are still concrete
+- Selected leaf enum-backed property fields are parameterizable, but discriminant/schema-shaping enums and user-defined mapping keys remain concrete
 - Type checking of substituted runtime values happens during repo-owned instantiation, before compilation/runtime planning
 
 This is a deliberate design choice (matching CACAO's model), but substitution
-semantics are now owned by the repo rather than left to backend-specific
+semantics are owned by the repo rather than left to backend-specific
 interpretation.
 
 ## What Has Been Validated
 
-The SDL has been tested against 19 scenarios from 8 platforms:
+The SDL has been tested against 19 scenarios from 8 platforms. This establishes
+coverage over the listed examples; it does not establish general domain
+completeness or usability for all cyber-range designs.
 
 | # | Scenario | Source | Nodes | Services | Vulns |
 |---|----------|--------|-------|----------|-------|
