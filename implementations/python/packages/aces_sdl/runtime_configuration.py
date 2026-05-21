@@ -1,6 +1,7 @@
 """Observed runtime configuration models for SDL nodes."""
 
 import re
+from collections.abc import Iterable
 from enum import Enum
 
 from pydantic import Field, ValidationInfo, field_validator, model_validator
@@ -11,6 +12,17 @@ from ._base import (
     parse_bool_or_var,
     parse_float_or_var,
     parse_int_or_var,
+)
+from .runtime_application import (
+    RuntimeApplicationDisclosure,
+    RuntimeApplicationExposedField,
+    RuntimeApplicationParameter,
+    RuntimeApplicationParameterLocation,
+    RuntimeApplicationProtocol,
+    RuntimeApplicationRedirect,
+    RuntimeApplicationResponse,
+    RuntimeApplicationRoute,
+    RuntimeApplicationSurface,
 )
 from .runtime_container import (
     RuntimeContainerConfiguration,
@@ -67,6 +79,15 @@ from .runtime_values import (
 )
 
 __all__ = [
+    "RuntimeApplicationDisclosure",
+    "RuntimeApplicationExposedField",
+    "RuntimeApplicationParameter",
+    "RuntimeApplicationParameterLocation",
+    "RuntimeApplicationProtocol",
+    "RuntimeApplicationRedirect",
+    "RuntimeApplicationResponse",
+    "RuntimeApplicationRoute",
+    "RuntimeApplicationSurface",
     "RuntimeCapabilityPolicy",
     "RuntimeConfiguration",
     "RuntimeContainerConfiguration",
@@ -500,6 +521,22 @@ class RuntimePackageVulnerabilityFinding(SDLModel):
         return _parse_runtime_enum_or_var(v, RuntimePackageVulnerabilitySeverity, field_name="severity")
 
 
+def _reject_duplicate_keys(items: Iterable[object], *, attr: str, label: str) -> None:
+    """Raise ``ValueError`` on the first repeated key among ``items``.
+
+    Keys read off ``attr`` that are ``None`` or empty strings are not comparable
+    identities and are skipped (e.g. an unnamed process or an absent pid).
+    """
+    seen: set[object] = set()
+    for item in items:
+        key = getattr(item, attr)
+        if key is None or key == "":
+            continue
+        if key in seen:
+            raise ValueError(f"Duplicate runtime {label} '{key}'")
+        seen.add(key)
+
+
 class RuntimeConfiguration(SDLModel):
     """Observed runtime configuration facts attached to a VM node."""
 
@@ -515,39 +552,17 @@ class RuntimeConfiguration(SDLModel):
     health: RuntimeHealthObservation | None = None
     local_identity: RuntimeLocalIdentityInventory | None = None
     network: RuntimeNetworkRealization | None = None
+    applications: list[RuntimeApplicationSurface] = Field(default_factory=list)
     packages: list[RuntimePackage] = Field(default_factory=list)
     dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
     package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_unique_runtime_entries(self) -> "RuntimeConfiguration":
-        seen_env_names: set[str] = set()
-        for variable in self.environment:
-            if variable.name in seen_env_names:
-                raise ValueError(f"Duplicate runtime environment variable '{variable.name}'")
-            seen_env_names.add(variable.name)
-
-        seen_mount_targets: set[str] = set()
-        for mount in self.mounts:
-            if mount.target in seen_mount_targets:
-                raise ValueError(f"Duplicate runtime mount target '{mount.target}'")
-            seen_mount_targets.add(mount.target)
-
-        seen_filesystem_paths: set[str] = set()
-        for entry in self.filesystem_inventory:
-            if entry.path in seen_filesystem_paths:
-                raise ValueError(f"Duplicate runtime filesystem path '{entry.path}'")
-            seen_filesystem_paths.add(entry.path)
-
-        seen_process_names: set[str] = set()
-        seen_process_pids: set[int | str] = set()
-        for process in self.processes:
-            if process.name:
-                if process.name in seen_process_names:
-                    raise ValueError(f"Duplicate runtime process name '{process.name}'")
-                seen_process_names.add(process.name)
-            if process.pid is not None:
-                if process.pid in seen_process_pids:
-                    raise ValueError(f"Duplicate runtime process pid '{process.pid}'")
-                seen_process_pids.add(process.pid)
+        _reject_duplicate_keys(self.environment, attr="name", label="environment variable")
+        _reject_duplicate_keys(self.mounts, attr="target", label="mount target")
+        _reject_duplicate_keys(self.filesystem_inventory, attr="path", label="filesystem path")
+        _reject_duplicate_keys(self.processes, attr="name", label="process name")
+        _reject_duplicate_keys(self.processes, attr="pid", label="process pid")
+        _reject_duplicate_keys(self.applications, attr="application_id", label="application_id")
         return self

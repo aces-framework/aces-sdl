@@ -2985,6 +2985,431 @@
       "title": "Role",
       "type": "object"
     },
+    "RuntimeApplicationDisclosure": {
+      "additionalProperties": false,
+      "description": "Observable error or information-disclosure behavior of a route.\n\n``disclosure`` is a classified description of what the application exposes\n(a stack trace, an internal path, a backend version), never the raw payload,\ntoken, password, or cookie itself.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "disclosure": {
+          "default": "",
+          "title": "Disclosure",
+          "type": "string"
+        },
+        "sensitivity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeSensitivityClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Sensitivity"
+        },
+        "status_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Code"
+        },
+        "trigger": {
+          "default": "",
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "title": "RuntimeApplicationDisclosure",
+      "type": "object"
+    },
+    "RuntimeApplicationExposedField": {
+      "additionalProperties": false,
+      "description": "A route-visible fixture secret or intentionally exposed diagnostic field.\n\nThe sensitivity vocabulary is shared with the rest of the runtime surface.\nA ``redacted`` or ``operator_secret`` field must omit its raw ``value``;\nonly intentionally participant-visible ``secret_fixture``/``plain`` material\nis safe to record.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "sensitivity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeSensitivityClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Sensitivity"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RuntimeApplicationExposedField",
+      "type": "object"
+    },
+    "RuntimeApplicationParameter": {
+      "additionalProperties": false,
+      "description": "A typed request input observed on an application route.\n\n``location`` distinguishes path variables, query string, headers, cookies,\nform fields, JSON body fields, and uploaded-file fields.",
+      "properties": {
+        "data_type": {
+          "default": "",
+          "title": "Data Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeApplicationParameterLocation"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "other",
+          "title": "Location"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RuntimeApplicationParameter",
+      "type": "object"
+    },
+    "RuntimeApplicationParameterLocation": {
+      "description": "Where a request input is carried on an observed route.",
+      "enum": [
+        "path",
+        "query",
+        "header",
+        "cookie",
+        "form",
+        "json_body",
+        "uploaded_file",
+        "other"
+      ],
+      "title": "RuntimeApplicationParameterLocation",
+      "type": "string"
+    },
+    "RuntimeApplicationProtocol": {
+      "description": "Application-layer protocol class for an observed application surface.",
+      "enum": [
+        "http",
+        "https",
+        "ws",
+        "wss",
+        "other"
+      ],
+      "title": "RuntimeApplicationProtocol",
+      "type": "string"
+    },
+    "RuntimeApplicationRedirect": {
+      "additionalProperties": false,
+      "description": "An observed redirect a route can issue.\n\nTarget path/URL, status code, and the triggering condition are kept\ndistinct; the target is recorded verbatim, never resolved.",
+      "properties": {
+        "condition": {
+          "default": "",
+          "title": "Condition",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "status_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Code"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "title": "RuntimeApplicationRedirect",
+      "type": "object"
+    },
+    "RuntimeApplicationResponse": {
+      "additionalProperties": false,
+      "description": "An observed response a route can produce.",
+      "properties": {
+        "content_type": {
+          "default": "",
+          "title": "Content Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "status_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Status Code"
+        }
+      },
+      "required": [
+        "status_code"
+      ],
+      "title": "RuntimeApplicationResponse",
+      "type": "object"
+    },
+    "RuntimeApplicationRoute": {
+      "additionalProperties": false,
+      "description": "An observed application route \u2014 a participant-visible endpoint.\n\n``route_id`` is the stable identity; ``path`` is data and may carry path\nvariables, may be shared across HTTP methods, and is never a mapping key.",
+      "properties": {
+        "auth_required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Required"
+        },
+        "auth_scheme": {
+          "default": "",
+          "title": "Auth Scheme",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "disclosures": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationDisclosure"
+          },
+          "title": "Disclosures",
+          "type": "array"
+        },
+        "exposed_fields": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationExposedField"
+          },
+          "title": "Exposed Fields",
+          "type": "array"
+        },
+        "methods": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Methods",
+          "type": "array"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationParameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "redirects": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationRedirect"
+          },
+          "title": "Redirects",
+          "type": "array"
+        },
+        "responses": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationResponse"
+          },
+          "title": "Responses",
+          "type": "array"
+        },
+        "route_id": {
+          "title": "Route Id",
+          "type": "string"
+        },
+        "session_required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Required"
+        },
+        "static_assets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Static Assets",
+          "type": "array"
+        },
+        "templates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Templates",
+          "type": "array"
+        },
+        "vulnerability_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Vulnerability Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route_id",
+        "path"
+      ],
+      "title": "RuntimeApplicationRoute",
+      "type": "object"
+    },
+    "RuntimeApplicationSurface": {
+      "additionalProperties": false,
+      "description": "An observed application surface hosted by a transport service on a node.\n\n``service`` references the owning same-node ``Node.services[].name`` (bare\nname or the qualified ``nodes.<node>.services.<name>`` form). The surface is\nobservation metadata; it never mutates ``Node.services``.",
+      "properties": {
+        "application_id": {
+          "title": "Application Id",
+          "type": "string"
+        },
+        "base_path": {
+          "default": "",
+          "title": "Base Path",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "framework": {
+          "default": "",
+          "title": "Framework",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "protocol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeApplicationProtocol"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "http",
+          "title": "Protocol"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationRoute"
+          },
+          "title": "Routes",
+          "type": "array"
+        },
+        "service": {
+          "default": "",
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "application_id"
+      ],
+      "title": "RuntimeApplicationSurface",
+      "type": "object"
+    },
     "RuntimeCapabilityPolicy": {
       "additionalProperties": false,
       "description": "Linux/container capability policy observed for a runtime node.",
@@ -3030,6 +3455,13 @@
       "additionalProperties": false,
       "description": "Observed runtime configuration facts attached to a VM node.",
       "properties": {
+        "applications": {
+          "items": {
+            "$ref": "#/$defs/RuntimeApplicationSurface"
+          },
+          "title": "Applications",
+          "type": "array"
+        },
         "container": {
           "anyOf": [
             {
