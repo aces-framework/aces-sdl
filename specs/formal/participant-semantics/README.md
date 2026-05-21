@@ -855,6 +855,36 @@ Minimum future implementation artifacts:
 - abstract state-machine model for deadlines, dwell, and timeout interaction;
 - tests for ordering, delayed observation, and deadline/cadence edge cases.
 
+Current implementation artifacts for the first `SEM-213` slice:
+
+- `implementations/python/packages/aces_sdl/participant_temporal_semantics.py`
+  defines typed time domains, temporal event points, schedule/cadence/deadline/
+  dwell/latency/time-window contract kinds, backend timing disclosure kinds,
+  support modes, and abstract temporal states;
+- `implementations/python/packages/aces_sdl/participant_behavior.py` embeds
+  temporal contracts and backend timing disclosures in governed participant
+  action contracts, requires temporal preconditions to resolve to typed
+  temporal contracts, and fails closed on unknown backend disclosure refs;
+- `implementations/python/packages/aces_processor/compiler.py` carries temporal
+  contract ids, kinds, time domains, clock authorities, and backend timing
+  disclosures into compiled participant action contracts;
+- `implementations/python/packages/aces_processor/models.py` defines runtime
+  temporal context on participant behavior-history events, validates it
+  against the compiled action contract, and exposes an abstract state-machine
+  checker for cadence, deadline, dwell, timeout, reset, and replay interactions;
+- `implementations/python/packages/aces_contracts/contracts.py` publishes the
+  runtime temporal-context payload in participant behavior-history and runtime
+  snapshot schemas;
+- `implementations/python/tests/test_sem_213_temporal_participant_semantics.py`
+  covers positive SDL-to-runtime compilation, missing clock authority, unknown
+  backend disclosure refs, invalid temporal contract shapes, runtime contract
+  mismatches, bounded timing disclosures, and invalid cadence / deadline / dwell
+  / timeout state-machine transitions.
+
+This slice implements participant-local temporal contracts and conformance
+checks. It does not claim the broader ACES clock/time-model work owned by
+`SEM-227`, `SEM-228`, and `SEM-229`.
+
 ## SEM-215 - Participant Outcome Interpretation Semantics
 
 `SEM-215` requires semantics for interpreting participant-local outcomes and

@@ -18,6 +18,11 @@ from .participant_action_semantics import (
     ParticipantFailureClass,
     ParticipantPreconditionClass,  # noqa: F401 - re-exported for existing participant behavior imports
 )
+from .participant_temporal_semantics import (
+    ParticipantBackendTimingDisclosure,
+    ParticipantTemporalContract,
+    validate_action_contract_temporal_payload,
+)
 
 
 class ParticipantActionLifecycle(str, Enum):
@@ -209,6 +214,8 @@ class ParticipantActionContract(SDLModel):
     backend_failure_mappings: list[ParticipantBackendFailureMapping] = Field(default_factory=list)
     interactions: list[ParticipantInteractionDeclaration] = Field(default_factory=list)
     external_mappings: list[ExternalMappingLoss] = Field(default_factory=list)
+    temporal_contracts: list[ParticipantTemporalContract] = Field(default_factory=list)
+    backend_timing_disclosures: list[ParticipantBackendTimingDisclosure] = Field(default_factory=list)
 
     @field_validator(
         "semantic_version",
@@ -262,6 +269,11 @@ class ParticipantActionContract(SDLModel):
                     f"backend failure mapping {mapping.backend_error_code!r} "
                     f"uses undeclared failure_class {mapping.failure_class.value!r}"
                 )
+        validate_action_contract_temporal_payload(
+            preconditions=self.preconditions,
+            temporal_contracts=self.temporal_contracts,
+            backend_timing_disclosures=self.backend_timing_disclosures,
+        )
         return self
 
 
