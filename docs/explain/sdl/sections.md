@@ -260,6 +260,57 @@ nodes:
             protocol: tcp
             host_ip: 0.0.0.0
             host_port: 8080
+      applications:                     # observed HTTP route/API/UI surface
+        - application_id: techvault-webapp
+          service: techvault-http       # owning same-node Node.services[].name
+          protocol: http
+          framework: flask
+          base_path: /
+          routes:
+            - route_id: login
+              path: /login
+              methods: [GET, POST]
+              auth_required: false
+              session_required: false
+              auth_scheme: form_login
+              parameters:
+                - name: username
+                  location: form
+                  required: true
+                - name: password
+                  location: form
+                  required: true
+              responses:
+                - status_code: 200
+                  content_type: text/html
+              templates: [/app/templates/login.html]
+              static_assets: [/app/static/style.css]
+              redirects:
+                - target: /dashboard
+                  status_code: 302
+                  condition: valid credentials
+            - route_id: upload
+              path: /files/upload
+              methods: [POST]
+              auth_required: true
+              session_required: true
+              parameters:
+                - name: document
+                  location: uploaded_file
+                  required: true
+              vulnerability_refs: [unrestricted-upload]   # → top-level vulnerabilities
+            - route_id: diagnostics
+              path: /debug/info
+              methods: [GET]
+              exposed_fields:
+                - name: build_token
+                  sensitivity: secret_fixture
+                  value: fixture-token-1234
+              disclosures:
+                - trigger: any request
+                  status_code: 200
+                  disclosure: internal package versions and host paths
+                  sensitivity: plain
     asset_value:                        # CIA triad (from CybORG)
       confidentiality: high
       integrity: medium
@@ -329,6 +380,28 @@ IP, host port, and protocol distinct; this is host exposure observed at
 runtime, separate from the authored `services` declaration and image-default
 `source.build.config.exposed_ports`
 (see [ADR-025](../../decisions/adrs/adr-025-container-network-realization-surface.md)).
+
+`runtime.applications` records the participant-observable HTTP application
+route/API/UI surface — what an adversary, defender, agent, scanner, or evaluator
+can observe of the web application itself, distinct from the transport-level
+`services` binding and from the host exposure in `runtime.network`. Each entry
+is a `RuntimeApplicationSurface` with a stable `application_id`, an optional
+`service` referencing the owning same-node `Node.services[].name` (bare name or
+the qualified `nodes.<node>.services.<name>` form), a `protocol`/`framework`
+classification, and an optional `base_path`. Each `routes` entry carries a
+stable `route_id` (the route `path` is data, never a mapping key, and may carry
+path variables and be shared across methods), normalized HTTP `methods`,
+observable `auth_required`/`session_required`/`auth_scheme`, typed `parameters`
+located by `path`/`query`/`header`/`cookie`/`form`/`json_body`/`uploaded_file`,
+`responses` with status code and content type, `templates`/`static_assets`
+associations resolving to the node's observed file inventory,
+`vulnerability_refs` pointing at top-level `vulnerabilities` for route-specific
+weakness placement, `redirects`, observable error/disclosure behavior in
+`disclosures`, and `exposed_fields` for route-visible fixture secrets or
+intentionally exposed diagnostic fields classified with the shared runtime
+sensitivity vocabulary — `redacted` and `operator_secret` fields omit their raw
+value (see
+[ADR-026](../../decisions/adrs/adr-026-application-http-surface-inventory.md)).
 
 `source` identifies the node's artifact by provider-neutral `name` and
 `version`. When that artifact is a custom-built container image, the optional

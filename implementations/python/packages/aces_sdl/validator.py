@@ -416,6 +416,7 @@ class SemanticValidator:
         self._verify_nodes()
         self._verify_infrastructure()
         self._verify_runtime_network()
+        self._verify_runtime_application()
         self._verify_features()
         self._verify_conditions()
         self._verify_vulnerabilities()
@@ -632,6 +633,98 @@ class SemanticValidator:
                     f"Node '{node_name}' runtime network endpoint {label} {value} "
                     f"is not within network '{net}' CIDR {cidr}"
                 )
+
+    def _verify_runtime_application(self) -> None:
+        """Validate observed runtime application surfaces against the scenario.
+
+        Each surface's owning service must resolve to a service on the same
+        node; route vulnerability refs must resolve to top-level
+        ``vulnerabilities``; and template/static refs should resolve to the
+        node's observed file inventory when one is recorded (ADR-026).
+        """
+        for name, node in self._s.nodes.items():
+            runtime = getattr(node, "runtime", None)
+            if runtime is None or not runtime.applications:
+                continue
+            service_names = self._node_service_names(node)
+            observed_paths = self._node_observed_paths(node)
+            for application in runtime.applications:
+                self._verify_application_service(name, application, service_names)
+                for route in application.routes:
+                    self._verify_route_refs(name, application, route, observed_paths)
+
+    @staticmethod
+    def _node_service_names(node: object) -> set[str]:
+        return {service.name for service in getattr(node, "services", []) if service.name}
+
+    @staticmethod
+    def _node_observed_paths(node: object) -> set[str]:
+        """Collect file paths the node observably exposes for template/static refs."""
+        paths: set[str] = set()
+        runtime = getattr(node, "runtime", None)
+        if runtime is not None:
+            paths.update(entry.path for entry in runtime.filesystem_inventory if entry.path)
+        source = getattr(node, "source", None)
+        build = getattr(source, "build", None) if source is not None else None
+        if build is not None:
+            paths.update(item.destination_path for item in build.copied_sources if item.destination_path)
+            paths.update(item.destination_path for item in build.source_inputs if item.destination_path)
+        return paths
+
+    def _verify_application_service(self, node_name: str, application: object, service_names: set[str]) -> None:
+        ref = getattr(application, "service", "")
+        if not ref or self._is_unresolved_var(ref):
+            return
+        app_id = application.application_id
+        service_name = ref
+        if ref.startswith("nodes."):
+            parts = ref.split(".")
+            if len(parts) != 4 or parts[2] != "services":
+                self._err(
+                    f"Node '{node_name}' runtime application '{app_id}' service ref '{ref}' "
+                    f"must be a bare service name or 'nodes.<node>.services.<name>'"
+                )
+                return
+            if parts[1] != node_name:
+                self._err(
+                    f"Node '{node_name}' runtime application '{app_id}' service ref '{ref}' "
+                    f"must reference a service on the same node"
+                )
+                return
+            service_name = parts[3]
+        if service_name not in service_names:
+            self._err(
+                f"Node '{node_name}' runtime application '{app_id}' references undefined service '{service_name}'"
+            )
+
+    def _verify_route_refs(
+        self,
+        node_name: str,
+        application: object,
+        route: object,
+        observed_paths: set[str],
+    ) -> None:
+        app_id = application.application_id
+        route_id = route.route_id
+        for ref in route.vulnerability_refs:
+            if self._is_unresolved_var(ref):
+                continue
+            if ref not in self._s.vulnerabilities:
+                self._err(
+                    f"Node '{node_name}' runtime application '{app_id}' route '{route_id}' "
+                    f"references undefined vulnerability '{ref}'"
+                )
+        if not observed_paths:
+            return
+        for field_name in ("templates", "static_assets"):
+            for ref in getattr(route, field_name):
+                if self._is_unresolved_var(ref):
+                    continue
+                if ref not in observed_paths:
+                    self._err(
+                        f"Node '{node_name}' runtime application '{app_id}' route '{route_id}' "
+                        f"{field_name} ref '{ref}' does not resolve to an observed file on the node"
+                    )
 
     def _verify_content(self) -> None:
         for name, item in self._s.content.items():

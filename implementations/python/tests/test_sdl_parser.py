@@ -1450,3 +1450,81 @@ class TestLoadRealScenarios:
         for path in sorted(scenarios_dir.glob("*.yaml")):
             scenario = parse_sdl_file(path)
             assert scenario.name
+
+
+class TestRuntimeApplicationParsing:
+    def test_runtime_application_surface_parses_with_kebab_keys(self):
+        sdl = """
+name: techvault-application-surface
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    services:
+      - port: 8080
+        name: techvault-http
+    runtime:
+      applications:
+        - application-id: techvault-webapp
+          service: techvault-http
+          protocol: http
+          base-path: /
+          framework: flask
+          routes:
+            - route-id: login
+              path: /login
+              methods: [get, post]
+              auth-required: false
+              session-required: false
+              parameters:
+                - name: username
+                  location: form
+                  required: true
+              responses:
+                - status-code: "200"
+                  content-type: text/html
+              redirects:
+                - target: /dashboard
+                  status-code: "302"
+"""
+        scenario = parse_sdl(sdl)
+        applications = scenario.nodes["techvault-webapp"].runtime.applications
+        assert len(applications) == 1
+        surface = applications[0]
+        assert surface.application_id == "techvault-webapp"
+        assert surface.service == "techvault-http"
+        assert surface.base_path == "/"
+        route = surface.routes[0]
+        assert route.route_id == "login"
+        assert route.methods == ["GET", "POST"]
+        assert route.auth_required is False
+        assert route.parameters[0].name == "username"
+        assert route.responses[0].status_code == 200
+        assert route.redirects[0].status_code == 302
+
+    def test_runtime_application_auth_variable_substitutes_on_instantiation(self):
+        sdl = """
+name: techvault-application-variable
+variables:
+  login_auth:
+    type: boolean
+    required: true
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    runtime:
+      applications:
+        - application-id: techvault-webapp
+          routes:
+            - route-id: login
+              path: /login
+              methods: [GET]
+              auth-required: ${login_auth}
+"""
+        raw = parse_sdl(sdl)
+        route = raw.nodes["techvault-webapp"].runtime.applications[0].routes[0]
+        assert route.auth_required == "${login_auth}"
+        instantiated = instantiate_scenario(raw, parameters={"login_auth": True})
+        route = instantiated.nodes["techvault-webapp"].runtime.applications[0].routes[0]
+        assert route.auth_required is True
