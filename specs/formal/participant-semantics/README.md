@@ -807,12 +807,26 @@ Design commitments:
 - downstream objective/evaluation interpretation can consume attribution edges
   only according to explicit interpretation rules.
 
-Minimum future implementation artifacts:
+Current implementation artifacts for the first `SEM-212` slice:
 
-- attribution-edge contract;
-- evidence-reference integration with observation and evaluation surfaces;
-- tests that temporal adjacency alone cannot produce a strong causal claim;
-- replay/ablation hooks when the backend supports stronger causal evidence.
+- `implementations/python/packages/aces_sdl/participant_attribution_semantics.py`
+  defines controlled candidate, ordering-basis, and support-class
+  vocabularies;
+- `implementations/python/packages/aces_processor/models.py` defines typed
+  attribution candidates, ordering bases, evidence bases, and attribution
+  edges on participant behavior-history observation events;
+- `implementations/python/packages/aces_processor/models.py` validates
+  participant/episode/observation scope, explicit ordering and evidence
+  bases, outcome interpretation-rule refs, timestamp-adjacency limits for
+  strong causal support, effect grounding in actual observations/action
+  results, and participant-boundary authorization for attribution evidence;
+- `implementations/python/packages/aces_contracts/contracts.py` publishes the
+  attribution-edge payload under participant behavior-history event contracts;
+- `implementations/python/tests/test_sem_212_participant_attribution_semantics.py`
+  covers positive attribution, missing bases, timestamp-only strong-causality
+  rejection, cross-participant scope rejection, hidden evidence rejection,
+  ungrounded effect candidates, downstream outcome interpretation rules, and
+  schema publication.
 
 ## SEM-213 - Temporal Participant Semantics
 

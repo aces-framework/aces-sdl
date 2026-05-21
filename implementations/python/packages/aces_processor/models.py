@@ -28,6 +28,13 @@ from aces_contracts.versions import (
     RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     WORKFLOW_STATE_SCHEMA_VERSION,
 )
+from aces_sdl.participant_attribution_semantics import (
+    OUTCOME_ATTRIBUTION_CANDIDATE_KINDS,
+    STRONG_ATTRIBUTION_SUPPORT_CLASSES,
+    ParticipantAttributionCandidateKind,
+    ParticipantAttributionOrderingBasisKind,
+    ParticipantAttributionSupportClass,
+)
 from aces_sdl.participant_behavior import (
     ParticipantEffectClass,
     ParticipantFailureClass,
@@ -2186,6 +2193,346 @@ class ParticipantActionResult:
 
 
 @dataclass(frozen=True)
+class ParticipantAttributionCandidate:
+    """Candidate endpoint for a SEM-212 attribution edge."""
+
+    candidate_kind: ParticipantAttributionCandidateKind
+    ref: str
+    description: str
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantAttributionCandidate":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant attribution candidate must be a mapping")
+        missing = [key for key in ("candidate_kind", "ref", "description") if key not in payload]
+        if missing:
+            raise ValueError("participant attribution candidate is missing required fields: " + ", ".join(missing))
+        candidate_kind_raw = payload.get("candidate_kind")
+        return cls(
+            candidate_kind=(
+                candidate_kind_raw
+                if isinstance(candidate_kind_raw, ParticipantAttributionCandidateKind)
+                else ParticipantAttributionCandidateKind(str(candidate_kind_raw))
+            ),
+            ref=str(payload.get("ref")),
+            description=str(payload.get("description")),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "candidate_kind": self.candidate_kind.value,
+            "ref": self.ref,
+            "description": self.description,
+        }
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.candidate_kind, ParticipantAttributionCandidateKind):
+            raise TypeError("candidate_kind must be a ParticipantAttributionCandidateKind")
+        _validate_required_string(self.ref, "participant attribution candidate ref must be a non-empty string")
+        _validate_required_string(
+            self.description,
+            "participant attribution candidate description must be a non-empty string",
+        )
+
+
+@dataclass(frozen=True)
+class ParticipantAttributionOrderingBasis:
+    """Explicit ordering basis for a SEM-212 attribution edge."""
+
+    basis_kind: ParticipantAttributionOrderingBasisKind
+    relation_ref: str
+    description: str
+    ordered_event_refs: tuple[str, ...] = ()
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantAttributionOrderingBasis":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant attribution ordering_basis must be a mapping")
+        missing = [key for key in ("basis_kind", "relation_ref", "description") if key not in payload]
+        if missing:
+            raise ValueError("participant attribution ordering_basis is missing required fields: " + ", ".join(missing))
+        basis_kind_raw = payload.get("basis_kind")
+        return cls(
+            basis_kind=(
+                basis_kind_raw
+                if isinstance(basis_kind_raw, ParticipantAttributionOrderingBasisKind)
+                else ParticipantAttributionOrderingBasisKind(str(basis_kind_raw))
+            ),
+            relation_ref=str(payload.get("relation_ref")),
+            description=str(payload.get("description")),
+            ordered_event_refs=_tuple_of_non_empty_strings(
+                payload.get("ordered_event_refs", ()),
+                field_name="ordered_event_refs",
+            ),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "basis_kind": self.basis_kind.value,
+            "relation_ref": self.relation_ref,
+            "description": self.description,
+            "ordered_event_refs": list(self.ordered_event_refs),
+        }
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.basis_kind, ParticipantAttributionOrderingBasisKind):
+            raise TypeError("basis_kind must be a ParticipantAttributionOrderingBasisKind")
+        _validate_required_string(self.relation_ref, "ordering_basis relation_ref must be a non-empty string")
+        _validate_required_string(self.description, "ordering_basis description must be a non-empty string")
+        _tuple_of_non_empty_strings(self.ordered_event_refs, field_name="ordered_event_refs")
+
+
+@dataclass(frozen=True)
+class ParticipantAttributionEvidenceBasis:
+    """Evidence-disclosure basis for a SEM-212 attribution edge."""
+
+    capture_apparatus: str
+    granularity: str
+    loss_model: str
+    redaction_policy: str
+    observer_effects: tuple[str, ...]
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantAttributionEvidenceBasis":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant attribution evidence_basis must be a mapping")
+        missing = [
+            key
+            for key in (
+                "capture_apparatus",
+                "granularity",
+                "loss_model",
+                "redaction_policy",
+                "observer_effects",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError("participant attribution evidence_basis is missing required fields: " + ", ".join(missing))
+        return cls(
+            capture_apparatus=str(payload.get("capture_apparatus")),
+            granularity=str(payload.get("granularity")),
+            loss_model=str(payload.get("loss_model")),
+            redaction_policy=str(payload.get("redaction_policy")),
+            observer_effects=_tuple_of_non_empty_strings(
+                payload.get("observer_effects", ()),
+                field_name="observer_effects",
+            ),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "capture_apparatus": self.capture_apparatus,
+            "granularity": self.granularity,
+            "loss_model": self.loss_model,
+            "redaction_policy": self.redaction_policy,
+            "observer_effects": list(self.observer_effects),
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(
+            self.capture_apparatus,
+            "evidence_basis capture_apparatus must be a non-empty string",
+        )
+        _validate_required_string(self.granularity, "evidence_basis granularity must be a non-empty string")
+        _validate_required_string(self.loss_model, "evidence_basis loss_model must be a non-empty string")
+        _validate_required_string(self.redaction_policy, "evidence_basis redaction_policy must be a non-empty string")
+        observer_effects = _tuple_of_non_empty_strings(self.observer_effects, field_name="observer_effects")
+        if not observer_effects:
+            raise ValueError("evidence_basis observer_effects must disclose at least one observer effect")
+
+
+@dataclass(frozen=True)
+class ParticipantAttributionEdge:
+    """Evidence-labeled SEM-212 attribution edge."""
+
+    edge_id: str
+    participant_address: str
+    episode_id: str
+    observation_point: str
+    cause_candidate: ParticipantAttributionCandidate
+    effect_candidate: ParticipantAttributionCandidate
+    ordering_basis: ParticipantAttributionOrderingBasis
+    evidence_basis: ParticipantAttributionEvidenceBasis
+    support_class: ParticipantAttributionSupportClass
+    confidence: str
+    strength: str
+    limitations: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    interpretation_rule_ref: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> "ParticipantAttributionEdge":
+        if not isinstance(payload, Mapping):
+            raise TypeError("participant attribution edge must be a mapping")
+        missing = [
+            key
+            for key in (
+                "edge_id",
+                "participant_address",
+                "episode_id",
+                "observation_point",
+                "cause_candidate",
+                "effect_candidate",
+                "ordering_basis",
+                "evidence_basis",
+                "support_class",
+                "confidence",
+                "strength",
+                "limitations",
+                "evidence_refs",
+            )
+            if key not in payload
+        ]
+        if missing:
+            raise ValueError("participant attribution edge is missing required fields: " + ", ".join(missing))
+        support_class_raw = payload.get("support_class")
+        return cls(
+            edge_id=str(payload.get("edge_id")),
+            participant_address=str(payload.get("participant_address")),
+            episode_id=str(payload.get("episode_id")),
+            observation_point=str(payload.get("observation_point")),
+            cause_candidate=ParticipantAttributionCandidate.from_payload(payload.get("cause_candidate")),
+            effect_candidate=ParticipantAttributionCandidate.from_payload(payload.get("effect_candidate")),
+            ordering_basis=ParticipantAttributionOrderingBasis.from_payload(payload.get("ordering_basis")),
+            evidence_basis=ParticipantAttributionEvidenceBasis.from_payload(payload.get("evidence_basis")),
+            support_class=(
+                support_class_raw
+                if isinstance(support_class_raw, ParticipantAttributionSupportClass)
+                else ParticipantAttributionSupportClass(str(support_class_raw))
+            ),
+            confidence=str(payload.get("confidence")),
+            strength=str(payload.get("strength")),
+            limitations=_tuple_of_non_empty_strings(payload.get("limitations"), field_name="limitations"),
+            evidence_refs=_tuple_of_non_empty_strings(payload.get("evidence_refs"), field_name="evidence_refs"),
+            interpretation_rule_ref=(
+                str(payload["interpretation_rule_ref"]) if payload.get("interpretation_rule_ref") is not None else None
+            ),
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "edge_id": self.edge_id,
+            "participant_address": self.participant_address,
+            "episode_id": self.episode_id,
+            "observation_point": self.observation_point,
+            "cause_candidate": self.cause_candidate.to_payload(),
+            "effect_candidate": self.effect_candidate.to_payload(),
+            "ordering_basis": self.ordering_basis.to_payload(),
+            "evidence_basis": self.evidence_basis.to_payload(),
+            "support_class": self.support_class.value,
+            "confidence": self.confidence,
+            "strength": self.strength,
+            "limitations": list(self.limitations),
+            "evidence_refs": list(self.evidence_refs),
+            "interpretation_rule_ref": self.interpretation_rule_ref,
+        }
+
+    def __post_init__(self) -> None:
+        _validate_required_string(self.edge_id, "participant attribution edge_id must be a non-empty string")
+        _validate_required_string(
+            self.participant_address,
+            "participant attribution participant_address must be a non-empty string",
+        )
+        _validate_required_string(self.episode_id, "participant attribution episode_id must be a non-empty string")
+        _validate_required_string(
+            self.observation_point,
+            "participant attribution observation_point must be a non-empty string",
+        )
+        if not isinstance(self.cause_candidate, ParticipantAttributionCandidate):
+            raise TypeError("cause_candidate must be a ParticipantAttributionCandidate")
+        if not isinstance(self.effect_candidate, ParticipantAttributionCandidate):
+            raise TypeError("effect_candidate must be a ParticipantAttributionCandidate")
+        if not isinstance(self.ordering_basis, ParticipantAttributionOrderingBasis):
+            raise TypeError("ordering_basis must be a ParticipantAttributionOrderingBasis")
+        if not isinstance(self.evidence_basis, ParticipantAttributionEvidenceBasis):
+            raise TypeError("evidence_basis must be a ParticipantAttributionEvidenceBasis")
+        if not isinstance(self.support_class, ParticipantAttributionSupportClass):
+            raise TypeError("support_class must be a ParticipantAttributionSupportClass")
+        _validate_required_string(self.confidence, "participant attribution confidence must be a non-empty string")
+        _validate_required_string(self.strength, "participant attribution strength must be a non-empty string")
+        limitations = _tuple_of_non_empty_strings(self.limitations, field_name="limitations")
+        evidence_refs = _tuple_of_non_empty_strings(self.evidence_refs, field_name="evidence_refs")
+        if not limitations:
+            raise ValueError("participant attribution edges require limitations")
+        if not evidence_refs:
+            raise ValueError("participant attribution edges require evidence_refs")
+        _validate_optional_string(
+            self.interpretation_rule_ref,
+            "interpretation_rule_ref must be a non-empty string or None",
+        )
+        if (
+            self.support_class in STRONG_ATTRIBUTION_SUPPORT_CLASSES
+            and self.ordering_basis.basis_kind == ParticipantAttributionOrderingBasisKind.TIMESTAMP_ADJACENCY
+        ):
+            raise ValueError("timestamp_adjacency ordering_basis cannot support strong causal attribution claims")
+        if (
+            self.effect_candidate.candidate_kind in OUTCOME_ATTRIBUTION_CANDIDATE_KINDS
+            and self.interpretation_rule_ref is None
+        ):
+            raise ValueError("downstream outcome attribution requires interpretation_rule_ref")
+
+
+def _optional_payload_string(payload: Mapping[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    return str(value) if value is not None else None
+
+
+def _participant_behavior_event_type_from_payload(value: Any) -> ParticipantBehaviorHistoryEventType:
+    if isinstance(value, ParticipantBehaviorHistoryEventType):
+        return value
+    return ParticipantBehaviorHistoryEventType(str(value))
+
+
+def _participant_interaction_class_from_payload(value: Any) -> ParticipantInteractionClass | None:
+    if value is None:
+        return None
+    if isinstance(value, ParticipantInteractionClass):
+        return value
+    return ParticipantInteractionClass(str(value))
+
+
+def _participant_behavior_shared_state_refs_from_payload(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise TypeError("shared_state_refs must be a list of strings")
+    return tuple(str(ref) for ref in value)
+
+
+def _participant_action_result_from_payload(value: Any) -> ParticipantActionResult | None:
+    if value is None:
+        return None
+    if isinstance(value, ParticipantActionResult):
+        return value
+    return ParticipantActionResult.from_payload(value)
+
+
+def _participant_attribution_edges_from_payload(value: Any) -> tuple[ParticipantAttributionEdge, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError("attribution_edges must be a list of participant attribution edges")
+    return tuple(
+        edge if isinstance(edge, ParticipantAttributionEdge) else ParticipantAttributionEdge.from_payload(edge)
+        for edge in value
+    )
+
+
+def _participant_behavior_details_from_payload(value: Any) -> dict[str, Any]:
+    if value is None:
+        value = {}
+    if not isinstance(value, Mapping):
+        raise TypeError("participant behavior details must be a mapping")
+    details = dict(value)
+    for empty_ref_key in ("visible_refs", "disclosed_refs", "evidence_refs"):
+        refs = details.get(empty_ref_key)
+        if isinstance(refs, (list, tuple)) and not refs:
+            details.pop(empty_ref_key)
+    return details
+
+
+@dataclass(frozen=True)
 class ParticipantBehaviorHistoryEvent:
     """Internal normalized participant behavior history event.
 
@@ -2212,6 +2559,7 @@ class ParticipantBehaviorHistoryEvent:
     interaction_ref: str | None = None
     shared_state_refs: tuple[str, ...] = ()
     action_result: ParticipantActionResult | None = None
+    attribution_edges: tuple[ParticipantAttributionEdge, ...] = ()
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -2236,78 +2584,28 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError(
                 "participant behavior history event is missing required fields: " + ", ".join(missing_keys)
             )
-        event_type_raw = payload.get("event_type")
-        observation_status_raw = payload.get("observation_status")
-        interaction_class_raw = payload.get("interaction_class")
-        shared_state_refs_raw = payload.get("shared_state_refs", ())
-        action_result_raw = payload.get("action_result")
-        if shared_state_refs_raw is None:
-            shared_state_refs_raw = ()
-        if not isinstance(shared_state_refs_raw, (list, tuple)):
-            raise TypeError("shared_state_refs must be a list of strings")
-        details_raw = payload.get("details", {})
-        if details_raw is None:
-            details_raw = {}
-        if not isinstance(details_raw, Mapping):
-            raise TypeError("participant behavior details must be a mapping")
-        details = dict(details_raw)
-        for empty_ref_key in ("visible_refs", "disclosed_refs", "evidence_refs"):
-            value = details.get(empty_ref_key)
-            if isinstance(value, (list, tuple)) and not value:
-                details.pop(empty_ref_key)
         return cls(
-            event_type=(
-                event_type_raw
-                if isinstance(event_type_raw, ParticipantBehaviorHistoryEventType)
-                else ParticipantBehaviorHistoryEventType(str(event_type_raw))
-            ),
+            event_type=_participant_behavior_event_type_from_payload(payload.get("event_type")),
             timestamp=str(payload.get("timestamp")),
             participant_address=str(payload.get("participant_address")),
             episode_id=str(payload.get("episode_id")),
             action_instance_id=str(payload.get("action_instance_id")),
-            action_contract_address=(
-                str(payload["action_contract_address"]) if payload.get("action_contract_address") is not None else None
-            ),
-            observation_boundary_address=(
-                str(payload["observation_boundary_address"])
-                if payload.get("observation_boundary_address") is not None
-                else None
-            ),
-            observation_status=_participant_observation_status_from_payload(observation_status_raw),
-            actor_provenance=(
-                str(payload["actor_provenance"]) if payload.get("actor_provenance") is not None else None
-            ),
-            state_transition_kind=(
-                str(payload["state_transition_kind"]) if payload.get("state_transition_kind") is not None else None
-            ),
-            post_state_digest=(
-                str(payload["post_state_digest"]) if payload.get("post_state_digest") is not None else None
-            ),
-            joint_action_set_id=(
-                str(payload["joint_action_set_id"]) if payload.get("joint_action_set_id") is not None else None
-            ),
+            action_contract_address=_optional_payload_string(payload, "action_contract_address"),
+            observation_boundary_address=_optional_payload_string(payload, "observation_boundary_address"),
+            observation_status=_participant_observation_status_from_payload(payload.get("observation_status")),
+            actor_provenance=_optional_payload_string(payload, "actor_provenance"),
+            state_transition_kind=_optional_payload_string(payload, "state_transition_kind"),
+            post_state_digest=_optional_payload_string(payload, "post_state_digest"),
+            joint_action_set_id=_optional_payload_string(payload, "joint_action_set_id"),
             realized_order=payload.get("realized_order"),
-            interaction_class=(
-                None
-                if interaction_class_raw is None
-                else (
-                    interaction_class_raw
-                    if isinstance(interaction_class_raw, ParticipantInteractionClass)
-                    else ParticipantInteractionClass(str(interaction_class_raw))
-                )
+            interaction_class=_participant_interaction_class_from_payload(payload.get("interaction_class")),
+            interaction_ref=_optional_payload_string(payload, "interaction_ref"),
+            shared_state_refs=_participant_behavior_shared_state_refs_from_payload(
+                payload.get("shared_state_refs", ())
             ),
-            interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
-            shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
-            action_result=(
-                None
-                if action_result_raw is None
-                else (
-                    action_result_raw
-                    if isinstance(action_result_raw, ParticipantActionResult)
-                    else ParticipantActionResult.from_payload(action_result_raw)
-                )
-            ),
-            details=details,
+            action_result=_participant_action_result_from_payload(payload.get("action_result")),
+            attribution_edges=_participant_attribution_edges_from_payload(payload.get("attribution_edges", ())),
+            details=_participant_behavior_details_from_payload(payload.get("details", {})),
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -2329,6 +2627,7 @@ class ParticipantBehaviorHistoryEvent:
             "interaction_ref": self.interaction_ref,
             "shared_state_refs": list(self.shared_state_refs),
             "action_result": self.action_result.to_payload() if self.action_result is not None else None,
+            "attribution_edges": [edge.to_payload() for edge in self.attribution_edges],
             "details": dict(self.details),
         }
 
@@ -2362,6 +2661,22 @@ class ParticipantBehaviorHistoryEvent:
         ):
             raise TypeError("observation_status must be a ParticipantObservationStatus or None")
         self._validate_optional_string(self.actor_provenance, "actor_provenance must be a non-empty string or None")
+        self._validate_optional_state_fields()
+        self._validate_realized_order()
+        self._validate_interaction_type()
+        if not isinstance(self.shared_state_refs, tuple):
+            raise TypeError("shared_state_refs must be a tuple")
+        for ref in self.shared_state_refs:
+            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
+        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
+            raise ValueError("shared_state_refs entries must be unique")
+        self._validate_interaction_fields()
+        self._validate_action_result_type()
+        self._validate_attribution_edge_types()
+        if not isinstance(self.details, dict):
+            raise TypeError("participant behavior details must be a dict")
+
+    def _validate_optional_state_fields(self) -> None:
         self._validate_optional_string(
             self.state_transition_kind,
             "state_transition_kind must be a non-empty string or None",
@@ -2371,24 +2686,31 @@ class ParticipantBehaviorHistoryEvent:
             self.joint_action_set_id,
             "joint_action_set_id must be a non-empty string or None",
         )
+
+    def _validate_realized_order(self) -> None:
         if self.realized_order is not None and (
             not isinstance(self.realized_order, int) or isinstance(self.realized_order, bool) or self.realized_order < 0
         ):
             raise TypeError("realized_order must be a non-negative integer or None")
+
+    def _validate_interaction_type(self) -> None:
         if self.interaction_class is not None and not isinstance(self.interaction_class, ParticipantInteractionClass):
             raise TypeError("interaction_class must be a ParticipantInteractionClass or None")
         self._validate_optional_string(self.interaction_ref, "interaction_ref must be a non-empty string or None")
-        if not isinstance(self.shared_state_refs, tuple):
-            raise TypeError("shared_state_refs must be a tuple")
-        for ref in self.shared_state_refs:
-            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
-        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
-            raise ValueError("shared_state_refs entries must be unique")
-        self._validate_interaction_fields()
+
+    def _validate_action_result_type(self) -> None:
         if self.action_result is not None and not isinstance(self.action_result, ParticipantActionResult):
             raise TypeError("action_result must be a ParticipantActionResult or None")
-        if not isinstance(self.details, dict):
-            raise TypeError("participant behavior details must be a dict")
+
+    def _validate_attribution_edge_types(self) -> None:
+        if not isinstance(self.attribution_edges, tuple):
+            raise TypeError("attribution_edges must be a tuple")
+        if any(not isinstance(edge, ParticipantAttributionEdge) for edge in self.attribution_edges):
+            raise TypeError("attribution_edges must contain ParticipantAttributionEdge values")
+        if len({edge.edge_id for edge in self.attribution_edges}) != len(self.attribution_edges):
+            raise ValueError("participant attribution edge_id values must be unique per event")
+        if self.attribution_edges and self.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
+            raise ValueError("participant attribution edges are only allowed on observation_emitted events")
 
     @staticmethod
     def _validate_required_string(value: Any, message: str) -> None:
@@ -2480,6 +2802,7 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("observation_emitted events may not report state_transition_kind")
         if self.action_result is not None:
             self._validate_action_result_scope()
+        self._validate_attribution_edges()
 
     def _validate_action_result_scope(self) -> None:
         if self.action_result is None:
@@ -2497,6 +2820,58 @@ class ParticipantBehaviorHistoryEvent:
             and self.action_result.status == ParticipantActionResultStatus.ACCEPTED
         ):
             raise ValueError("terminal observation action_result must report a terminal status")
+
+    def _validate_attribution_edges(self) -> None:
+        for edge in self.attribution_edges:
+            if edge.participant_address != self.participant_address:
+                raise ValueError("attribution edge participant_address must match event participant_address")
+            if edge.episode_id != self.episode_id:
+                raise ValueError("attribution edge episode_id must match event episode_id")
+            if self.action_result is not None:
+                if edge.observation_point != self.action_result.observation_point:
+                    raise ValueError("attribution edge observation_point must match action_result observation_point")
+            elif not _observation_point_matches_action_instance(edge.observation_point, self.action_instance_id):
+                raise ValueError("attribution edge observation_point must be anchored to action_instance_id")
+            self._validate_attribution_candidate_grounding(edge)
+
+    def _validate_attribution_candidate_grounding(self, edge: ParticipantAttributionEdge) -> None:
+        allowed_action_refs = {self.action_instance_id}
+        if self.action_contract_address is not None:
+            allowed_action_refs.add(self.action_contract_address)
+        if edge.cause_candidate.candidate_kind == ParticipantAttributionCandidateKind.ACTION:
+            if edge.cause_candidate.ref not in allowed_action_refs:
+                raise ValueError("attribution edge action cause_candidate must match the event action")
+        elif edge.cause_candidate.ref not in self._attribution_grounded_refs():
+            raise ValueError(f"attribution edge cause_candidate {edge.cause_candidate.ref!r} is not grounded")
+
+        if edge.effect_candidate.candidate_kind in OUTCOME_ATTRIBUTION_CANDIDATE_KINDS:
+            return
+        if edge.effect_candidate.ref not in self._attribution_grounded_refs():
+            raise ValueError(f"attribution edge effect_candidate {edge.effect_candidate.ref!r} is not grounded")
+
+    def _attribution_grounded_refs(self) -> set[str]:
+        refs: set[str] = {self.action_instance_id}
+        if self.action_contract_address is not None:
+            refs.add(self.action_contract_address)
+        if self.observation_boundary_address is not None:
+            refs.add(self.observation_boundary_address)
+        if self.post_state_digest is not None:
+            refs.add(self.post_state_digest)
+        for key in _PARTICIPANT_OBSERVATION_DETAIL_REF_KEYS:
+            value = self.details.get(key)
+            if isinstance(value, (list, tuple)):
+                refs.update(str(item) for item in value if isinstance(item, str) and item)
+        if self.action_result is None:
+            return refs
+        refs.update(self.action_result.observations)
+        refs.update(self.action_result.evidence_refs)
+        for precondition in self.action_result.preconditions:
+            refs.update(precondition.support_refs)
+            refs.update(precondition.evidence_refs)
+        for effect in self.action_result.effects:
+            refs.update(effect.target_refs)
+            refs.update(effect.evidence_refs)
+        return refs
 
 
 _PARTICIPANT_TERMINAL_OBSERVATION_STATUSES = frozenset(
@@ -2868,6 +3243,115 @@ def _participant_behavior_action_result_ref_authorization_violations(
     return violations
 
 
+def _participant_behavior_attribution_evidence_ref_violations(
+    *,
+    locator: str,
+    edge: ParticipantAttributionEdge,
+    refs: tuple[str, ...],
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for ref in refs:
+        disposition = relation.get(ref)
+        if disposition is None and ref in boundary.hidden_refs:
+            disposition = "hidden"
+        if ref in boundary.evidence_refs or disposition == "evidence_only":
+            continue
+        suffix = f": disposition {disposition!r}" if disposition is not None else ""
+        violations.append(
+            (
+                locator,
+                (
+                    f"attribution edge {edge.edge_id!r} evidence_ref {ref!r} is not authorized evidence "
+                    f"at effective_order {effective_order}{suffix}"
+                ),
+            )
+        )
+    return violations
+
+
+def _participant_behavior_attribution_candidate_ref_violations(
+    *,
+    locator: str,
+    edge: ParticipantAttributionEdge,
+    candidate: ParticipantAttributionCandidate,
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    if candidate.candidate_kind == ParticipantAttributionCandidateKind.ACTION:
+        return []
+    if candidate.candidate_kind == ParticipantAttributionCandidateKind.EVIDENCE:
+        return _participant_behavior_attribution_evidence_ref_violations(
+            locator=locator,
+            edge=edge,
+            refs=(candidate.ref,),
+            boundary=boundary,
+            relation=relation,
+            effective_order=effective_order,
+        )
+    disposition = relation.get(candidate.ref)
+    if disposition is None and candidate.ref in boundary.hidden_refs:
+        disposition = "hidden"
+    if disposition is None or disposition in _PARTICIPANT_VISIBLE_VIEW_DISPOSITIONS:
+        return []
+    return [
+        (
+            locator,
+            (
+                f"attribution edge {edge.edge_id!r} {candidate.candidate_kind.value} candidate "
+                f"{candidate.ref!r} is not participant-visible at effective_order {effective_order}: "
+                f"disposition {disposition!r}"
+            ),
+        )
+    ]
+
+
+def _participant_behavior_attribution_ref_authorization_violations(
+    *,
+    event: ParticipantBehaviorHistoryEvent,
+    locator: str,
+    boundary: ParticipantObservationBoundaryRuntime,
+    relation: Mapping[str, str],
+    effective_order: int,
+) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for edge in event.attribution_edges:
+        violations.extend(
+            _participant_behavior_attribution_evidence_ref_violations(
+                locator=locator,
+                edge=edge,
+                refs=edge.evidence_refs,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_attribution_candidate_ref_violations(
+                locator=locator,
+                edge=edge,
+                candidate=edge.cause_candidate,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+        violations.extend(
+            _participant_behavior_attribution_candidate_ref_violations(
+                locator=locator,
+                edge=edge,
+                candidate=edge.effect_candidate,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        )
+    return violations
+
+
 def _participant_behavior_history_anchor_indexes(
     events: Iterable[ParticipantBehaviorHistoryEvent],
 ) -> tuple[dict[str, int], dict[str, int], dict[tuple[str, str | None], int]]:
@@ -3088,7 +3572,7 @@ def _participant_behavior_action_result_ref_authorization_violations_for_events(
     for index, event in enumerate(events):
         if event.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
             continue
-        if event.action_result is None:
+        if event.action_result is None and not event.attribution_edges:
             continue
         boundary_address = event.observation_boundary_address or ""
         boundary = observation_boundaries.get(boundary_address)
@@ -3103,7 +3587,15 @@ def _participant_behavior_action_result_ref_authorization_violations_for_events(
             state_transitions=state_transitions,
             observations=observations,
         )
-        yield from _participant_behavior_action_result_ref_authorization_violations(
+        if event.action_result is not None:
+            yield from _participant_behavior_action_result_ref_authorization_violations(
+                event=event,
+                locator=locator,
+                boundary=boundary,
+                relation=relation,
+                effective_order=effective_order,
+            )
+        yield from _participant_behavior_attribution_ref_authorization_violations(
             event=event,
             locator=locator,
             boundary=boundary,

@@ -228,6 +228,252 @@
       "title": "ParticipantActionResultModel",
       "type": "object"
     },
+    "ParticipantAttributionCandidateKind": {
+      "description": "Portable candidate classes for participant attribution edges.",
+      "enum": [
+        "action",
+        "state_change",
+        "detection",
+        "alert",
+        "observation",
+        "evidence",
+        "downstream_outcome",
+        "evaluation_result",
+        "objective_result"
+      ],
+      "title": "ParticipantAttributionCandidateKind",
+      "type": "string"
+    },
+    "ParticipantAttributionCandidateModel": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_kind": {
+          "$ref": "#/$defs/ParticipantAttributionCandidateKind"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "ref": {
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_kind",
+        "ref",
+        "description"
+      ],
+      "title": "ParticipantAttributionCandidateModel",
+      "type": "object"
+    },
+    "ParticipantAttributionEdgeModel": {
+      "additionalProperties": false,
+      "properties": {
+        "cause_candidate": {
+          "$ref": "#/$defs/ParticipantAttributionCandidateModel"
+        },
+        "confidence": {
+          "minLength": 1,
+          "title": "Confidence",
+          "type": "string"
+        },
+        "edge_id": {
+          "minLength": 1,
+          "title": "Edge Id",
+          "type": "string"
+        },
+        "effect_candidate": {
+          "$ref": "#/$defs/ParticipantAttributionCandidateModel"
+        },
+        "episode_id": {
+          "minLength": 1,
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "evidence_basis": {
+          "$ref": "#/$defs/ParticipantAttributionEvidenceBasisModel"
+        },
+        "evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "interpretation_rule_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interpretation Rule Ref"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "observation_point": {
+          "minLength": 1,
+          "title": "Observation Point",
+          "type": "string"
+        },
+        "ordering_basis": {
+          "$ref": "#/$defs/ParticipantAttributionOrderingBasisModel"
+        },
+        "participant_address": {
+          "minLength": 1,
+          "title": "Participant Address",
+          "type": "string"
+        },
+        "strength": {
+          "minLength": 1,
+          "title": "Strength",
+          "type": "string"
+        },
+        "support_class": {
+          "$ref": "#/$defs/ParticipantAttributionSupportClass"
+        }
+      },
+      "required": [
+        "edge_id",
+        "participant_address",
+        "episode_id",
+        "observation_point",
+        "cause_candidate",
+        "effect_candidate",
+        "ordering_basis",
+        "evidence_basis",
+        "support_class",
+        "confidence",
+        "strength",
+        "limitations",
+        "evidence_refs"
+      ],
+      "title": "ParticipantAttributionEdgeModel",
+      "type": "object"
+    },
+    "ParticipantAttributionEvidenceBasisModel": {
+      "additionalProperties": false,
+      "properties": {
+        "capture_apparatus": {
+          "minLength": 1,
+          "title": "Capture Apparatus",
+          "type": "string"
+        },
+        "granularity": {
+          "minLength": 1,
+          "title": "Granularity",
+          "type": "string"
+        },
+        "loss_model": {
+          "minLength": 1,
+          "title": "Loss Model",
+          "type": "string"
+        },
+        "observer_effects": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Observer Effects",
+          "type": "array"
+        },
+        "redaction_policy": {
+          "minLength": 1,
+          "title": "Redaction Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capture_apparatus",
+        "granularity",
+        "loss_model",
+        "redaction_policy",
+        "observer_effects"
+      ],
+      "title": "ParticipantAttributionEvidenceBasisModel",
+      "type": "object"
+    },
+    "ParticipantAttributionOrderingBasisKind": {
+      "description": "Explicit ordering bases for attribution edges.",
+      "enum": [
+        "happened_before",
+        "workflow_order",
+        "episode_order",
+        "backend_event_order",
+        "replay_order",
+        "ablation_order",
+        "structural_causal",
+        "timestamp_adjacency"
+      ],
+      "title": "ParticipantAttributionOrderingBasisKind",
+      "type": "string"
+    },
+    "ParticipantAttributionOrderingBasisModel": {
+      "additionalProperties": false,
+      "properties": {
+        "basis_kind": {
+          "$ref": "#/$defs/ParticipantAttributionOrderingBasisKind"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "ordered_event_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Ordered Event Refs",
+          "type": "array"
+        },
+        "relation_ref": {
+          "minLength": 1,
+          "title": "Relation Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "basis_kind",
+        "relation_ref",
+        "description"
+      ],
+      "title": "ParticipantAttributionOrderingBasisModel",
+      "type": "object"
+    },
+    "ParticipantAttributionSupportClass": {
+      "description": "Evidence-strength classes for participant attribution.",
+      "enum": [
+        "declared_association",
+        "temporal_support",
+        "contract_support",
+        "observation_support",
+        "counterfactual_support",
+        "intervention_support",
+        "replay_support",
+        "ablation_support",
+        "structural_causal_support"
+      ],
+      "title": "ParticipantAttributionSupportClass",
+      "type": "string"
+    },
     "ParticipantEffectClass": {
       "description": "SEM-211 effect classes for participant action results.",
       "enum": [
@@ -362,6 +608,13 @@
         ],
         "default": null,
         "title": "Actor Provenance"
+      },
+      "attribution_edges": {
+        "items": {
+          "$ref": "#/$defs/ParticipantAttributionEdgeModel"
+        },
+        "title": "Attribution Edges",
+        "type": "array"
       },
       "details": {
         "$ref": "#/$defs/ParticipantObservationDetailsModel"

@@ -8,6 +8,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
+from aces_sdl.participant_attribution_semantics import (
+    ParticipantAttributionCandidateKind,
+    ParticipantAttributionOrderingBasisKind,
+    ParticipantAttributionSupportClass,
+)
 from aces_sdl.participant_behavior import (
     ParticipantEffectClass,
     ParticipantFailureClass,
@@ -242,6 +247,44 @@ class ParticipantActionResultModel(ContractModel):
     diagnostics: list[NonEmptyString] = Field(default_factory=list)
 
 
+class ParticipantAttributionCandidateModel(ContractModel):
+    candidate_kind: ParticipantAttributionCandidateKind
+    ref: NonEmptyString
+    description: NonEmptyString
+
+
+class ParticipantAttributionOrderingBasisModel(ContractModel):
+    basis_kind: ParticipantAttributionOrderingBasisKind
+    relation_ref: NonEmptyString
+    description: NonEmptyString
+    ordered_event_refs: list[NonEmptyString] = Field(default_factory=list)
+
+
+class ParticipantAttributionEvidenceBasisModel(ContractModel):
+    capture_apparatus: NonEmptyString
+    granularity: NonEmptyString
+    loss_model: NonEmptyString
+    redaction_policy: NonEmptyString
+    observer_effects: list[NonEmptyString] = Field(min_length=1)
+
+
+class ParticipantAttributionEdgeModel(ContractModel):
+    edge_id: NonEmptyString
+    participant_address: NonEmptyString
+    episode_id: NonEmptyString
+    observation_point: NonEmptyString
+    cause_candidate: ParticipantAttributionCandidateModel
+    effect_candidate: ParticipantAttributionCandidateModel
+    ordering_basis: ParticipantAttributionOrderingBasisModel
+    evidence_basis: ParticipantAttributionEvidenceBasisModel
+    support_class: ParticipantAttributionSupportClass
+    confidence: NonEmptyString
+    strength: NonEmptyString
+    limitations: list[NonEmptyString] = Field(min_length=1)
+    evidence_refs: list[NonEmptyString] = Field(min_length=1)
+    interpretation_rule_ref: NonEmptyString | None = None
+
+
 class ParticipantBehaviorHistoryEventModel(ContractModel):
     event_type: str
     timestamp: str
@@ -260,6 +303,7 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     interaction_ref: str | None = None
     shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
     action_result: ParticipantActionResultModel | None = None
+    attribution_edges: list[ParticipantAttributionEdgeModel] = Field(default_factory=list)
     details: ParticipantObservationDetailsModel = Field(default_factory=ParticipantObservationDetailsModel)
 
 
@@ -1326,6 +1370,10 @@ __all__ = [
     "ParticipantActionEffectResultModel",
     "ParticipantActionPreconditionResultModel",
     "ParticipantActionResultModel",
+    "ParticipantAttributionCandidateModel",
+    "ParticipantAttributionEdgeModel",
+    "ParticipantAttributionEvidenceBasisModel",
+    "ParticipantAttributionOrderingBasisModel",
     "ParticipantBehaviorHistoryEventModel",
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
