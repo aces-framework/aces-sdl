@@ -93,13 +93,14 @@ def _scenario_yaml() -> str:
                 duration-ref: cadence.scan.per-episode
                 reset-boundary: participant episode reset starts a new cadence segment
                 replay-boundary: replay preserves the original cadence segment id
+                randomization-basis: seeded participant episode sequence
                 ordering-basis: participant episode sequence
                 backend-disclosure-refs: [timing.remote-pacing]
               - temporal-id: scan-deadline
                 temporal-kind: deadline
                 time-domain: backend_time
                 clock-authority: backend.adapter.clock
-                event-points: [submit, end]
+                event-points: [submit, deadline, end]
                 description: backend must realize the scan before the participant timeout
                 duration-ref: duration.scan.deadline
                 reset-boundary: participant episode reset clears the deadline state
@@ -138,6 +139,7 @@ def _scenario_yaml() -> str:
                 window-ref: study.collection-window
                 reset-boundary: participant episode reset does not change the study window
                 replay-boundary: replay reports the original study window
+                randomization-basis: study coordinator seed and cohort assignment
                 ordering-basis: study coordinator window relation
                 backend-disclosure-refs: [timing.remote-pacing]
             backend-timing-disclosures:
@@ -240,6 +242,54 @@ def test_temporal_backend_disclosure_refs_fail_closed() -> None:
 
     with pytest.raises(SDLParseError, match="unknown backend_timing_disclosures"):
         parse_sdl(unknown_backend_disclosure)
+
+
+def test_temporal_contract_shapes_fail_closed() -> None:
+    deadline_without_deadline_point = _scenario_yaml().replace(
+        "event-points: [submit, deadline, end]",
+        "event-points: [submit, end]",
+        1,
+    )
+    dwell_without_sustained_window = _scenario_yaml().replace(
+        "event-points: [start, end]",
+        "event-points: [start]",
+        1,
+    )
+    window_without_seed_basis = _scenario_yaml().replace(
+        "        randomization-basis: study coordinator seed and cohort assignment\n",
+        "",
+        1,
+    )
+    temporal_claim_without_disclosure = _scenario_yaml().replace(
+        "backend-disclosure-refs: [timing.remote-pacing]",
+        "backend-disclosure-refs: []",
+        1,
+    )
+    bounded_disclosure_without_bound = (
+        _scenario_yaml()
+        .replace(
+            "support-mode: disclosed_limitation",
+            "support-mode: bounded",
+            1,
+        )
+        .replace(
+            "        limitations: [wall-clock pacing may lag backend event time]\n",
+            "",
+            1,
+        )
+    )
+
+    invalid_payloads = [
+        (deadline_without_deadline_point, "deadline temporal contracts require a deadline event_point"),
+        (dwell_without_sustained_window, "dwell temporal contracts require at least two event_points"),
+        (window_without_seed_basis, "time_window temporal contracts require randomization_basis"),
+        (temporal_claim_without_disclosure, "schedule temporal contracts require backend_disclosure_refs"),
+        (bounded_disclosure_without_bound, "bounded timing disclosures require limitations"),
+    ]
+
+    for payload, message in invalid_payloads:
+        with pytest.raises(SDLParseError, match=message):
+            parse_sdl(payload)
 
 
 def _history_payloads(*, temporal_context: ParticipantTemporalRuntimeContext) -> list[dict[str, object]]:
@@ -370,6 +420,92 @@ def test_runtime_temporal_context_must_match_compiled_contract() -> None:
 
 
 def test_temporal_state_machine_rejects_invalid_deadline_dwell_timeout_sequences() -> None:
+    valid_cadence_sequence = [
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_READY,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-attempt-1",),
+        ),
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_WAITING,
+            to_state=ParticipantTemporalState.CADENCE_READY,
+            event_point=ParticipantTemporalEventPoint.END,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-cadence-elapsed",),
+        ),
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_READY,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-attempt-2",),
+        ),
+    ]
+    valid_reset_boundary_sequence = [
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_READY,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-attempt-1",),
+        ),
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_WAITING,
+            to_state=ParticipantTemporalState.RESET,
+            event_point=ParticipantTemporalEventPoint.RESET,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-2",
+            evidence_refs=("evidence.episode-reset",),
+        ),
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_READY,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-2",
+            evidence_refs=("evidence.scan-attempt-after-reset",),
+        ),
+    ]
+    repeated_cadence_without_release = [
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_READY,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-attempt-1",),
+        ),
+        ParticipantTemporalStateTransition(
+            temporal_contract_id="scan-cadence",
+            from_state=ParticipantTemporalState.CADENCE_WAITING,
+            to_state=ParticipantTemporalState.CADENCE_WAITING,
+            event_point=ParticipantTemporalEventPoint.SUBMIT,
+            time_domain=ParticipantTimeDomain.EPISODE_STEP,
+            clock_authority="processor.episode-sequence",
+            boundary_ref="episode:episode-1",
+            evidence_refs=("evidence.scan-repeat-too-soon",),
+        ),
+    ]
     dwell_without_active = [
         ParticipantTemporalStateTransition(
             temporal_contract_id="scan-dwell",
@@ -405,11 +541,16 @@ def test_temporal_state_machine_rejects_invalid_deadline_dwell_timeout_sequences
         ),
     ]
 
+    assert list(iter_participant_temporal_state_machine_violations(valid_cadence_sequence)) == []
+    assert list(iter_participant_temporal_state_machine_violations(valid_reset_boundary_sequence)) == []
+
     violations = [
+        *iter_participant_temporal_state_machine_violations(repeated_cadence_without_release),
         *iter_participant_temporal_state_machine_violations(dwell_without_active),
         *iter_participant_temporal_state_machine_violations(deadline_reuse_without_boundary),
     ]
 
+    assert any("cadence repeated event requires cadence_ready" in message for _, message in violations)
     assert any("dwell_satisfied requires prior dwell_active" in message for _, message in violations)
     assert any("terminal temporal state requires reset or replay boundary" in message for _, message in violations)
 

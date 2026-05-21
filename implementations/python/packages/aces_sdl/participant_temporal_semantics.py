@@ -69,6 +69,8 @@ class ParticipantTemporalState(str, Enum):
 
     ELIGIBLE = "eligible"
     INELIGIBLE = "ineligible"
+    CADENCE_READY = "cadence_ready"
+    CADENCE_WAITING = "cadence_waiting"
     DWELL_ACTIVE = "dwell_active"
     DWELL_SATISFIED = "dwell_satisfied"
     DEADLINE_OPEN = "deadline_open"
@@ -107,6 +109,58 @@ _BOUNDARY_KINDS = frozenset(
         ParticipantTemporalContractKind.TIMEOUT,
         ParticipantTemporalContractKind.COOLDOWN,
         ParticipantTemporalContractKind.TIME_WINDOW,
+    }
+)
+
+_REPEATED_OR_STUDY_LEVEL_KINDS = frozenset(
+    {
+        ParticipantTemporalContractKind.CADENCE,
+        ParticipantTemporalContractKind.TIME_WINDOW,
+    }
+)
+
+_SCHEDULE_ELIGIBILITY_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.SUBMIT,
+        ParticipantTemporalEventPoint.START,
+    }
+)
+
+_TIME_WINDOW_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.WINDOW_OPEN,
+        ParticipantTemporalEventPoint.WINDOW_CLOSE,
+    }
+)
+
+_DEADLINE_OUTCOME_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.END,
+        ParticipantTemporalEventPoint.OBSERVED,
+        ParticipantTemporalEventPoint.EFFECTIVE,
+    }
+)
+
+_DWELL_START_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.START,
+        ParticipantTemporalEventPoint.WINDOW_OPEN,
+    }
+)
+
+_DWELL_END_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.END,
+        ParticipantTemporalEventPoint.WINDOW_CLOSE,
+    }
+)
+
+_CADENCE_CONSTRAINED_POINTS = frozenset(
+    {
+        ParticipantTemporalEventPoint.SUBMIT,
+        ParticipantTemporalEventPoint.START,
+        ParticipantTemporalEventPoint.OBSERVED,
+        ParticipantTemporalEventPoint.EFFECTIVE,
     }
 )
 
@@ -175,6 +229,7 @@ class ParticipantTemporalContract(SDLModel):
 
     @model_validator(mode="after")
     def _validate_sem213_contract_shape(self) -> "ParticipantTemporalContract":
+        event_points = set(self.event_points)
         if self.temporal_kind in _WINDOW_KINDS and self.window_ref is None:
             raise ValueError(f"{self.temporal_kind.value} temporal contracts require window_ref")
         if self.temporal_kind in _DURATION_KINDS and self.duration_ref is None:
@@ -184,6 +239,34 @@ class ParticipantTemporalContract(SDLModel):
                 raise ValueError(f"{self.temporal_kind.value} temporal contracts require reset_boundary")
             if self.replay_boundary is None:
                 raise ValueError(f"{self.temporal_kind.value} temporal contracts require replay_boundary")
+        if not self.backend_disclosure_refs:
+            raise ValueError(f"{self.temporal_kind.value} temporal contracts require backend_disclosure_refs")
+        if self.temporal_kind in _REPEATED_OR_STUDY_LEVEL_KINDS and self.randomization_basis is None:
+            raise ValueError(f"{self.temporal_kind.value} temporal contracts require randomization_basis")
+        if self.temporal_kind == ParticipantTemporalContractKind.SCHEDULE and not (
+            event_points & _SCHEDULE_ELIGIBILITY_POINTS
+        ):
+            raise ValueError("schedule temporal contracts require submit or start event_points")
+        if self.temporal_kind == ParticipantTemporalContractKind.TIME_WINDOW and not (
+            event_points >= _TIME_WINDOW_POINTS
+        ):
+            raise ValueError("time_window temporal contracts require window_open and window_close event_points")
+        if self.temporal_kind == ParticipantTemporalContractKind.DEADLINE:
+            if len(self.event_points) < 2:
+                raise ValueError("deadline temporal contracts require at least two event_points")
+            if ParticipantTemporalEventPoint.DEADLINE not in event_points:
+                raise ValueError("deadline temporal contracts require a deadline event_point")
+            if not (event_points & _DEADLINE_OUTCOME_POINTS):
+                raise ValueError("deadline temporal contracts require end, observed, or effective event_points")
+        if self.temporal_kind == ParticipantTemporalContractKind.DWELL:
+            if len(self.event_points) < 2:
+                raise ValueError("dwell temporal contracts require at least two event_points")
+            if not (event_points & _DWELL_START_POINTS) or not (event_points & _DWELL_END_POINTS):
+                raise ValueError("dwell temporal contracts require start/window_open and end/window_close event_points")
+        if self.temporal_kind == ParticipantTemporalContractKind.CADENCE and not (
+            event_points & _CADENCE_CONSTRAINED_POINTS
+        ):
+            raise ValueError("cadence temporal contracts require submit, start, observed, or effective event_points")
         if self.temporal_kind == ParticipantTemporalContractKind.LATENCY and len(self.event_points) < 2:
             raise ValueError("latency temporal contracts require at least two event_points")
         return self
@@ -222,6 +305,7 @@ class ParticipantBackendTimingDisclosure(SDLModel):
             self.support_mode
             in {
                 ParticipantTemporalSupportMode.DISCLOSED_LIMITATION,
+                ParticipantTemporalSupportMode.BOUNDED,
                 ParticipantTemporalSupportMode.UNSUPPORTED,
             }
             and not self.limitations

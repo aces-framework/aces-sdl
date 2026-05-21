@@ -871,14 +871,15 @@ Current implementation artifacts for the first `SEM-213` slice:
 - `implementations/python/packages/aces_processor/models.py` defines runtime
   temporal context on participant behavior-history events, validates it
   against the compiled action contract, and exposes an abstract state-machine
-  checker for deadline, dwell, timeout, reset, and replay interactions;
+  checker for cadence, deadline, dwell, timeout, reset, and replay interactions;
 - `implementations/python/packages/aces_contracts/contracts.py` publishes the
   runtime temporal-context payload in participant behavior-history and runtime
   snapshot schemas;
 - `implementations/python/tests/test_sem_213_temporal_participant_semantics.py`
   covers positive SDL-to-runtime compilation, missing clock authority, unknown
-  backend disclosure refs, runtime contract mismatches, and invalid deadline /
-  dwell / timeout state-machine transitions.
+  backend disclosure refs, invalid temporal contract shapes, runtime contract
+  mismatches, bounded timing disclosures, and invalid cadence / deadline / dwell
+  / timeout state-machine transitions.
 
 This slice implements participant-local temporal contracts and conformance
 checks. It does not claim the broader ACES clock/time-model work owned by

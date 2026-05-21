@@ -2672,6 +2672,18 @@ def iter_participant_temporal_state_machine_violations(
     terminal_states = {ParticipantTemporalState.DEADLINE_MISSED, ParticipantTemporalState.TIMEOUT}
     boundary_events = {ParticipantTemporalEventPoint.RESET, ParticipantTemporalEventPoint.REPLAY}
     boundary_states = {ParticipantTemporalState.RESET, ParticipantTemporalState.REPLAY_BOUNDARY}
+    cadence_guard_events = {
+        ParticipantTemporalEventPoint.SUBMIT,
+        ParticipantTemporalEventPoint.START,
+        ParticipantTemporalEventPoint.OBSERVED,
+        ParticipantTemporalEventPoint.EFFECTIVE,
+    }
+    cadence_ready_states = {
+        ParticipantTemporalState.CADENCE_READY,
+        ParticipantTemporalState.ELIGIBLE,
+        ParticipantTemporalState.RESET,
+        ParticipantTemporalState.REPLAY_BOUNDARY,
+    }
 
     for index, raw_transition in enumerate(transitions):
         locator = f"participant temporal state transition[{index}]"
@@ -2693,6 +2705,33 @@ def iter_participant_temporal_state_machine_violations(
             )
         else:
             domain_authority[key] = observed_domain_authority
+
+        crosses_boundary = transition.event_point in boundary_events or transition.to_state in boundary_states
+        if (
+            key in prior_state
+            and transition.from_state != prior_state[key]
+            and prior_state[key] not in boundary_states
+            and not crosses_boundary
+        ):
+            yield (
+                locator,
+                f"temporal contract {key!r} transition from_state {transition.from_state.value!r} "
+                f"does not match prior to_state {prior_state[key].value!r}",
+            )
+
+        if (
+            transition.from_state == ParticipantTemporalState.CADENCE_WAITING
+            and transition.event_point in cadence_guard_events
+            and not crosses_boundary
+        ):
+            yield (locator, "cadence repeated event requires cadence_ready or reset/replay boundary before reuse")
+        elif (
+            transition.to_state == ParticipantTemporalState.CADENCE_WAITING
+            and transition.from_state not in cadence_ready_states
+            and prior_state.get(key) not in cadence_ready_states
+            and not crosses_boundary
+        ):
+            yield (locator, "cadence_waiting requires prior cadence_ready or eligible state in the same segment")
 
         if (
             transition.to_state == ParticipantTemporalState.DWELL_SATISFIED
