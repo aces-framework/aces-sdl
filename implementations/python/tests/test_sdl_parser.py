@@ -232,6 +232,32 @@ nodes:
         - target: /shuffle-database
           source: aptl_shuffle_data
           source-kind: volume
+          filesystem-type: ext4
+          read-only: false
+          options: [rw, nosuid]
+          propagation: rprivate
+          stability: volume-backed
+          backend-generated: true
+      filesystem-inventory:
+        - path: /app/app.py
+          entry-type: file
+          owner-user: root
+          owner-group: root
+          uid: "0"
+          gid: "0"
+          mode: "0644"
+          size: "4096"
+          content-digest: 4f8c2d
+          digest-algorithm: sha256
+          source-path: src/webapp/app.py
+          provenance: python-package
+          stability: stable
+          sensitivity: plain
+        - path: /var/log/gunicorn/access.log
+          entry-type: file
+          mode: "0600"
+          stability: log
+          sensitivity: operator-secret
       local-control-interfaces:
         - path: /run/docker.sock
           kind: unix-socket
@@ -269,6 +295,48 @@ nodes:
           memory: 512 MiB
           cpu: 0.5
           pids: 128
+      container:
+        entrypoint: [/entrypoint.sh]
+        command: [gunicorn, app:app]
+        log-driver: json-file
+        log-options:
+          max-size: 10m
+          max-file: "3"
+        namespaces:
+          cgroup: private
+          ipc: private
+          pid: private
+          userns: host
+          uts: private
+        privileged: false
+        read-only-rootfs: false
+        publish-all-ports: false
+        autoremove: false
+        shm-size: 64 MiB
+        masked-paths: [/proc/acpi, /proc/kcore]
+        read-only-paths: /proc/sys
+        cgroup-parent: /docker
+        runtime-name: runc
+        devices:
+          - host-path: /dev/null
+            container-path: /dev/null
+            permissions: rwm
+        device-cgroup-rules: c 1:3 rwm
+        extra-hosts:
+          - hostname: wazuh-manager
+            address: 172.20.0.10
+        dns: [8.8.8.8]
+        dns-options: ndots:0
+        dns-search: [techvault.local]
+        group-add: [adm, "101"]
+      health:
+        status: healthy
+        failing-streak: "0"
+        log:
+          - start: "2026-05-20T12:00:00Z"
+            end: "2026-05-20T12:00:01Z"
+            exit-code: "0"
+            output: ok
       packages:
         - manager: apk
           name: musl
@@ -294,6 +362,22 @@ nodes:
         assert scenario.vulnerabilities == {}
         assert node.runtime is not None
         assert node.runtime.mounts[0].target == "/shuffle-database"
+        assert node.runtime.mounts[0].filesystem_type == "ext4"
+        assert node.runtime.mounts[0].propagation == "rprivate"
+        assert node.runtime.mounts[0].stability == "volume_backed"
+        assert node.runtime.mounts[0].backend_generated is True
+        assert node.runtime.filesystem_inventory[0].path == "/app/app.py"
+        assert node.runtime.filesystem_inventory[0].entry_type == "file"
+        assert node.runtime.filesystem_inventory[0].uid == 0
+        assert node.runtime.filesystem_inventory[0].gid == 0
+        assert node.runtime.filesystem_inventory[0].mode == "0644"
+        assert node.runtime.filesystem_inventory[0].size == 4096
+        assert node.runtime.filesystem_inventory[0].digest_algorithm == "sha256"
+        assert node.runtime.filesystem_inventory[0].content_digest == "4f8c2d"
+        assert node.runtime.filesystem_inventory[0].source_path == "src/webapp/app.py"
+        assert node.runtime.filesystem_inventory[0].stability == "stable"
+        assert node.runtime.filesystem_inventory[1].stability == "log"
+        assert node.runtime.filesystem_inventory[1].sensitivity == "operator_secret"
         assert node.runtime.local_control_interfaces[0].path == "/run/docker.sock"
         assert node.runtime.process is not None
         assert node.runtime.process.command == ["./shufflebackend"]
@@ -308,6 +392,24 @@ nodes:
         assert node.runtime.operational_policy.resource_limits.memory == 512 * 1048576
         assert node.runtime.operational_policy.resource_limits.cpu == 0.5
         assert node.runtime.operational_policy.resource_limits.pids == 128
+        assert node.runtime.container is not None
+        assert node.runtime.container.entrypoint == ["/entrypoint.sh"]
+        assert node.runtime.container.command == ["gunicorn", "app:app"]
+        assert node.runtime.container.log_driver == "json-file"
+        assert node.runtime.container.log_options == {"max-size": "10m", "max-file": "3"}
+        assert node.runtime.container.namespaces.userns == "host"
+        assert node.runtime.container.shm_size == 64 * 1048576
+        assert node.runtime.container.masked_paths == ["/proc/acpi", "/proc/kcore"]
+        assert node.runtime.container.read_only_paths == ["/proc/sys"]
+        assert node.runtime.container.devices[0].container_path == "/dev/null"
+        assert node.runtime.container.device_cgroup_rules == ["c 1:3 rwm"]
+        assert node.runtime.container.extra_hosts[0].hostname == "wazuh-manager"
+        assert node.runtime.container.dns_options == ["ndots:0"]
+        assert node.runtime.container.group_add == ["adm", "101"]
+        assert node.runtime.health is not None
+        assert node.runtime.health.status == "healthy"
+        assert node.runtime.health.failing_streak == 0
+        assert node.runtime.health.log[0].exit_code == 0
         assert node.runtime.packages[0].manager == "apk"
         assert node.runtime.packages[0].name == "musl"
         assert node.runtime.packages[0].version == "1.2.4-r2"

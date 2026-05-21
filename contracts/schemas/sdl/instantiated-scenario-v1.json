@@ -2541,6 +2541,17 @@
       "additionalProperties": false,
       "description": "Observed runtime configuration facts attached to a VM node.",
       "properties": {
+        "container": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeContainerConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "dependency_manifests": {
           "items": {
             "$ref": "#/$defs/RuntimeDependencyManifest"
@@ -2554,6 +2565,24 @@
           },
           "title": "Environment",
           "type": "array"
+        },
+        "filesystem_inventory": {
+          "items": {
+            "$ref": "#/$defs/RuntimeFilesystemEntry"
+          },
+          "title": "Filesystem Inventory",
+          "type": "array"
+        },
+        "health": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeHealthObservation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "linux_capabilities": {
           "anyOf": [
@@ -2625,6 +2654,204 @@
         }
       },
       "title": "RuntimeConfiguration",
+      "type": "object"
+    },
+    "RuntimeContainerConfiguration": {
+      "additionalProperties": false,
+      "description": "Observed container runtime host and security configuration facts.",
+      "properties": {
+        "autoremove": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Autoremove"
+        },
+        "cgroup_parent": {
+          "default": "",
+          "title": "Cgroup Parent",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "device_cgroup_rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Device Cgroup Rules",
+          "type": "array"
+        },
+        "devices": {
+          "items": {
+            "$ref": "#/$defs/RuntimeDeviceMapping"
+          },
+          "title": "Devices",
+          "type": "array"
+        },
+        "dns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dns",
+          "type": "array"
+        },
+        "dns_options": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dns Options",
+          "type": "array"
+        },
+        "dns_search": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dns Search",
+          "type": "array"
+        },
+        "entrypoint": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Entrypoint",
+          "type": "array"
+        },
+        "extra_hosts": {
+          "items": {
+            "$ref": "#/$defs/RuntimeExtraHost"
+          },
+          "title": "Extra Hosts",
+          "type": "array"
+        },
+        "group_add": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Group Add",
+          "type": "array"
+        },
+        "log_driver": {
+          "default": "",
+          "title": "Log Driver",
+          "type": "string"
+        },
+        "log_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Log Options",
+          "type": "object"
+        },
+        "masked_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Masked Paths",
+          "type": "array"
+        },
+        "namespaces": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeNamespaceConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "privileged": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Privileged"
+        },
+        "publish_all_ports": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publish All Ports"
+        },
+        "read_only_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Read Only Paths",
+          "type": "array"
+        },
+        "read_only_rootfs": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Only Rootfs"
+        },
+        "runtime_name": {
+          "default": "",
+          "title": "Runtime Name",
+          "type": "string"
+        },
+        "shm_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shm Size"
+        }
+      },
+      "title": "RuntimeContainerConfiguration",
       "type": "object"
     },
     "RuntimeControlInterface": {
@@ -2737,6 +2964,36 @@
       "title": "RuntimeDependencyManifest",
       "type": "object"
     },
+    "RuntimeDeviceMapping": {
+      "additionalProperties": false,
+      "description": "A host device mapping observed in runtime configuration.",
+      "properties": {
+        "container_path": {
+          "title": "Container Path",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "host_path": {
+          "title": "Host Path",
+          "type": "string"
+        },
+        "permissions": {
+          "default": "",
+          "title": "Permissions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "host_path",
+        "container_path"
+      ],
+      "title": "RuntimeDeviceMapping",
+      "type": "object"
+    },
     "RuntimeEnvironmentValueClassification": {
       "description": "Sensitivity classification for an observed runtime environment value.",
       "enum": [
@@ -2816,13 +3073,334 @@
       "title": "RuntimeEnvironmentVariableProvenance",
       "type": "string"
     },
-    "RuntimeMount": {
+    "RuntimeExtraHost": {
       "additionalProperties": false,
-      "description": "A filesystem mount observed on a runtime node.",
+      "description": "An observed extra host mapping in runtime configuration.",
+      "properties": {
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "hostname": {
+          "title": "Hostname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostname",
+        "address"
+      ],
+      "title": "RuntimeExtraHost",
+      "type": "object"
+    },
+    "RuntimeFilesystemEntry": {
+      "additionalProperties": false,
+      "description": "A filesystem entry observed inside a runtime node or container asset.",
+      "properties": {
+        "content_digest": {
+          "default": "",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "digest_algorithm": {
+          "default": "",
+          "title": "Digest Algorithm",
+          "type": "string"
+        },
+        "entry_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeFilesystemEntryType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "other",
+          "title": "Entry Type"
+        },
+        "gid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gid"
+        },
+        "mode": {
+          "default": "",
+          "title": "Mode",
+          "type": "string"
+        },
+        "owner_group": {
+          "default": "",
+          "title": "Owner Group",
+          "type": "string"
+        },
+        "owner_user": {
+          "default": "",
+          "title": "Owner User",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "provenance": {
+          "default": "",
+          "title": "Provenance",
+          "type": "string"
+        },
+        "sensitivity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeSensitivityClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Sensitivity"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        },
+        "source_path": {
+          "default": "",
+          "title": "Source Path",
+          "type": "string"
+        },
+        "stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeFilesystemStability"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Stability"
+        },
+        "uid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uid"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "RuntimeFilesystemEntry",
+      "type": "object"
+    },
+    "RuntimeFilesystemEntryType": {
+      "description": "Observed type of a runtime filesystem inventory entry.",
+      "enum": [
+        "file",
+        "directory",
+        "symlink",
+        "device",
+        "socket",
+        "fifo",
+        "other"
+      ],
+      "title": "RuntimeFilesystemEntryType",
+      "type": "string"
+    },
+    "RuntimeFilesystemStability": {
+      "description": "Stability class for an observed runtime filesystem or mount fact.",
+      "enum": [
+        "stable",
+        "generated",
+        "log",
+        "cache",
+        "runtime_created",
+        "volume_backed",
+        "transient",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeFilesystemStability",
+      "type": "string"
+    },
+    "RuntimeHealthObservation": {
+      "additionalProperties": false,
+      "description": "Observed runtime health status and healthcheck log facts.",
       "properties": {
         "description": {
           "default": "",
           "title": "Description",
+          "type": "string"
+        },
+        "failing_streak": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failing Streak"
+        },
+        "log": {
+          "items": {
+            "$ref": "#/$defs/RuntimeHealthcheckLog"
+          },
+          "title": "Log",
+          "type": "array"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeHealthStatus"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Status"
+        }
+      },
+      "title": "RuntimeHealthObservation",
+      "type": "object"
+    },
+    "RuntimeHealthStatus": {
+      "description": "Observed health status for a runtime node or container.",
+      "enum": [
+        "none",
+        "starting",
+        "healthy",
+        "unhealthy",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeHealthStatus",
+      "type": "string"
+    },
+    "RuntimeHealthcheckLog": {
+      "additionalProperties": false,
+      "description": "An observed runtime healthcheck log entry.",
+      "properties": {
+        "end": {
+          "default": "",
+          "title": "End",
+          "type": "string"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "output": {
+          "default": "",
+          "title": "Output",
+          "type": "string"
+        },
+        "output_redacted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Output Redacted"
+        },
+        "start": {
+          "default": "",
+          "title": "Start",
+          "type": "string"
+        }
+      },
+      "title": "RuntimeHealthcheckLog",
+      "type": "object"
+    },
+    "RuntimeMount": {
+      "additionalProperties": false,
+      "description": "A filesystem mount observed on a runtime node.",
+      "properties": {
+        "backend_generated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backend Generated"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "filesystem_type": {
+          "default": "",
+          "title": "Filesystem Type",
           "type": "string"
         },
         "options": {
@@ -2831,6 +3409,18 @@
           },
           "title": "Options",
           "type": "array"
+        },
+        "propagation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeMountPropagation"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Propagation"
         },
         "read_only": {
           "anyOf": [
@@ -2861,6 +3451,18 @@
           "default": "other",
           "title": "Source Kind"
         },
+        "stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeFilesystemStability"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Stability"
+        },
         "target": {
           "title": "Target",
           "type": "string"
@@ -2871,6 +3473,21 @@
       ],
       "title": "RuntimeMount",
       "type": "object"
+    },
+    "RuntimeMountPropagation": {
+      "description": "Portable propagation mode for a runtime filesystem mount.",
+      "enum": [
+        "private",
+        "rprivate",
+        "shared",
+        "rshared",
+        "slave",
+        "rslave",
+        "unknown",
+        "other"
+      ],
+      "title": "RuntimeMountPropagation",
+      "type": "string"
     },
     "RuntimeMountSourceKind": {
       "description": "Portable source kind for a runtime filesystem mount.",
@@ -2883,6 +3500,39 @@
       ],
       "title": "RuntimeMountSourceKind",
       "type": "string"
+    },
+    "RuntimeNamespaceConfiguration": {
+      "additionalProperties": false,
+      "description": "Observed namespace modes for a runtime node or container.",
+      "properties": {
+        "cgroup": {
+          "default": "",
+          "title": "Cgroup",
+          "type": "string"
+        },
+        "ipc": {
+          "default": "",
+          "title": "Ipc",
+          "type": "string"
+        },
+        "pid": {
+          "default": "",
+          "title": "Pid",
+          "type": "string"
+        },
+        "userns": {
+          "default": "",
+          "title": "Userns",
+          "type": "string"
+        },
+        "uts": {
+          "default": "",
+          "title": "Uts",
+          "type": "string"
+        }
+      },
+      "title": "RuntimeNamespaceConfiguration",
+      "type": "object"
     },
     "RuntimeOperationalPolicy": {
       "additionalProperties": false,
@@ -3250,6 +3900,18 @@
         "other"
       ],
       "title": "RuntimeRestartPolicy",
+      "type": "string"
+    },
+    "RuntimeSensitivityClassification": {
+      "description": "Sensitivity/redaction class for observed runtime facts.",
+      "enum": [
+        "plain",
+        "redacted",
+        "secret_fixture",
+        "operator_secret",
+        "unknown"
+      ],
+      "title": "RuntimeSensitivityClassification",
       "type": "string"
     },
     "Script": {

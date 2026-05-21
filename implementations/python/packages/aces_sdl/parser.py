@@ -56,6 +56,7 @@ _NESTED_HASHMAP_FIELDS = frozenset(
         "conditions",  # VM.conditions (dict[str, str])
         "injects",  # VM.injects (dict[str, str])
         "roles",  # Node.roles (dict[str, Role])
+        "log_options",  # RuntimeContainerConfiguration.log_options preserves native engine option keys
         "facts",  # Entity.facts (dict[str, str])
         "entities",  # Entity.entities (dict[str, Entity])
         "events",  # Script.events (dict[str, int])
