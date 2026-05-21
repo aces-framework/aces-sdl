@@ -101,6 +101,32 @@ nodes:
         command: ./shufflebackend
         user: root
         working_directory: /app
+      processes:
+        - name: supervisord
+          pid: 1
+          command: supervisord -n
+          role: supervisor
+        - name: gunicorn
+          parent_pid: 1
+          command: [gunicorn, app:app]
+          role: worker
+      environment:
+        - name: TECHVAULT_ADMIN_PASSWORD
+          value_classification: redacted
+          provenance: operator
+        - name: SCENARIO_FIXTURE_TOKEN
+          value: fixture-token
+          value_classification: secret_fixture
+          provenance: compose
+      linux_capabilities:
+        required: [CAP_NET_ADMIN]
+        effective: CAP_NET_ADMIN
+      operational_policy:
+        restart: unless_stopped
+        resource_limits:
+          memory: 512 MiB
+          cpu: 0.5
+          pids: 128
       packages:
         - manager: apk
           name: musl
@@ -137,8 +163,12 @@ Concrete service bindings on a VM must be unique by `protocol` + `port`. Reusing
 `runtime` captures observed VM/runtime facts that are not authored deployable
 features or exposed network services. Mounts describe realized filesystem
 attachments; `local_control_interfaces` describe path-local control APIs such
-as Unix sockets; `process` records execution identity; `packages` and
-`dependency_manifests` record runtime inventory; and
+as Unix sockets; `process` records primary execution identity; `processes`
+records a supervised or load-bearing process set; `environment` records
+observed runtime environment variables with provenance and redaction
+classification; `linux_capabilities` records container/Linux capability policy;
+`operational_policy` records restart policy and observed resource limits;
+`packages` and `dependency_manifests` record runtime inventory; and
 `package_vulnerabilities` records scanner-derived CVE/advisory findings tied
 to an image digest and scan time. These findings are separate from the
 top-level `vulnerabilities` section, which remains the CWE-classified scenario

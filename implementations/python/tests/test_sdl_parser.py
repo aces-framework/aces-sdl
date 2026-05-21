@@ -243,6 +243,32 @@ nodes:
         command: ./shufflebackend
         user: root
         working-directory: /app
+      processes:
+        - name: supervisord
+          pid: 1
+          command: supervisord -n
+          role: supervisor
+        - name: gunicorn
+          parent-pid: 1
+          command: [gunicorn, app:app]
+          role: worker
+      environment:
+        - name: TECHVAULT_ADMIN_PASSWORD
+          value-classification: redacted
+          provenance: operator
+        - name: SCENARIO_FIXTURE_TOKEN
+          value: fixture-token
+          value-classification: secret-fixture
+          provenance: compose
+      linux-capabilities:
+        required: [CAP_NET_ADMIN]
+        effective: CAP_NET_ADMIN
+      operational-policy:
+        restart: unless-stopped
+        resource-limits:
+          memory: 512 MiB
+          cpu: 0.5
+          pids: 128
       packages:
         - manager: apk
           name: musl
@@ -271,7 +297,31 @@ nodes:
         assert node.runtime.local_control_interfaces[0].path == "/run/docker.sock"
         assert node.runtime.process is not None
         assert node.runtime.process.command == ["./shufflebackend"]
+        assert node.runtime.processes[0].name == "supervisord"
+        assert node.runtime.processes[1].parent_pid == 1
+        assert node.runtime.environment[0].name == "TECHVAULT_ADMIN_PASSWORD"
+        assert node.runtime.environment[0].value_classification == "redacted"
+        assert node.runtime.environment[1].value_classification == "secret_fixture"
+        assert node.runtime.linux_capabilities.required == ["CAP_NET_ADMIN"]
+        assert node.runtime.linux_capabilities.effective == ["CAP_NET_ADMIN"]
+        assert node.runtime.operational_policy.restart == "unless_stopped"
+        assert node.runtime.operational_policy.resource_limits.memory == 512 * 1048576
+        assert node.runtime.operational_policy.resource_limits.cpu == 0.5
+        assert node.runtime.operational_policy.resource_limits.pids == 128
+        assert node.runtime.packages[0].manager == "apk"
+        assert node.runtime.packages[0].name == "musl"
+        assert node.runtime.packages[0].version == "1.2.4-r2"
+        assert node.runtime.dependency_manifests[0].ecosystem == "go"
+        assert node.runtime.dependency_manifests[0].path == "/app/go.mod"
+        assert node.runtime.dependency_manifests[0].format == "go-module"
         assert node.runtime.package_vulnerabilities[0].id == "CVE-2026-12345"
+        assert node.runtime.package_vulnerabilities[0].package_name == "musl"
+        assert node.runtime.package_vulnerabilities[0].installed_version == "1.2.4-r2"
+        assert node.runtime.package_vulnerabilities[0].fixed_version == "1.2.5-r0"
+        assert node.runtime.package_vulnerabilities[0].severity == "high"
+        assert node.runtime.package_vulnerabilities[0].scanner == "trivy"
+        assert node.runtime.package_vulnerabilities[0].image_digest == "sha256:abc123"
+        assert node.runtime.package_vulnerabilities[0].scan_time == "2026-05-20T12:00:00Z"
 
     def test_source_shorthand(self):
         sdl = """
@@ -629,7 +679,7 @@ variables:
     default: hello
 """,
         }
-        with pytest.raises(SDLParseError):
+        with pytest.raises(SDLParseError, match=rf"{field_name}[\s\S]*Input should be"):
             parse_sdl(sdl_by_field[field_name], skip_semantic_validation=True)
 
     @pytest.mark.parametrize(
