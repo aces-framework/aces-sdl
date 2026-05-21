@@ -2473,6 +2473,65 @@ class ParticipantAttributionEdge:
             raise ValueError("downstream outcome attribution requires interpretation_rule_ref")
 
 
+def _optional_payload_string(payload: Mapping[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    return str(value) if value is not None else None
+
+
+def _participant_behavior_event_type_from_payload(value: Any) -> ParticipantBehaviorHistoryEventType:
+    if isinstance(value, ParticipantBehaviorHistoryEventType):
+        return value
+    return ParticipantBehaviorHistoryEventType(str(value))
+
+
+def _participant_interaction_class_from_payload(value: Any) -> ParticipantInteractionClass | None:
+    if value is None:
+        return None
+    if isinstance(value, ParticipantInteractionClass):
+        return value
+    return ParticipantInteractionClass(str(value))
+
+
+def _participant_behavior_shared_state_refs_from_payload(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise TypeError("shared_state_refs must be a list of strings")
+    return tuple(str(ref) for ref in value)
+
+
+def _participant_action_result_from_payload(value: Any) -> ParticipantActionResult | None:
+    if value is None:
+        return None
+    if isinstance(value, ParticipantActionResult):
+        return value
+    return ParticipantActionResult.from_payload(value)
+
+
+def _participant_attribution_edges_from_payload(value: Any) -> tuple[ParticipantAttributionEdge, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise TypeError("attribution_edges must be a list of participant attribution edges")
+    return tuple(
+        edge if isinstance(edge, ParticipantAttributionEdge) else ParticipantAttributionEdge.from_payload(edge)
+        for edge in value
+    )
+
+
+def _participant_behavior_details_from_payload(value: Any) -> dict[str, Any]:
+    if value is None:
+        value = {}
+    if not isinstance(value, Mapping):
+        raise TypeError("participant behavior details must be a mapping")
+    details = dict(value)
+    for empty_ref_key in ("visible_refs", "disclosed_refs", "evidence_refs"):
+        refs = details.get(empty_ref_key)
+        if isinstance(refs, (list, tuple)) and not refs:
+            details.pop(empty_ref_key)
+    return details
+
+
 @dataclass(frozen=True)
 class ParticipantBehaviorHistoryEvent:
     """Internal normalized participant behavior history event.
@@ -2525,87 +2584,28 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError(
                 "participant behavior history event is missing required fields: " + ", ".join(missing_keys)
             )
-        event_type_raw = payload.get("event_type")
-        observation_status_raw = payload.get("observation_status")
-        interaction_class_raw = payload.get("interaction_class")
-        shared_state_refs_raw = payload.get("shared_state_refs", ())
-        action_result_raw = payload.get("action_result")
-        attribution_edges_raw = payload.get("attribution_edges", ())
-        if shared_state_refs_raw is None:
-            shared_state_refs_raw = ()
-        if not isinstance(shared_state_refs_raw, (list, tuple)):
-            raise TypeError("shared_state_refs must be a list of strings")
-        if attribution_edges_raw is None:
-            attribution_edges_raw = ()
-        if isinstance(attribution_edges_raw, (str, bytes, Mapping)) or not isinstance(attribution_edges_raw, Iterable):
-            raise TypeError("attribution_edges must be a list of participant attribution edges")
-        details_raw = payload.get("details", {})
-        if details_raw is None:
-            details_raw = {}
-        if not isinstance(details_raw, Mapping):
-            raise TypeError("participant behavior details must be a mapping")
-        details = dict(details_raw)
-        for empty_ref_key in ("visible_refs", "disclosed_refs", "evidence_refs"):
-            value = details.get(empty_ref_key)
-            if isinstance(value, (list, tuple)) and not value:
-                details.pop(empty_ref_key)
         return cls(
-            event_type=(
-                event_type_raw
-                if isinstance(event_type_raw, ParticipantBehaviorHistoryEventType)
-                else ParticipantBehaviorHistoryEventType(str(event_type_raw))
-            ),
+            event_type=_participant_behavior_event_type_from_payload(payload.get("event_type")),
             timestamp=str(payload.get("timestamp")),
             participant_address=str(payload.get("participant_address")),
             episode_id=str(payload.get("episode_id")),
             action_instance_id=str(payload.get("action_instance_id")),
-            action_contract_address=(
-                str(payload["action_contract_address"]) if payload.get("action_contract_address") is not None else None
-            ),
-            observation_boundary_address=(
-                str(payload["observation_boundary_address"])
-                if payload.get("observation_boundary_address") is not None
-                else None
-            ),
-            observation_status=_participant_observation_status_from_payload(observation_status_raw),
-            actor_provenance=(
-                str(payload["actor_provenance"]) if payload.get("actor_provenance") is not None else None
-            ),
-            state_transition_kind=(
-                str(payload["state_transition_kind"]) if payload.get("state_transition_kind") is not None else None
-            ),
-            post_state_digest=(
-                str(payload["post_state_digest"]) if payload.get("post_state_digest") is not None else None
-            ),
-            joint_action_set_id=(
-                str(payload["joint_action_set_id"]) if payload.get("joint_action_set_id") is not None else None
-            ),
+            action_contract_address=_optional_payload_string(payload, "action_contract_address"),
+            observation_boundary_address=_optional_payload_string(payload, "observation_boundary_address"),
+            observation_status=_participant_observation_status_from_payload(payload.get("observation_status")),
+            actor_provenance=_optional_payload_string(payload, "actor_provenance"),
+            state_transition_kind=_optional_payload_string(payload, "state_transition_kind"),
+            post_state_digest=_optional_payload_string(payload, "post_state_digest"),
+            joint_action_set_id=_optional_payload_string(payload, "joint_action_set_id"),
             realized_order=payload.get("realized_order"),
-            interaction_class=(
-                None
-                if interaction_class_raw is None
-                else (
-                    interaction_class_raw
-                    if isinstance(interaction_class_raw, ParticipantInteractionClass)
-                    else ParticipantInteractionClass(str(interaction_class_raw))
-                )
+            interaction_class=_participant_interaction_class_from_payload(payload.get("interaction_class")),
+            interaction_ref=_optional_payload_string(payload, "interaction_ref"),
+            shared_state_refs=_participant_behavior_shared_state_refs_from_payload(
+                payload.get("shared_state_refs", ())
             ),
-            interaction_ref=str(payload["interaction_ref"]) if payload.get("interaction_ref") is not None else None,
-            shared_state_refs=tuple(str(ref) for ref in shared_state_refs_raw),
-            action_result=(
-                None
-                if action_result_raw is None
-                else (
-                    action_result_raw
-                    if isinstance(action_result_raw, ParticipantActionResult)
-                    else ParticipantActionResult.from_payload(action_result_raw)
-                )
-            ),
-            attribution_edges=tuple(
-                edge if isinstance(edge, ParticipantAttributionEdge) else ParticipantAttributionEdge.from_payload(edge)
-                for edge in attribution_edges_raw
-            ),
-            details=details,
+            action_result=_participant_action_result_from_payload(payload.get("action_result")),
+            attribution_edges=_participant_attribution_edges_from_payload(payload.get("attribution_edges", ())),
+            details=_participant_behavior_details_from_payload(payload.get("details", {})),
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -2661,6 +2661,22 @@ class ParticipantBehaviorHistoryEvent:
         ):
             raise TypeError("observation_status must be a ParticipantObservationStatus or None")
         self._validate_optional_string(self.actor_provenance, "actor_provenance must be a non-empty string or None")
+        self._validate_optional_state_fields()
+        self._validate_realized_order()
+        self._validate_interaction_type()
+        if not isinstance(self.shared_state_refs, tuple):
+            raise TypeError("shared_state_refs must be a tuple")
+        for ref in self.shared_state_refs:
+            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
+        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
+            raise ValueError("shared_state_refs entries must be unique")
+        self._validate_interaction_fields()
+        self._validate_action_result_type()
+        self._validate_attribution_edge_types()
+        if not isinstance(self.details, dict):
+            raise TypeError("participant behavior details must be a dict")
+
+    def _validate_optional_state_fields(self) -> None:
         self._validate_optional_string(
             self.state_transition_kind,
             "state_transition_kind must be a non-empty string or None",
@@ -2670,22 +2686,23 @@ class ParticipantBehaviorHistoryEvent:
             self.joint_action_set_id,
             "joint_action_set_id must be a non-empty string or None",
         )
+
+    def _validate_realized_order(self) -> None:
         if self.realized_order is not None and (
             not isinstance(self.realized_order, int) or isinstance(self.realized_order, bool) or self.realized_order < 0
         ):
             raise TypeError("realized_order must be a non-negative integer or None")
+
+    def _validate_interaction_type(self) -> None:
         if self.interaction_class is not None and not isinstance(self.interaction_class, ParticipantInteractionClass):
             raise TypeError("interaction_class must be a ParticipantInteractionClass or None")
         self._validate_optional_string(self.interaction_ref, "interaction_ref must be a non-empty string or None")
-        if not isinstance(self.shared_state_refs, tuple):
-            raise TypeError("shared_state_refs must be a tuple")
-        for ref in self.shared_state_refs:
-            self._validate_required_string(ref, "shared_state_refs entries must be non-empty strings")
-        if len(set(self.shared_state_refs)) != len(self.shared_state_refs):
-            raise ValueError("shared_state_refs entries must be unique")
-        self._validate_interaction_fields()
+
+    def _validate_action_result_type(self) -> None:
         if self.action_result is not None and not isinstance(self.action_result, ParticipantActionResult):
             raise TypeError("action_result must be a ParticipantActionResult or None")
+
+    def _validate_attribution_edge_types(self) -> None:
         if not isinstance(self.attribution_edges, tuple):
             raise TypeError("attribution_edges must be a tuple")
         if any(not isinstance(edge, ParticipantAttributionEdge) for edge in self.attribution_edges):
@@ -2694,8 +2711,6 @@ class ParticipantBehaviorHistoryEvent:
             raise ValueError("participant attribution edge_id values must be unique per event")
         if self.attribution_edges and self.event_type != ParticipantBehaviorHistoryEventType.OBSERVATION_EMITTED:
             raise ValueError("participant attribution edges are only allowed on observation_emitted events")
-        if not isinstance(self.details, dict):
-            raise TypeError("participant behavior details must be a dict")
 
     @staticmethod
     def _validate_required_string(value: Any, message: str) -> None:
