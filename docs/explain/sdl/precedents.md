@@ -206,6 +206,7 @@ These were considered and explicitly excluded:
 | Dockerfile/build execution              | Backend-specific build mechanic    | Backend implementation layer           |
 | Observable container image build provenance | Artifact provenance, not deployment authoring | SDL source-artifact surface; see ADR-023 |
 | Runtime-effective container entrypoints | Backend/runtime state              | `Node.runtime.container` when observed |
+| Local identity database (`/etc/passwd`, `/etc/group`, sudoers) | Runtime-observed state, not deployment authoring | `Node.runtime.local_identity` when observed; see ADR-024 |
 | Framework-specific participant APIs | Framework coupling | Integration adapters outside the core SDL/runtime |
 | Terraform module composition            | Import, version, namespace, parameter, locking, and packaging patterns | Implemented as deterministic SDL module/import expansion with OCI packaging, lockfiles, and trust policy |
 | Full CACAO workflow surface             | Current SDL now covers decisions, switch/case routing, reusable workflow calls, retries, explicit joins, cancel/timeout lifecycle contracts, and explicit compensation targets/order | Future: richer exception control and compensation-of-compensation semantics |

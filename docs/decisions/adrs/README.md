@@ -49,3 +49,4 @@ Each ADR includes:
 | [021](adr-021-falsification-first-claim-evidence-gate.md) | Falsification-First Claim Evidence Gate | proposed | 2026-05-18 |
 | [022](adr-022-participant-behavior-and-interaction-semantics.md) | Participant Behavior and Interaction Semantics | proposed | 2026-05-18 |
 | [023](adr-023-container-image-build-provenance-surface.md) | Container Image Build Provenance Surface | proposed | 2026-05-21 |
+| [024](adr-024-local-identity-inventory-surface.md) | Local Identity Inventory Surface | accepted | 2026-05-21 |
