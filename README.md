@@ -137,6 +137,9 @@ uv run aces-mcp
 The documentation source is under [`docs/`](docs/). Important entry points:
 
 - [`docs/index.md`](docs/index.md) - documentation index
+- [`docs/explain/reference/canonical-reference-map.md`](docs/explain/reference/canonical-reference-map.md) - current reference map
+- [`docs/explain/reference/documentation-style-guide.md`](docs/explain/reference/documentation-style-guide.md) - documentation style and citation rules
+- [`docs/explain/reference/glossary.md`](docs/explain/reference/glossary.md) - current terminology
 - [`docs/explain/sdl/index.md`](docs/explain/sdl/index.md) - SDL guide
 - [`docs/explain/sdl/runtime-architecture.md`](docs/explain/sdl/runtime-architecture.md) - runtime architecture
 - [`docs/explain/reference/backend-conformance.md`](docs/explain/reference/backend-conformance.md) - backend conformance model

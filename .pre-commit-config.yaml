@@ -9,10 +9,12 @@ repos:
         entry: bash -c 'uv tool run --from "nox[uv]==2026.4.10" nox -f noxfile.py -s hook-pre-commit -- "$@"' --
         language: system
         pass_filenames: true
+        require_serial: true
         stages: [pre-commit]
       - id: nox-pre-push
         name: nox pre-push verify
         entry: bash -c 'uv tool run --from "nox[uv]==2026.4.10" nox -f noxfile.py -s hook-pre-push'
         language: system
         pass_filenames: false
+        require_serial: true
         stages: [pre-push]

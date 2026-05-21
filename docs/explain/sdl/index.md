@@ -7,7 +7,8 @@ or execute it directly. Backend implementations realize SDL specifications
 through the runtime contracts defined here. The
 repository now includes SDL-native instantiation, compilation, planning,
 contracts, and a reference control-plane surface; the broader backend ecosystem
-and production implementations are still evolving.
+and production backend implementations are outside this repository's current
+implementation surface.
 
 The SDL now sits inside a broader ecosystem architecture with several distinct
 surfaces:
@@ -132,7 +133,7 @@ accounts:
 - [Semantic Validation](validation.md) — Cross-reference checks and what the validator enforces
 - [Design Precedents](precedents.md) — Where each SDL element comes from
 - [Academic Lineage](lineage.md) — Primary-source lineage for SDL semantics
-- [Limitations & Future Work](limitations.md) — What the SDL cannot express yet
+- [Limitations](limitations.md) — What the SDL cannot express
 - [Testing](testing.md) — How to run unit tests, stress tests, and fuzz tests
 - [Complex Scenario Designs](complex-scenarios.md) — Up-front design briefs for large example exercises
 - [Runtime Architecture](runtime-architecture.md) — SDL-native compiler, composite plans, and runtime targets

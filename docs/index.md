@@ -97,6 +97,9 @@ decisions/sem-213-temporal-participant-preflight
 
 explain/reference/README
 explain/reference/coding-standards
+explain/reference/canonical-reference-map
+explain/reference/documentation-style-guide
+explain/reference/glossary
 explain/reference/shared-concept-model
 explain/reference/shared-semantic-integrity
 explain/reference/backend-conformance
