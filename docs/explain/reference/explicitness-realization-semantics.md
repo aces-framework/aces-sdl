@@ -5,7 +5,7 @@ records the architecture guardrails for the implementation that realizes
 the spec; it is implementation guidance, **not normative**. The normative
 semantic boundary — including the invariants, the phase responsibilities,
 the binding gates, and the realization-status framing — lives in
-[`specs/formal/realization/explicitness-and-realization.md`](../../../specs/formal/realization/explicitness-and-realization.md).
+{download}`specs/formal/realization/explicitness-and-realization.md <../../../specs/formal/realization/explicitness-and-realization.md>`.
 Where this note's prose differs from the spec, the spec governs; where
 the spec is silent and this note records detail, treat that detail as
 implementer reference rather than a binding rule. Realization status is
@@ -146,7 +146,7 @@ Avoid:
 ## Companion Scope
 
 This note is implementation guidance for the SEM-218 normative spec at
-[`specs/formal/realization/explicitness-and-realization.md`](../../../specs/formal/realization/explicitness-and-realization.md).
+{download}`specs/formal/realization/explicitness-and-realization.md <../../../specs/formal/realization/explicitness-and-realization.md>`.
 It does not itself add SDL syntax, define exact-requirement-kinds, or
 change manifest payloads — those are governed by the spec and by the
 controlled-vocabulary / reference-model authorities. The PR that
