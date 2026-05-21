@@ -14,11 +14,16 @@ for analysis and parity, including mounts, Linux capabilities, namespace modes,
 entrypoints, image commands, extra hosts, DNS options, security flags, resource
 limits, health status/logs, filesystem inventory, the local identity
 database (`/etc/passwd` users, `/etc/group` groups, and sudo/sudoers grants),
-and container network realization (per-network aliases and DNS names,
+container network realization (per-network aliases and DNS names,
 hostname/domain identity, endpoint MAC/IP/prefix/gateway, backend network and
 endpoint identifiers with stability classification, host-published port
 bindings, and observable backend driver/IPAM detail —
-[ADR-025](../../decisions/adrs/adr-025-container-network-realization-surface.md)).
+[ADR-025](../../decisions/adrs/adr-025-container-network-realization-surface.md)),
+and the application HTTP route/API/UI surface (route paths and methods, owning
+service, auth/session requirements, typed request inputs, responses,
+template/static associations, route-specific vulnerability placement, exposed
+fixture secrets or diagnostic disclosures, and redirect/error behavior —
+[ADR-026](../../decisions/adrs/adr-026-application-http-surface-inventory.md)).
 Container image build
 provenance is a separate source-artifact expressivity surface tracked by issue
 #364 and [ADR-023](../../decisions/adrs/adr-023-container-image-build-provenance-surface.md);

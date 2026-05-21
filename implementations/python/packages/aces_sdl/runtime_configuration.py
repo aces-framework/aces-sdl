@@ -12,6 +12,17 @@ from ._base import (
     parse_float_or_var,
     parse_int_or_var,
 )
+from .runtime_application import (
+    RuntimeApplicationDisclosure,
+    RuntimeApplicationExposedField,
+    RuntimeApplicationParameter,
+    RuntimeApplicationParameterLocation,
+    RuntimeApplicationProtocol,
+    RuntimeApplicationRedirect,
+    RuntimeApplicationResponse,
+    RuntimeApplicationRoute,
+    RuntimeApplicationSurface,
+)
 from .runtime_container import (
     RuntimeContainerConfiguration,
     RuntimeDeviceMapping,
@@ -67,6 +78,15 @@ from .runtime_values import (
 )
 
 __all__ = [
+    "RuntimeApplicationDisclosure",
+    "RuntimeApplicationExposedField",
+    "RuntimeApplicationParameter",
+    "RuntimeApplicationParameterLocation",
+    "RuntimeApplicationProtocol",
+    "RuntimeApplicationRedirect",
+    "RuntimeApplicationResponse",
+    "RuntimeApplicationRoute",
+    "RuntimeApplicationSurface",
     "RuntimeCapabilityPolicy",
     "RuntimeConfiguration",
     "RuntimeContainerConfiguration",
@@ -515,6 +535,7 @@ class RuntimeConfiguration(SDLModel):
     health: RuntimeHealthObservation | None = None
     local_identity: RuntimeLocalIdentityInventory | None = None
     network: RuntimeNetworkRealization | None = None
+    applications: list[RuntimeApplicationSurface] = Field(default_factory=list)
     packages: list[RuntimePackage] = Field(default_factory=list)
     dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
     package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)
@@ -550,4 +571,10 @@ class RuntimeConfiguration(SDLModel):
                 if process.pid in seen_process_pids:
                     raise ValueError(f"Duplicate runtime process pid '{process.pid}'")
                 seen_process_pids.add(process.pid)
+
+        seen_application_ids: set[str] = set()
+        for application in self.applications:
+            if application.application_id in seen_application_ids:
+                raise ValueError(f"Duplicate runtime application_id '{application.application_id}'")
+            seen_application_ids.add(application.application_id)
         return self

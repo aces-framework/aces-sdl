@@ -136,6 +136,12 @@ nodes:
     resources:
       ram: 1 GiB
       cpu: 1
+    services:
+      - port: 8080
+        protocol: tcp
+        name: techvault-http
+        description: Gunicorn-served TechVault Flask application.
+    vulnerabilities: [unrestricted-upload, verbose-error-disclosure]
     runtime:
       mounts:
         - target: /var/log/gunicorn
@@ -505,6 +511,124 @@ nodes:
             host_ip: 0.0.0.0
             host_port: 8080
             description: Webapp HTTP port published from the container to the host.
+      applications:
+        - application_id: techvault-webapp
+          service: techvault-http
+          protocol: http
+          name: TechVault Webapp
+          framework: flask
+          base_path: /
+          description: >-
+            Participant-observable Flask route surface of the TechVault webapp,
+            observed from containers/webapp/app/app.py, templates, and static assets.
+          routes:
+            - route_id: index
+              path: /
+              methods: [GET]
+              name: index
+              auth_required: false
+              session_required: false
+              description: Landing page rendered from the index template.
+              responses:
+                - status_code: 200
+                  content_type: text/html
+              templates: [/app/templates/index.html]
+              static_assets: [/app/static/style.css]
+            - route_id: login
+              path: /login
+              methods: [GET, POST]
+              name: login
+              auth_required: false
+              session_required: false
+              auth_scheme: form_login
+              description: Form-based login; establishes the session on success.
+              parameters:
+                - name: username
+                  location: form
+                  required: true
+                  data_type: string
+                - name: password
+                  location: form
+                  required: true
+                  data_type: string
+              responses:
+                - status_code: 200
+                  content_type: text/html
+                  description: Login form, or form re-rendered with an error.
+                - status_code: 302
+                  content_type: text/html
+                  description: Redirect to the dashboard on successful login.
+              templates: [/app/templates/index.html]
+              static_assets: [/app/static/style.css]
+              redirects:
+                - target: /dashboard
+                  status_code: 302
+                  condition: valid credentials accepted
+            - route_id: file-upload
+              path: /files/upload
+              methods: [POST]
+              name: file_upload
+              auth_required: true
+              session_required: true
+              description: >-
+                Accepts an uploaded document; the endpoint stores files without
+                restricting type or destination path.
+              parameters:
+                - name: document
+                  location: uploaded_file
+                  required: true
+                  data_type: file
+              responses:
+                - status_code: 302
+                  content_type: text/html
+              vulnerability_refs: [unrestricted-upload]
+            - route_id: file-download
+              path: /files/<file_id>
+              methods: [GET]
+              name: file_download
+              auth_required: true
+              session_required: true
+              description: Returns a previously uploaded file by identifier.
+              parameters:
+                - name: file_id
+                  location: path
+                  required: true
+                  data_type: string
+              responses:
+                - status_code: 200
+                  content_type: application/octet-stream
+                - status_code: 404
+                  content_type: text/html
+            - route_id: diagnostics
+              path: /debug/info
+              methods: [GET]
+              name: debug_info
+              auth_required: false
+              session_required: false
+              description: >-
+                Intentionally exposed diagnostic endpoint left enabled in the
+                range fixture image.
+              responses:
+                - status_code: 200
+                  content_type: application/json
+              exposed_fields:
+                - name: build_token
+                  sensitivity: secret_fixture
+                  value: techvault-fixture-build-token
+                  description: Fixture build token deliberately exposed for range exercises.
+                - name: operator_api_key
+                  sensitivity: redacted
+                  description: Operator API key referenced by the endpoint but withheld from SDL.
+              disclosures:
+                - trigger: any request to the diagnostic endpoint
+                  status_code: 200
+                  disclosure: installed package versions, container hostname, and app root path
+                  sensitivity: plain
+                - trigger: unhandled application exception
+                  status_code: 500
+                  disclosure: Python traceback with internal file paths
+                  sensitivity: plain
+              vulnerability_refs: [verbose-error-disclosure]
   aptl-dmz:
     type: switch
     description: TechVault DMZ container network (Docker bridge aptl_aptl-dmz).
@@ -525,3 +649,19 @@ infrastructure:
       cidr: 172.21.0.0/24
       gateway: 172.21.0.1
       internal: true
+
+vulnerabilities:
+  unrestricted-upload:
+    name: Unrestricted file upload
+    description: >-
+      The file upload route accepts arbitrary file types and does not constrain
+      the storage path, allowing a participant to place executable content.
+    technical: true
+    class: CWE-434
+  verbose-error-disclosure:
+    name: Verbose error and diagnostic disclosure
+    description: >-
+      The diagnostic route and unhandled-exception handler expose internal
+      package versions, host paths, and Python tracebacks to any caller.
+    technical: false
+    class: CWE-209

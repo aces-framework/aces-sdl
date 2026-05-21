@@ -26,6 +26,15 @@ from aces.core.sdl.nodes import (
     NodeType,
     Resources,
     Role,
+    RuntimeApplicationDisclosure,
+    RuntimeApplicationExposedField,
+    RuntimeApplicationParameter,
+    RuntimeApplicationParameterLocation,
+    RuntimeApplicationProtocol,
+    RuntimeApplicationRedirect,
+    RuntimeApplicationResponse,
+    RuntimeApplicationRoute,
+    RuntimeApplicationSurface,
     RuntimeControlInterface,
     RuntimeControlInterfaceAccess,
     RuntimeControlInterfaceKind,
@@ -2109,3 +2118,253 @@ class TestBooleanPlaceholders:
             **{"class": "CWE-89"},
         )
         assert v.technical == "${is_technical}"
+
+
+# ---------------------------------------------------------------------------
+# Runtime application HTTP surface inventory (ADR-026)
+# ---------------------------------------------------------------------------
+
+
+class TestRuntimeApplicationSurface:
+    def test_vm_runtime_application_surface(self):
+        n = Node(
+            type="vm",
+            services=[{"port": 8080, "name": "techvault-http"}],
+            runtime={
+                "applications": [
+                    {
+                        "application_id": "techvault-webapp",
+                        "service": "techvault-http",
+                        "protocol": "http",
+                        "name": "TechVault Webapp",
+                        "base_path": "/",
+                        "framework": "flask",
+                        "description": "Observed Flask route surface.",
+                        "routes": [
+                            {
+                                "route_id": "login",
+                                "path": "/login",
+                                "methods": ["get", "post"],
+                                "name": "login",
+                                "auth_required": False,
+                                "session_required": False,
+                                "auth_scheme": "form_login",
+                                "parameters": [
+                                    {"name": "username", "location": "form", "required": True},
+                                    {"name": "password", "location": "form", "required": True},
+                                ],
+                                "responses": [
+                                    {"status_code": 200, "content_type": "text/html"},
+                                    {"status_code": "302", "content_type": "text/html"},
+                                ],
+                                "templates": ["/app/templates/login.html"],
+                                "static_assets": ["/app/static/style.css"],
+                                "redirects": [
+                                    {
+                                        "target": "/dashboard",
+                                        "status_code": 302,
+                                        "condition": "valid credentials",
+                                    }
+                                ],
+                            },
+                            {
+                                "route_id": "upload",
+                                "path": "/files/upload",
+                                "methods": ["POST"],
+                                "auth_required": True,
+                                "session_required": True,
+                                "parameters": [
+                                    {"name": "document", "location": "uploaded_file", "required": True},
+                                ],
+                                "vulnerability_refs": ["unrestricted-upload"],
+                            },
+                            {
+                                "route_id": "diagnostics",
+                                "path": "/debug/info",
+                                "methods": ["GET"],
+                                "exposed_fields": [
+                                    {
+                                        "name": "build_token",
+                                        "sensitivity": "secret_fixture",
+                                        "value": "fixture-token-1234",
+                                    }
+                                ],
+                                "disclosures": [
+                                    {
+                                        "trigger": "any request",
+                                        "status_code": 200,
+                                        "disclosure": "internal package versions and host paths",
+                                        "sensitivity": "plain",
+                                    }
+                                ],
+                            },
+                        ],
+                    }
+                ]
+            },
+        )
+        surface = n.runtime.applications[0]
+        assert surface.application_id == "techvault-webapp"
+        assert surface.service == "techvault-http"
+        assert surface.protocol == RuntimeApplicationProtocol.HTTP
+        assert surface.base_path == "/"
+        assert len(surface.routes) == 3
+        login = surface.routes[0]
+        # HTTP methods normalize to uppercase.
+        assert login.methods == ["GET", "POST"]
+        assert login.parameters[0].location == RuntimeApplicationParameterLocation.FORM
+        assert login.parameters[0].required is True
+        assert login.responses[1].status_code == 302
+        assert login.redirects[0].status_code == 302
+        upload = surface.routes[1]
+        assert upload.auth_required is True
+        assert upload.parameters[0].location == RuntimeApplicationParameterLocation.UPLOADED_FILE
+        assert upload.vulnerability_refs == ["unrestricted-upload"]
+        diag = surface.routes[2]
+        assert diag.exposed_fields[0].sensitivity == RuntimeSensitivityClassification.SECRET_FIXTURE
+        assert diag.disclosures[0].disclosure == "internal package versions and host paths"
+
+    def test_route_path_must_be_url_path(self):
+        with pytest.raises(ValidationError, match="route path must be a URL path starting with"):
+            RuntimeApplicationRoute(route_id="r1", path="login", methods=["GET"])
+
+    def test_route_path_rejects_whitespace(self):
+        with pytest.raises(ValidationError, match="must not contain whitespace"):
+            RuntimeApplicationRoute(route_id="r1", path="/log in", methods=["GET"])
+
+    def test_route_methods_must_not_be_empty(self):
+        with pytest.raises(ValidationError, match="route methods must not be empty"):
+            RuntimeApplicationRoute(route_id="r1", path="/login", methods=[])
+
+    def test_route_method_must_be_known(self):
+        with pytest.raises(ValidationError, match="must be one of"):
+            RuntimeApplicationRoute(route_id="r1", path="/login", methods=["FETCH"])
+
+    def test_route_id_rejects_variable_placeholder(self):
+        with pytest.raises(ValidationError, match="must be a stable identifier"):
+            RuntimeApplicationRoute(route_id="${rid}", path="/login", methods=["GET"])
+
+    def test_application_id_rejects_variable_placeholder(self):
+        with pytest.raises(ValidationError, match="must be a stable identifier"):
+            RuntimeApplicationSurface(application_id="${aid}")
+
+    def test_response_status_code_range(self):
+        with pytest.raises(ValidationError, match="status_code must be <= 599"):
+            RuntimeApplicationResponse(status_code=600)
+
+    def test_redirect_status_code_must_be_3xx(self):
+        with pytest.raises(ValidationError, match="redirect status_code must be >= 300"):
+            RuntimeApplicationRedirect(target="/x", status_code=200)
+
+    def test_redirect_target_must_be_non_empty(self):
+        with pytest.raises(ValidationError, match="redirect target must be a non-empty string"):
+            RuntimeApplicationRedirect(target="")
+
+    def test_parameter_name_must_be_non_empty(self):
+        with pytest.raises(ValidationError, match="parameter name must be a non-empty string"):
+            RuntimeApplicationParameter(name="  ")
+
+    def test_duplicate_parameter_in_same_location_rejected(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime application parameter 'id'"):
+            RuntimeApplicationRoute(
+                route_id="r1",
+                path="/items",
+                methods=["GET"],
+                parameters=[
+                    {"name": "id", "location": "query"},
+                    {"name": "id", "location": "query"},
+                ],
+            )
+
+    def test_same_parameter_name_in_different_locations_allowed(self):
+        route = RuntimeApplicationRoute(
+            route_id="r1",
+            path="/items/<id>",
+            methods=["GET"],
+            parameters=[
+                {"name": "id", "location": "path"},
+                {"name": "id", "location": "query"},
+            ],
+        )
+        assert len(route.parameters) == 2
+
+    def test_exposed_field_redacted_must_omit_value(self):
+        with pytest.raises(ValidationError, match="must omit its raw value"):
+            RuntimeApplicationExposedField(name="api_key", sensitivity="redacted", value="secret")
+
+    def test_exposed_field_operator_secret_must_omit_value(self):
+        with pytest.raises(ValidationError, match="must omit its raw value"):
+            RuntimeApplicationExposedField(name="api_key", sensitivity="operator_secret", value="secret")
+
+    def test_disclosure_classified_description_only(self):
+        disclosure = RuntimeApplicationDisclosure(
+            trigger="malformed id",
+            status_code=500,
+            disclosure="stack trace exposed",
+            sensitivity="plain",
+        )
+        assert disclosure.status_code == 500
+
+    def test_duplicate_route_id_rejected(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime application route_id 'r1'"):
+            RuntimeApplicationSurface(
+                application_id="app",
+                routes=[
+                    {"route_id": "r1", "path": "/a", "methods": ["GET"]},
+                    {"route_id": "r1", "path": "/b", "methods": ["GET"]},
+                ],
+            )
+
+    def test_duplicate_method_path_binding_rejected(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime application route binding 'GET /a'"):
+            RuntimeApplicationSurface(
+                application_id="app",
+                routes=[
+                    {"route_id": "r1", "path": "/a", "methods": ["GET"]},
+                    {"route_id": "r2", "path": "/a", "methods": ["GET", "POST"]},
+                ],
+            )
+
+    def test_same_path_different_methods_allowed(self):
+        surface = RuntimeApplicationSurface(
+            application_id="app",
+            routes=[
+                {"route_id": "r1", "path": "/a", "methods": ["GET"]},
+                {"route_id": "r2", "path": "/a", "methods": ["POST"]},
+            ],
+        )
+        assert len(surface.routes) == 2
+
+    def test_duplicate_application_id_on_node_rejected(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime application_id 'app'"):
+            Node(
+                type="vm",
+                runtime={
+                    "applications": [
+                        {"application_id": "app"},
+                        {"application_id": "app"},
+                    ]
+                },
+            )
+
+    def test_route_path_variable_placeholder_allowed_in_value_fields(self):
+        route = RuntimeApplicationRoute(
+            route_id="r1",
+            path="/items",
+            methods=["GET"],
+            auth_required="${needs_auth}",
+        )
+        assert route.auth_required == "${needs_auth}"
+
+    def test_base_path_must_be_url_path(self):
+        with pytest.raises(ValidationError, match="base_path must be a URL path starting with"):
+            RuntimeApplicationSurface(application_id="app", base_path="api")
+
+    def test_duplicate_template_ref_rejected(self):
+        with pytest.raises(ValidationError, match="Duplicate runtime application templates entry"):
+            RuntimeApplicationRoute(
+                route_id="r1",
+                path="/a",
+                methods=["GET"],
+                templates=["/app/t.html", "/app/t.html"],
+            )
