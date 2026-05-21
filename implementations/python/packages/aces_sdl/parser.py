@@ -57,6 +57,7 @@ _NESTED_HASHMAP_FIELDS = frozenset(
         "injects",  # VM.injects (dict[str, str])
         "roles",  # Node.roles (dict[str, Role])
         "log_options",  # RuntimeContainerConfiguration.log_options preserves native engine option keys
+        "labels",  # ImageConfig.labels preserves case-sensitive native image label keys
         "facts",  # Entity.facts (dict[str, str])
         "entities",  # Entity.entities (dict[str, Entity])
         "events",  # Script.events (dict[str, int])

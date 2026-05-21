@@ -27,6 +27,112 @@ nodes:
   techvault-webapp:
     type: vm
     os: linux
+    source:
+      name: techvault-webapp
+      version: local
+      build:
+        description: Observed build recipe and provenance for the TechVault webapp image.
+        base_image: python:3.12-slim
+        base_image_digest: sha256:0e1f2a3b4c5d6e7f8091a2b3c4d5e6f70819a2b3c4d5e6f70819a2b3c4d5e6f7
+        dockerfile_path: containers/webapp/Dockerfile
+        instructions:
+          - instruction: from
+            arguments: [python:3.12-slim]
+          - instruction: arg
+            arguments: [APP_VERSION]
+          - instruction: workdir
+            arguments: [/app]
+          - instruction: copy
+            arguments: [webapp/requirements.txt, /app/requirements.txt]
+          - instruction: run
+            arguments: ["pip install --no-cache-dir -r /app/requirements.txt"]
+          - instruction: copy
+            arguments: [webapp/, /app/]
+          - instruction: copy
+            arguments: [supervisor/webapp.conf, /etc/supervisor/conf.d/webapp.conf]
+          - instruction: copy
+            arguments: [docker/entrypoint.sh, /entrypoint.sh]
+          - instruction: expose
+            arguments: ["8080"]
+          - instruction: entrypoint
+            arguments: [/entrypoint.sh]
+          - instruction: cmd
+            arguments: [supervisord, -n, -c, /etc/supervisor/supervisord.conf]
+        layers:
+          - digest: sha256:11ab22cd33ef44ab55cd66ef77ab88cd99ef00ab11cd22ef33ab44cd55ef66ab
+            created_by: FROM python:3.12-slim
+            size: 122683392
+          - digest: sha256:22bc33de44fa55bc66de77fa88bc99de00fa11bc22de33fa44bc55de66fa77bc
+            created_by: "RUN pip install --no-cache-dir -r /app/requirements.txt"
+            size: 18472960
+          - created_by: ENV APP_HOME=/app
+            empty: true
+        build_args:
+          - name: APP_VERSION
+            value: "2.4.0"
+            value_classification: plain
+            description: Build-time application version stamped into the image.
+          - name: PIP_INDEX_TOKEN
+            value_classification: redacted
+            description: Private index credential supplied at build time and not retained in the image.
+        copied_sources:
+          - source_path: webapp/requirements.txt
+            destination_path: /app/requirements.txt
+          - source_path: webapp/app.py
+            destination_path: /app/app.py
+          - source_path: webapp/static/style.css
+            destination_path: /app/static/style.css
+          - source_path: webapp/templates/index.html
+            destination_path: /app/templates/index.html
+          - source_path: supervisor/webapp.conf
+            destination_path: /etc/supervisor/conf.d/webapp.conf
+          - source_path: docker/entrypoint.sh
+            destination_path: /entrypoint.sh
+        config:
+          entrypoint: [/entrypoint.sh]
+          command: [supervisord, -n, -c, /etc/supervisor/supervisord.conf]
+          working_directory: /app
+          exposed_ports: [8080/tcp]
+          labels:
+            org.opencontainers.image.title: TechVault Webapp
+            org.opencontainers.image.source: https://example.test/techvault/webapp
+            com.techvault.tier: webapp
+          default_environment:
+            - name: APP_HOME
+              value: /app
+              value_classification: plain
+            - name: PYTHONUNBUFFERED
+              value: "1"
+              value_classification: plain
+        source_inputs:
+          - identifier: webapp-app
+            source_path: webapp/app.py
+            destination_path: /app/app.py
+            checksum: ${app_py_sha256}
+            checksum_algorithm: sha256
+          - identifier: webapp-requirements
+            source_path: webapp/requirements.txt
+            destination_path: /app/requirements.txt
+            checksum: ${requirements_sha256}
+            checksum_algorithm: sha256
+          - identifier: webapp-style
+            source_path: webapp/static/style.css
+            destination_path: /app/static/style.css
+            checksum: ${style_css_sha256}
+            checksum_algorithm: sha256
+          - identifier: supervisor-webapp-conf
+            source_path: supervisor/webapp.conf
+            destination_path: /etc/supervisor/conf.d/webapp.conf
+            checksum: ${webapp_conf_sha256}
+            checksum_algorithm: sha256
+        attestation:
+          status: absent
+          verification: not_applicable
+          attestation_type: none
+          description: >-
+            The mutable local image tag has no registry-visible OCI, in-toto, or
+            SLSA attestation; absence of attestation is recorded as a distinct
+            fact from a failed verification.
     resources:
       ram: 1 GiB
       cpu: 1

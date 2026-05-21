@@ -401,6 +401,91 @@
       "title": "Condition",
       "type": "object"
     },
+    "ContainerImageBuildProvenance": {
+      "additionalProperties": false,
+      "description": "Observed build/provenance facts for a custom container image artifact.",
+      "properties": {
+        "attestation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageAttestation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "base_image": {
+          "default": "",
+          "title": "Base Image",
+          "type": "string"
+        },
+        "base_image_digest": {
+          "default": "",
+          "title": "Base Image Digest",
+          "type": "string"
+        },
+        "build_args": {
+          "items": {
+            "$ref": "#/$defs/ImageBuildArg"
+          },
+          "title": "Build Args",
+          "type": "array"
+        },
+        "config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "copied_sources": {
+          "items": {
+            "$ref": "#/$defs/ImageCopiedSource"
+          },
+          "title": "Copied Sources",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "dockerfile_path": {
+          "default": "",
+          "title": "Dockerfile Path",
+          "type": "string"
+        },
+        "instructions": {
+          "items": {
+            "$ref": "#/$defs/DockerfileInstruction"
+          },
+          "title": "Instructions",
+          "type": "array"
+        },
+        "layers": {
+          "items": {
+            "$ref": "#/$defs/ImageLayer"
+          },
+          "title": "Layers",
+          "type": "array"
+        },
+        "source_inputs": {
+          "items": {
+            "$ref": "#/$defs/ImageSourceInput"
+          },
+          "title": "Source Inputs",
+          "type": "array"
+        }
+      },
+      "title": "ContainerImageBuildProvenance",
+      "type": "object"
+    },
     "Content": {
       "additionalProperties": false,
       "description": "Data or files placed into a scenario node.\n\nSupports three forms:\n- ``file``: A single file at a specific path, optionally with inline text.\n- ``dataset``: A collection of related items (emails, records, pcaps)\n  delivered via a source package or listed as items.\n- ``directory``: A directory structure placed at a destination path.",
@@ -524,6 +609,66 @@
         "directory"
       ],
       "title": "ContentType",
+      "type": "string"
+    },
+    "DockerfileInstruction": {
+      "additionalProperties": false,
+      "description": "A structured record of one container build-recipe instruction.\n\nThe instruction is kept as a typed kind plus tokenized ``arguments``\nrather than raw recipe text: raw Dockerfile/shell syntax can contain\n``${...}`` strings that collide with ACES variable substitution.",
+      "properties": {
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "instruction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DockerfileInstructionKind"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Instruction"
+        }
+      },
+      "required": [
+        "instruction"
+      ],
+      "title": "DockerfileInstruction",
+      "type": "object"
+    },
+    "DockerfileInstructionKind": {
+      "description": "Observed kind of a structured container build-recipe instruction.",
+      "enum": [
+        "from",
+        "arg",
+        "env",
+        "run",
+        "copy",
+        "add",
+        "workdir",
+        "entrypoint",
+        "cmd",
+        "healthcheck",
+        "label",
+        "expose",
+        "user",
+        "volume",
+        "shell",
+        "stopsignal",
+        "onbuild",
+        "maintainer",
+        "other"
+      ],
+      "title": "DockerfileInstructionKind",
       "type": "string"
     },
     "Entity": {
@@ -822,6 +967,350 @@
       ],
       "title": "Goal",
       "type": "object"
+    },
+    "ImageAttestation": {
+      "additionalProperties": false,
+      "description": "Observed build-attestation availability and verification result.\n\nAttestation *availability* (``status``) and *verification result*\n(``verification``) are deliberately separate facts: a mutable local image\ntag with no registry-visible OCI/in-toto/SLSA attestation is not the same\nstate as a failed verification (ADR-023 \u00a75).",
+      "properties": {
+        "attestation_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageAttestationType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Attestation Type"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_reference": {
+          "default": "",
+          "title": "Evidence Reference",
+          "type": "string"
+        },
+        "predicate_type": {
+          "default": "",
+          "title": "Predicate Type",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageAttestationStatus"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Status"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageVerificationStatus"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Verification"
+        }
+      },
+      "title": "ImageAttestation",
+      "type": "object"
+    },
+    "ImageAttestationStatus": {
+      "description": "Availability of a registry-visible build attestation for an image.",
+      "enum": [
+        "present",
+        "absent",
+        "unknown"
+      ],
+      "title": "ImageAttestationStatus",
+      "type": "string"
+    },
+    "ImageAttestationType": {
+      "description": "Format of an observed image build attestation.",
+      "enum": [
+        "oci",
+        "in_toto",
+        "slsa",
+        "other",
+        "none",
+        "unknown"
+      ],
+      "title": "ImageAttestationType",
+      "type": "string"
+    },
+    "ImageBuildArg": {
+      "additionalProperties": false,
+      "description": "An observed build argument with value-sensitivity classification.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        },
+        "value_classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeEnvironmentValueClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Value Classification"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ImageBuildArg",
+      "type": "object"
+    },
+    "ImageConfig": {
+      "additionalProperties": false,
+      "description": "Observed image-default configuration baked into the image artifact.\n\nThese are image defaults, distinct from runtime-effective container facts\nrecorded under ``Node.runtime.container``.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "default_environment": {
+          "items": {
+            "$ref": "#/$defs/ImageEnvironmentDefault"
+          },
+          "title": "Default Environment",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "entrypoint": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Entrypoint",
+          "type": "array"
+        },
+        "exposed_ports": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exposed Ports",
+          "type": "array"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Labels",
+          "type": "object"
+        },
+        "working_directory": {
+          "default": "",
+          "title": "Working Directory",
+          "type": "string"
+        }
+      },
+      "title": "ImageConfig",
+      "type": "object"
+    },
+    "ImageCopiedSource": {
+      "additionalProperties": false,
+      "description": "A source path copied into the image and its in-image destination.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "destination_path": {
+          "title": "Destination Path",
+          "type": "string"
+        },
+        "from_stage": {
+          "default": "",
+          "title": "From Stage",
+          "type": "string"
+        },
+        "source_path": {
+          "title": "Source Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_path",
+        "destination_path"
+      ],
+      "title": "ImageCopiedSource",
+      "type": "object"
+    },
+    "ImageEnvironmentDefault": {
+      "additionalProperties": false,
+      "description": "An image-default environment variable with sensitivity classification.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        },
+        "value_classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeEnvironmentValueClassification"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Value Classification"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ImageEnvironmentDefault",
+      "type": "object"
+    },
+    "ImageLayer": {
+      "additionalProperties": false,
+      "description": "An observed layer in the image layer chain.\n\nEmpty/metadata-only layers (e.g. ``ENV`` instructions) legitimately carry\nno ``digest``; the layer is still recorded for build-history correlation.",
+      "properties": {
+        "created_by": {
+          "default": "",
+          "title": "Created By",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "digest": {
+          "default": "",
+          "title": "Digest",
+          "type": "string"
+        },
+        "empty": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Empty"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        }
+      },
+      "title": "ImageLayer",
+      "type": "object"
+    },
+    "ImageSourceInput": {
+      "additionalProperties": false,
+      "description": "A source-package input and its source-to-runtime destination mapping.\n\n``source_path`` uses the same source-path dialect as\n``RuntimeFilesystemEntry.source_path`` so the build-time input and the\nrealized runtime entry can be correlated.",
+      "properties": {
+        "checksum": {
+          "default": "",
+          "title": "Checksum",
+          "type": "string"
+        },
+        "checksum_algorithm": {
+          "default": "",
+          "title": "Checksum Algorithm",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "destination_path": {
+          "default": "",
+          "title": "Destination Path",
+          "type": "string"
+        },
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "source_path": {
+          "default": "",
+          "title": "Source Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identifier"
+      ],
+      "title": "ImageSourceInput",
+      "type": "object"
+    },
+    "ImageVerificationStatus": {
+      "description": "Result of verifying an image's build attestation.",
+      "enum": [
+        "verified",
+        "failed",
+        "unverified",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "ImageVerificationStatus",
+      "type": "string"
     },
     "ImportDecl": {
       "additionalProperties": false,
@@ -4059,6 +4548,17 @@
       "additionalProperties": false,
       "description": "Provider-neutral artifact reference.\n\nShorthand: ``source: \"package-name\"`` (version defaults to ``\"*\"``).\nLonghand: ``source: {name: \"package-name\", version: \"1.2.3\"}``.",
       "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContainerImageBuildProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "name": {
           "title": "Name",
           "type": "string"

@@ -248,6 +248,28 @@ findings tied to an image digest and scan time. These findings are separate
 from the top-level `vulnerabilities` section, which remains the CWE-classified
 scenario vulnerability surface.
 
+`source` identifies the node's artifact by provider-neutral `name` and
+`version`. When that artifact is a custom-built container image, the optional
+`source.build` block records its observable build/provenance facts without
+making any container engine the normative deployment model. `build` captures
+the `base_image` and `base_image_digest`; the `dockerfile_path` and structured
+`instructions` (typed `instruction` kind plus tokenized `arguments` — raw
+recipe text is intentionally not stored, since `${...}` in shell/Dockerfile
+syntax would collide with SDL variable substitution); the `layers` chain with
+per-layer `digest`, `created_by`, `size`, and `empty` flag; `build_args` with a
+`value_classification` so secret build arguments are redacted rather than
+recorded; `copied_sources` mapping build-context `source_path` to in-image
+`destination_path`; `config` recording image *defaults* (entrypoint, command,
+working directory, exposed ports, native-keyed `labels`, and
+`default_environment`); `source_inputs` mapping source-package inputs to
+runtime destinations with optional checksums; and `attestation`, which records
+attestation `status` (availability) separately from `verification` (result) so
+that "no registry-visible attestation" is a distinct, falsifiable fact rather
+than an inferred verification failure. Image-default `config` facts are kept
+separate from runtime-effective facts under `runtime.container`; the same value
+may appear in both with different meanings. See
+[ADR-023](../../decisions/adrs/adr-023-container-image-build-provenance-surface.md).
+
 ---
 
 ## Infrastructure

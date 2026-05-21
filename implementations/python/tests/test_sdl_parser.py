@@ -425,6 +425,86 @@ nodes:
         assert node.runtime.package_vulnerabilities[0].image_digest == "sha256:abc123"
         assert node.runtime.package_vulnerabilities[0].scan_time == "2026-05-20T12:00:00Z"
 
+    def test_source_build_provenance_parses_with_kebab_keys(self):
+        sdl = """
+name: techvault-build-provenance
+nodes:
+  techvault-webapp:
+    type: vm
+    os: linux
+    source:
+      name: techvault-webapp
+      version: local
+      build:
+        base-image: python:3.12-slim
+        base-image-digest: sha256:deadbeef
+        dockerfile-path: containers/webapp/Dockerfile
+        instructions:
+          - instruction: from
+            arguments: [python:3.12-slim]
+          - instruction: copy
+            arguments: [webapp/app.py, /app/app.py]
+        layers:
+          - digest: sha256:layer1
+            created-by: FROM python:3.12-slim
+            size: "31000000"
+          - created-by: ENV APP_HOME=/app
+            empty: true
+        build-args:
+          - name: APP_VERSION
+            value: 1.4.2
+            value-classification: plain
+          - name: PIP_INDEX_TOKEN
+            value-classification: redacted
+        copied-sources:
+          - source-path: webapp/app.py
+            destination-path: /app/app.py
+        config:
+          entrypoint: [/entrypoint.sh]
+          command: [gunicorn, app:app]
+          working-directory: /app
+          exposed-ports: [8080/tcp]
+          labels:
+            org.opencontainers.image.source: https://example.test/techvault
+            com.Example.Tier: webapp
+          default-environment:
+            - name: APP_HOME
+              value: /app
+        source-inputs:
+          - identifier: webapp-app
+            source-path: webapp/app.py
+            destination-path: /app/app.py
+            checksum: 4f8c2d
+            checksum-algorithm: sha256
+        attestation:
+          status: absent
+          verification: not-applicable
+          attestation-type: in-toto
+"""
+        s = parse_sdl(sdl, skip_semantic_validation=True)
+        build = s.nodes["techvault-webapp"].source.build
+
+        assert build is not None
+        assert build.base_image == "python:3.12-slim"
+        assert build.dockerfile_path == "containers/webapp/Dockerfile"
+        assert build.instructions[1].instruction.value == "copy"
+        assert build.instructions[1].arguments == ["webapp/app.py", "/app/app.py"]
+        assert build.layers[0].size == 31000000
+        assert build.layers[1].empty is True
+        assert build.build_args[1].value_classification.value == "redacted"
+        assert build.copied_sources[0].destination_path == "/app/app.py"
+        assert build.config.working_directory == "/app"
+        assert build.config.exposed_ports == ["8080/tcp"]
+        # Native, case-sensitive image label keys are preserved verbatim.
+        assert build.config.labels == {
+            "org.opencontainers.image.source": "https://example.test/techvault",
+            "com.Example.Tier": "webapp",
+        }
+        assert build.config.default_environment[0].name == "APP_HOME"
+        assert build.source_inputs[0].checksum_algorithm == "sha256"
+        assert build.attestation.verification.value == "not_applicable"
+        assert build.attestation.attestation_type.value == "in_toto"
+
     def test_source_shorthand(self):
         sdl = """
 name: test
@@ -835,7 +915,7 @@ class TestErrorHandling:
             parse_sdl("- just\n- a\n- list")
 
     def test_no_identity(self):
-        with pytest.raises(SDLParseError):
+        with pytest.raises(SDLParseError, match="name"):
             parse_sdl("description: no name or metadata")
 
 
