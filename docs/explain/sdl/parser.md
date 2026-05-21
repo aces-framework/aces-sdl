@@ -108,7 +108,7 @@ Use `parse_sdl_file(...)` for SDL that uses top-level `imports:`. Import
 expansion is file-backed and deterministic, so in-memory `parse_sdl(...)`
 rejects module/import composition by design.
 
-Top-level composition now supports:
+Top-level composition supports:
 
 - optional `module` descriptors for publishable SDL modules
 - `imports` using backward-compatible `path:` or canonical `source:`

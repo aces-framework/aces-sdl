@@ -82,7 +82,7 @@ but it still passes through these gates:
   examples, and generated artifacts must not include bearer tokens,
   credentials, private keys, environment secrets, or instructions that place
   secrets in process arguments.
-- Error-envelope leakage: any future tool or CLI surfaced by this work should
+- Error-envelope leakage: any added tool or CLI surfaced by this work should
   reuse existing diagnostics/error patterns and avoid raw tracebacks or
   environment dumps.
 
@@ -91,7 +91,7 @@ but it still passes through these gates:
 The seam is the artifact family plus versioned `contract_id`, not a Python
 class name, generator function, path convention, or profile-local table.
 
-Adding a future authoritative family should require a clear artifact location,
+Adding an authoritative family should require a clear artifact location,
 schema/profile/fixture registration where applicable, and one validation hook
 in the existing manifest or contract-validation machinery. It should not
 require re-editing unrelated consumers or copying a new authority list across

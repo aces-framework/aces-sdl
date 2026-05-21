@@ -140,7 +140,7 @@ still allowing each artifact family to keep its own fit-for-purpose shape.
 
 `GOV-918` implements the artifact binding layer for apparatus manifests.
 
-Both `v2` backend manifests and `v2` processor manifests now require a
+Both `v2` backend manifests and `v2` processor manifests require a
 `concept_bindings` section. Each entry maps a dot-delimited field path (scope)
 to a concept family identifier from the authoritative catalog.
 
@@ -172,7 +172,7 @@ artifact.
 `GOV-919` implements the ACES concept layer by making native extension metadata
 normative in the concept-family catalog.
 
-Every `native` concept family now declares:
+Every `native` concept family declares:
 
 - `extension_scope`, describing the ACES-specific concern covered by the family
 - `relation_rules`, describing how the native family may relate to adopted,
@@ -303,7 +303,7 @@ The initial machine-readable catalog is
   `capabilities.orchestrator.supported_sections`, and
   `capabilities.evaluator.supported_sections`
 
-Validation now treats that catalog as normative for both contract-model
+Validation treats that catalog as normative for both contract-model
 validation and runtime capability declarations.
 
 ## Relationship To Other Requirements

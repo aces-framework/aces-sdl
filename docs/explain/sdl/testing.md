@@ -16,9 +16,9 @@ Use the smallest level that matches the change:
 4. **Abstract models for FM3 work** — optional state-machine/TLA+/Alloy support
    for especially risky control or contract semantics
 
-Formal tools are not part of the default developer loop or CI in this first
-rollout. They are optional artifacts for selected `FM3` changes rather than a
-blanket requirement for SDL work.
+Formal tools are not part of the default developer loop or CI. They are
+optional artifacts for selected `FM3` changes rather than a blanket requirement
+for SDL work.
 
 ## Test Suites
 
@@ -45,14 +45,14 @@ uv run --extra dev pytest tests/test_sdl_stress.py tests/test_sdl_realworld.py -
 - **test_sdl_stress.py** — Scenarios 1-13: OCR, CybORG, CALDERA, Atomic Red Team, CyRIS, KYPO, HTB, Enterprise AD, Cloud Hybrid, Exchange+data, CybORG+agents, AD+trust+federation
 - **test_sdl_realworld.py** — Scenarios 14-19: Incalmo Equifax, NICE Challenge 17, CCDC Burnsodyne, HTB Offshore-style, Metasploitable 2, Locked Shields IT/OT/SCADA
 
-Objective coverage is exercised in the stress suites as well: the agent-heavy CybORG-derived scenarios and exercise-heavy scenarios now include declarative `objectives` so the section is tested against realistic combinations of agents, scoring, orchestration, and team structure rather than only unit tests.
+Objective coverage is exercised in the stress suites as well: the agent-heavy CybORG-derived scenarios and exercise-heavy scenarios include declarative `objectives` so the section is tested against realistic combinations of agents, scoring, orchestration, and team structure rather than only unit tests.
 
 Those suites cover the SDL/runtime surfaces that are currently materialized in
-syntax and code. They do not yet imply full executable coverage for every
+syntax and code. They do not imply full executable coverage for every
 participant-, benchmark-, evidence-, or participant-implementation requirement
-now captured in the requirements architecture. As those surfaces become
-published syntax or contracts, they should gain their own explicit fixture and
-conformance coverage rather than being assumed covered indirectly.
+listed in the requirements architecture. A surface without published syntax,
+contracts, named invariant tests, or conformance fixtures is not covered by
+these suites.
 
 Each scenario is tested for:
 1. Parse + validate success
@@ -93,7 +93,7 @@ cd implementations/python && uv run --extra dev pytest tests/ -m '' -v
 
 ### Example Scenarios
 
-The `examples/scenarios/` directory now contains curated large SDL files that are
+The `examples/scenarios/` directory contains curated large SDL files that are
 meant to be reusable starting points rather than inline test-only
 fixtures. They are loaded directly from disk by
 `implementations/python/tests/test_scenarios.py`
@@ -103,10 +103,10 @@ so they stay valid as real SDL artifacts:
 - `satcom-release-poisoning.sdl.yaml`
 - `port-authority-surge-response.sdl.yaml`
 
-The up-front design briefs for the new complex examples live in
-[`docs/sdl/complex-scenarios.md`](complex-scenarios.md).
+The up-front design briefs for the complex examples live in
+[`docs/explain/sdl/complex-scenarios.md`](complex-scenarios.md).
 
-Those example files now also serve as disk-backed coverage for the newest SDL surfaces: enum-backed variable values, direct service/ACL objective targets, and the redesigned workflow language (`decision`, `retry`, explicit join barriers, failure transitions, and workflow state predicates, including post-join branch-state inspection). The runtime/compiler unit suites additionally pin fail-closed behavior for missing same-node feature dependencies and malformed backend lifecycle payloads.
+Those example files also serve as disk-backed coverage for current SDL surfaces: enum-backed variable values, direct service/ACL objective targets, and the redesigned workflow language (`decision`, `retry`, explicit join barriers, failure transitions, and workflow state predicates, including post-join branch-state inspection). The runtime/compiler unit suites additionally pin fail-closed behavior for missing same-node feature dependencies and malformed backend lifecycle payloads.
 
 For workflow and runtime semantics specifically, prefer explicit invariant tests
 that name the semantic rule being protected. Property-based tests are a strong
@@ -114,11 +114,10 @@ fit when the graph/state space can be generated cheaply. Abstract models become
 appropriate only for `FM3` changes that materially alter branching, join,
 re-entry, or portable result-contract behavior.
 
-The same discipline should apply to newer ecosystem surfaces as they mature:
-participant exposure/visibility boundaries, evidence-capture disclosures,
-apparatus augmentation, and participant-implementation manifests should each
-acquire named invariant tests or conformance fixtures once they are formalized
-as syntax or contracts.
+Participant exposure/visibility boundaries, evidence-capture disclosures,
+apparatus augmentation, and participant-implementation manifests are not
+covered by these tests unless named invariant tests or conformance fixtures
+exist for the relevant syntax or contract.
 
 ## Adding New Scenarios
 

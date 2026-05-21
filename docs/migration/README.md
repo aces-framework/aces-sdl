@@ -12,9 +12,10 @@ The reorganization moved existing material into the current long-term buckets:
 - `docs/sdl/` -> `docs/explain/sdl/`
 - Python implementation code and tests -> `implementations/python/`
 
-Most of this re-homing is now complete. Follow-on passes may still refine
-individual imports, tooling, or contract/spec details, but the authoritative
-locations listed above are the intended home for current work.
+The authoritative locations listed above are the intended home for current
+work. Remaining inconsistencies should be recorded as issues, ADR amendments,
+or contract/spec changes rather than described here as open-ended migration
+work.
 
 The working order for reconciling the current implementation to that layout is
 captured in [ADR-010](../decisions/adrs/adr-010-repository-realignment-order-and-compatibility-policy.md).

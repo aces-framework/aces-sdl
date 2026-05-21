@@ -26,7 +26,7 @@ Prerequisites:
 Set up the Python implementation:
 
 ```shell
-git clone https://github.com/autarchy-ai/aces.git
+git clone https://github.com/Brad-Edwards/aces.git
 cd aces/implementations/python
 uv sync --all-extras
 ```
@@ -38,11 +38,13 @@ uv sync --all-extras
 3. Add or update tests when behavior changes.
 4. Update examples, schemas, contracts, or documentation when the public
    surface changes.
-5. Add a towncrier fragment under [`changelog.d/`](changelog.d/) unless the
+5. For documentation changes, follow
+   [`docs/explain/reference/documentation-style-guide.md`](docs/explain/reference/documentation-style-guide.md).
+6. Add a towncrier fragment under [`changelog.d/`](changelog.d/) unless the
    change is only internal maintenance. See
    [`changelog.d/README.md`](changelog.d/README.md).
-6. Run the relevant checks locally.
-7. Open a pull request against `dev` with a concrete description of what
+7. Run the relevant checks locally.
+8. Open a pull request against `dev` with a concrete description of what
    changed and why.
 
 ## Verification

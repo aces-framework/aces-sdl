@@ -14,7 +14,7 @@ validates that table on every `nox` policy run.
 
 `SEM-200` is broader than concept authority alone. It covers whether scenario
 constructs keep the same meaning across authoring, validation, instantiation,
-compilation, planning, execution, live observation, and later experiment
+compilation, planning, execution, live observation, and post-run experiment
 interpretation. The implementation should extend the existing semantic
 authority stack rather than introduce another one.
 
@@ -187,10 +187,10 @@ Status is one of:
 - `partial` — some realization exists (a spec, a helper) but the owning
   requirement is still `DRAFT` or the coverage is incomplete. The gate enforces
   at least one phase and at least one existing non-test repository artifact.
-- `planned` — no realization yet; owned by a `DRAFT` requirement; future work.
+- `planned` — no realization yet; owned by a `DRAFT` requirement.
   Phases and artifacts are left as `—`; the gate enforces that they stay empty.
-  For a `planned` row, the construct family's intended lifecycle scope, future
-  artifact, and wave are defined by the owning requirement's record in Ground
+  For a `planned` row, the construct family's lifecycle scope, artifact
+  expectations, and wave are defined by the owning requirement's record in Ground
   Control (its statement and `wave` field) — this table tracks realization
   status, not the requirement database, and deliberately carries no wave column.
 
@@ -201,7 +201,7 @@ peer requirement that is already `ACTIVE`) accounts for it. Pure SDL
 data-modeling constructs (topology, features, content, exercise timeline, …) get
 their cross-stage integrity from fail-closed validation (`SEM-201`), canonical
 identities (`SEM-205`), and the compiled representation (`RUN-302`), so they have
-no row of their own unless a construct-specific semantic gap is later identified
+no row of their own unless a construct-specific semantic gap is identified
 and a `SEM-*` requirement opened for it. Higher-level capabilities that *consume*
 the semantic layer (cross-run comparability, semantic diff, federation/standards
 profiles, …) are downstream of `SEM-200` rather than construct families of it,

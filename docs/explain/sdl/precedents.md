@@ -58,8 +58,8 @@ The 14 base sections start from the [OCR SDL](https://github.com/Open-Cyber-Rang
 
 These sources inform the newer participant-, benchmark-, and exposure-related
 ecosystem surfaces. In many cases they are precedents for concerns the
-requirements now recognize even when the current SDL syntax does not yet expose
-the full shape directly.
+requirements recognize even when the current SDL syntax does not expose the
+full shape directly.
 
 | Concern | Primary Sources | What We Adapted |
 | ------- | --------------- | --------------- |
@@ -171,7 +171,7 @@ The primary research set for this area is curated in
 | Real-time pacing and synchronization | [ns-3 realtime execution](https://www.nsnam.org/docs/manual/html/realtime.html), adaptive time-dilation work for integrated simulation/emulation | Synchronization policy, pacing, and dilation are apparatus properties that affect experiment validity and comparability |
 | Ordering and causality beyond raw timestamps | Time Warp, DEVS, distributed-simulation time-management literature | Event order, causality guarantees, and temporal windows/deadlines must be modeled separately from the existence of timestamps |
 | Reset, replay, and episode-local temporal semantics | OpenRange episode model, benchmark/task systems, simulation literature | Episode boundaries, reset semantics, and replayability are temporal concerns, not just lifecycle bookkeeping |
-| Realized-time disclosure and provenance | OpenRange run/training-data records, co-simulation timing literature | Runs need explicit disclosure of the realized time model when results are compared across backends or replayed later |
+| Realized-time disclosure and provenance | OpenRange run/training-data records, co-simulation timing literature | Runs need explicit disclosure of the realized time model when results are compared across backends or replayed |
 
 
 ### From OCSF
@@ -211,6 +211,6 @@ These were considered and explicitly excluded:
 | Application HTTP route/API/UI surface (routes, methods, request inputs, responses, route-specific weakness placement) | Participant-observable application state, not transport-service or vulnerability authoring | `Node.runtime.applications` when observed; see ADR-026 |
 | Framework-specific participant APIs | Framework coupling | Integration adapters outside the core SDL/runtime |
 | Terraform module composition            | Import, version, namespace, parameter, locking, and packaging patterns | Implemented as deterministic SDL module/import expansion with OCI packaging, lockfiles, and trust policy |
-| Full CACAO workflow surface             | Current SDL now covers decisions, switch/case routing, reusable workflow calls, retries, explicit joins, cancel/timeout lifecycle contracts, and explicit compensation targets/order | Future: richer exception control and compensation-of-compensation semantics |
-| Full Step Functions / SCXML execution model | Current SDL adopts only the parts needed for objective-centric branching, retry, and explicit joins | Future: richer workflow/event semantics if the SDL grows beyond current scope |
-| VSDL SMT verification                   | Too heavyweight for broad default use today | Selective future extension beyond the lightweight formal-methods policy |
+| Full CACAO workflow surface             | Current SDL covers decisions, switch/case routing, reusable workflow calls, retries, explicit joins, cancel/timeout lifecycle contracts, and explicit compensation targets/order | Not implemented: richer exception control and compensation-of-compensation semantics |
+| Full Step Functions / SCXML execution model | Current SDL adopts only the parts needed for objective-centric branching, retry, and explicit joins | Not implemented: richer workflow/event semantics beyond the current SDL scope |
+| VSDL SMT verification                   | Too heavyweight for broad default use today | Outside the current default verification scope |

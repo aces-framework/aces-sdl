@@ -63,7 +63,7 @@ backend-native scoring state.
   resolves the reference.
 - Preserve the existing evaluator payload contract: `metric` reports score
   fields, while `condition-binding`, `evaluation`, `tlo`, `goal`, and
-  `objective` report `passed`. Any future aggregation rule must compile into
+  `objective` report `passed`. Any additional portable aggregation rule must compile into
   the contract or a governed contract version, not into backend-private
   convention.
 - Treat `detail`, `details`, and `evidence_refs` as observation metadata, not
@@ -99,16 +99,16 @@ backend-native scoring state.
   non-secret; bearer tokens and credentials must not appear in command-line
   arguments, logs, diagnostics, fixtures, or persisted envelopes.
 
-## Extensibility Seam
+## Extension Boundary
 
-The near-term extension seam is a pure assessment semantic helper under
+The extension seam is a pure assessment semantic helper under
 `aces_sdl.semantics` when the same aggregation or reference rule must be used
 by validation, compilation, planning, runtime contract checks, and tests. The
 helper should operate on structured inputs and return normalized references,
 derived dependency roles, and machine-readable issues; callers may translate
 those issues into their local error or diagnostic envelope.
 
-Future portable assessment variations belong in versioned contract/profile or
+Portable assessment variations belong in versioned contract/profile or
 controlled-vocabulary authority only when external implementations need to
 compare them. They should not be hard-coded as evaluator-specific strings.
 

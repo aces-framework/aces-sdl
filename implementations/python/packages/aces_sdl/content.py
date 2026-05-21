@@ -38,6 +38,7 @@ class Content(SDLModel):
     """Data or files placed into a scenario node.
 
     Supports three forms:
+
     - ``file``: A single file at a specific path, optionally with inline text.
     - ``dataset``: A collection of related items (emails, records, pcaps)
       delivered via a source package or listed as items.

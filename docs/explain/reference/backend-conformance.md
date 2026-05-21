@@ -74,16 +74,16 @@ The conformance path touches these gates:
   codes and messages; do not surface raw tracebacks, environment variables,
   bearer tokens, credentials, or backend-private object representations.
 - Host/OS exposure: CLI options may accept profile names and local roots, but
-  must not require secrets or bearer tokens in process argv. Future live-target
+  must not require secrets or bearer tokens in process argv. Live-target
   authentication belongs in headers or process-local configuration that is not
   echoed in diagnostics.
 - Persistence: the suite is report-oriented and should not write durable state
   except explicit report output requested by the caller.
 
-## Extensibility Seam
+## Extension Boundary
 
 The seam is the published contract id and backend profile artifact, not a Python
-enum branch or hard-coded path. Adding a future backend profile or contract
+enum branch or hard-coded path. Adding a backend profile or contract
 family should require adding the contract schema/fixtures/profile artifact and
 registering the matching validator once, not editing every call site.
 

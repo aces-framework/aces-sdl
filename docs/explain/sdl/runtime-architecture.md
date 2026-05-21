@@ -3,12 +3,12 @@
 This document describes the runtime layer that sits directly on top of the SDL.
 It is an SDL-native runtime architecture built for the SDL itself and its
 backend contracts. See
-[ADR-004](../adrs/adr-004-sdl-runtime-layer.md) for the decision record.
+[ADR-004](../../decisions/adrs/adr-004-sdl-runtime-layer.md) for the decision record.
 
 In the broader ecosystem architecture, this document focuses on the
 processor-plus-backend path that is currently implemented in code. It does not
 attempt to fully specify every other apparatus surface. In particular, the
-ecosystem now distinguishes:
+ecosystem distinguishes:
 
 - authored scenario meaning in SDL
 - the processor that instantiates, compiles, plans, and coordinates execution
@@ -56,7 +56,7 @@ aces.backends.*    -> concrete target implementations
 
 ### 1. Instantiate + Compile
 
-`instantiate_scenario(raw_scenario, parameters=None, profile=None)` is now the
+`instantiate_scenario(raw_scenario, parameters=None, profile=None)` is the
 repo-owned concretization pass that runs before compilation.
 
 It:
@@ -91,8 +91,8 @@ Bound feature dependencies also fail closed: if a node-scoped feature binding
 declares a dependency on another feature that is not bound on the same node,
 the compiler emits a diagnostic instead of silently dropping that dependency.
 
-Compiled workflows are no longer just flattened successor maps. `WorkflowRuntime`
-now preserves:
+Compiled workflows are not just flattened successor maps. `WorkflowRuntime`
+preserves:
 
 - `start_step`
 - optional workflow timeout policy in the compiled execution contract
@@ -177,15 +177,15 @@ This gives the planner and manager a typed state model instead of an untyped
 `resources/status` map.
 
 The broader time model is only partly materialized in current contracts. The
-implemented snapshot and control-plane schemas already carry timestamps and
-timeout-related state, but the ecosystem requirements now go further: clock
-model, synchronization policy, pacing mode, and realized temporal guarantees
-also belong to the declared apparatus surface and to archival provenance. That
-is a current architectural direction rather than a fully finished contract set.
+implemented snapshot and control-plane schemas carry timestamps and
+timeout-related state, but they do not fully represent clock authority, time
+domain, synchronization policy, pacing mode, or realized temporal guarantees.
+Those concerns belong to the declared apparatus surface and to archival
+provenance when implementations compare different realizations.
 
 ## Capability Validation
 
-Backends and processors now publish a shared apparatus-manifest envelope with:
+Backends and processors publish a shared apparatus-manifest envelope with:
 
 - `identity`
 - `supported_contract_versions`
@@ -208,7 +208,7 @@ Processor manifests preserve processor-specific capability blocks inside `capabi
 At the ecosystem level, backend manifests are only one declaration surface.
 The reference processor publishes the same shared envelope with processor-specific capabilities.
 Participant-implementation manifests remain a distinct apparatus surface that
-is not yet materially implemented in code.
+is not materially implemented in code.
 
 Validation is semantic, not section-only. Current checks include:
 
@@ -224,19 +224,19 @@ Validation is semantic, not section-only. Current checks include:
 - workflow predicate prior-step state refs and state-predicate subfeatures (`outcome-matching`, `attempt-counts`)
 - scoring/objective usage
 
-`OrchestratorCapabilities` now expose both coarse workflow support and fine-grained workflow semantics:
+`OrchestratorCapabilities` expose both coarse workflow support and fine-grained workflow semantics:
 
 - `supports_workflows`
 - `supports_condition_refs`
 - `supported_workflow_features`
 - `supported_workflow_state_predicates`
 
-Both the backend and processor manifest surfaces now also carry explicit
+Both the backend and processor manifest surfaces also carry explicit
 `realization_support` declarations. These make constrained realization and its
 required disclosures visible in the machine-readable apparatus boundary rather
 than leaving them implied by docs or implementation code.
 
-The shared manifest envelope is now enforced as a concrete declaration surface,
+The shared manifest envelope is enforced as a concrete declaration surface,
 not just a shape:
 
 - `compatibility` must name at least one compatible processor, backend, or
@@ -251,7 +251,7 @@ The reference backend, reference processor, and backend conformance profiles use
 the shared `v2` apparatus manifests. Legacy `v1` manifest schemas remain in the
 repo as deprecated reference artifacts, not as the current conformance target.
 
-Capability validation now operates on concrete instantiated values rather than
+Capability validation operates on concrete instantiated values rather than
 placeholder domains guessed by backends. This removes the old “defer until
 instantiation” gap for runtime-relevant fields such as `nodes.os` and
 `infrastructure.count`.
@@ -276,14 +276,13 @@ inspection from instantiation, and `create()` uses the manifest returned by
 7. on failed runtime-service startup, roll back started services while keeping provisioning state
 8. stop orchestrator -> stop evaluator -> delete provisioning resources
 
-When participant implementations become active runtime surfaces, they still do
-not collapse into the backend boundary. The backend remains responsible for
-world realization and execution services; participant implementations are a
-separate apparatus concern whose identity, configuration, and participant-visible
-decision surface must be preserved in run provenance rather than inferred from
-backend state.
+Participant implementations do not collapse into the backend boundary. The
+backend remains responsible for world realization and execution services;
+participant implementations are a separate apparatus concern whose identity,
+configuration, and participant-visible decision surface belong in run
+provenance rather than being inferred from backend state.
 
-The orchestration runtime contract now includes:
+The orchestration runtime contract includes:
 
 - a plain-data workflow execution-state envelope
 - a plain-data workflow history stream
@@ -318,7 +317,7 @@ This mirrors the contract style used by mature multi-runtime systems:
 The stack currently applies that pattern first to workflow results because workflow
 control is the sharpest semantic surface in the SDL/runtime stack.
 
-The evaluator side is now following the same contract discipline: compiled
+The evaluator side follows the same contract discipline: compiled
 evaluation result/execution contracts are attached to observable evaluation
 resources, backends report plain-data evaluator result envelopes and history
 streams, and the manager validates those payloads against compiled contracts
@@ -328,12 +327,12 @@ Objective `window` refs remain declarative scope/refresh inputs. They can force
 objective refresh when referenced orchestration state changes, but they do not
 create executor ordering edges across domains.
 
-Objective windows now compile through one shared normalized semantic form. The
+Objective windows compile through one shared normalized semantic form. The
 compiler preserves explicit resolved window references alongside the existing
-address sets so later planner/runtime work can reason from canonical reference
+address sets so planner/runtime code can reason from canonical reference
 identities instead of reparsing raw SDL strings.
 
-Planner FM2 semantics are also now explicit rather than incidental:
+Planner FM2 semantics are explicit rather than incidental:
 
 - `ordering` edges define create/start and delete/teardown order
 - `refresh` edges define recomputation/update propagation
@@ -343,12 +342,12 @@ Planner FM2 semantics are also now explicit rather than incidental:
 Those rules are owned by `aces.core.semantics.planner`, not by local planner
 algorithm shape.
 
-This phase is also intentionally composition-ready. Module/import expansion now
+This phase is also intentionally composition-ready. Module/import expansion
 happens before semantic validation and compile, so the runtime layer operates
 only on canonical resolved identities rather than on source-file layout. That
 same foundation is what makes namespaced reusable workflow calls portable.
 
-Composition is now registry-ready as well:
+Composition is registry-ready as well:
 
 - local imports remain supported through `path:` and `source: local:...`
 - reusable remote modules use `source: oci:...`
@@ -392,5 +391,6 @@ The current runtime scope includes:
 - honest in-memory stubs
 - tests and docs
 
-Real Docker/cloud/simulation backends can be built later on top of this
-contract surface.
+Real Docker/cloud/simulation backends are outside this repository's current
+implementation surface. Such backends would have to consume and satisfy these
+contracts.
