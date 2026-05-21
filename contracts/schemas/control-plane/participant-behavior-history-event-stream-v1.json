@@ -564,6 +564,109 @@
       ],
       "title": "ParticipantPreconditionClass",
       "type": "string"
+    },
+    "ParticipantTemporalEventPoint": {
+      "description": "Named participant event points used by temporal contracts.",
+      "enum": [
+        "submit",
+        "start",
+        "end",
+        "observed",
+        "effective",
+        "deadline",
+        "window_open",
+        "window_close",
+        "reset",
+        "replay"
+      ],
+      "title": "ParticipantTemporalEventPoint",
+      "type": "string"
+    },
+    "ParticipantTemporalRuntimeContextModel": {
+      "additionalProperties": false,
+      "properties": {
+        "backend_disclosure_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Backend Disclosure Refs",
+          "type": "array"
+        },
+        "clock_authority": {
+          "minLength": 1,
+          "title": "Clock Authority",
+          "type": "string"
+        },
+        "event_points": {
+          "items": {
+            "$ref": "#/$defs/ParticipantTemporalEventPoint"
+          },
+          "minItems": 1,
+          "title": "Event Points",
+          "type": "array"
+        },
+        "observation_point": {
+          "minLength": 1,
+          "title": "Observation Point",
+          "type": "string"
+        },
+        "replay_boundary": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replay Boundary"
+        },
+        "reset_boundary": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reset Boundary"
+        },
+        "temporal_contract_id": {
+          "minLength": 1,
+          "title": "Temporal Contract Id",
+          "type": "string"
+        },
+        "time_domain": {
+          "$ref": "#/$defs/ParticipantTimeDomain"
+        }
+      },
+      "required": [
+        "temporal_contract_id",
+        "time_domain",
+        "clock_authority",
+        "event_points",
+        "observation_point"
+      ],
+      "title": "ParticipantTemporalRuntimeContextModel",
+      "type": "object"
+    },
+    "ParticipantTimeDomain": {
+      "description": "Distinct SEM-213 time domains.",
+      "enum": [
+        "episode_step",
+        "scenario_time",
+        "simulation_time",
+        "backend_time",
+        "wall_clock_time"
+      ],
+      "title": "ParticipantTimeDomain",
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -734,6 +837,13 @@
         ],
         "default": null,
         "title": "State Transition Kind"
+      },
+      "temporal_contexts": {
+        "items": {
+          "$ref": "#/$defs/ParticipantTemporalRuntimeContextModel"
+        },
+        "title": "Temporal Contexts",
+        "type": "array"
       },
       "timestamp": {
         "title": "Timestamp",

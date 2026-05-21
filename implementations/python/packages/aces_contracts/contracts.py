@@ -19,6 +19,10 @@ from aces_sdl.participant_behavior import (
     ParticipantInteractionClass,
     ParticipantPreconditionClass,
 )
+from aces_sdl.participant_temporal_semantics import (
+    ParticipantTemporalEventPoint,
+    ParticipantTimeDomain,
+)
 from aces_sdl.scenario import InstantiatedScenario, Scenario
 from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler, model_validator
 from pydantic.json_schema import JsonSchemaValue
@@ -247,6 +251,17 @@ class ParticipantActionResultModel(ContractModel):
     diagnostics: list[NonEmptyString] = Field(default_factory=list)
 
 
+class ParticipantTemporalRuntimeContextModel(ContractModel):
+    temporal_contract_id: NonEmptyString
+    time_domain: ParticipantTimeDomain
+    clock_authority: NonEmptyString
+    event_points: list[ParticipantTemporalEventPoint] = Field(min_length=1)
+    observation_point: NonEmptyString
+    backend_disclosure_refs: list[NonEmptyString] = Field(default_factory=list)
+    reset_boundary: NonEmptyString | None = None
+    replay_boundary: NonEmptyString | None = None
+
+
 class ParticipantAttributionCandidateModel(ContractModel):
     candidate_kind: ParticipantAttributionCandidateKind
     ref: NonEmptyString
@@ -304,6 +319,7 @@ class ParticipantBehaviorHistoryEventModel(ContractModel):
     shared_state_refs: list[NonEmptyString] = Field(default_factory=list)
     action_result: ParticipantActionResultModel | None = None
     attribution_edges: list[ParticipantAttributionEdgeModel] = Field(default_factory=list)
+    temporal_contexts: list[ParticipantTemporalRuntimeContextModel] = Field(default_factory=list)
     details: ParticipantObservationDetailsModel = Field(default_factory=ParticipantObservationDetailsModel)
 
 
@@ -1378,6 +1394,7 @@ __all__ = [
     "ParticipantEpisodeHistoryEventModel",
     "ParticipantEpisodeStateModel",
     "ParticipantRuntimeCapabilitiesModel",
+    "ParticipantTemporalRuntimeContextModel",
     "PlanOperationModel",
     "ProcessorFeature",
     "PROCESSOR_MANIFEST_V2_SCHEMA_VERSION",
