@@ -1,17 +1,23 @@
 # Agentic Cyber Environment System
 
 Agentic Cyber Environment System (ACES) is a backend-agnostic scenario
-description language and reference runtime for cyber range scenarios and
-experiments.
+description language, Python reference implementation, and contract surface
+for cyber range scenarios and experiments.
 
 The repository separates authored scenario meaning from processors, backends,
-participant implementations, runtime state, and archived evidence. That lets
-the same scenario be validated and compiled without binding it to one cloud,
-range implementation, or execution harness.
+participant implementations, runtime state, and archived evidence. In the
+current implementation, an SDL document can be parsed, validated,
+instantiated, compiled into runtime models, and checked against published
+backend contracts without binding the authored scenario to one cloud, range
+implementation, or execution harness.
 
 This is an academic and engineering project. The repository is intended to be
-read, tested, and used as a working reference implementation, not treated as a
-product surface.
+read, tested, and used as reference implementation code, not treated as a product
+surface.
+
+The repository is not a managed cyber range and does not include a production
+backend. Backend contracts, stubs, conformance checks, and examples are present;
+real deployment backends remain separate implementations.
 
 ## Contents
 
@@ -73,7 +79,7 @@ Prerequisites:
 Set up the Python reference implementation:
 
 ```shell
-git clone https://github.com/autarchy-ai/aces.git
+git clone https://github.com/Brad-Edwards/aces.git
 cd aces/implementations/python
 uv sync --all-extras
 uv run aces --help
@@ -189,9 +195,8 @@ If you use ACES SDL in academic work, cite the repository:
   author       = {Edwards, Brad},
   title        = {ACES SDL: Backend-Agnostic Scenario Description Language for Cyber Range Experiments},
   year         = {2026},
-  organization = {Autarchy},
   license      = {MIT},
-  url          = {https://github.com/autarchy-ai/aces}
+  url          = {https://github.com/Brad-Edwards/aces}
 }
 ```
 

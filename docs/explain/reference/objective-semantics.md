@@ -2,7 +2,7 @@
 
 Implementer-facing reference for the declarative-objective semantics (`SEM-207`),
 governed by ADR-016. The formal artifact is
-[`specs/formal/objectives/declarative-objective-semantics.md`](../../../specs/formal/objectives/declarative-objective-semantics.md);
+{download}`specs/formal/objectives/declarative-objective-semantics.md <../../../specs/formal/objectives/declarative-objective-semantics.md>`;
 this note is the working summary.
 
 ## What an objective is
@@ -20,7 +20,7 @@ A declarative *objective* binds, in one place:
 - an optional **window** that constrains when the objective matters (the
   story/script/event/workflow/workflow-step reachability and consistency rules
   live with the window helper — see
-  [`window-consistency.md`](../../../specs/formal/objectives/window-consistency.md));
+  {download}`specs/formal/objectives/window-consistency.md <../../../specs/formal/objectives/window-consistency.md>`);
 - a `depends_on` **ordering** relation onto other objectives, which must be
   acyclic.
 
@@ -38,7 +38,7 @@ returns an `ObjectiveSemanticAnalysis`:
 
 - `references` — normalized `ObjectiveReference` edges (actor, target, success,
   window, dependency), each carrying its `dependency_roles` and a `namespace_path`
-  slot reserved for later module/import expansion;
+  slot used by module/import expansion;
 - `issues` — machine-readable consistency problems, per objective in the order
   actor, action, target, success, window, dependency, then a single global
   `objective.dependency-cycle` issue when the `depends_on` graph cycles. Callers
@@ -64,14 +64,15 @@ fail-closed validation and propagated through the analyzer's IR, but they carry
 an **empty** role tuple today: the compiler does not compile actor or target
 identity into runtime ordering or refresh dependencies, and advertising a role
 that never reaches the planner would let the helper claim a propagation that
-does not happen. A future change that compiles actor or target into runtime
-addresses lifts `REFRESH` (or `ORDERING`) on those role constants in lockstep.
+does not happen. If actor or target identity is compiled into runtime
+addresses, the corresponding `REFRESH` or `ORDERING` role constants must change
+in lockstep.
 
 That single fact lives in `partition_objective_dependencies` plus the
 `OBJECTIVE_SUCCESS_DEPENDENCY_ROLES` / `OBJECTIVE_DEPENDENCY_DEPENDENCY_ROLES` /
 `OBJECTIVE_ACTOR_DEPENDENCY_ROLES` / `OBJECTIVE_TARGET_DEPENDENCY_ROLES` /
 `OBJECTIVE_WINDOW_DEPENDENCY_ROLES` constants — each category is gated by its
-own constant so a future role change to one category lands in exactly one
+own constant so a role change to one category lands in exactly one
 place. The validator, the compiler's `ObjectiveRuntime` ordering/refresh
 tuples, and the planner's generic reconciliation all derive their behavior from
 those constants, so a change to a success condition (or to a depended-on

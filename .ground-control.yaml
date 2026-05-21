@@ -1,6 +1,6 @@
 schema_version: 1
 project: aces-sdl
-github_repo: autarchy-ai/aces
+github_repo: Brad-Edwards/aces
 workflow:
   test_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify
   completion_command: uv tool run --from 'nox[uv]==2026.4.10' nox -f noxfile.py -s verify

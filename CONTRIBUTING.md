@@ -26,7 +26,7 @@ Prerequisites:
 Set up the Python implementation:
 
 ```shell
-git clone https://github.com/autarchy-ai/aces.git
+git clone https://github.com/Brad-Edwards/aces.git
 cd aces/implementations/python
 uv sync --all-extras
 ```

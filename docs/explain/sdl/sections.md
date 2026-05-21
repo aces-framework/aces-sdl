@@ -656,10 +656,10 @@ must not be variables.
 This section captures the authoring-layer guarantees of ACT-601. Broader
 participant concerns — behavior semantics, visibility, trajectories,
 budgets, verifier/reward — remain owned by separate ecosystem requirements
-(ACT-602, SEM-208, …) that are still planned.
+(ACT-602, SEM-208, ...) and are not fully represented by the `agents` section.
 
-Broader participant concerns are now treated as first-class ecosystem surfaces,
-even where the current SDL syntax does not yet expose their full shape. Those
+Broader participant concerns are treated as first-class ecosystem surfaces,
+even where the current SDL syntax does not expose their full shape. Those
 concerns include:
 
 - participant-visible tool and affordance surfaces
@@ -852,7 +852,7 @@ variables:
 
 Variables are referenced as `${var_name}` in other sections. They are **not resolved at parse time** — resolution happens at instantiation.
 
-Full-value placeholders are currently supported in ordinary string fields, common scalar fields (counts, booleans, scores, timings, RAM/CPU, ports), many reference values, and selected leaf enum-backed property fields such as `accounts.*.password_strength`, `entities.*.role`, `nodes.*.os`, `nodes.*.asset_value.*`, `infrastructure.*.acls[*].action`, and `objectives.*.success.mode`. The semantic validator checks that `${var_name}` refers to a declared variable, and the repo-owned instantiation phase later substitutes concrete values before compilation/runtime planning. User-defined mapping keys and discriminant/schema-shaping enum fields such as section `type` tags still need concrete values, and placeholder keys are rejected at parse time.
+Full-value placeholders are currently supported in ordinary string fields, common scalar fields (counts, booleans, scores, timings, RAM/CPU, ports), many reference values, and selected leaf enum-backed property fields such as `accounts.*.password_strength`, `entities.*.role`, `nodes.*.os`, `nodes.*.asset_value.*`, `infrastructure.*.acls[*].action`, and `objectives.*.success.mode`. The semantic validator checks that `${var_name}` refers to a declared variable, and the repo-owned instantiation phase substitutes concrete values before compilation/runtime planning. User-defined mapping keys and discriminant/schema-shaping enum fields such as section `type` tags still need concrete values, and placeholder keys are rejected at parse time.
 
 Think of variables as parameterizing **properties of declared objects**, not the object graph itself. For example, a node's hostname, a content file's text, or a subnet CIDR may be variable-backed, while top-level identifiers like `nodes.web`, `features.nginx`, or `accounts.domain-admin` must remain literal.
 
@@ -862,7 +862,7 @@ Think of variables as parameterizing **properties of declared objects**, not the
 
 ## Scoring, Objectives, and Runtime Checks
 
-The SDL now carries both:
+The SDL carries both:
 
 - the OCR-style scoring pipeline (`conditions → metrics → evaluations → TLOs → goals`)
 - declarative objectives that bind actors, targets, windows, and success criteria

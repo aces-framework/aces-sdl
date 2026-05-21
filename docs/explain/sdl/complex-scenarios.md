@@ -12,16 +12,16 @@ The corresponding specifications live in `examples/scenarios/*.sdl.yaml`.
 - Stress multiple trust boundaries at once: identity, network,
   application, data, vendor access, and recovery paths.
 - Include both attack and defense experiments, not just topology.
-- Use the declarative experiment surface we now have:
+- Use the current declarative experiment surface:
   scoring, entities, orchestration, agents, objectives, and variables.
-- Prefer scenarios we could plausibly instantiate later rather than
-  abstract toy graphs.
+- Prefer scenarios grounded enough to expose parser, validation, runtime, and
+  contract limits rather than abstract toy graphs.
 - Surface authoring friction explicitly when the SDL makes a concept
   awkward or requires approximation.
 - When a scenario depends on observability, evidence capture, or participant
   decision surfaces, distinguish authored world-state concerns from broader
-  ecosystem requirements that may still need external contracts or future SDL
-  syntax.
+  ecosystem requirements that are outside the current SDL syntax or require
+  external contracts.
 
 ## Scenario 1: Hospital Ransomware on Surgery Day
 
@@ -87,7 +87,7 @@ red team attempts data theft and radiology disruption?
 - Success based on a mix of conditional uptime metrics and manual
   reporting / recovery evaluation
 - Strong distinction between in-world telemetry and any extra experiment-side
-  evidence capture the ecosystem may eventually require
+  evidence capture outside the current SDL syntax
 
 ### SDL Stress Surface
 
