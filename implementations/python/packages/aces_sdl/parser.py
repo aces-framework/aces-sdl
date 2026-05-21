@@ -184,8 +184,8 @@ def _expand_min_score(value: Any) -> Any:
 
 def _expand_shorthands(data: dict[str, Any]) -> dict[str, Any]:
     """Apply all shorthand expansions to normalized data."""
-    # Sections where "source" is a plain string reference, NOT a Source package.
-    _SOURCE_SKIP_SECTIONS = frozenset({"relationships", "agents", "imports"})
+    # Scopes where "source" is a plain string reference, NOT a Source package.
+    _SOURCE_SKIP_SECTIONS = frozenset({"relationships", "agents", "imports", "runtime"})
 
     def expand_sources_scoped(
         obj: Any,

@@ -1250,6 +1250,17 @@
           "title": "Roles",
           "type": "object"
         },
+        "runtime": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "services": {
           "items": {
             "$ref": "#/$defs/ServicePort"
@@ -2244,6 +2255,407 @@
         "username"
       ],
       "title": "Role",
+      "type": "object"
+    },
+    "RuntimeConfiguration": {
+      "additionalProperties": false,
+      "description": "Observed runtime configuration facts attached to a VM node.",
+      "properties": {
+        "dependency_manifests": {
+          "items": {
+            "$ref": "#/$defs/RuntimeDependencyManifest"
+          },
+          "title": "Dependency Manifests",
+          "type": "array"
+        },
+        "local_control_interfaces": {
+          "items": {
+            "$ref": "#/$defs/RuntimeControlInterface"
+          },
+          "title": "Local Control Interfaces",
+          "type": "array"
+        },
+        "mounts": {
+          "items": {
+            "$ref": "#/$defs/RuntimeMount"
+          },
+          "title": "Mounts",
+          "type": "array"
+        },
+        "package_vulnerabilities": {
+          "items": {
+            "$ref": "#/$defs/RuntimePackageVulnerabilityFinding"
+          },
+          "title": "Package Vulnerabilities",
+          "type": "array"
+        },
+        "packages": {
+          "items": {
+            "$ref": "#/$defs/RuntimePackage"
+          },
+          "title": "Packages",
+          "type": "array"
+        },
+        "process": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeProcessIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "RuntimeConfiguration",
+      "type": "object"
+    },
+    "RuntimeControlInterface": {
+      "additionalProperties": false,
+      "description": "A non-network local control API exposed inside a runtime node.",
+      "properties": {
+        "access": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeControlInterfaceAccess"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Access"
+        },
+        "bind_source": {
+          "default": "",
+          "title": "Bind Source",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeControlInterfaceKind"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unix_socket",
+          "title": "Kind"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "protocol": {
+          "default": "",
+          "title": "Protocol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "RuntimeControlInterface",
+      "type": "object"
+    },
+    "RuntimeControlInterfaceAccess": {
+      "description": "Observed local-control access mode.",
+      "enum": [
+        "read_only",
+        "read_write",
+        "unknown"
+      ],
+      "title": "RuntimeControlInterfaceAccess",
+      "type": "string"
+    },
+    "RuntimeControlInterfaceKind": {
+      "description": "Path-local control interface shape observed at runtime.",
+      "enum": [
+        "unix_socket",
+        "named_pipe",
+        "file",
+        "other"
+      ],
+      "title": "RuntimeControlInterfaceKind",
+      "type": "string"
+    },
+    "RuntimeDependencyManifest": {
+      "additionalProperties": false,
+      "description": "A dependency manifest visible in the realized runtime artifact.",
+      "properties": {
+        "ecosystem": {
+          "title": "Ecosystem",
+          "type": "string"
+        },
+        "format": {
+          "default": "",
+          "title": "Format",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "version": {
+          "default": "",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ecosystem",
+        "path"
+      ],
+      "title": "RuntimeDependencyManifest",
+      "type": "object"
+    },
+    "RuntimeMount": {
+      "additionalProperties": false,
+      "description": "A filesystem mount observed on a runtime node.",
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "read_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "title": "Read Only"
+        },
+        "source": {
+          "default": "",
+          "title": "Source",
+          "type": "string"
+        },
+        "source_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeMountSourceKind"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "other",
+          "title": "Source Kind"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "title": "RuntimeMount",
+      "type": "object"
+    },
+    "RuntimeMountSourceKind": {
+      "description": "Portable source kind for a runtime filesystem mount.",
+      "enum": [
+        "volume",
+        "bind",
+        "tmpfs",
+        "image",
+        "other"
+      ],
+      "title": "RuntimeMountSourceKind",
+      "type": "string"
+    },
+    "RuntimePackage": {
+      "additionalProperties": false,
+      "description": "A package observed in a runtime image or node.",
+      "properties": {
+        "architecture": {
+          "default": "",
+          "title": "Architecture",
+          "type": "string"
+        },
+        "manager": {
+          "title": "Manager",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "purl": {
+          "default": "",
+          "title": "Purl",
+          "type": "string"
+        },
+        "source": {
+          "default": "",
+          "title": "Source",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manager",
+        "name",
+        "version"
+      ],
+      "title": "RuntimePackage",
+      "type": "object"
+    },
+    "RuntimePackageVulnerabilityFinding": {
+      "additionalProperties": false,
+      "description": "A scanner-derived CVE/advisory finding for an observed package.",
+      "properties": {
+        "advisory_url": {
+          "default": "",
+          "title": "Advisory Url",
+          "type": "string"
+        },
+        "fixed_version": {
+          "default": "",
+          "title": "Fixed Version",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "image_digest": {
+          "title": "Image Digest",
+          "type": "string"
+        },
+        "installed_version": {
+          "title": "Installed Version",
+          "type": "string"
+        },
+        "package_name": {
+          "title": "Package Name",
+          "type": "string"
+        },
+        "scan_time": {
+          "title": "Scan Time",
+          "type": "string"
+        },
+        "scanner": {
+          "title": "Scanner",
+          "type": "string"
+        },
+        "scanner_database": {
+          "default": "",
+          "title": "Scanner Database",
+          "type": "string"
+        },
+        "scanner_version": {
+          "default": "",
+          "title": "Scanner Version",
+          "type": "string"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimePackageVulnerabilitySeverity"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Severity"
+        }
+      },
+      "required": [
+        "id",
+        "package_name",
+        "installed_version",
+        "scanner",
+        "image_digest",
+        "scan_time"
+      ],
+      "title": "RuntimePackageVulnerabilityFinding",
+      "type": "object"
+    },
+    "RuntimePackageVulnerabilitySeverity": {
+      "description": "Scanner-derived package finding severity.",
+      "enum": [
+        "unknown",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "RuntimePackageVulnerabilitySeverity",
+      "type": "string"
+    },
+    "RuntimeProcessIdentity": {
+      "additionalProperties": false,
+      "description": "Observed process identity for a runtime node.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "group": {
+          "default": "",
+          "title": "Group",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "user": {
+          "default": "",
+          "title": "User",
+          "type": "string"
+        },
+        "working_directory": {
+          "default": "",
+          "title": "Working Directory",
+          "type": "string"
+        }
+      },
+      "title": "RuntimeProcessIdentity",
       "type": "object"
     },
     "Script": {

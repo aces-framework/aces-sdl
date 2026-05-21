@@ -43,6 +43,13 @@ becoming a validator-only interpretation of the SDL.
 | `verify_workflows` | Workflow `start` and every referenced step must exist. `objective`/`retry` steps must reference declared objectives. Predicate refs must resolve to declared conditions/metrics/evaluations/TLOs/goals/objectives, and step-state refs must resolve to prior executable steps whose state is guaranteed to be known before the predicate runs. Workflow graphs must be acyclic and fully reachable from `start`. Parallel joins must be explicit barriers, every explicit branch path must converge on the declared join, branch-local state remains scoped until the join, and post-join predicates may inspect only branch steps guaranteed on every path within their branch before the join. |
 | `verify_variables` | Checks that full-value `${var}` placeholders reference declared variables. Structural validation of typed defaults and `allowed_values` still happens in the `Variable` model itself. |
 
+Pydantic structural validation also enforces model-local node rules before
+these semantic passes run. Switch nodes reject VM-only fields, including
+`runtime`. Runtime mount and dependency-manifest paths must be absolute paths
+or variable references. Runtime local-control interface paths and bind sources
+must be absolute paths, Windows named pipe endpoints, or variable references;
+Windows named pipe endpoints require `kind: named_pipe`.
+
 When a field contains an unresolved `${var}` placeholder, reference-oriented
 passes treat it as deferred rather than as a broken concrete reference. The
 validator still does not substitute values; the later repo-owned instantiation
@@ -54,9 +61,12 @@ compiler performs additional fail-closed binding checks, including node-local
 feature dependency enforcement and bound-resource reference resolution.
 
 This also means the validator only enforces what the current SDL syntax can
-actually express. Broader ecosystem concerns such as participant-implementation
-manifests, decision-surface exposure policy contracts, augmentation disclosure,
-and full evidence-capture contract surfaces are separate validation domains.
+actually express. Node `runtime` metadata covers observed VM configuration
+facts such as mounts, path-local control interfaces, process identity, runtime
+package inventory, dependency manifests, and scanner-derived package findings.
+Broader ecosystem concerns such as participant-implementation manifests,
+decision-surface exposure policy contracts, augmentation disclosure, and full
+evidence-capture contract surfaces are separate validation domains.
 They should not be retrofitted into validator-only behavior before the authored
 surface or external contracts exist.
 

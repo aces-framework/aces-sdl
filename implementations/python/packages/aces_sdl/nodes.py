@@ -13,6 +13,7 @@ from ._base import (
     SDLModel,
     is_variable_ref,
     normalize_enum_value,
+    parse_bool_or_var,
     parse_enum_or_var,
     parse_int_or_var,
 )
@@ -36,6 +37,46 @@ _RAM_PATTERN = re.compile(
     r"^\s*(\d+(?:\.\d+)?)\s*(" + "|".join(_BYTE_UNITS) + r")\s*$",
     re.IGNORECASE,
 )
+_WINDOWS_NAMED_PIPE_PREFIXES = ("\\\\.\\pipe\\", "\\\\?\\pipe\\")
+
+
+def _absolute_path_or_var(value: str, *, field_name: str) -> str:
+    if is_variable_ref(value):
+        return value
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    if not value.startswith("/"):
+        raise ValueError(f"{field_name} must be an absolute path")
+    return value
+
+
+def _is_windows_named_pipe(value: str) -> bool:
+    return isinstance(value, str) and value.lower().startswith(_WINDOWS_NAMED_PIPE_PREFIXES)
+
+
+def _control_interface_path_or_var(value: str, *, field_name: str) -> str:
+    if is_variable_ref(value):
+        return value
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    if value.startswith("/") or _is_windows_named_pipe(value):
+        return value
+    raise ValueError(f"{field_name} must be an absolute path or Windows named pipe")
+
+
+def _parse_runtime_enum_or_var(value, enum_cls: type[Enum], *, field_name: str):
+    if value is None or is_variable_ref(value):
+        return value
+    if isinstance(value, enum_cls):
+        return value
+    if isinstance(value, str):
+        normalized = value.lower().replace("-", "_")
+        try:
+            return enum_cls(normalized)
+        except ValueError as e:
+            allowed = ", ".join(member.value for member in enum_cls)
+            raise ValueError(f"{field_name} must be one of: {allowed}") from e
+    raise ValueError(f"{field_name} must be a string")
 
 
 def parse_ram(value: str | int) -> int | str:
@@ -163,6 +204,199 @@ class ServicePort(SDLModel):
         return parse_int_or_var(v, minimum=1, maximum=65535, field_name="port")
 
 
+class RuntimeMountSourceKind(str, Enum):
+    """Portable source kind for a runtime filesystem mount."""
+
+    VOLUME = "volume"
+    BIND = "bind"
+    TMPFS = "tmpfs"
+    IMAGE = "image"
+    OTHER = "other"
+
+
+class RuntimeControlInterfaceKind(str, Enum):
+    """Path-local control interface shape observed at runtime."""
+
+    UNIX_SOCKET = "unix_socket"
+    NAMED_PIPE = "named_pipe"
+    FILE = "file"
+    OTHER = "other"
+
+
+class RuntimeControlInterfaceAccess(str, Enum):
+    """Observed local-control access mode."""
+
+    READ_ONLY = "read_only"
+    READ_WRITE = "read_write"
+    UNKNOWN = "unknown"
+
+
+class RuntimePackageVulnerabilitySeverity(str, Enum):
+    """Scanner-derived package finding severity."""
+
+    UNKNOWN = "unknown"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class RuntimeMount(SDLModel):
+    """A filesystem mount observed on a runtime node."""
+
+    target: str
+    source: str = ""
+    source_kind: RuntimeMountSourceKind | str = RuntimeMountSourceKind.OTHER
+    read_only: bool | str = False
+    options: list[str] = Field(default_factory=list)
+    description: str = ""
+
+    @field_validator("target")
+    @classmethod
+    def validate_target(cls, v: str) -> str:
+        return _absolute_path_or_var(v, field_name="target")
+
+    @field_validator("source_kind", mode="before")
+    @classmethod
+    def normalize_source_kind(cls, v: RuntimeMountSourceKind | str) -> RuntimeMountSourceKind | str:
+        return _parse_runtime_enum_or_var(v, RuntimeMountSourceKind, field_name="source_kind")
+
+    @field_validator("read_only", mode="before")
+    @classmethod
+    def parse_read_only(cls, v: bool | str) -> bool | str:
+        return parse_bool_or_var(v, field_name="read_only")
+
+
+class RuntimeControlInterface(SDLModel):
+    """A non-network local control API exposed inside a runtime node."""
+
+    path: str
+    kind: RuntimeControlInterfaceKind | str = RuntimeControlInterfaceKind.UNIX_SOCKET
+    protocol: str = ""
+    bind_source: str = ""
+    access: RuntimeControlInterfaceAccess | str = RuntimeControlInterfaceAccess.UNKNOWN
+    description: str = ""
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, v: str) -> str:
+        return _control_interface_path_or_var(v, field_name="path")
+
+    @field_validator("bind_source")
+    @classmethod
+    def validate_bind_source(cls, v: str) -> str:
+        return _control_interface_path_or_var(v, field_name="bind_source") if v else v
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def normalize_kind(cls, v: RuntimeControlInterfaceKind | str) -> RuntimeControlInterfaceKind | str:
+        return _parse_runtime_enum_or_var(v, RuntimeControlInterfaceKind, field_name="kind")
+
+    @field_validator("access", mode="before")
+    @classmethod
+    def normalize_access(cls, v: RuntimeControlInterfaceAccess | str) -> RuntimeControlInterfaceAccess | str:
+        return _parse_runtime_enum_or_var(v, RuntimeControlInterfaceAccess, field_name="access")
+
+    @model_validator(mode="after")
+    def validate_named_pipe_kind(self) -> "RuntimeControlInterface":
+        if is_variable_ref(self.kind):
+            return self
+        has_windows_named_pipe_endpoint = _is_windows_named_pipe(self.path) or _is_windows_named_pipe(self.bind_source)
+        if has_windows_named_pipe_endpoint and self.kind != RuntimeControlInterfaceKind.NAMED_PIPE:
+            raise ValueError("Windows named pipe paths require kind 'named_pipe'")
+        return self
+
+
+class RuntimeProcessIdentity(SDLModel):
+    """Observed process identity for a runtime node."""
+
+    pid: int | str | None = None
+    command: list[str] = Field(default_factory=list)
+    user: str = ""
+    group: str = ""
+    working_directory: str = ""
+
+    @field_validator("pid", mode="before")
+    @classmethod
+    def parse_pid(cls, v: int | str | None) -> int | str | None:
+        return parse_int_or_var(v, minimum=1, field_name="pid") if v is not None else v
+
+    @field_validator("command", mode="before")
+    @classmethod
+    def normalize_command(cls, v: str | list[str] | None) -> list[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        return v
+
+    @field_validator("working_directory")
+    @classmethod
+    def validate_working_directory(cls, v: str) -> str:
+        return _absolute_path_or_var(v, field_name="working_directory") if v else v
+
+
+class RuntimePackage(SDLModel):
+    """A package observed in a runtime image or node."""
+
+    manager: str
+    name: str
+    version: str
+    architecture: str = ""
+    source: str = ""
+    purl: str = ""
+
+
+class RuntimeDependencyManifest(SDLModel):
+    """A dependency manifest visible in the realized runtime artifact."""
+
+    ecosystem: str
+    path: str
+    format: str = ""
+    name: str = ""
+    version: str = ""
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, v: str) -> str:
+        return _absolute_path_or_var(v, field_name="path")
+
+
+class RuntimePackageVulnerabilityFinding(SDLModel):
+    """A scanner-derived CVE/advisory finding for an observed package."""
+
+    id: str
+    package_name: str
+    installed_version: str
+    severity: RuntimePackageVulnerabilitySeverity | str = RuntimePackageVulnerabilitySeverity.UNKNOWN
+    scanner: str
+    image_digest: str
+    scan_time: str
+    fixed_version: str = ""
+    advisory_url: str = ""
+    scanner_version: str = ""
+    scanner_database: str = ""
+
+    @field_validator("severity", mode="before")
+    @classmethod
+    def normalize_severity(
+        cls,
+        v: RuntimePackageVulnerabilitySeverity | str,
+    ) -> RuntimePackageVulnerabilitySeverity | str:
+        return _parse_runtime_enum_or_var(v, RuntimePackageVulnerabilitySeverity, field_name="severity")
+
+
+class RuntimeConfiguration(SDLModel):
+    """Observed runtime configuration facts attached to a VM node."""
+
+    mounts: list[RuntimeMount] = Field(default_factory=list)
+    local_control_interfaces: list[RuntimeControlInterface] = Field(default_factory=list)
+    process: RuntimeProcessIdentity | None = None
+    packages: list[RuntimePackage] = Field(default_factory=list)
+    dependency_manifests: list[RuntimeDependencyManifest] = Field(default_factory=list)
+    package_vulnerabilities: list[RuntimePackageVulnerabilityFinding] = Field(default_factory=list)
+
+
 class Node(SDLModel):
     """A scenario node — either a VM or a Switch.
 
@@ -189,6 +423,7 @@ class Node(SDLModel):
     roles: dict[str, Role] = Field(default_factory=dict)
     services: list[ServicePort] = Field(default_factory=list)
     asset_value: AssetValue | None = None
+    runtime: RuntimeConfiguration | None = None
 
     @field_validator("os", mode="before")
     @classmethod
@@ -198,33 +433,30 @@ class Node(SDLModel):
     @model_validator(mode="after")
     def validate_type_constraints(self) -> "Node":
         """Switch nodes cannot carry VM-only fields."""
-        if self.type == NodeType.SWITCH:
-            disallowed_fields: list[str] = []
-            if self.source is not None:
-                disallowed_fields.append("source")
-            if self.resources is not None:
-                disallowed_fields.append("resources")
-            if self.os is not None:
-                disallowed_fields.append("os")
-            if self.os_version:
-                disallowed_fields.append("os_version")
-            if self.features:
-                disallowed_fields.append("features")
-            if self.conditions:
-                disallowed_fields.append("conditions")
-            if self.injects:
-                disallowed_fields.append("injects")
-            if self.vulnerabilities:
-                disallowed_fields.append("vulnerabilities")
-            if self.roles:
-                disallowed_fields.append("roles")
-            if self.services:
-                disallowed_fields.append("services")
-            if self.asset_value is not None:
-                disallowed_fields.append("asset_value")
-            if disallowed_fields:
-                raise ValueError("Switch nodes cannot have VM-only fields: " + ", ".join(disallowed_fields))
+        if self.type != NodeType.SWITCH:
+            return self
+
+        disallowed_fields = self._populated_vm_only_fields()
+        if disallowed_fields:
+            raise ValueError("Switch nodes cannot have VM-only fields: " + ", ".join(disallowed_fields))
         return self
+
+    def _populated_vm_only_fields(self) -> list[str]:
+        fields = {
+            "source": self.source is not None,
+            "resources": self.resources is not None,
+            "os": self.os is not None,
+            "os_version": bool(self.os_version),
+            "features": bool(self.features),
+            "conditions": bool(self.conditions),
+            "injects": bool(self.injects),
+            "vulnerabilities": bool(self.vulnerabilities),
+            "roles": bool(self.roles),
+            "services": bool(self.services),
+            "asset_value": self.asset_value is not None,
+            "runtime": self.runtime is not None,
+        }
+        return [field_name for field_name, is_populated in fields.items() if is_populated]
 
     @model_validator(mode="after")
     def validate_unique_service_ports(self) -> "Node":
