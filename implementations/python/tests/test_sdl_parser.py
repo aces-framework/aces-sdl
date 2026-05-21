@@ -220,6 +220,59 @@ nodes:
         s = parse_sdl(sdl)
         assert any("without 'resources'" in advisory for advisory in s.advisories)
 
+    def test_runtime_configuration_parses_without_overloading_other_sections(self):
+        sdl = """
+name: shuffle-runtime-inventory
+nodes:
+  shuffle-backend:
+    type: vm
+    os: linux
+    runtime:
+      mounts:
+        - target: /shuffle-database
+          source: aptl_shuffle_data
+          source-kind: volume
+      local-control-interfaces:
+        - path: /run/docker.sock
+          kind: unix-socket
+          protocol: docker
+          bind-source: /var/run/docker.sock
+          access: read-write
+      process:
+        pid: 1
+        command: ./shufflebackend
+        user: root
+        working-directory: /app
+      packages:
+        - manager: apk
+          name: musl
+          version: 1.2.4-r2
+      dependency-manifests:
+        - ecosystem: go
+          path: /app/go.mod
+          format: go-module
+      package-vulnerabilities:
+        - id: CVE-2026-12345
+          package-name: musl
+          installed-version: 1.2.4-r2
+          fixed-version: 1.2.5-r0
+          severity: high
+          scanner: trivy
+          image-digest: sha256:abc123
+          scan-time: "2026-05-20T12:00:00Z"
+"""
+        scenario = parse_sdl(sdl)
+        node = scenario.nodes["shuffle-backend"]
+
+        assert node.services == []
+        assert scenario.vulnerabilities == {}
+        assert node.runtime is not None
+        assert node.runtime.mounts[0].target == "/shuffle-database"
+        assert node.runtime.local_control_interfaces[0].path == "/run/docker.sock"
+        assert node.runtime.process is not None
+        assert node.runtime.process.command == ["./shufflebackend"]
+        assert node.runtime.package_vulnerabilities[0].id == "CVE-2026-12345"
+
     def test_source_shorthand(self):
         sdl = """
 name: test

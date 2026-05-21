@@ -8,7 +8,17 @@ from aces.core.sdl.conditions import Condition
 from aces.core.sdl.entities import Entity, ExerciseRole, flatten_entities
 from aces.core.sdl.features import Feature, FeatureType
 from aces.core.sdl.infrastructure import ACLAction, ACLRule, InfraNode, SimpleProperties
-from aces.core.sdl.nodes import Node, NodeType, Resources, Role, parse_ram
+from aces.core.sdl.nodes import (
+    Node,
+    NodeType,
+    Resources,
+    Role,
+    RuntimeControlInterface,
+    RuntimeControlInterfaceAccess,
+    RuntimeControlInterfaceKind,
+    RuntimeMountSourceKind,
+    parse_ram,
+)
 from aces.core.sdl.objectives import Objective, ObjectiveSuccess, ObjectiveWindow
 from aces.core.sdl.orchestration import (
     Inject,
@@ -120,11 +130,112 @@ class TestNode:
             ("roles", {"admin": {"username": "root"}}),
             ("services", [{"port": 80, "name": "http"}]),
             ("asset_value", {"confidentiality": "high"}),
+            ("runtime", {"process": {"pid": 1, "command": "./shufflebackend"}}),
         ],
     )
     def test_switch_rejects_other_vm_only_fields(self, field_name, value):
         with pytest.raises(ValidationError, match=field_name):
             Node(type="switch", **{field_name: value})
+
+    def test_vm_runtime_configuration_surfaces(self):
+        n = Node(
+            type="vm",
+            runtime={
+                "mounts": [
+                    {
+                        "target": "/shuffle-database",
+                        "source": "aptl_shuffle_data",
+                        "source_kind": "volume",
+                    }
+                ],
+                "local_control_interfaces": [
+                    {
+                        "path": "/run/docker.sock",
+                        "kind": "unix_socket",
+                        "protocol": "docker",
+                        "bind_source": "/var/run/docker.sock:/var/run/docker.sock:rw",
+                        "access": "read_write",
+                    }
+                ],
+                "process": {
+                    "pid": 1,
+                    "command": "./shufflebackend",
+                    "user": "root",
+                    "working_directory": "/app",
+                },
+                "packages": [
+                    {
+                        "manager": "apk",
+                        "name": "musl",
+                        "version": "1.2.4-r2",
+                    }
+                ],
+                "dependency_manifests": [
+                    {
+                        "ecosystem": "go",
+                        "path": "/app/go.mod",
+                        "format": "go-module",
+                    }
+                ],
+                "package_vulnerabilities": [
+                    {
+                        "id": "CVE-2026-12345",
+                        "package_name": "musl",
+                        "installed_version": "1.2.4-r2",
+                        "fixed_version": "1.2.5-r0",
+                        "severity": "high",
+                        "scanner": "trivy",
+                        "image_digest": "sha256:abc123",
+                        "scan_time": "2026-05-20T12:00:00Z",
+                    }
+                ],
+            },
+        )
+
+        runtime = n.runtime
+        assert runtime is not None
+        assert runtime.mounts[0].target == "/shuffle-database"
+        assert runtime.mounts[0].source_kind == RuntimeMountSourceKind.VOLUME
+        assert runtime.local_control_interfaces[0].kind == RuntimeControlInterfaceKind.UNIX_SOCKET
+        assert runtime.local_control_interfaces[0].bind_source == "/var/run/docker.sock:/var/run/docker.sock:rw"
+        assert runtime.local_control_interfaces[0].access == RuntimeControlInterfaceAccess.READ_WRITE
+        assert runtime.process is not None
+        assert runtime.process.pid == 1
+        assert runtime.process.command == ["./shufflebackend"]
+        assert runtime.process.user == "root"
+        assert runtime.process.working_directory == "/app"
+        assert runtime.packages[0].manager == "apk"
+        assert runtime.dependency_manifests[0].ecosystem == "go"
+        assert runtime.package_vulnerabilities[0].scanner == "trivy"
+
+    @pytest.mark.parametrize(
+        ("runtime", "message"),
+        [
+            ({"mounts": [{"target": "shuffle-database", "source": "data"}]}, "target"),
+            ({"local_control_interfaces": [{"path": "run/docker.sock"}]}, "path"),
+            ({"process": {"pid": 0, "command": "./shufflebackend"}}, "pid"),
+            ({"process": {"working_directory": "app"}}, "working_directory"),
+            ({"dependency_manifests": [{"ecosystem": "go", "path": "go.mod"}]}, "path"),
+        ],
+    )
+    def test_runtime_configuration_rejects_invalid_runtime_anchors(self, runtime, message):
+        with pytest.raises(ValidationError, match=message):
+            Node(type="vm", runtime=runtime)
+
+    def test_runtime_control_interface_accepts_windows_named_pipe_path(self):
+        interface = RuntimeControlInterface(
+            path=r"\\.\pipe\docker_engine",
+            kind="named-pipe",
+            bind_source=r"\\.\pipe\docker_engine",
+        )
+
+        assert interface.path == r"\\.\pipe\docker_engine"
+        assert interface.kind == RuntimeControlInterfaceKind.NAMED_PIPE
+        assert interface.bind_source == r"\\.\pipe\docker_engine"
+
+    def test_runtime_control_interface_named_pipe_path_requires_named_pipe_kind(self):
+        with pytest.raises(ValidationError, match="named_pipe"):
+            RuntimeControlInterface(path=r"\\.\pipe\docker_engine", kind="unix-socket")
 
 
 class TestRole:
