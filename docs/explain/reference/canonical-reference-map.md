@@ -29,6 +29,8 @@ material. It is an index, not a replacement for the linked artifacts.
 
 | Surface | Current reference |
 |---------|-------------------|
+| Getting started | [`docs/explain/getting-started.md`](../getting-started.md) |
+| Worked examples | `examples/README.md`, `examples/scenarios/*.sdl.yaml` |
 | SDL guide | [`docs/explain/sdl/index.md`](../sdl/index.md) |
 | SDL sections | [`docs/explain/sdl/sections.md`](../sdl/sections.md) |
 | Parser behavior | [`docs/explain/sdl/parser.md`](../sdl/parser.md) |
